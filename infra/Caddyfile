@@ -1,0 +1,37 @@
+www.{$SITE_ADDRESS} {
+	redir https://{$SITE_ADDRESS}{uri} permanent
+}
+
+{$SITE_ADDRESS} {
+	encode gzip
+
+	# /metrics (Prometheus) es reserva per a Alloy, dins la xarxa Docker
+	# (api:8000/metrics directament, sense passar per Caddy) — bloquejat
+	# aquí perquè no quedi accessible des d'internet.
+	handle /api/metrics {
+		respond 404
+	}
+
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+
+	handle /uploads/* {
+		uri strip_prefix /uploads
+		root * /srv/uploads
+		file_server
+	}
+
+	handle {
+		header {
+			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+			Permissions-Policy "geolocation=(), camera=(), microphone=()"
+			X-Frame-Options "SAMEORIGIN"
+			-X-Powered-By
+		}
+		reverse_proxy web:3000
+	}
+}

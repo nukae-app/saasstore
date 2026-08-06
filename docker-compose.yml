@@ -1,0 +1,66 @@
+services:
+  api:
+    build: ./api
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "8000"
+    volumes:
+      - uploads:/app/uploads
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    expose:
+      - "6379"
+
+  worker:
+    build: ./api
+    restart: unless-stopped
+    env_file: .env
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    depends_on:
+      redis:
+        condition: service_started
+
+  beat:
+    build: ./api
+    restart: unless-stopped
+    env_file: .env
+    command: celery -A app.celery_app beat --loglevel=info
+    depends_on:
+      redis:
+        condition: service_started
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      NEXT_PUBLIC_DEV_ADMIN_BYPASS: ${NEXT_PUBLIC_DEV_ADMIN_BYPASS:-false}
+    depends_on:
+      - api
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - uploads:/srv/uploads:ro
+    depends_on:
+      - web
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:
+  uploads:

@@ -1,0 +1,298 @@
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&family=Hanken+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/*
+  El color de border per defecte ha canviat a `currentcolor` a Tailwind CSS v4;
+  aquest bloc manté el comportament visual que teníem amb v3.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-cream: #faf9f6;
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-serif: var(--font-headline), Georgia, serif;
+  --font-sans: var(--font-body), system-ui, sans-serif;
+  --font-mono: var(--font-label-mono), ui-monospace, monospace;
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-in-from-right: slide-in-from-right 0.3s ease-out;
+  --animate-slide-out-to-right: slide-out-to-right 0.3s ease-in;
+  --animate-spin-slow: spin-slow 12s linear infinite;
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-in-from-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slide-out-to-right {
+    from { transform: translateX(0); }
+    to { transform: translateX(100%); }
+  }
+}
+
+@layer base {
+  :root {
+    /* Storefront palette — monocromo negro/crema (Stitch) */
+    --background: 40 30% 97%;
+    --foreground: 0 0% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 46%;
+
+    --accent: 0 0% 95%;
+    --accent-foreground: 0 0% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 80%;
+    --input: 0 0% 80%;
+    --ring: 0 0% 9%;
+
+    --radius: 1rem;
+
+    --font-headline: 'Bodoni Moda', Georgia, serif;
+    --font-body: 'Hanken Grotesk', system-ui, sans-serif;
+    --font-label-mono: 'Space Mono', ui-monospace, monospace;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-headline);
+  }
+}
+
+/* Blog post HTML content (renderitzat des de la BD) */
+.blog-content {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #27272a;
+}
+.blog-content p { margin: 0 0 1.4em; }
+.blog-content h2 {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-size: 1.6rem;
+  font-weight: 400;
+  margin: 2em 0 0.6em;
+  color: #18181b;
+}
+.blog-content h3 {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-size: 1.25rem;
+  font-weight: 400;
+  margin: 1.6em 0 0.5em;
+  color: #18181b;
+}
+.blog-content a {
+  color: #d97706;
+  text-decoration: none;
+}
+.blog-content a:hover { color: #b45309; }
+.blog-content strong { color: #18181b; font-weight: 600; }
+.blog-content em { font-style: italic; }
+.blog-content ul, .blog-content ol {
+  margin: 0 0 1.4em 1.5em;
+  padding: 0;
+}
+.blog-content li { margin-bottom: 0.4em; }
+.blog-content blockquote {
+  border-left: 3px solid #f59e0b;
+  margin: 1.6em 0;
+  padding: 0.4em 1.2em;
+  color: #71717a;
+  font-style: italic;
+}
+.blog-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.6em 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.blog-content iframe {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 1.6em 0;
+  display: block;
+}
+/* Mixcloud widget */
+.blog-content iframe[src*="mixcloud.com"] {
+  width: 100%;
+  height: 120px;
+}
+/* Bandcamp player */
+.blog-content iframe[src*="bandcamp.com"] {
+  width: 100%;
+  height: 120px;
+}
+/* YouTube embed */
+.blog-content iframe[src*="youtube.com"],
+.blog-content iframe[src*="youtu.be"] {
+  width: 100%;
+  aspect-ratio: 16/9;
+  height: auto;
+}
+/* SoundCloud */
+.blog-content iframe[src*="soundcloud.com"] {
+  width: 100%;
+  height: 166px;
+}
+.blog-content hr {
+  border: none;
+  border-top: 1px solid #e4e4e7;
+  margin: 2.5em 0;
+}
+
+/* Impressió de tiquets/etiquetes (TPV, comandes web) */
+#print-area {
+  display: none;
+}
+@media print {
+  @page { margin: 0; }
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}
+
+.receipt-ticket {
+  width: 80mm;
+  padding: 4mm;
+  font-family: var(--font-label-mono), ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #000;
+}
+.receipt-ticket hr {
+  border: none;
+  border-top: 1px dashed #000;
+  margin: 2mm 0;
+}
+.receipt-ticket .receipt-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 2mm;
+}
+.receipt-ticket .receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+}
+
+.shipping-label {
+  width: 100mm;
+  height: 150mm;
+  padding: 6mm;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #000;
+  box-sizing: border-box;
+}
+.shipping-label hr {
+  border: none;
+  border-top: 1px solid #000;
+  margin: 4mm 0;
+}

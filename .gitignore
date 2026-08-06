@@ -1,0 +1,59 @@
+# Entorn
+.env
+.env.grafana
+*.env.local
+*.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Alembic cache (els fitxers .py de versions sí s'inclouen, però no el cache)
+api/alembic/versions/__pycache__/
+
+# Node / Next.js
+node_modules/
+web/.next/
+web/out/
+web/build/
+.npm/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# SQLite de tests
+api/test.db
+
+# Dades locals (no pujar a git)
+data/
+postgres_data/
+
+# Terraform (el state pot contenir secrets)
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl
+infra/terraform/terraform.tfstate
+infra/terraform/terraform.tfstate.backup
+infra/terraform/terraform.tfstate.*.backup
+infra/terraform/terraform.tfvars
+infra/terraform/tfplan
+
+# Clau SSH generada per Terraform
+*.pem

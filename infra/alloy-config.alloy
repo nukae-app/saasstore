@@ -1,0 +1,67 @@
+// Envia logs de tots els contenidors i mètriques de l'api cap a Grafana
+// Cloud (stack "punycrane5"). Les URLs i usuaris (Instance ID) no són
+// secrets — venen de les pròpies pàgines de connexió de Grafana Cloud; el
+// token (GRAFANA_API_KEY) sí que ho és i ve de Secrets Manager via
+// deploy.sh, mai es guarda en pla aquí.
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = discovery.relabel.containers.rules
+  forward_to    = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = "https://logs-prod-043.grafana.net/loki/api/v1/push"
+    basic_auth {
+      username = "1699676"
+      password = sys.env("GRAFANA_API_KEY")
+    }
+  }
+}
+
+prometheus.scrape "api" {
+  targets         = [{"__address__" = "api:8000"}]
+  metrics_path    = "/metrics"
+  scrape_interval = "30s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = "https://prometheus-prod-68-prod-eu-west-6.grafana.net/api/prom/push"
+    basic_auth {
+      username = "3408002"
+      password = sys.env("GRAFANA_API_KEY")
+    }
+  }
+}
+
+// CloudWatch sense l'agent no publica ús de disc de l'EC2 (només CPU/xarxa
+// a nivell d'hipervisor). Alloy ja porta l'equivalent de node_exporter
+// integrat, així que evitem un contenidor nou: només cal muntar l'arrel de
+// l'host (docker-compose.prod.yml, servei alloy, `/:/rootfs:ro`).
+prometheus.exporter.unix "host" {
+  rootfs_path = "/rootfs"
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
