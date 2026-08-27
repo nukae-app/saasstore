@@ -1,20 +1,44 @@
-# Ultra-Local Records — tienda + comunidad
+# NukaeStore — plataforma SaaS multi-tenant (nace de Ultra-Local Records)
 
-Monorepo: front Next.js (`/web`) + API FastAPI (`/api`) + PostgreSQL, orquestado con Docker Compose y Caddy como reverse proxy con TLS automático. El front solo habla con la API; nada más toca la base de datos.
+Empezó como la tienda + comunidad de un solo negocio real (`recordstore`,
+Ultra-Local Records: discos nuevos y de segunda mano en Poblenou, Barcelona).
+Ha evolucionado a una plataforma multi-tenant que aloja varias tiendas
+("tenants"), cada una con su propio dominio, catálogo, admin y datos
+aislados — hoy con dos "verticals" soportados (discos y floristería) y
+espacio para más.
+
+Monorepo: front Next.js (`/web`) + API FastAPI (`/api`) + PostgreSQL,
+orquestado con Docker Compose y Caddy como reverse proxy con TLS automático
+(incluye TLS on-demand para dominios de tenant dados de alta en caliente). El
+front solo habla con la API; nada más toca la base de datos.
+
+Arquitectura multi-tenant y plan de fases: ver `docs/ARQUITECTURA_CORE_VERTICAL.md`.
+Notas operativas de producción (capacidad, escalado): ver `infra/README.md`.
 
 ```
 .
 ├── docker-compose.yml
-├── .env.example          # copia a .env y rellena
-├── infra/Caddyfile       # /api/* -> FastAPI, resto -> Next.js
+├── docker-compose.prod.yml   # imágenes ECR, secretos vía AWS Secrets Manager
+├── .env.example               # copia a .env y rellena
+├── infra/
+│   ├── Caddyfile               # producción: sitio + superadmin + tenants (TLS on-demand)
+│   └── terraform/              # EC2 + RDS + ECR + IAM + Secrets Manager (AWS)
 ├── api/
 │   ├── app/
-│   │   ├── models.py     # el diseño de datos (releases/items, pedidos, auth sin contraseñas)
-│   │   ├── routers/      # catalog, auth, cart, checkout, admin, blog
-│   │   └── services/     # reservas atómicas, cliente Discogs, seguridad, email
-│   ├── alembic/          # migraciones
-│   └── scripts/import_catalog.py   # importación única del CSV del sheet
-└── web/                  # Next.js (App Router). Diseño provisional a propósito.
+│   │   ├── models/          # diseño de datos por dominio (catalog, orders, platform...)
+│   │   ├── schemas/         # Pydantic in/out, mismo criterio de paquetes
+│   │   ├── routers/         # catalog, auth, cart, checkout, blog, superadmin,
+│   │   │                    # admin/, erp/, me/, comptabilitat/ (paquetes por dominio)
+│   │   ├── services/        # reservas atómicas, Discogs, Redsys, seguridad, email...
+│   │   ├── tenancy.py        # resolución de tenant por dominio + aislamiento server-side
+│   │   └── tenant_secrets.py # secretos por tenant en AWS Secrets Manager
+│   ├── alembic/              # migraciones
+│   └── scripts/               # import_catalog, create_superadmin, backfills...
+└── web/
+    ├── app/[locale]/         # tienda pública (i18n)
+    ├── app/admin/             # admin de cada tenant
+    ├── app/superadmin/        # panel de plataforma (gestión de tenants)
+    └── app/nukaestore/        # landing del producto SaaS
 ```
 
 ## Arrancar en local
@@ -24,19 +48,13 @@ cp .env.example .env        # rellena POSTGRES_PASSWORD y SECRET_KEY como mínim
 docker compose up --build
 ```
 
-- Web: http://localhost
-- API (docs interactivas): http://localhost/api/docs
+- Web: http://localhost:8080
+- API (docs interactivas): http://localhost:8080/api/docs
 
-## Primera migración
-
-Las migraciones se autogeneran a partir de `app/models.py` (Alembic ya está conectado a los modelos):
-
-```bash
-docker compose run --rm api alembic revision --autogenerate -m "esquema inicial"
-docker compose run --rm api alembic upgrade head
-```
-
-A partir de aquí, cada cambio en `models.py` → `revision --autogenerate` → revisar el archivo generado → `upgrade head`. El contenedor de la API ejecuta `alembic upgrade head` en cada arranque.
+El contenedor de la API ejecuta `alembic upgrade head` en cada arranque —
+no hace falta ningún paso manual de migración para tener el esquema al día.
+Al añadir un cambio nuevo en `app/models/`: `alembic revision --autogenerate
+-m "..."`, revisar el archivo generado, `alembic upgrade head`.
 
 ## Importar el catálogo del Google Sheet
 
@@ -57,7 +75,7 @@ A partir de aquí, cada cambio en `models.py` → `revision --autogenerate` → 
 
 El magic link funciona sin configurar nada: en dev, el enlace se imprime en los logs de la API (`docker compose logs -f api`).
 
-## Crear el primer admin
+## Crear el primer admin de un tenant
 
 Tras hacer login una vez (Google o magic link), promociona tu usuario:
 
@@ -65,19 +83,34 @@ Tras hacer login una vez (Google o magic link), promociona tu usuario:
 docker compose exec db psql -U ultralocal -c "UPDATE users SET rol='admin' WHERE email='tu@email.com';"
 ```
 
+## Crear el primer superadmin de plataforma
+
+Arranque en frío del panel de superadmin (gestión de tenants, no de un tenant concreto):
+
+```bash
+docker compose exec api python -m scripts.create_superadmin --email tu@email.com
+```
+
 ## Decisiones de diseño (resumen)
 
-- **`releases` vs `items`**: el álbum y sus copias físicas son cosas distintas. Cada `item` es una copia única (grading, precio propio) y se vende como mucho una vez (`order_items.item_id` es UNIQUE).
-- **Reserva atómica**: el checkout reserva con `UPDATE ... WHERE status='disponible'` comprobando filas afectadas. Las reservas caducan a los 20 min y se liberan de forma perezosa.
+- **`releases` vs `items`**: el álbum y sus copias físicas son cosas distintas. Para segunda mano, cada `item` es una copia única (grading, precio propio) y se vende como mucho una vez; para nuevo, un `item` agrega stock (`cantidad`/`cantidad_reservada`).
+- **Reserva atómica**: el checkout reserva con `UPDATE ... WHERE` condicionado comprobando filas afectadas (nunca `SELECT` + `UPDATE`). Las reservas caducan y se liberan de forma perezosa.
 - **Snapshots**: el pedido copia el precio y la dirección en el momento de la compra; el histórico nunca cambia.
 - **Sin contraseñas**: Google (OIDC) + magic link. La sesión es propia: JWT corto + refresh token rotatorio en cookie httpOnly. Solo se guardan hashes de tokens.
 - **Guest checkout**: `orders.user_id` es nullable; se compra con email. FK con `SET NULL` para poder anonimizar cuentas (RGPD) conservando pedidos.
-- **Pago en Fase 1**: manual (transferencia/Bizum), el pedido nace `pendiente_pago`. Stripe entra en Fase 2 entre `/checkout/start` y `/checkout/confirm`.
+- **Pago**: Redsys (TPV virtual / Bizum) ya integrado entre `/checkout/start` y `/checkout/confirm`.
+- **Multi-tenant**: cada fila de las tablas core lleva `tenant_id`; el aislamiento se aplica en dos capas — filtro de aplicación (`app/tenancy.py`) y Row-Level Security en Postgres como cinturón de seguridad extra. Los secretos específicos de cada tenant (Redsys, Discogs, Spotify) viven en AWS Secrets Manager, no en variables de entorno compartidas.
 
-## Pendiente (fases siguientes)
+## Despliegue
 
+Producción corre en AWS (EC2 + RDS + ECR + Secrets Manager), gestionado con
+Terraform (`infra/terraform/`) y desplegado con `scripts/deploy.sh` (build +
+push a ECR + `docker compose pull/up` remoto sobre `docker-compose.prod.yml`).
+Detalle de capacidad y escalado en `infra/README.md`.
+
+## Pendiente (por prioridad, ver `docs/ARQUITECTURA_CORE_VERTICAL.md` §14)
+
+- Rename de atributos Python/Pydantic/frontend a inglés (Fase 4 Etapa B) — la BD ya está renombrada, el contrato JSON público todavía no.
 - Migración del blog de Blogger (export XML → tabla `posts`).
-- Frontend real (diseño, ficha de disco, carrito, checkout, admin UI).
-- Stripe + Bizum, tarifas de envío reales, emails transaccionales bonitos.
-- i18n ca/es en el front.
-- Backups automáticos de Postgres fuera del VPS (`pg_dump` + cron).
+- Frontend real de la tienda pública por vertical más allá del núcleo ya construido.
+- Backups automáticos de Postgres fuera del VPS más allá del retention de RDS.
