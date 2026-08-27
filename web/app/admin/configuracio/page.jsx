@@ -136,6 +136,10 @@ function BotigaPanel({ config, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [faviconError, setFaviconError] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState('');
 
   async function save(e) {
     e.preventDefault();
@@ -186,6 +190,56 @@ function BotigaPanel({ config, onSaved }) {
     onSaved();
   }
 
+  async function uploadFavicon(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFavicon(true);
+    setFaviconError('');
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await authFetch('/admin/configuracio/favicon', { method: 'POST', body: fd });
+    if (r.ok) {
+      onSaved();
+    } else {
+      const err = await r.json().catch(() => ({}));
+      setFaviconError(err.detail || t('config.favicon_upload_error', "No s'ha pogut pujar el favicon."));
+    }
+    setUploadingFavicon(false);
+    e.target.value = '';
+  }
+
+  async function removeFavicon() {
+    setUploadingFavicon(true);
+    await authFetch('/admin/configuracio/favicon', { method: 'DELETE' });
+    setUploadingFavicon(false);
+    onSaved();
+  }
+
+  async function uploadLogo(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    setLogoError('');
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await authFetch('/admin/configuracio/logo', { method: 'POST', body: fd });
+    if (r.ok) {
+      onSaved();
+    } else {
+      const err = await r.json().catch(() => ({}));
+      setLogoError(err.detail || t('config.logo_upload_error', "No s'ha pogut pujar el logo."));
+    }
+    setUploadingLogo(false);
+    e.target.value = '';
+  }
+
+  async function removeLogo() {
+    setUploadingLogo(true);
+    await authFetch('/admin/configuracio/logo', { method: 'DELETE' });
+    setUploadingLogo(false);
+    onSaved();
+  }
+
   return (
     <form onSubmit={save} className="space-y-5 max-w-lg">
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
@@ -224,6 +278,62 @@ function BotigaPanel({ config, onSaved }) {
             className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           <p className="text-xs text-zinc-400 mt-1">{t('config.shop.hours_hint', 'Cada línia es mostra per separat al footer.')}</p>
         </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-700">{t('config.favicon', 'Favicon')}</p>
+            <p className="text-xs text-zinc-400 mt-1 max-w-md">
+              {t('config.favicon_hint', "La icona que es veu a la pestanya del navegador. Sense pujar-ne cap, s'utilitza la de per defecte.")}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {config.favicon_url && (
+              <img src={config.favicon_url} alt="" className="w-8 h-8 rounded border border-zinc-200 object-contain" />
+            )}
+            <label className="text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-zinc-50">
+              {uploadingFavicon ? t('common.loading') : t('config.favicon_upload', 'Pujar')}
+              <input type="file" accept=".png,.ico,.jpg,.jpeg,.webp" className="hidden"
+                disabled={uploadingFavicon} onChange={uploadFavicon} />
+            </label>
+            {config.favicon_url && (
+              <button type="button" onClick={removeFavicon} disabled={uploadingFavicon}
+                className="text-zinc-400 hover:text-red-500 transition-colors">
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+        {faviconError && <p className="text-sm text-red-600">{faviconError}</p>}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-700">{t('config.logo', 'Logo')}</p>
+            <p className="text-xs text-zinc-400 mt-1 max-w-md">
+              {t('config.logo_hint', "El logo del capçal i del peu de la web pública. Sense pujar-ne cap, es mostra el nom de la botiga en text.")}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {config.logo_url && (
+              <img src={config.logo_url} alt="" className="h-8 w-auto max-w-[120px] rounded border border-zinc-200 object-contain bg-zinc-900 p-1" />
+            )}
+            <label className="text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-zinc-50">
+              {uploadingLogo ? t('common.loading') : t('config.logo_upload', 'Pujar')}
+              <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden"
+                disabled={uploadingLogo} onChange={uploadLogo} />
+            </label>
+            {config.logo_url && (
+              <button type="button" onClick={removeLogo} disabled={uploadingLogo}
+                className="text-zinc-400 hover:text-red-500 transition-colors">
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+        {logoError && <p className="text-sm text-red-600">{logoError}</p>}
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">

@@ -14,6 +14,12 @@ export async function generateMetadata() {
     return {
       title: { default: config.nombre, template: `%s · ${config.nombre}` },
       description: config.address ? config.address.replace(/\n/g, ', ') : undefined,
+      // Favicon propio del tenant (Configuració → Botiga → Favicon), antes
+      // vivía como app/icon.png estático, que Next.js aplicaba a TODO el
+      // sitio (landing, superadmin, cualquier otro tenant) sin distinción
+      // de dominio. Sin favicon propio, ningún <link rel="icon"> propio —
+      // el navegador usa su default en vez de heredar el de otro tenant.
+      icons: config.favicon_url ? { icon: config.favicon_url } : undefined,
     };
   } catch {
     return { title: 'Botiga online' };

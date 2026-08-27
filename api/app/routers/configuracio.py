@@ -5,7 +5,10 @@ d'estar escampat a `.env` (`Settings`) o barrejat amb els informes de
 `comptabilitat.py`.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+import os
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
@@ -57,6 +60,70 @@ def update_configuracio(payload: ConfiguracioBotigaUpdate, db: Session = Depends
     db.commit()
     db.refresh(config)
     return config
+
+
+UPLOADS_DIR = "/app/uploads"
+
+
+def _delete_upload_file(url: str | None) -> None:
+    if url and url.startswith("/uploads/"):
+        filepath = os.path.join(UPLOADS_DIR, os.path.basename(url))
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+
+ALLOWED_IMAGE_EXTS = (".png", ".ico", ".jpg", ".jpeg", ".webp")
+
+
+async def _upload_config_image(field: str, file: UploadFile, db: Session) -> ConfiguracioBotiga:
+    # `field` es siempre uno de los dos literales de los endpoints de abajo,
+    # nunca algo derivado de input — setattr con una columna arbitraria de
+    # ConfiguracioBotiga sería peligroso, con estos dos no lo es.
+    ext = os.path.splitext(file.filename or "")[-1].lower()
+    if ext not in ALLOWED_IMAGE_EXTS:
+        raise HTTPException(422, "Només s'accepten imatges PNG, ICO, JPG o WebP")
+
+    config = _get_or_create_config(db)
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    filename = f"{uuid.uuid4()}{ext}"
+    content = await file.read()
+    with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
+        f.write(content)
+
+    _delete_upload_file(getattr(config, field))
+    setattr(config, field, f"/uploads/{filename}")
+    db.commit()
+    db.refresh(config)
+    return config
+
+
+def _delete_config_image(field: str, db: Session) -> ConfiguracioBotiga:
+    config = _get_or_create_config(db)
+    _delete_upload_file(getattr(config, field))
+    setattr(config, field, None)
+    db.commit()
+    db.refresh(config)
+    return config
+
+
+@router.post("/configuracio/favicon", response_model=ConfiguracioBotigaOut)
+async def upload_favicon(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    return await _upload_config_image("favicon_url", file, db)
+
+
+@router.delete("/configuracio/favicon", response_model=ConfiguracioBotigaOut)
+def delete_favicon(db: Session = Depends(get_db)):
+    return _delete_config_image("favicon_url", db)
+
+
+@router.post("/configuracio/logo", response_model=ConfiguracioBotigaOut)
+async def upload_logo(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    return await _upload_config_image("logo_url", file, db)
+
+
+@router.delete("/configuracio/logo", response_model=ConfiguracioBotigaOut)
+def delete_logo(db: Session = Depends(get_db)):
+    return _delete_config_image("logo_url", db)
 
 
 @public_router.get("/public", response_model=ConfiguracioBotigaPublic)

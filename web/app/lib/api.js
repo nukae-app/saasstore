@@ -31,7 +31,9 @@ export async function api(path, options = {}) {
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`API ${res.status}: ${body}`);
+    const error = new Error(`API ${res.status}: ${body}`);
+    error.status = res.status;
+    throw error;
   }
   return res.json();
 }

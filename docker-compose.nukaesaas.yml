@@ -1,10 +1,11 @@
 services:
   api:
-    image: ${ECR_REGISTRY}/recordshop-api:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY}/nukaesaas-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: .env
     environment:
-      AWS_SECRETS_NAME: recordshop/prod
+      AWS_SECRETS_NAME: nukaesaas/prod
+      AWS_SUPERADMIN_SECRETS_NAME: nukaesaas/superadmin
       AWS_REGION: eu-west-1
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
     expose:
@@ -19,11 +20,12 @@ services:
       - "6379"
 
   worker:
-    image: ${ECR_REGISTRY}/recordshop-api:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY}/nukaesaas-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: .env
     environment:
-      AWS_SECRETS_NAME: recordshop/prod
+      AWS_SECRETS_NAME: nukaesaas/prod
+      AWS_SUPERADMIN_SECRETS_NAME: nukaesaas/superadmin
       AWS_REGION: eu-west-1
     command: celery -A app.celery_app worker --loglevel=info --concurrency=2
     depends_on:
@@ -31,11 +33,12 @@ services:
         condition: service_started
 
   beat:
-    image: ${ECR_REGISTRY}/recordshop-api:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY}/nukaesaas-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: .env
     environment:
-      AWS_SECRETS_NAME: recordshop/prod
+      AWS_SECRETS_NAME: nukaesaas/prod
+      AWS_SUPERADMIN_SECRETS_NAME: nukaesaas/superadmin
       AWS_REGION: eu-west-1
     command: celery -A app.celery_app beat --loglevel=info
     depends_on:
@@ -43,31 +46,18 @@ services:
         condition: service_started
 
   web:
-    image: ${ECR_REGISTRY}/recordshop-web:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY}/nukaesaas-web:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       API_INTERNAL_URL: http://api:8000
       NEXT_PUBLIC_DEV_ADMIN_BYPASS: ${NEXT_PUBLIC_DEV_ADMIN_BYPASS:-false}
       NEXT_PUBLIC_FARO_COLLECTOR_URL: ${NEXT_PUBLIC_FARO_COLLECTOR_URL:-}
       NEXT_PUBLIC_SUPERADMIN_HOST: ${NEXT_PUBLIC_SUPERADMIN_HOST:-superadmin.localhost}
+      NEXT_PUBLIC_APP_HOST: ${NEXT_PUBLIC_APP_HOST:-localhost}
     depends_on:
       - api
     expose:
       - "3000"
-
-  alloy:
-    image: grafana/alloy:v1.18.0
-    restart: unless-stopped
-    env_file: .env.grafana
-    volumes:
-      - ./infra/alloy-config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /:/rootfs:ro
-    command: run --server.http.listen-addr=127.0.0.1:12345 /etc/alloy/config.alloy
-    mem_limit: 256m
-    cpus: 0.5
-    depends_on:
-      - api
 
   caddy:
     image: caddy:2-alpine
@@ -81,7 +71,7 @@ services:
       NEXT_PUBLIC_APP_HOST: ${NEXT_PUBLIC_APP_HOST:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
     volumes:
-      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
       - uploads:/srv/uploads:ro

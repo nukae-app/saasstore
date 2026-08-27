@@ -131,10 +131,14 @@ export default function SuperadminTenantsPage() {
                   placeholder="florqa" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="domain">Domini</Label>
-                <Input id="domain" required value={form.domain}
+                <Label htmlFor="domain">Domini (opcional)</Label>
+                <Input id="domain" value={form.domain}
                   onChange={(e) => setForm((f) => ({ ...f, domain: e.target.value }))}
-                  placeholder="florqa.exemple.com" />
+                  placeholder={form.slug ? `${form.slug}.nukae.cloud` : 'florqa.exemple.com'} />
+                <p className="text-xs text-slate-400">
+                  Buit = neix a {form.slug ? `${form.slug}.nukae.cloud` : '‹slug›.nukae.cloud'} (es pot canviar
+                  després pel domini propi del tenant, des de la fitxa del tenant).
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="nombre">Nom comercial</Label>

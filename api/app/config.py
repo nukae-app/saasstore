@@ -135,6 +135,12 @@ class SuperAdminSettings(BaseSettings):
     # comprobación el panel sería alcanzable (y atacable por fuerza bruta en
     # el login) desde el dominio de CUALQUIER tenant. Ver routers/superadmin.py.
     superadmin_host: str = "superadmin.localhost"
+    # Dominio base de la plataforma bajo el que "nace" cada tenant nuevo
+    # (`<slug>.platform_domain`) hasta que configura su dominio propio — ver
+    # create_tenant() en routers/superadmin.py. Requiere un registro DNS
+    # wildcard (`*.platform_domain`) apuntando al mismo servidor; sin él el
+    # subdominio se calcula igual pero no resuelve en el navegador.
+    platform_domain: str = "localhost"
     # Secreto de firma de los webhooks de Revolut Business (facturación de
     # plataforma a los tenants, NO el checkout de cada tienda) — vive aquí,
     # no en tenant_secrets.py, porque es la plataforma quien cobra, no cada

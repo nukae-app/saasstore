@@ -65,13 +65,34 @@ class SuperAdminLoginOut(BaseModel):
     access_token: str
 
 
+TENANT_SLUG_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,28}[a-z0-9])?$")
+
+
 class TenantCreateIn(BaseModel):
     slug: str
-    domain: str
+    # Opcional: si no se da, create_tenant() lo calcula como
+    # "<slug>.platform_domain" (ver SuperAdminSettings.platform_domain) — el
+    # tenant "nace" en un subdominio de la plataforma y puede pasarse a su
+    # propio dominio después con PATCH /tenants/{id}, sin tocar esto.
+    domain: str | None = None
     nombre: str
     fiscal_name: str
     address: str
     vertical_id: str = "records"
+
+    @field_validator("slug")
+    @classmethod
+    def _valid_slug(cls, v: str) -> str:
+        # El slug se usa tal cual como etiqueta DNS cuando no se da domain
+        # (ver arriba) — minúsculas/dígitos/guión, sin guión al principio o
+        # final, para que "<slug>.platform_domain" sea siempre un hostname
+        # válido (RFC 1035), no solo un identificador interno.
+        if not TENANT_SLUG_RE.match(v):
+            raise ValueError(
+                "El slug ha de ser minúscules/dígits/guions (sense guió al principi o final), "
+                "p. ex. 'florqa' — s'utilitza tal qual com a subdomini"
+            )
+        return v
 
 
 class TenantOut(BaseModel):
@@ -412,12 +433,17 @@ def create_tenant(
 ):
     if db.scalar(select(Tenant).where(Tenant.slug == payload.slug)):
         raise HTTPException(409, f"Ya existe un tenant con slug '{payload.slug}'")
-    if db.scalar(select(Tenant).where(Tenant.domain == payload.domain)):
-        raise HTTPException(409, f"Ya existe un tenant con domain '{payload.domain}'")
+    # Sin domain explícito, el tenant nace en su propio subdominio de la
+    # plataforma (requiere un DNS wildcard *.platform_domain — ver
+    # SuperAdminSettings.platform_domain) y puede pasarse a un dominio
+    # propio más tarde con PATCH /tenants/{id}, sin migración de por medio.
+    domain = payload.domain or f"{payload.slug}.{get_superadmin_settings().platform_domain}"
+    if db.scalar(select(Tenant).where(Tenant.domain == domain)):
+        raise HTTPException(409, f"Ya existe un tenant con domain '{domain}'")
     if not db.scalar(select(Vertical).where(Vertical.id == payload.vertical_id, Vertical.active)):
         raise HTTPException(422, f"Vertical '{payload.vertical_id}' no existe o no está activo")
 
-    tenant = Tenant(slug=payload.slug, domain=payload.domain, nombre=payload.nombre, vertical_id=payload.vertical_id)
+    tenant = Tenant(slug=payload.slug, domain=domain, nombre=payload.nombre, vertical_id=payload.vertical_id)
     db.add(tenant)
     db.flush()
 

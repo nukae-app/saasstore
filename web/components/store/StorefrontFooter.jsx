@@ -13,13 +13,8 @@ const FALLBACK = {
   contact_email: null,
   instagram_url: null,
   nombre: '',
-  slug: null,
+  logo_url: null,
 };
-
-// No hi ha sistema de pujada de logo per tenant (fora d'abast, ver plan) —
-// mentrestant, la imatge compartida (/logo.png) només es mostra per al
-// tenant real d'Ultra-Local Records; la resta veu el seu nom en text.
-const TENANT_AMB_LOGO = 'recordstore';
 
 export default function StorefrontFooter() {
   const t = useTranslations('footer');
@@ -37,8 +32,8 @@ export default function StorefrontFooter() {
     <footer className="bg-zinc-50 text-zinc-500 mt-auto">
       <div className="container py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
         <div>
-          {config.slug === TENANT_AMB_LOGO ? (
-            <img src="/logo.png" alt={config.nombre} className="h-9 w-auto mb-3 invert" />
+          {config.logo_url ? (
+            <img src={config.logo_url} alt={config.nombre} className="h-9 w-auto mb-3 invert" />
           ) : (
             <p className="font-serif italic text-lg text-zinc-900 mb-3">{config.nombre}</p>
           )}

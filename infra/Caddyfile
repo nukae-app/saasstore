@@ -46,6 +46,31 @@ www.{$SITE_ADDRESS} {
 	}
 }
 
+# Landing del producte SaaS (NukaeStore) — domini propi, diferent del de
+# qualsevol tenant (ver web/app/nukaestore/, NEXT_PUBLIC_APP_HOST). Sense
+# aquest bloc explícit cau en el catch-all `https://` de sota, que fa servir
+# `ask` per validar contra `tenants.domain` — i aquest domini no és cap
+# tenant, així que mai consegueix certificat (404 de ask-domain).
+{$NEXT_PUBLIC_APP_HOST} {
+	encode gzip
+
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+
+	handle {
+		header {
+			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+			X-Frame-Options "SAMEORIGIN"
+			-X-Powered-By
+		}
+		reverse_proxy web:3000
+	}
+}
+
 {$SITE_ADDRESS} {
 	encode gzip
 
@@ -97,6 +122,17 @@ https:// {
 	encode gzip
 	tls {
 		on_demand
+	}
+
+	# www.<dominio del tenant> → dominio sin www, genérico para cualquier
+	# dominio propio dado de alta después del deploy (a diferencia del
+	# redirect de www.{$SITE_ADDRESS} de arriba, que solo cubre ese
+	# dominio). ask-domain (internal.py) ya acepta la variante "www." como
+	# alias válido para que Caddy pueda completar el TLS handshake antes de
+	# poder devolver este redirect — sin eso la conexión ni se establecía.
+	@www header_regexp host Host ^www\.(.+)$
+	handle @www {
+		redir https://{re.host.1}{uri} permanent
 	}
 
 	handle /api/metrics {

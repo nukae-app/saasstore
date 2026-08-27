@@ -24,7 +24,15 @@ def ask_domain(domain: str, db=Depends(get_db_unscoped)):
     (`resolve_tenant_by_domain`, filtra por `Tenant.activo=True`), así que
     un tenant suspendido (Fase 2) tampoco consigue certificado nuevo.
     Caddy solo mira el código de estado: 200 = adelante, cualquier otra
-    cosa = deniega."""
-    if resolve_tenant_by_domain(db, domain) is None:
-        raise HTTPException(404)
-    return {"ok": True}
+    cosa = deniega.
+
+    "www.<domain>" se acepta también si "<domain>" es de un tenant activo
+    — el Caddyfile redirige ese host al dominio sin www, pero antes de
+    poder servir ESE redirect necesita completar el handshake TLS, así que
+    Caddy tiene que conseguir certificado también para la variante "www.".
+    """
+    if resolve_tenant_by_domain(db, domain) is not None:
+        return {"ok": True}
+    if domain.startswith("www.") and resolve_tenant_by_domain(db, domain.removeprefix("www.")) is not None:
+        return {"ok": True}
+    raise HTTPException(404)

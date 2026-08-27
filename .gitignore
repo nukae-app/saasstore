@@ -46,14 +46,17 @@ api/test.db
 data/
 postgres_data/
 
-# Terraform (el state pot contenir secrets)
-infra/terraform/.terraform/
-infra/terraform/.terraform.lock.hcl
-infra/terraform/terraform.tfstate
-infra/terraform/terraform.tfstate.backup
-infra/terraform/terraform.tfstate.*.backup
-infra/terraform/terraform.tfvars
-infra/terraform/tfplan
+# Terraform (el state pot contenir secrets) — genèric per a qualsevol
+# infra/terraform*/ (avui: infra/terraform/ del RecordShop antic i
+# infra/terraform-nukaesaas/), perquè un directori terraform nou no quedi
+# desprotegit per oblit.
+infra/terraform*/.terraform/
+infra/terraform*/.terraform.lock.hcl
+infra/terraform*/terraform.tfstate
+infra/terraform*/terraform.tfstate.backup
+infra/terraform*/terraform.tfstate.*.backup
+infra/terraform*/terraform.tfvars
+infra/terraform*/tfplan
 
 # Clau SSH generada per Terraform
 *.pem

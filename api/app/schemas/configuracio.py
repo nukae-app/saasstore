@@ -99,6 +99,8 @@ class ConfiguracioBotigaOut(BaseModel):
     subscripcions_actives: bool
     maintenance_active: bool
     discogs_habilitat: bool
+    favicon_url: str | None
+    logo_url: str | None
     updated_at: datetime
 
     model_config = {"from_attributes": True}
@@ -129,6 +131,8 @@ class ConfiguracioBotigaPublic(BaseModel):
     subscripcions_actives: bool
     maintenance_active: bool
     discogs_habilitat: bool
+    favicon_url: str | None
+    logo_url: str | None
     # `vertical`/`nombre` no viven en ConfiguracioBotiga (son de Tenant) —
     # se mezclan a mano en routers/configuracio.py::get_configuracio_publica,
     # no hay columna equivalente en este modelo. `nombre` es el nombre

@@ -107,6 +107,15 @@ class ConfiguracioBotiga(TenantScoped, Base):
     # front mostra un banner "en construcció" (veure useManteniment.js).
     # L'admin sempre pot provar el flux de compra sencer amb aquest actiu.
     maintenance_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Favicon propio del tenant (/uploads/{uuid}.ext, mismo mecanismo que
+    # ReleaseImage — ver routers/configuracio.py). Sin valor: la app no
+    # manda ningún <link rel="icon"> propio y el navegador usa su default,
+    # en vez de heredar el favicon de otro tenant (ver web/app/layout.jsx).
+    favicon_url: Mapped[str | None] = mapped_column(String(300))
+    # Logo del nav/footer públic (mateix mecanisme que favicon_url) — el del
+    # tiquet imprès del TPV és un asset a part (aspect ratio diferent, per
+    # impressora tèrmica), no es toca aquí.
+    logo_url: Mapped[str | None] = mapped_column(String(300))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

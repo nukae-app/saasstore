@@ -13,11 +13,6 @@ import { useManteniment } from './useManteniment';
 import { useTenantConfig } from './useTenantConfig';
 import LanguageSwitcher from './LanguageSwitcher';
 
-// No hi ha sistema de pujada de logo per tenant (fora d'abast, ver plan) —
-// mentrestant, la imatge compartida (/logo.png) només es mostra per al
-// tenant real d'Ultra-Local Records; la resta veu el seu nom en text.
-const TENANT_AMB_LOGO = 'recordstore';
-
 export default function StorefrontNav() {
   const t = useTranslations('nav');
   const FALLBACK_LINKS = [
@@ -60,8 +55,8 @@ export default function StorefrontNav() {
       )}
       <div className="container flex items-center h-16 gap-8">
         <Link href="/" className="shrink-0 opacity-90 hover:opacity-100 transition-opacity">
-          {config.slug === TENANT_AMB_LOGO ? (
-            <img src="/logo.png" alt={config.nombre} className="h-8 md:h-10 w-auto invert" />
+          {config.logo_url ? (
+            <img src={config.logo_url} alt={config.nombre} className="h-8 md:h-10 w-auto invert" />
           ) : (
             <span className="font-serif italic text-xl md:text-2xl text-zinc-900">{config.nombre}</span>
           )}
