@@ -2,21 +2,27 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '../../i18n/navigation';
 import Image from 'next/image';
 
-export default async function HomeHero({ featured }) {
+export default async function HomeHero({ featured, config, isVinils = true }) {
   const t = await getTranslations('home');
   return (
     <section className="relative min-h-[70vh] flex items-center px-5 md:px-16 mb-16 md:mb-24">
       <div className="max-w-[1280px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 items-center gap-16 lg:gap-20 py-12">
         <div className="space-y-10">
           <div className="space-y-4">
-            <span className="font-mono text-xs text-zinc-500 uppercase tracking-[0.3em] block">
-              Poblenou · Barcelona
-            </span>
+            {isVinils && (
+              <span className="font-mono text-xs text-zinc-500 uppercase tracking-[0.3em] block">
+                Poblenou · Barcelona
+              </span>
+            )}
             <h1 className="font-serif text-5xl md:text-7xl leading-[1.1] text-zinc-900 max-w-xl">
-              {t.rich('heroTitle', { i: (chunks) => <span className="italic font-light">{chunks}</span> })}
+              {isVinils ? (
+                t.rich('heroTitle', { i: (chunks) => <span className="italic font-light">{chunks}</span> })
+              ) : (
+                config?.nombre || ''
+              )}
             </h1>
             <p className="text-lg text-zinc-500 max-w-md leading-relaxed">
-              {t('heroSubtitle')}
+              {isVinils ? t('heroSubtitle') : (config?.address ? config.address.split('\n').join(', ') : '')}
             </p>
           </div>
           <div className="flex flex-wrap gap-5">
@@ -39,10 +45,10 @@ export default async function HomeHero({ featured }) {
           <div className="hidden lg:flex justify-end relative">
             <div className="relative group">
               <div className="rounded-[32px] overflow-hidden shadow-2xl shadow-black/10 relative z-10 w-[420px] h-[500px] bg-zinc-100">
-                {featured.imagen_url ? (
+                {featured.image_url ? (
                   <Image
-                    src={featured.imagen_url}
-                    alt={`${featured.artista} — ${featured.titulo}`}
+                    src={featured.image_url}
+                    alt={`${featured.artista} — ${featured.title}`}
                     fill
                     sizes="420px"
                     priority
@@ -68,11 +74,11 @@ export default async function HomeHero({ featured }) {
                   </div>
                   <div className="min-w-0">
                     <p className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest">{t('nowSpinning')}</p>
-                    <p className="font-serif text-xl text-zinc-900 leading-none truncate">{featured.titulo}</p>
+                    <p className="font-serif text-xl text-zinc-900 leading-none truncate">{featured.title}</p>
                   </div>
                 </div>
                 <p className="text-zinc-500 text-sm italic line-clamp-2">
-                  {featured.descripcion || `${featured.artista} · ${[featured.formato, featured.sello].filter(Boolean).join(' · ')}`}
+                  {featured.description || `${featured.artista} · ${[featured.formato, featured.sello].filter(Boolean).join(' · ')}`}
                 </p>
               </div>
 

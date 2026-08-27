@@ -24,7 +24,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -34,14 +34,14 @@ def _auth(token: str) -> dict:
 
 
 def _seed_release(db) -> Release:
-    r = Release(artista="Artista", titulo="Àlbum", formato="LP")
+    r = Release(artista="Artista", title="Àlbum", formato="LP")
     db.add(r)
     db.commit()
     return r
 
 
 def _seed_proveedor(db, dies_pagament=30) -> Proveedor:
-    p = Proveedor(nombre="DistroX", email="prov@example.com", dies_pagament=dies_pagament)
+    p = Proveedor(name="DistroX", email="prov@example.com", payment_days=dies_pagament)
     db.add(p)
     db.commit()
     return p
@@ -49,15 +49,15 @@ def _seed_proveedor(db, dies_pagament=30) -> Proveedor:
 
 def _crear_i_rebre_comanda(client, admin, db, prov, release, num_albaran):
     payload = {
-        "proveedor_id": str(prov.id), "fecha": "2026-06-01T10:00:00",
-        "lineas": [{"release_id": str(release.id), "cantidad": 1, "precio_unitario_estimado": "10.00"}],
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [{"release_id": str(release.id), "quantity": 1, "estimated_unit_price": "10.00"}],
     }
     comanda = client.post("/admin/comandas", json=payload, headers=_auth(admin)).json()
     client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
     recepcio = {
-        "fecha": "2026-06-05T10:00:00",
-        "num_albaran": num_albaran,
-        "items": [{"comanda_linea_id": comanda["lineas"][0]["id"], "precio": "20.00", "coste_adquisicion": "10.00"}],
+        "date": "2026-06-05T10:00:00",
+        "delivery_note_number": num_albaran,
+        "items": [{"comanda_linea_id": comanda["lineas"][0]["id"], "price": "20.00", "acquisition_cost": "10.00"}],
     }
     resp = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json=recepcio, headers=_auth(admin))
     assert resp.status_code == 201
@@ -83,15 +83,15 @@ def test_facturar_una_recepcio_crea_despesa_pendent(db, client):
 
     resp = client.post(
         "/admin/despeses/des-de-compres",
-        json={"compra_ids": [compra_id], "num_factura": "FAC-1", "data_factura": "2026-06-10"},
+        json={"compra_ids": [compra_id], "invoice_number": "FAC-1", "invoice_date": "2026-06-10"},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
     despesa = resp.json()
-    assert despesa["estat_pagament"] == "pendent"
+    assert despesa["payment_status"] == "pendent"
     assert despesa["compra_ids"] == [compra_id]
     assert Decimal(despesa["total"]) == Decimal("10.00")
-    assert despesa["data_venciment"] == "2026-07-10"  # dies_pagament=30
+    assert despesa["due_date"] == "2026-07-10"  # dies_pagament=30
 
     pendents = client.get("/admin/despeses/pendents", headers=_auth(admin)).json()
     assert any(d["id"] == despesa["id"] for d in pendents)
@@ -110,7 +110,7 @@ def test_facturar_diverses_recepcions_junta(db, client):
 
     resp = client.post(
         "/admin/despeses/des-de-compres",
-        json={"compra_ids": [compra_1, compra_2], "num_factura": "FAC-2"},
+        json={"compra_ids": [compra_1, compra_2], "invoice_number": "FAC-2"},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
@@ -127,12 +127,12 @@ def test_no_es_pot_facturar_dos_cops_la_mateixa_recepcio(db, client):
 
     client.post(
         "/admin/despeses/des-de-compres",
-        json={"compra_ids": [compra_id], "num_factura": "FAC-1"},
+        json={"compra_ids": [compra_id], "invoice_number": "FAC-1"},
         headers=_auth(admin),
     )
     resp = client.post(
         "/admin/despeses/des-de-compres",
-        json={"compra_ids": [compra_id], "num_factura": "FAC-1-bis"},
+        json={"compra_ids": [compra_id], "invoice_number": "FAC-1-bis"},
         headers=_auth(admin),
     )
     assert resp.status_code == 409
@@ -141,17 +141,17 @@ def test_no_es_pot_facturar_dos_cops_la_mateixa_recepcio(db, client):
 def test_no_es_poden_barrejar_proveidors_diferents(db, client):
     admin = _admin_token(client, db)
     prov1 = _seed_proveedor(db)
-    prov1.nombre = "Prov 1"
-    db.add(Proveedor(nombre="Prov 2", email="p2@example.com"))
+    prov1.name = "Prov 1"
+    db.add(Proveedor(name="Prov 2", email="p2@example.com"))
     db.commit()
-    prov2 = db.scalar(select(Proveedor).where(Proveedor.nombre == "Prov 2"))
+    prov2 = db.scalar(select(Proveedor).where(Proveedor.name == "Prov 2"))
     release = _seed_release(db)
     compra_1 = _crear_i_rebre_comanda(client, admin, db, prov1, release, "ALB-1")
     compra_2 = _crear_i_rebre_comanda(client, admin, db, prov2, release, "ALB-2")
 
     resp = client.post(
         "/admin/despeses/des-de-compres",
-        json={"compra_ids": [compra_1, compra_2], "num_factura": "FAC-X"},
+        json={"compra_ids": [compra_1, compra_2], "invoice_number": "FAC-X"},
         headers=_auth(admin),
     )
     assert resp.status_code == 422

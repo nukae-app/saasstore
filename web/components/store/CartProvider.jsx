@@ -20,7 +20,7 @@ export default function CartProvider({ children }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  const itemCount = cart.items.reduce((sum, i) => sum + (i.cantidad || 1), 0);
+  const itemCount = cart.items.reduce((sum, i) => sum + (i.quantity || 1), 0);
 
   return (
     <CartContext.Provider value={{ ...cart, itemCount, refresh }}>

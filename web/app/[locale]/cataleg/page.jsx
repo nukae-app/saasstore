@@ -138,7 +138,15 @@ async function ModeToggle({ searchParams }) {
 export default async function CatalogPage({ searchParams }) {
   const t = await getTranslations('cataleg');
   const p = await searchParams;
-  const mode = p.mode === 'remena' ? 'remena' : 'graella';
+  let config = null;
+  try {
+    config = await api('/config/public');
+  } catch {}
+  const isVinils = !config || config.vertical === 'records';
+  // El mode "remena" (regirar cubetes) és un concepte de botiga física de
+  // discos — sense Seccio sembrades per a cap altre vertical (Fase 4), i
+  // sense sentit per a res que no sigui vinil.
+  const mode = isVinils && p.mode === 'remena' ? 'remena' : 'graella';
 
   return (
     <>
@@ -147,23 +155,25 @@ export default async function CatalogPage({ searchParams }) {
       <main className="flex-1 container py-8">
         <h1 className="font-serif italic text-3xl md:text-4xl mb-4">{t('title')}</h1>
 
-        <Suspense>
-          <ModeToggle searchParams={searchParams} />
-        </Suspense>
+        {isVinils && (
+          <Suspense>
+            <ModeToggle searchParams={searchParams} />
+          </Suspense>
+        )}
 
         {mode === 'remena' ? (
           <CrateBrowser />
         ) : (
           <>
             <Suspense>
-              <MobileFilterSheet />
+              <MobileFilterSheet isVinils={isVinils} />
             </Suspense>
 
             <div className="flex gap-10">
               {/* Sidebar filters (desktop) */}
               <aside className="hidden md:block w-48 shrink-0 pt-0.5">
                 <Suspense>
-                  <CatalogFilters />
+                  <CatalogFilters isVinils={isVinils} />
                 </Suspense>
               </aside>
 

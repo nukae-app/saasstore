@@ -54,7 +54,7 @@ export default function CompteLayoutClient({ children }) {
           <aside className="hidden md:block w-52 shrink-0">
             <div className="bg-white rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] overflow-hidden">
               <div className="px-4 py-4 border-b border-zinc-50">
-                <p className="font-medium text-sm truncate">{user.nombre || t('user')}</p>
+                <p className="font-medium text-sm truncate">{user.name || t('user')}</p>
                 <p className="text-xs text-zinc-400 truncate">{user.email}</p>
               </div>
               <nav className="p-2">

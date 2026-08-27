@@ -6,8 +6,8 @@ import { Plus, Pencil, Trash2, Star, Loader2, X, Check } from 'lucide-react';
 import { authFetch } from '../../../../components/store/AuthProvider';
 
 const EMPTY = {
-  nombre_destinatario: '', linea1: '', linea2: '',
-  ciudad: '', cp: '', provincia: '', pais: 'ES', telefono: '', predeterminada: false,
+  recipient_name: '', address_line1: '', address_line2: '',
+  city: '', postal_code: '', province: '', country: 'ES', phone: '', is_default: false,
 };
 
 function AddressForm({ initial = EMPTY, onSave, onCancel, saving }) {
@@ -21,14 +21,14 @@ function AddressForm({ initial = EMPTY, onSave, onCancel, saving }) {
   }
 
   const fields = [
-    { key: 'nombre_destinatario', label: t('recipientName'), required: true, col: 'col-span-2' },
-    { key: 'linea1', label: t('address'), required: true, col: 'col-span-2', placeholder: t('addressPlaceholder') },
-    { key: 'linea2', label: t('address2'), col: 'col-span-2', placeholder: t('address2Placeholder') },
-    { key: 'cp', label: t('postalCode'), required: true },
-    { key: 'ciudad', label: t('city'), required: true },
-    { key: 'provincia', label: t('province') },
-    { key: 'pais', label: t('country'), required: true },
-    { key: 'telefono', label: t('phone'), placeholder: t('phoneForCarrier') },
+    { key: 'recipient_name', label: t('recipientName'), required: true, col: 'col-span-2' },
+    { key: 'address_line1', label: t('address'), required: true, col: 'col-span-2', placeholder: t('addressPlaceholder') },
+    { key: 'address_line2', label: t('address2'), col: 'col-span-2', placeholder: t('address2Placeholder') },
+    { key: 'postal_code', label: t('postalCode'), required: true },
+    { key: 'city', label: t('city'), required: true },
+    { key: 'province', label: t('province') },
+    { key: 'country', label: t('country'), required: true },
+    { key: 'phone', label: t('phone'), placeholder: t('phoneForCarrier') },
   ];
 
   return (
@@ -54,8 +54,8 @@ function AddressForm({ initial = EMPTY, onSave, onCancel, saving }) {
       <label className="flex items-center gap-2.5 cursor-pointer">
         <input
           type="checkbox"
-          checked={form.predeterminada}
-          onChange={e => set('predeterminada', e.target.checked)}
+          checked={form.is_default}
+          onChange={e => set('is_default', e.target.checked)}
           className="accent-zinc-900"
         />
         <span className="text-sm text-zinc-700">{t('setAsDefaultAddress')}</span>
@@ -85,22 +85,22 @@ function AddressForm({ initial = EMPTY, onSave, onCancel, saving }) {
 function AddressCard({ addr, onEdit, onDelete, onSetDefault, loading }) {
   const t = useTranslations('compte');
   return (
-    <div className={`relative bg-white rounded-xl border p-4 transition-colors ${addr.predeterminada ? 'border-zinc-300 bg-zinc-50' : 'border-zinc-100'}`}>
-      {addr.predeterminada && (
+    <div className={`relative bg-white rounded-xl border p-4 transition-colors ${addr.is_default ? 'border-zinc-300 bg-zinc-50' : 'border-zinc-100'}`}>
+      {addr.is_default && (
         <span className="absolute top-3 right-3 flex items-center gap-1 text-xs text-zinc-700 font-medium">
           <Star size={11} className="fill-zinc-700 text-zinc-700" /> {t('default')}
         </span>
       )}
       <address className="not-italic text-sm text-zinc-700 leading-relaxed mb-3">
-        <p className="font-medium">{addr.nombre_destinatario}</p>
-        <p className="text-zinc-500">{addr.linea1}</p>
-        {addr.linea2 && <p className="text-zinc-500">{addr.linea2}</p>}
-        <p className="text-zinc-500">{addr.cp} {addr.ciudad}{addr.provincia ? `, ${addr.provincia}` : ''}</p>
-        <p className="text-zinc-500">{addr.pais}</p>
-        {addr.telefono && <p className="text-zinc-400 text-xs mt-0.5">{addr.telefono}</p>}
+        <p className="font-medium">{addr.recipient_name}</p>
+        <p className="text-zinc-500">{addr.address_line1}</p>
+        {addr.address_line2 && <p className="text-zinc-500">{addr.address_line2}</p>}
+        <p className="text-zinc-500">{addr.postal_code} {addr.city}{addr.province ? `, ${addr.province}` : ''}</p>
+        <p className="text-zinc-500">{addr.country}</p>
+        {addr.phone && <p className="text-zinc-400 text-xs mt-0.5">{addr.phone}</p>}
       </address>
       <div className="flex items-center gap-2 flex-wrap">
-        {!addr.predeterminada && (
+        {!addr.is_default && (
           <button
             onClick={() => onSetDefault(addr.id)}
             disabled={!!loading}

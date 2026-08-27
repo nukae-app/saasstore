@@ -7,9 +7,9 @@ from starlette.middleware.sessions import SessionMiddleware
 from .config import get_settings
 from .rate_limit import limiter
 from .routers import (
-    admin, admin_newsletter, admin_subscripcions, admin_users, auth, blog, cart, catalog, checkout,
-    comptabilitat, configuracio, erp, health, i18n, me, newsletter_public, spotify,
-    subscripcions_public,
+    admin, admin_newsletter, admin_subscripcions, admin_users, auth, billing_webhooks, blog, cart, catalog,
+    checkout, comptabilitat, configuracio, erp, health, i18n, internal, me, newsletter_public, spotify,
+    subscripcions_public, superadmin,
 )
 
 app = FastAPI(
@@ -45,6 +45,9 @@ app.include_router(me.router)
 app.include_router(spotify.router)
 app.include_router(spotify.public_router)
 app.include_router(subscripcions_public.router)
+app.include_router(superadmin.router)
+app.include_router(billing_webhooks.router)
+app.include_router(internal.router)
 app.include_router(health.router)
 
 # /metrics (Prometheus): bloquejat a Caddy perquè no sigui públic (veure

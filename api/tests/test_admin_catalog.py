@@ -29,7 +29,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -39,14 +39,14 @@ def _auth(token: str) -> dict:
 
 
 def _seed_release(db, artista="Artista", titulo="Àlbum", discogs_release_id=None) -> Release:
-    r = Release(artista=artista, titulo=titulo, formato="LP", discogs_release_id=discogs_release_id)
+    r = Release(artista=artista, title=titulo, formato="LP", discogs_release_id=discogs_release_id)
     db.add(r)
     db.commit()
     return r
 
 
 def _seed_item(db, release, precio="20.00") -> Item:
-    item = Item(release_id=release.id, precio=Decimal(precio))
+    item = Item(release_id=release.id, price=Decimal(precio))
     db.add(item)
     db.commit()
     return item
@@ -62,14 +62,14 @@ def test_update_release(db, client):
 
     resp = client.put(
         f"/admin/releases/{release.id}",
-        json={"artista": "Artista Nou", "titulo": "Àlbum Nou", "anio": 1999},
+        json={"artista": "Artista Nou", "title": "Àlbum Nou", "anio": 1999},
         headers=_auth(admin),
     )
     assert resp.status_code == 200
 
     db.refresh(release)
     assert release.artista == "Artista Nou"
-    assert release.titulo == "Àlbum Nou"
+    assert release.title == "Àlbum Nou"
     assert release.anio == 1999
 
 
@@ -78,7 +78,7 @@ def test_update_release_404(db, client):
     import uuid as _uuid
     resp = client.put(
         f"/admin/releases/{_uuid.uuid4()}",
-        json={"artista": "X", "titulo": "Y"},
+        json={"artista": "X", "title": "Y"},
         headers=_auth(admin),
     )
     assert resp.status_code == 404
@@ -97,8 +97,8 @@ def test_create_item_nou_agrega_en_linia_existent(db, client):
 
     resp1 = client.post(
         "/admin/items",
-        json={"release_id": str(release.id), "precio": "20.00", "coste_adquisicion": "10.00",
-              "condicion": "nou", "cantidad": 4},
+        json={"release_id": str(release.id), "price": "20.00", "acquisition_cost": "10.00",
+              "condition": "nou", "quantity": 4},
         headers=_auth(admin),
     )
     assert resp1.status_code == 201
@@ -106,8 +106,8 @@ def test_create_item_nou_agrega_en_linia_existent(db, client):
 
     resp2 = client.post(
         "/admin/items",
-        json={"release_id": str(release.id), "precio": "22.00", "coste_adquisicion": "16.00",
-              "condicion": "nou", "cantidad": 2},
+        json={"release_id": str(release.id), "price": "22.00", "acquisition_cost": "16.00",
+              "condition": "nou", "quantity": 2},
         headers=_auth(admin),
     )
     assert resp2.status_code == 201
@@ -116,9 +116,9 @@ def test_create_item_nou_agrega_en_linia_existent(db, client):
     db.expire_all()
     items = db.scalars(select(Item).where(Item.release_id == release.id)).all()
     assert len(items) == 1
-    assert items[0].cantidad == 6
-    assert items[0].coste_adquisicion == Decimal("12.00")  # (4*10 + 2*16) / 6
-    assert items[0].precio == Decimal("22.00")
+    assert items[0].quantity == 6
+    assert items[0].acquisition_cost == Decimal("12.00")  # (4*10 + 2*16) / 6
+    assert items[0].price == Decimal("22.00")
 
 
 def test_create_item_segona_ma_no_agrega(db, client):
@@ -129,7 +129,7 @@ def test_create_item_segona_ma_no_agrega(db, client):
     for precio in ("20.00", "25.00"):
         resp = client.post(
             "/admin/items",
-            json={"release_id": str(release.id), "precio": precio, "condicion": "segona_ma"},
+            json={"release_id": str(release.id), "price": precio, "condition": "segona_ma"},
             headers=_auth(admin),
         )
         assert resp.status_code == 201
@@ -144,7 +144,7 @@ def test_list_releases_incluye_cantidad_para_items_nou(db, client):
     cantidad/cantidad_reservada por item, si no las líneas nou salen NaN/NaN."""
     admin = _admin_token(client, db)
     release = _seed_release(db)
-    db.add(Item(release_id=release.id, precio=Decimal("20.00"), condicion=CondicionItem.nou, cantidad=5))
+    db.add(Item(release_id=release.id, price=Decimal("20.00"), condition=CondicionItem.nou, quantity=5))
     db.commit()
 
     resp = client.get("/admin/releases", headers=_auth(admin))
@@ -196,13 +196,13 @@ def test_delete_item_amb_pedido_falla(db, client):
 
     order = Order(
         status=OrderStatus.pendiente_pago,
-        email_contacto="client@example.com",
+        contact_email="client@example.com",
         total=Decimal("20.00"),
-        metodo_envio="recogida_tienda",
+        shipping_method="recogida_tienda",
     )
     db.add(order)
     db.commit()
-    db.add(OrderItem(order_id=order.id, item_id=item.id, precio=item.precio))
+    db.add(OrderItem(order_id=order.id, item_id=item.id, price=item.price))
     db.commit()
 
     resp = client.delete(f"/admin/items/{item.id}", headers=_auth(admin))
@@ -222,13 +222,13 @@ def test_update_item(db, client):
 
     resp = client.put(
         f"/admin/items/{item.id}",
-        json={"precio": "25.50", "condicion": "nou", "estado_disco": None, "estado_funda": None},
+        json={"price": "25.50", "condition": "nou", "estado_disco": None, "estado_funda": None},
         headers=_auth(admin),
     )
     assert resp.status_code == 200
     db.refresh(item)
-    assert item.precio == Decimal("25.50")
-    assert item.condicion.value == "nou"
+    assert item.price == Decimal("25.50")
+    assert item.condition.value == "nou"
 
 
 def test_update_item_venut_falla(db, client):
@@ -240,7 +240,7 @@ def test_update_item_venut_falla(db, client):
 
     resp = client.put(
         f"/admin/items/{item.id}",
-        json={"precio": "99.00", "condicion": "nou"},
+        json={"price": "99.00", "condition": "nou"},
         headers=_auth(admin),
     )
     assert resp.status_code == 409
@@ -350,7 +350,7 @@ def test_import_catalog_csv_actualitza_preu_i_release(db, client):
 
     db.refresh(item)
     db.refresh(release)
-    assert str(item.precio) == "30.00"
+    assert str(item.price) == "30.00"
     assert item.estado_disco == "VG+"
     assert release.sello == "Harvest"
 
@@ -382,10 +382,10 @@ def test_import_catalog_csv_no_elimina_item_venut(db, client):
     admin = _admin_token(client, db)
     release = _seed_release(db, artista="Pink Floyd", titulo="The Wall")
     item = _seed_item(db, release, precio="25.00")
-    order = Order(email_contacto="x@example.com", total=Decimal("25.00"), status=OrderStatus.pagado, metodo_envio="recogida")
+    order = Order(contact_email="x@example.com", total=Decimal("25.00"), status=OrderStatus.pagado, shipping_method="recogida")
     db.add(order)
     db.flush()
-    db.add(OrderItem(order_id=order.id, item_id=item.id, precio=Decimal("25.00")))
+    db.add(OrderItem(order_id=order.id, item_id=item.id, price=Decimal("25.00")))
     item.status = ItemStatus.vendido
     db.commit()
 
@@ -437,14 +437,14 @@ def test_enrich_release_from_discogs(db, client, monkeypatch):
     admin = _admin_token(client, db)
     release = _seed_release(db, discogs_release_id=999888)
 
-    def _fake_enrich(release_arg, db_arg):
+    def _fake_enrich(release_arg, db_arg, token_arg=None):
         release_arg.tracklist = [{"pos": "A1", "title": "Cançó", "duration": "3:00"}]
         release_arg.genero = "Rock"
         release_arg.formato = "LP"
         db_arg.commit()
         return True
 
-    monkeypatch.setattr(admin_module, "enrich_release_from_discogs", _fake_enrich)
+    monkeypatch.setattr(admin_module.discogs_sync, "enrich_release_from_discogs", _fake_enrich)
 
     resp = client.post(f"/admin/discogs/sync/releases/{release.id}/enrich", headers=_auth(admin))
     assert resp.status_code == 200
@@ -457,11 +457,11 @@ def test_enrich_release_from_discogs(db, client, monkeypatch):
 
 
 def test_release_needs_sync_per_format_buit():
-    from app.routers.admin import _release_needs_sync
+    from app.routers.admin.discogs_sync import _release_needs_sync
 
     complet = Release(
-        artista="A", titulo="Complet", formato="LP",
-        imagen_url="http://x/img.jpg", genero="Rock", ean="123", tracklist=[{"pos": "A1"}],
+        artista="A", title="Complet", formato="LP",
+        image_url="http://x/img.jpg", genero="Rock", ean="123", tracklist=[{"pos": "A1"}],
     )
     assert _release_needs_sync(complet) is False
 
@@ -474,17 +474,17 @@ def test_discogs_sync_stats_compta_sense_format(db, client):
     processar: un release sense format ha de comptar, o mai s'inclouria."""
     admin = _admin_token(client, db)
     complet = Release(
-        artista="A", titulo="Complet", formato="LP",
-        imagen_url="http://x/img.jpg", genero="Rock", ean="123", tracklist=[{"pos": "A1"}],
+        artista="A", title="Complet", formato="LP",
+        image_url="http://x/img.jpg", genero="Rock", ean="123", tracklist=[{"pos": "A1"}],
     )
     sense_format = Release(
-        artista="B", titulo="Sense format", formato=None,
-        imagen_url="http://x/img.jpg", genero="Rock", ean="456", tracklist=[{"pos": "A1"}],
+        artista="B", title="Sense format", formato=None,
+        image_url="http://x/img.jpg", genero="Rock", ean="456", tracklist=[{"pos": "A1"}],
     )
     db.add_all([complet, sense_format])
     db.flush()
-    db.add_all([Item(release_id=complet.id, precio=Decimal("10.00")),
-                Item(release_id=sense_format.id, precio=Decimal("10.00"))])
+    db.add_all([Item(release_id=complet.id, price=Decimal("10.00")),
+                Item(release_id=sense_format.id, price=Decimal("10.00"))])
     db.commit()
 
     resp = client.get("/admin/discogs/sync/stats", headers=_auth(admin))

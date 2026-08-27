@@ -12,14 +12,14 @@ from app.models import Item, Release, Seccio, User
 
 
 def _seed_release(db, artista="Artista", titulo="Àlbum", seccio=None) -> Release:
-    r = Release(artista=artista, titulo=titulo, formato="LP", seccio=seccio)
+    r = Release(artista=artista, title=titulo, formato="LP", seccio=seccio)
     db.add(r)
     db.commit()
     return r
 
 
 def _seed_item(db, release, precio="20.00") -> Item:
-    item = Item(release_id=release.id, precio=Decimal(precio))
+    item = Item(release_id=release.id, price=Decimal(precio))
     db.add(item)
     db.commit()
     return item
@@ -38,7 +38,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -56,7 +56,7 @@ def test_crud_seccio(db, client):
 
     resp = client.post(
         "/admin/seccions",
-        json={"slug": "nacional", "nom_ca": "Nacional", "nom_es": "Nacional", "color": "#10b981", "posicio": 1},
+        json={"slug": "nacional", "name_ca": "Nacional", "name_es": "Nacional", "color": "#10b981", "position": 1},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
@@ -68,11 +68,11 @@ def test_crud_seccio(db, client):
 
     resp = client.patch(
         f"/admin/seccions/{seccio_id}",
-        json={"slug": "nacional", "nom_ca": "Nacional (CAT)", "posicio": 2},
+        json={"slug": "nacional", "name_ca": "Nacional (CAT)", "position": 2},
         headers=_auth(admin),
     )
     assert resp.status_code == 200
-    assert resp.json()["nom_ca"] == "Nacional (CAT)"
+    assert resp.json()["name_ca"] == "Nacional (CAT)"
 
     resp = client.delete(f"/admin/seccions/{seccio_id}", headers=_auth(admin))
     assert resp.status_code == 204
@@ -81,14 +81,14 @@ def test_crud_seccio(db, client):
 
 def test_slug_duplicat_rebutjat(db, client):
     admin = _admin_token(client, db)
-    client.post("/admin/seccions", json={"slug": "alternatiu", "nom_ca": "Alternatiu"}, headers=_auth(admin))
-    resp = client.post("/admin/seccions", json={"slug": "alternatiu", "nom_ca": "Un altre"}, headers=_auth(admin))
+    client.post("/admin/seccions", json={"slug": "alternatiu", "name_ca": "Alternatiu"}, headers=_auth(admin))
+    resp = client.post("/admin/seccions", json={"slug": "alternatiu", "name_ca": "Un altre"}, headers=_auth(admin))
     assert resp.status_code == 409
 
 
 def test_esborrar_seccio_deixa_releases_sense_classificar(db, client):
     admin = _admin_token(client, db)
-    seccio = Seccio(slug="internacional", nom_ca="Internacional")
+    seccio = Seccio(slug="internacional", name_ca="Internacional")
     db.add(seccio)
     db.commit()
     release = _seed_release(db, seccio=seccio)
@@ -98,7 +98,7 @@ def test_esborrar_seccio_deixa_releases_sense_classificar(db, client):
     assert resp.status_code == 204
 
     db.refresh(release)
-    assert release.seccio_id is None
+    assert release.section_id is None
 
 
 # ---------------------------------------------------------------------------
@@ -107,8 +107,8 @@ def test_esborrar_seccio_deixa_releases_sense_classificar(db, client):
 
 def test_seccions_publiques_nomes_actives(db, client):
     db.add_all([
-        Seccio(slug="nacional", nom_ca="Nacional", activa=True, posicio=1),
-        Seccio(slug="oculta", nom_ca="Oculta", activa=False, posicio=2),
+        Seccio(slug="nacional", name_ca="Nacional", active=True, position=1),
+        Seccio(slug="oculta", name_ca="Oculta", active=False, position=2),
     ])
     db.commit()
 
@@ -119,8 +119,8 @@ def test_seccions_publiques_nomes_actives(db, client):
 
 
 def test_catalog_filtra_per_seccio(db, client):
-    nacional = Seccio(slug="nacional", nom_ca="Nacional")
-    internacional = Seccio(slug="internacional", nom_ca="Internacional")
+    nacional = Seccio(slug="nacional", name_ca="Nacional")
+    internacional = Seccio(slug="internacional", name_ca="Internacional")
     db.add_all([nacional, internacional])
     db.commit()
 
@@ -144,7 +144,7 @@ def test_catalog_filtra_per_seccio(db, client):
 
 
 def test_catalog_ordena_alfabeticament_dins_seccio(db, client):
-    nacional = Seccio(slug="nacional", nom_ca="Nacional")
+    nacional = Seccio(slug="nacional", name_ca="Nacional")
     db.add(nacional)
     db.commit()
 

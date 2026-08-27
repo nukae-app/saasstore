@@ -25,23 +25,23 @@ router = APIRouter(prefix="/admin/users", tags=["admin-users"], dependencies=[De
 
 class UserCreateIn(BaseModel):
     email: str
-    nombre: str | None = None
-    telefon: str | None = None
-    rol: str = "cliente"
-    activo: bool = True
+    name: str | None = None
+    phone: str | None = None
+    role: str = "cliente"
+    active: bool = True
     consent_newsletter: bool = False
-    idioma: str = "ca"
-    notas_internes: str | None = None
+    language: str = "ca"
+    internal_notes: str | None = None
 
 
 class UserPatchIn(BaseModel):
-    nombre: str | None = None
-    telefon: str | None = None
-    activo: bool | None = None
-    rol: str | None = None
+    name: str | None = None
+    phone: str | None = None
+    active: bool | None = None
+    role: str | None = None
     consent_newsletter: bool | None = None
-    idioma: str | None = None
-    notas_internes: str | None = None
+    language: str | None = None
+    internal_notes: str | None = None
 
 
 class SetPasswordIn(BaseModel):
@@ -52,13 +52,13 @@ def _user_dict(u: User, providers: list[str]) -> dict:
     return {
         "id": u.id,
         "email": u.email,
-        "nombre": u.nombre,
-        "telefon": u.telefon,
-        "rol": u.rol,
-        "activo": u.activo,
+        "name": u.name,
+        "phone": u.phone,
+        "role": u.role,
+        "active": u.active,
         "consent_newsletter": u.consent_newsletter,
-        "idioma": u.idioma,
-        "notas_internes": u.notas_internes,
+        "language": u.language,
+        "internal_notes": u.internal_notes,
         "providers": providers,
         "created_at": u.created_at,
     }
@@ -71,11 +71,11 @@ def _user_dict(u: User, providers: list[str]) -> dict:
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
     total = db.scalar(select(func.count(User.id)))
-    actius = db.scalar(select(func.count(User.id)).where(User.activo == True))
+    actius = db.scalar(select(func.count(User.id)).where(User.active == True))
     newsletter = db.scalar(
-        select(func.count(User.id)).where(User.activo == True, User.consent_newsletter == True)
+        select(func.count(User.id)).where(User.active == True, User.consent_newsletter == True)
     )
-    admins = db.scalar(select(func.count(User.id)).where(User.rol == "admin", User.activo == True))
+    admins = db.scalar(select(func.count(User.id)).where(User.role == "admin", User.active == True))
     return {
         "total": total,
         "actius": actius,
@@ -95,13 +95,13 @@ def search_users(q: str = Query(min_length=2), db: Session = Depends(get_db)):
     users = db.scalars(
         select(User)
         .where(
-            User.activo == True,
-            User.email.ilike(ql) | User.nombre.ilike(ql) | User.telefon.ilike(ql),
+            User.active == True,
+            User.email.ilike(ql) | User.name.ilike(ql) | User.phone.ilike(ql),
         )
-        .order_by(User.nombre)
+        .order_by(User.name)
         .limit(10)
     ).all()
-    return [{"id": u.id, "nombre": u.nombre, "email": u.email, "telefon": u.telefon} for u in users]
+    return [{"id": u.id, "name": u.name, "email": u.email, "phone": u.phone} for u in users]
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +112,7 @@ def search_users(q: str = Query(min_length=2), db: Session = Depends(get_db)):
 def export_newsletter(db: Session = Depends(get_db)):
     users = db.scalars(
         select(User)
-        .where(User.activo == True, User.consent_newsletter == True)
+        .where(User.active == True, User.consent_newsletter == True)
         .order_by(User.created_at.desc())
     ).all()
 
@@ -122,9 +122,9 @@ def export_newsletter(db: Session = Depends(get_db)):
     for u in users:
         writer.writerow([
             u.email,
-            u.nombre or "",
-            u.telefon or "",
-            u.idioma,
+            u.name or "",
+            u.phone or "",
+            u.language,
             u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
         ])
     output.seek(0)
@@ -141,10 +141,10 @@ def export_newsletter(db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 SORTABLE_COLUMNS = {
-    "nombre": User.nombre,
-    "rol": User.rol,
+    "nombre": User.name,
+    "rol": User.role,
     "consent_newsletter": User.consent_newsletter,
-    "activo": User.activo,
+    "activo": User.active,
     "created_at": User.created_at,
 }
 
@@ -166,15 +166,15 @@ def list_users(
         sort_col.desc() if order_dir == "desc" else sort_col.asc()
     )
     if activo is not None:
-        stmt = stmt.where(User.activo == activo)
+        stmt = stmt.where(User.active == activo)
     if newsletter is not None:
         stmt = stmt.where(User.consent_newsletter == newsletter)
     if rol:
-        stmt = stmt.where(User.rol == rol)
+        stmt = stmt.where(User.role == rol)
     if q:
         ql = f"%{q.lower()}%"
         stmt = stmt.where(
-            User.email.ilike(ql) | User.nombre.ilike(ql) | User.telefon.ilike(ql)
+            User.email.ilike(ql) | User.name.ilike(ql) | User.phone.ilike(ql)
         )
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     users = db.scalars(stmt.offset(skip).limit(limit)).all()
@@ -221,13 +221,13 @@ def list_users(
 def create_user(payload: UserCreateIn, db: Session = Depends(get_db)):
     u = User(
         email=payload.email.lower().strip(),
-        nombre=payload.nombre,
-        telefon=payload.telefon,
-        rol=payload.rol,
-        activo=payload.activo,
+        name=payload.name,
+        phone=payload.phone,
+        role=payload.role,
+        active=payload.active,
         consent_newsletter=payload.consent_newsletter,
-        idioma=payload.idioma,
-        notas_internes=payload.notas_internes,
+        language=payload.language,
+        internal_notes=payload.internal_notes,
     )
     db.add(u)
     try:
@@ -271,7 +271,7 @@ def get_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
     providers = [i.provider for i in u.identities]
     d = _user_dict(u, providers)
     d["addresses"] = [
-        {"id": a.id, "linea1": a.linea1, "ciudad": a.ciudad, "cp": a.cp, "pais": a.pais}
+        {"id": a.id, "address_line1": a.address_line1, "city": a.city, "postal_code": a.postal_code, "country": a.country}
         for a in u.addresses
     ]
 
@@ -288,7 +288,7 @@ def get_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
             "total": float(o.total),
             "created_at": o.created_at,
             "items": [
-                {"artista": oi.item.release.artista, "titulo": oi.item.release.titulo, "precio": float(oi.precio)}
+                {"artista": oi.item.release.artista, "titulo": oi.item.release.title, "precio": float(oi.price)}
                 for oi in o.items if oi.item and oi.item.release
             ],
         }
@@ -299,18 +299,18 @@ def get_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
         select(VentaExterna)
         .where(VentaExterna.user_id == user_id)
         .options(selectinload(VentaExterna.item).selectinload(Item.release))
-        .order_by(VentaExterna.fecha.desc())
+        .order_by(VentaExterna.date.desc())
     ).all()
     d["vendes_tpv"] = [
         {
             "id": v.id,
             "artista": v.item.release.artista if v.item and v.item.release else None,
-            "titulo": v.item.release.titulo if v.item and v.item.release else None,
-            "descripcion": v.descripcion,
-            "canal": v.canal,
-            "metodo_pago": v.metodo_pago,
-            "precio_venta": float(v.precio_venta),
-            "fecha": v.fecha,
+            "titulo": v.item.release.title if v.item and v.item.release else None,
+            "description": v.description,
+            "channel": v.channel,
+            "payment_method": v.payment_method,
+            "sale_price": float(v.sale_price),
+            "date": v.date,
         }
         for v in vendes
     ]
@@ -319,19 +319,19 @@ def get_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
         select(Compra)
         .where(Compra.user_id == user_id)
         .options(selectinload(Compra.items).selectinload(Item.release))
-        .order_by(Compra.fecha.desc())
+        .order_by(Compra.date.desc())
     ).all()
     d["compres_records"] = [
         {
             "id": c.id,
-            "fecha": c.fecha,
+            "fecha": c.date,
             "num_items": len(c.items),
-            "total_pagat": float(sum(it.coste_adquisicion or 0 for it in c.items)),
+            "total_pagat": float(sum(it.acquisition_cost or 0 for it in c.items)),
             "items": [
                 {
                     "artista": it.release.artista if it.release else None,
-                    "titulo": it.release.titulo if it.release else None,
-                    "coste": float(it.coste_adquisicion or 0),
+                    "titulo": it.release.title if it.release else None,
+                    "coste": float(it.acquisition_cost or 0),
                 }
                 for it in c.items if it.release
             ],
@@ -370,10 +370,10 @@ def anonymize_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
         raise HTTPException(404, "Usuari no trobat")
     anon_id = str(uuid.uuid4()).replace("-", "")[:12]
     u.email = f"anon-{anon_id}@deleted.local"
-    u.nombre = None
-    u.telefon = None
-    u.notas_internes = None
-    u.activo = False
+    u.name = None
+    u.phone = None
+    u.internal_notes = None
+    u.active = False
     u.consent_newsletter = False
     db.commit()
     return {"ok": True, "email": u.email}

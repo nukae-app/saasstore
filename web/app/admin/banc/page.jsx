@@ -58,10 +58,10 @@ export default function BancPage() {
   useEffect(() => { if (compteActiu) loadMoviments(compteActiu.id); }, [compteActiu]);
 
   const columns = useMemo(() => ({
-    data_operacio: { sortValue: m => m.data_operacio ?? '' },
-    import_moviment: { sortValue: m => parseFloat(m.import_moviment) || 0 },
-    saldo: { sortValue: m => m.saldo != null ? parseFloat(m.saldo) : null },
-    estat: { sortValue: m => ESTAT_CFG[m.estat]?.label || m.estat || '', filterValue: m => ESTAT_CFG[m.estat]?.label || m.estat },
+    data_operacio: { sortValue: m => m.operation_date ?? '' },
+    import_moviment: { sortValue: m => parseFloat(m.movement_amount) || 0 },
+    saldo: { sortValue: m => m.balance != null ? parseFloat(m.balance) : null },
+    estat: { sortValue: m => ESTAT_CFG[m.status]?.label || m.status || '', filterValue: m => ESTAT_CFG[m.status]?.label || m.status },
   }), []);
 
   const { rows: moviments_, sort, toggleSort, filters, setFilter, distinctValues } = useSortFilter(moviments, columns);
@@ -79,13 +79,13 @@ export default function BancPage() {
   }
 
   // Càlcul saldo banc des dels moviments
-  const saldoActual = moviments.length > 0 && moviments[0].saldo != null
-    ? parseFloat(moviments[0].saldo)
+  const saldoActual = moviments.length > 0 && moviments[0].balance != null
+    ? parseFloat(moviments[0].balance)
     : null;
 
-  const pendents = moviments.filter(m => m.estat === 'pendent');
-  const totalPendentIngressos = pendents.filter(m => parseFloat(m.import_moviment) > 0).reduce((s, m) => s + parseFloat(m.import_moviment), 0);
-  const totalPendentDespeses = pendents.filter(m => parseFloat(m.import_moviment) < 0).reduce((s, m) => s + parseFloat(m.import_moviment), 0);
+  const pendents = moviments.filter(m => m.status === 'pendent');
+  const totalPendentIngressos = pendents.filter(m => parseFloat(m.movement_amount) > 0).reduce((s, m) => s + parseFloat(m.movement_amount), 0);
+  const totalPendentDespeses = pendents.filter(m => parseFloat(m.movement_amount) < 0).reduce((s, m) => s + parseFloat(m.movement_amount), 0);
 
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
@@ -109,7 +109,7 @@ export default function BancPage() {
           {comptes.map(c => (
             <button key={c.id} onClick={() => setCompteActiu(c)}
               className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${compteActiu?.id === c.id ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400'}`}>
-              {c.nom}
+              {c.name}
               {c.iban && <span className="ml-2 text-xs opacity-60">{c.iban.slice(-6)}</span>}
             </button>
           ))}
@@ -171,13 +171,13 @@ export default function BancPage() {
                 <tbody className="divide-y divide-zinc-100">
                   {moviments_.map(m => (
                     <tr key={m.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">{fmtDate(m.data_operacio)}</td>
-                      <td className="px-4 py-3 text-zinc-700 max-w-xs truncate" title={m.concepte}>{m.concepte}</td>
-                      <td className="px-4 py-3 text-right">{fmtImport(m.import_moviment)}</td>
-                      <td className="px-4 py-3 text-right text-zinc-400 text-xs">{m.saldo != null ? parseFloat(m.saldo).toFixed(2) + ' €' : '—'}</td>
+                      <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">{fmtDate(m.operation_date)}</td>
+                      <td className="px-4 py-3 text-zinc-700 max-w-xs truncate" title={m.concept}>{m.concept}</td>
+                      <td className="px-4 py-3 text-right">{fmtImport(m.movement_amount)}</td>
+                      <td className="px-4 py-3 text-right text-zinc-400 text-xs">{m.balance != null ? parseFloat(m.balance).toFixed(2) + ' €' : '—'}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ESTAT_CFG[m.estat]?.cls}`}>
-                          {ESTAT_CFG[m.estat]?.label}
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ESTAT_CFG[m.status]?.cls}`}>
+                          {ESTAT_CFG[m.status]?.label}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs text-zinc-500">
@@ -190,14 +190,14 @@ export default function BancPage() {
                         ) : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        {m.estat === 'pendent' && (
+                        {m.status === 'pendent' && (
                           <button onClick={() => setConciliant(m)}
                             className="text-xs font-medium text-amber-600 hover:text-amber-800 border border-amber-200 rounded-lg px-2 py-1 hover:bg-amber-50 transition-colors">
                             Conciliar
                           </button>
                         )}
-                        {m.estat === 'conciliat' && (
-                          <button onClick={() => conciliar(m.id, { estat: 'pendent', despesa_id: null, order_id: null, venta_externa_id: null })}
+                        {m.status === 'conciliat' && (
+                          <button onClick={() => conciliar(m.id, { status: 'pendent', despesa_id: null, order_id: null, venta_externa_id: null })}
                             className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">
                             Desfer
                           </button>
@@ -229,7 +229,7 @@ export default function BancPage() {
       {conciliant && (
         <ConciliarModal
           moviment={conciliant}
-          despeses={despeses.filter(d => d.estat_pagament !== 'pagat')}
+          despeses={despeses.filter(d => d.payment_status !== 'pagat')}
           onClose={() => setConciliant(null)}
           onConciliar={(payload) => conciliar(conciliant.id, payload)}
         />
@@ -251,7 +251,7 @@ function NouCompteModal({ onClose, onSaved }) {
     setSaving(true);
     await authFetch('/admin/comptes', {
       method: 'POST',
-      body: JSON.stringify({ nom, iban: iban || null, entitat: entitat || null, saldo_inicial: parseFloat(saldoInicial), data_saldo_inicial: dataSaldo || null }),
+      body: JSON.stringify({ name: nom, iban: iban || null, bank: entitat || null, opening_balance: parseFloat(saldoInicial), opening_balance_date: dataSaldo || null }),
     });
     setSaving(false);
     onSaved();
@@ -326,7 +326,7 @@ function ImportModal({ compte, onClose, onSaved }) {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="font-bold text-zinc-900">Importar extracte — {compte.nom}</h3>
+          <h3 className="font-bold text-zinc-900">Importar extracte — {compte.name}</h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600"><X size={18} /></button>
         </div>
         <div className="p-6 space-y-4">
@@ -366,19 +366,19 @@ function ConciliarModal({ moviment, despeses, onClose, onConciliar }) {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const isIngres = parseFloat(moviment.import_moviment) > 0;
+  const isIngres = parseFloat(moviment.movement_amount) > 0;
   // Per a ingressos, conciliar amb venda o ignorar; per a despeses, amb despesa o ignorar
 
   async function save(e) {
     e.preventDefault();
     setSaving(true);
     if (tipus === 'ignorar') {
-      await onConciliar({ estat: 'ignorat', notes_conciliacio: notes || null });
+      await onConciliar({ status: 'ignorat', reconciliation_notes: notes || null });
     } else {
       await onConciliar({
-        estat: 'conciliat',
+        status: 'conciliat',
         despesa_id: despesaId || null,
-        notes_conciliacio: notes || null,
+        reconciliation_notes: notes || null,
       });
     }
     setSaving(false);
@@ -395,12 +395,12 @@ function ConciliarModal({ moviment, despeses, onClose, onConciliar }) {
           {/* Info moviment */}
           <div className="bg-zinc-50 rounded-xl p-3 text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-zinc-500">{new Date(moviment.data_operacio + 'T00:00:00').toLocaleDateString('ca-ES')}</span>
-              <span className={parseFloat(moviment.import_moviment) >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-                {parseFloat(moviment.import_moviment) >= 0 ? '+' : ''}{parseFloat(moviment.import_moviment).toFixed(2)} €
+              <span className="text-zinc-500">{new Date(moviment.operation_date + 'T00:00:00').toLocaleDateString('ca-ES')}</span>
+              <span className={parseFloat(moviment.movement_amount) >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
+                {parseFloat(moviment.movement_amount) >= 0 ? '+' : ''}{parseFloat(moviment.movement_amount).toFixed(2)} €
               </span>
             </div>
-            <p className="text-zinc-700 font-medium truncate">{moviment.concepte}</p>
+            <p className="text-zinc-700 font-medium truncate">{moviment.concept}</p>
           </div>
 
           <div>
@@ -427,8 +427,8 @@ function ConciliarModal({ moviment, despeses, onClose, onConciliar }) {
                 <option value="">Selecciona una despesa...</option>
                 {despeses.map(d => (
                   <option key={d.id} value={d.id}>
-                    {d.proveidor_nom} — {d.concepte} — {parseFloat(d.total).toFixed(2)} €
-                    {d.data_venciment ? ` (vcmt. ${d.data_venciment})` : ''}
+                    {d.supplier_name} — {d.concept} — {parseFloat(d.total).toFixed(2)} €
+                    {d.due_date ? ` (vcmt. ${d.due_date})` : ''}
                   </option>
                 ))}
               </select>

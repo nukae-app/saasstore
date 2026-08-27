@@ -18,8 +18,8 @@ from ..models import CondicionItem, Item, TipusIva
 
 def resolve_tipus_iva_venda(item: Item, db: Session) -> TipusIva | None:
     """Tipus d'IVA configurat per defecte per a aquest ítem (nou o segona mà/REBU)."""
-    campo = TipusIva.per_defecte_segona_ma if item.condicion == CondicionItem.segona_ma else TipusIva.per_defecte_nou
-    return db.scalar(select(TipusIva).where(campo == True, TipusIva.actiu == True))
+    campo = TipusIva.default_used if item.condition == CondicionItem.segona_ma else TipusIva.default_new
+    return db.scalar(select(TipusIva).where(campo == True, TipusIva.active == True))
 
 
 def compute_iva_venda(item: Item, precio_venta: Decimal, db: Session) -> tuple[int | None, Decimal | None, Decimal | None]:
@@ -34,16 +34,16 @@ def compute_iva_venda(item: Item, precio_venta: Decimal, db: Session) -> tuple[i
     if tipus is None:
         return None, None, None
 
-    if tipus.es_rebu:
-        if item.coste_adquisicion is None:
-            return tipus.id, tipus.percentatge, None
-        base_calculo = precio_venta - item.coste_adquisicion
+    if tipus.is_rebu:
+        if item.acquisition_cost is None:
+            return tipus.id, tipus.percentage, None
+        base_calculo = precio_venta - item.acquisition_cost
     else:
         base_calculo = precio_venta
 
     if base_calculo <= 0:
-        return tipus.id, tipus.percentatge, Decimal("0.00")
+        return tipus.id, tipus.percentage, Decimal("0.00")
 
-    pct = tipus.percentatge
+    pct = tipus.percentage
     iva_import = (base_calculo * pct / (Decimal("100") + pct)).quantize(Decimal("0.01"))
     return tipus.id, pct, iva_import

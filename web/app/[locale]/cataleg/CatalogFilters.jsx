@@ -9,7 +9,7 @@ import { api } from '../../lib/api';
 
 const FORMATS = ['LP', '12"', '10"', '7"', 'CD', 'Cassette', 'EP'];
 
-export default function CatalogFilters({ className = '' }) {
+export default function CatalogFilters({ className = '', isVinils = true }) {
   const t = useTranslations('cataleg');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,28 +65,30 @@ export default function CatalogFilters({ className = '' }) {
         />
       </div>
 
-      {/* Format */}
-      <div>
-        <p className="font-medium text-zinc-700 mb-2">{t('format')}</p>
-        <div className="flex flex-wrap gap-1.5">
-          {FORMATS.map(f => {
-            const active = getParam('format') === f;
-            return (
-              <button
-                key={f}
-                onClick={() => setParam('format', active ? '' : f)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  active
-                    ? 'bg-zinc-900 text-white border-zinc-900'
-                    : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
-                }`}
-              >
-                {f}
-              </button>
-            );
-          })}
+      {/* Format — vocabulari de format musical, només per a vinils */}
+      {isVinils && (
+        <div>
+          <p className="font-medium text-zinc-700 mb-2">{t('format')}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {FORMATS.map(f => {
+              const active = getParam('format') === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setParam('format', active ? '' : f)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    active
+                      ? 'bg-zinc-900 text-white border-zinc-900'
+                      : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
+                  }`}
+                >
+                  {f}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Etiquetes */}
       {etiquetes.length > 0 && (
@@ -104,7 +106,7 @@ export default function CatalogFilters({ className = '' }) {
                   }`}
                   style={active ? { backgroundColor: et.color || '#18181b', borderColor: et.color || '#18181b' } : {}}
                 >
-                  {et.nom_ca}
+                  {et.name_ca}
                 </button>
               );
             })}
@@ -112,19 +114,21 @@ export default function CatalogFilters({ className = '' }) {
         </div>
       )}
 
-      {/* Genre */}
-      <div>
-        <p className="font-medium text-zinc-700 mb-2">{t('genre')}</p>
-        <input
-          type="text"
-          placeholder="Jazz, Rock, Electronic…"
-          aria-label={t('genre')}
-          defaultValue={getParam('genre')}
-          onKeyDown={e => { if (e.key === 'Enter') setParam('genre', e.target.value); }}
-          onBlur={e => setParam('genre', e.target.value)}
-          className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
-        />
-      </div>
+      {/* Genre — vocabulari musical, només per a vinils */}
+      {isVinils && (
+        <div>
+          <p className="font-medium text-zinc-700 mb-2">{t('genre')}</p>
+          <input
+            type="text"
+            placeholder="Jazz, Rock, Electronic…"
+            aria-label={t('genre')}
+            defaultValue={getParam('genre')}
+            onKeyDown={e => { if (e.key === 'Enter') setParam('genre', e.target.value); }}
+            onBlur={e => setParam('genre', e.target.value)}
+            className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          />
+        </div>
+      )}
 
       {/* Price */}
       <div>

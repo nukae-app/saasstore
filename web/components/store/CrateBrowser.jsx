@@ -42,7 +42,7 @@ function CrateBrowserInner() {
   const SENSE_CLASSIFICAR = {
     id: 'sense-classificar',
     slug: 'sense-classificar',
-    nom_ca: t('unclassified'),
+    name_ca: t('unclassified'),
     color: '#d4d4d8',
   };
   const totes = [...seccions, SENSE_CLASSIFICAR];
@@ -94,7 +94,7 @@ function CubetaTile({ seccio, onPick }) {
     api(`/catalog?${qs}`)
       .then(data => {
         setTotal(data.total);
-        setCovers(data.results.map(r => r.imagen_url).filter(Boolean));
+        setCovers(data.results.map(r => r.image_url).filter(Boolean));
       })
       .catch(() => {});
   }, [seccio.slug]);
@@ -126,7 +126,7 @@ function CubetaTile({ seccio, onPick }) {
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent p-5 pt-16">
         <p className="flex items-center gap-2 font-serif italic text-2xl text-white leading-snug">
           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: seccio.color || '#94a3b8' }} />
-          {seccio.nom_ca}
+          {seccio.name_ca}
         </p>
         <p className="text-white/70 text-xs mt-0.5">{total !== null ? t('recordCount', { count: total }) : ' '}</p>
       </div>

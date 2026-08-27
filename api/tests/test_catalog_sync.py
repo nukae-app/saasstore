@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from app.models import Item, ItemStatus, Release
+from app.models import Item, ItemStatus, RecordProduct, RecordStockDetail, Release
 from app.services.catalog_sync import apply_sync, diff_catalog, parse_sheet_csv
 
 CSV_HEADER = "CODI,ARTISTA ,TITOL / TÍTULO,SEGELL / SELLO,REFERENCIA,FORMAT,PREU/PRECIO,DATA/FECHA ENTRADA,ESTAT DISCO,ESTAT FUNDA\n"
@@ -27,17 +27,19 @@ def test_afegeix_disc_nou_del_sheet(db):
     result = apply_sync(db, sheet_codis, diff)
     assert result == {"creados": 1, "retirados": 0, "errores": 0}
 
-    item = db.query(Item).filter(Item.codi_discogs == 111).one()
+    item = db.query(Item).join(RecordStockDetail, RecordStockDetail.item_id == Item.id).filter(
+        RecordStockDetail.codi_discogs == 111
+    ).one()
     assert item.status == ItemStatus.disponible
-    assert item.precio == Decimal("10.0")
+    assert item.price == Decimal("10.0")
     assert item.release.artista == "Nou Artista"
 
 
 def test_retira_item_que_ja_no_es_al_sheet(db):
-    release = Release(artista="X", titulo="Y")
+    release = Release(artista="X", title="Y")
     db.add(release)
     db.flush()
-    item = Item(release_id=release.id, codi_discogs=222, precio=Decimal("5.0"), status=ItemStatus.disponible)
+    item = Item(release_id=release.id, codi_discogs=222, price=Decimal("5.0"), status=ItemStatus.disponible)
     db.add(item)
     db.commit()
 
@@ -51,11 +53,11 @@ def test_retira_item_que_ja_no_es_al_sheet(db):
 
 
 def test_no_retira_items_venuts_ni_reservats(db):
-    release = Release(artista="X", titulo="Y")
+    release = Release(artista="X", title="Y")
     db.add(release)
     db.flush()
-    venut = Item(release_id=release.id, codi_discogs=333, precio=Decimal("5.0"), status=ItemStatus.vendido)
-    reservat = Item(release_id=release.id, codi_discogs=444, precio=Decimal("5.0"), status=ItemStatus.reservado)
+    venut = Item(release_id=release.id, codi_discogs=333, price=Decimal("5.0"), status=ItemStatus.vendido)
+    reservat = Item(release_id=release.id, codi_discogs=444, price=Decimal("5.0"), status=ItemStatus.reservado)
     db.add_all([venut, reservat])
     db.commit()
 
@@ -71,7 +73,7 @@ def test_no_retira_items_venuts_ni_reservats(db):
 
 
 def test_reutilitza_release_existent_per_discogs_release_id(db):
-    release = Release(artista="Ja Existeix", titulo="Album", discogs_release_id=999)
+    release = Release(artista="Ja Existeix", title="Album", discogs_release_id=999)
     db.add(release)
     db.commit()
 
@@ -80,6 +82,8 @@ def test_reutilitza_release_existent_per_discogs_release_id(db):
     diff = diff_catalog(db, sheet_codis)
     apply_sync(db, sheet_codis, diff)
 
-    item = db.query(Item).filter(Item.codi_discogs == 555).one()
+    item = db.query(Item).join(RecordStockDetail, RecordStockDetail.item_id == Item.id).filter(
+        RecordStockDetail.codi_discogs == 555
+    ).one()
     assert item.release_id == release.id
-    assert db.query(Release).filter(Release.discogs_release_id == 999).count() == 1
+    assert db.query(Release).join(RecordProduct).filter(RecordProduct.discogs_release_id == 999).count() == 1

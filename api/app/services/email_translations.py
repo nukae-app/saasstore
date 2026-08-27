@@ -13,13 +13,13 @@ la BD (que és la font que fa servir realment l'admin per editar-los).
 
 EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
     "email.verify_email.subject": {
-        "ca": "Confirma el teu email — Ultra-Local Records",
-        "es": "Confirma tu email — Ultra-Local Records",
-        "en": "Confirm your email — Ultra-Local Records",
+        "ca": "Confirma el teu email — {nom}",
+        "es": "Confirma tu email — {nom}",
+        "en": "Confirm your email — {nom}",
     },
     "email.verify_email.body_text": {
         "ca": (
-            "Benvingut/da a Ultra-Local Records!\n\n"
+            "Benvingut/da a {nom}!\n\n"
             "Confirma el teu email per activar el compte (enllaç vàlid {hours}h):\n\n{link}\n\n"
             "Amb el compte actiu podràs:\n"
             "- Demanar discos que ara mateix no tenim en estoc: t'avisem per email en el moment que arribin.\n"
@@ -28,7 +28,7 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
             "Si no has creat aquest compte, ignora aquest correu.\n"
         ),
         "es": (
-            "¡Bienvenido/a a Ultra-Local Records!\n\n"
+            "¡Bienvenido/a a {nom}!\n\n"
             "Confirma tu email para activar la cuenta (enlace válido {hours}h):\n\n{link}\n\n"
             "Con la cuenta activa podrás:\n"
             "- Pedir discos que ahora mismo no tenemos en stock: te avisamos por email en cuanto lleguen.\n"
@@ -37,7 +37,7 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
             "Si no has creado esta cuenta, ignora este correo.\n"
         ),
         "en": (
-            "Welcome to Ultra-Local Records!\n\n"
+            "Welcome to {nom}!\n\n"
             "Confirm your email to activate your account (link valid for {hours}h):\n\n{link}\n\n"
             "With an active account you can:\n"
             "- Request records we don't have in stock right now: we'll email you the moment they arrive.\n"
@@ -47,9 +47,9 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
     },
     "email.verify_email.heading": {
-        "ca": "Benvingut/da a Ultra-Local Records!",
-        "es": "¡Bienvenido/a a Ultra-Local Records!",
-        "en": "Welcome to Ultra-Local Records!",
+        "ca": "Benvingut/da a {nom}!",
+        "es": "¡Bienvenido/a a {nom}!",
+        "en": "Welcome to {nom}!",
     },
     "email.verify_email.body_html": {
         "ca": (
@@ -93,9 +93,9 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
         "ca": "Confirma el teu email", "es": "Confirma tu email", "en": "Confirm your email",
     },
     "email.magic_link.subject": {
-        "ca": "El teu enllaç d'accés — Ultra-Local Records",
-        "es": "Tu enlace de acceso — Ultra-Local Records",
-        "en": "Your access link — Ultra-Local Records",
+        "ca": "El teu enllaç d'accés — {nom}",
+        "es": "Tu enlace de acceso — {nom}",
+        "en": "Your access link — {nom}",
     },
     "email.magic_link.body_text": {
         "ca": "Entra a la botiga amb aquest enllaç (caduca en {minuts} min):\n\n{link}\n",
@@ -114,9 +114,9 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
         "ca": "Entra a la botiga", "es": "Entra en la tienda", "en": "Log in to the shop",
     },
     "email.order_confirmed.subject": {
-        "ca": "Comanda confirmada #{order_short} — Ultra-Local Records",
-        "es": "Pedido confirmado #{order_short} — Ultra-Local Records",
-        "en": "Order confirmed #{order_short} — Ultra-Local Records",
+        "ca": "Comanda confirmada #{order_short} — {nom}",
+        "es": "Pedido confirmado #{order_short} — {nom}",
+        "en": "Order confirmed #{order_short} — {nom}",
     },
     "email.order_confirmed.body_text": {
         "ca": (
@@ -153,9 +153,9 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
         "ca": "Veure la comanda", "es": "Ver el pedido", "en": "View order",
     },
     "email.order_ready_pickup.subject": {
-        "ca": "Ja pots venir a recollir la teva comanda — Ultra-Local Records",
-        "es": "Ya puedes venir a recoger tu pedido — Ultra-Local Records",
-        "en": "You can now come pick up your order — Ultra-Local Records",
+        "ca": "Ja pots venir a recollir la teva comanda — {nom}",
+        "es": "Ya puedes venir a recoger tu pedido — {nom}",
+        "en": "You can now come pick up your order — {nom}",
     },
     "email.order_ready_pickup.body_text": {
         "ca": (
@@ -188,15 +188,15 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
     "email.peticion_price_ready.body_text": {
         "ca": (
             "Hola {nombre},\n\nHem trobat \"{disco}\", que ens vas demanar. Costa {precio} €.\n"
-            "Accepta'l o rebutja'l aquí (enllaç d'accés directe, vàlid 14 dies): {link}\n\nUltra-Local Records"
+            "Accepta'l o rebutja'l aquí (enllaç d'accés directe, vàlid 14 dies): {link}\n\n{nom}"
         ),
         "es": (
             "Hola {nombre},\n\nHemos encontrado \"{disco}\", que nos pediste. Cuesta {precio} €.\n"
-            "Acéptalo o recházalo aquí (enlace de acceso directo, válido 14 días): {link}\n\nUltra-Local Records"
+            "Acéptalo o recházalo aquí (enlace de acceso directo, válido 14 días): {link}\n\n{nom}"
         ),
         "en": (
             "Hi {nombre},\n\nWe've found \"{disco}\", which you requested. It costs €{precio}.\n"
-            "Accept or decline it here (direct access link, valid 14 days): {link}\n\nUltra-Local Records"
+            "Accept or decline it here (direct access link, valid 14 days): {link}\n\n{nom}"
         ),
     },
     "email.peticion_price_ready.heading": {
@@ -275,9 +275,9 @@ EMAIL_TRANSLATIONS: dict[str, dict[str, str]] = {
         "en": 'You didn\'t finish completing the purchase of "{disco}" in time, so the copy is back on general sale.',
     },
     "email.peticion_reserva_alliberada.body_text": {
-        "ca": "Hola {nombre},\n\n{motiu} Si encara el vols, torna a demanar-lo: {link}\n\nUltra-Local Records",
-        "es": "Hola {nombre},\n\n{motiu} Si todavía lo quieres, vuelve a pedirlo: {link}\n\nUltra-Local Records",
-        "en": "Hi {nombre},\n\n{motiu} If you still want it, request it again: {link}\n\nUltra-Local Records",
+        "ca": "Hola {nombre},\n\n{motiu} Si encara el vols, torna a demanar-lo: {link}\n\n{nom}",
+        "es": "Hola {nombre},\n\n{motiu} Si todavía lo quieres, vuelve a pedirlo: {link}\n\n{nom}",
+        "en": "Hi {nombre},\n\n{motiu} If you still want it, request it again: {link}\n\n{nom}",
     },
     "email.peticion_reserva_alliberada.body_html": {
         "ca": '<p style="font-size:14px;line-height:1.5">{motiu} Si encara el vols, torna a demanar-lo.</p>',

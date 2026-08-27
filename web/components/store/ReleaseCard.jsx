@@ -19,19 +19,19 @@ export default function ReleaseCard({ release }) {
   // quede ninguna unidad libre (cantidad - cantidad_reservada): hay que
   // comprobarlo aparte, si no un disco nuevo agotado seguiría pareciendo
   // comprable.
-  const disponibles = release.items.filter(i => i.condicion === 'nou'
-    ? i.status === 'disponible' && (i.cantidad - i.cantidad_reservada) > 0
+  const disponibles = release.items.filter(i => i.condition === 'nou'
+    ? i.status === 'disponible' && (i.quantity - i.reserved_quantity) > 0
     : i.status === 'disponible');
-  const prices = disponibles.map(i => parseFloat(i.precio));
+  const prices = disponibles.map(i => parseFloat(i.price));
   const minPrice = prices.length ? Math.min(...prices) : null;
 
   return (
     <Link href={`/disc/${release.id}`} className="group block">
       <div className="aspect-square overflow-hidden rounded-3xl bg-zinc-100 mb-4 flex items-center justify-center relative shadow-[0_2px_20px_-6px_rgba(15,23,42,0.06)] group-hover:shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)] transition-shadow">
-        {release.imagen_url ? (
+        {release.image_url ? (
           <Image
-            src={release.imagen_url}
-            alt={`${release.artista} — ${release.titulo}`}
+            src={release.image_url}
+            alt={`${release.artista} — ${release.title}`}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -52,7 +52,7 @@ export default function ReleaseCard({ release }) {
               <span key={e.id}
                 className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm"
                 style={{ backgroundColor: e.color || '#94a3b8' }}>
-                {e.nom_ca}
+                {e.name_ca}
               </span>
             ))}
           </div>
@@ -63,7 +63,7 @@ export default function ReleaseCard({ release }) {
           {release.artista}
         </p>
         <p className="font-serif italic text-sm text-zinc-500 truncate leading-snug">
-          {release.titulo}
+          {release.title}
         </p>
         <div className="flex items-center justify-between mt-1.5">
           <span className="text-xs text-zinc-500 truncate">

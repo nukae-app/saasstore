@@ -81,25 +81,25 @@ export default function DespesesPage() {
   const baseList = tab === 'pendents' ? pendents : despeses;
 
   const columns = useMemo(() => ({
-    data_factura: { sortValue: d => d.data_factura ?? '' },
-    data_venciment: { sortValue: d => d.data_venciment ?? '' },
-    proveidor_nom: { sortValue: d => (d.proveidor_nom ?? '').toLowerCase(), filterValue: d => d.proveidor_nom },
+    data_factura: { sortValue: d => d.invoice_date ?? '' },
+    data_venciment: { sortValue: d => d.due_date ?? '' },
+    proveidor_nom: { sortValue: d => (d.supplier_name ?? '').toLowerCase(), filterValue: d => d.supplier_name },
     categoria: {
-      sortValue: d => CATEGORIES.find(c => c.value === d.categoria)?.label || d.categoria || '',
-      filterValue: d => CATEGORIES.find(c => c.value === d.categoria)?.label || d.categoria,
+      sortValue: d => CATEGORIES.find(c => c.value === d.category)?.label || d.category || '',
+      filterValue: d => CATEGORIES.find(c => c.value === d.category)?.label || d.category,
     },
     total: { sortValue: d => parseFloat(d.total) || 0 },
     estat_pagament: {
-      sortValue: d => ESTAT_CONFIG[d.estat_pagament]?.label || d.estat_pagament || '',
-      filterValue: d => ESTAT_CONFIG[d.estat_pagament]?.label || d.estat_pagament,
+      sortValue: d => ESTAT_CONFIG[d.payment_status]?.label || d.payment_status || '',
+      filterValue: d => ESTAT_CONFIG[d.payment_status]?.label || d.payment_status,
     },
   }), []);
 
   const { rows: llista, sort, toggleSort, filters, setFilter, distinctValues } = useSortFilter(baseList, columns);
 
   // Totals pendents per al dashboard
-  const totalPendent = pendents.filter(d => d.estat_pagament === 'pendent').reduce((s, d) => s + parseFloat(d.total), 0);
-  const totalVençut = pendents.filter(d => d.estat_pagament === 'vencut').reduce((s, d) => s + parseFloat(d.total), 0);
+  const totalPendent = pendents.filter(d => d.payment_status === 'pendent').reduce((s, d) => s + parseFloat(d.total), 0);
+  const totalVençut = pendents.filter(d => d.payment_status === 'vencut').reduce((s, d) => s + parseFloat(d.total), 0);
 
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
@@ -175,22 +175,22 @@ export default function DespesesPage() {
                 <>
                   <tr key={d.id}
                     onClick={() => setExpanded(expanded === d.id ? null : d.id)}
-                    className={`hover:bg-zinc-50 cursor-pointer transition-colors ${d.estat_pagament === 'vencut' ? 'bg-red-50/30' : ''}`}>
+                    className={`hover:bg-zinc-50 cursor-pointer transition-colors ${d.payment_status === 'vencut' ? 'bg-red-50/30' : ''}`}>
                     <td className="px-4 py-3 text-zinc-400">
                       {expanded === d.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">{fmtDate(d.data_factura)}</td>
+                    <td className="px-4 py-3 text-zinc-600">{fmtDate(d.invoice_date)}</td>
                     <td className="px-4 py-3">
-                      {d.data_venciment ? (
-                        <span className={d.estat_pagament === 'vencut' ? 'text-red-600 font-medium' : 'text-zinc-600'}>
-                          {fmtDate(d.data_venciment)}
+                      {d.due_date ? (
+                        <span className={d.payment_status === 'vencut' ? 'text-red-600 font-medium' : 'text-zinc-600'}>
+                          {fmtDate(d.due_date)}
                         </span>
                       ) : '—'}
                     </td>
-                    <td className="px-4 py-3 font-medium text-zinc-900">{d.proveidor_nom}</td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">{CATEGORIES.find(c => c.value === d.categoria)?.label || d.categoria}</td>
+                    <td className="px-4 py-3 font-medium text-zinc-900">{d.supplier_name}</td>
+                    <td className="px-4 py-3 text-zinc-500 text-xs">{CATEGORIES.find(c => c.value === d.category)?.label || d.category}</td>
                     <td className="px-4 py-3 text-right font-semibold text-zinc-900">{fmtEur(d.total)}</td>
-                    <td className="px-4 py-3 text-center"><EstatBadge estat={d.estat_pagament} /></td>
+                    <td className="px-4 py-3 text-center"><EstatBadge estat={d.payment_status} /></td>
                     <td className="px-4 py-3">
                       <button onClick={e => { e.stopPropagation(); setEditDespesa(d); setShowModal(true); }}
                         className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100 transition-colors">
@@ -202,12 +202,12 @@ export default function DespesesPage() {
                     <tr key={`${d.id}-exp`}>
                       <td colSpan={8} className="px-6 py-3 bg-zinc-50/80 border-b border-zinc-100">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div><span className="text-zinc-400 text-xs block">Concepte</span>{d.concepte}</div>
-                          <div><span className="text-zinc-400 text-xs block">Nº factura</span>{d.num_factura || '—'}</div>
-                          <div><span className="text-zinc-400 text-xs block">Base imposable</span>{fmtEur(d.base_imposable)}</div>
-                          <div><span className="text-zinc-400 text-xs block">IVA {d.iva_pct}%</span>{fmtEur(d.iva_import)}</div>
-                          {d.metode_pagament && <div><span className="text-zinc-400 text-xs block">Mètode pagament</span>{METODES.find(m => m.value === d.metode_pagament)?.label || d.metode_pagament}</div>}
-                          {d.data_pagament && <div><span className="text-zinc-400 text-xs block">Data pagament</span>{fmtDate(d.data_pagament)}</div>}
+                          <div><span className="text-zinc-400 text-xs block">Concepte</span>{d.concept}</div>
+                          <div><span className="text-zinc-400 text-xs block">Nº factura</span>{d.invoice_number || '—'}</div>
+                          <div><span className="text-zinc-400 text-xs block">Base imposable</span>{fmtEur(d.taxable_base)}</div>
+                          <div><span className="text-zinc-400 text-xs block">IVA {d.vat_pct}%</span>{fmtEur(d.vat_amount)}</div>
+                          {d.payment_method && <div><span className="text-zinc-400 text-xs block">Mètode pagament</span>{METODES.find(m => m.value === d.payment_method)?.label || d.payment_method}</div>}
+                          {d.payment_date && <div><span className="text-zinc-400 text-xs block">Data pagament</span>{fmtDate(d.payment_date)}</div>}
                           {d.notes && <div className="col-span-2"><span className="text-zinc-400 text-xs block">Notes</span>{d.notes}</div>}
                         </div>
                       </td>
@@ -239,19 +239,19 @@ function DespesaModal({ despesa, proveidors, tipusIva, onClose, onSaved }) {
   const today = new Date().toISOString().slice(0, 10);
 
   const [proveidorId, setProveidorId] = useState(despesa?.proveidor_id || '');
-  const [proveidorNom, setProveidorNom] = useState(despesa?.proveidor_nom || '');
-  const [categoria, setCategoria] = useState(despesa?.categoria || 'subministraments');
-  const [concepte, setConcepte] = useState(despesa?.concepte || '');
-  const [numFactura, setNumFactura] = useState(despesa?.num_factura || '');
-  const [dataFactura, setDataFactura] = useState(despesa?.data_factura || today);
-  const [dataVenciment, setDataVenciment] = useState(despesa?.data_venciment || '');
-  const [base, setBase] = useState(despesa?.base_imposable || '');
+  const [proveidorNom, setProveidorNom] = useState(despesa?.supplier_name || '');
+  const [categoria, setCategoria] = useState(despesa?.category || 'subministraments');
+  const [concepte, setConcepte] = useState(despesa?.concept || '');
+  const [numFactura, setNumFactura] = useState(despesa?.invoice_number || '');
+  const [dataFactura, setDataFactura] = useState(despesa?.invoice_date || today);
+  const [dataVenciment, setDataVenciment] = useState(despesa?.due_date || '');
+  const [base, setBase] = useState(despesa?.taxable_base || '');
   const [tipusIvaId, setTipusIvaId] = useState(despesa?.tipus_iva_id || '');
-  const [ivaPct, setIvaPct] = useState(despesa?.iva_pct || '21.00');
+  const [ivaPct, setIvaPct] = useState(despesa?.vat_pct || '21.00');
   const [total, setTotal] = useState(despesa?.total || '');
-  const [estat, setEstat] = useState(despesa?.estat_pagament || 'pendent');
-  const [dataPagament, setDataPagament] = useState(despesa?.data_pagament || '');
-  const [metodePagament, setMetodePagament] = useState(despesa?.metode_pagament || '');
+  const [estat, setEstat] = useState(despesa?.payment_status || 'pendent');
+  const [dataPagament, setDataPagament] = useState(despesa?.payment_date || '');
+  const [metodePagament, setMetodePagament] = useState(despesa?.payment_method || '');
   const [notes, setNotes] = useState(despesa?.notes || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -269,7 +269,7 @@ function DespesaModal({ despesa, proveidors, tipusIva, onClose, onSaved }) {
     setTipusIvaId(id);
     if (id) {
       const t = tipusIva.find(t => String(t.id) === String(id));
-      if (t) setIvaPct(t.percentatge);
+      if (t) setIvaPct(t.percentage);
     }
   }
 
@@ -279,14 +279,14 @@ function DespesaModal({ despesa, proveidors, tipusIva, onClose, onSaved }) {
     if (id) {
       const p = proveidors.find(p => p.id === id);
       if (p) {
-        setProveidorNom(p.nombre);
-        if (p.dies_pagament && dataFactura) {
+        setProveidorNom(p.name);
+        if (p.payment_days && dataFactura) {
           const d = new Date(dataFactura);
-          d.setDate(d.getDate() + p.dies_pagament);
-          if (p.dia_pagament_mes) d.setDate(p.dia_pagament_mes);
+          d.setDate(d.getDate() + p.payment_days);
+          if (p.payment_day_of_month) d.setDate(p.payment_day_of_month);
           setDataVenciment(d.toISOString().slice(0, 10));
         }
-        if (p.metode_pagament) setMetodePagament(p.metode_pagament);
+        if (p.payment_method) setMetodePagament(p.payment_method);
       }
     }
   }
@@ -296,20 +296,20 @@ function DespesaModal({ despesa, proveidors, tipusIva, onClose, onSaved }) {
     setSaving(true);
     setError('');
     const payload = {
-      num_factura: numFactura || null,
-      data_factura: dataFactura,
-      data_venciment: dataVenciment || null,
+      invoice_number: numFactura || null,
+      invoice_date: dataFactura,
+      due_date: dataVenciment || null,
       proveidor_id: proveidorId || null,
-      proveidor_nom: proveidorNom,
-      categoria,
-      concepte,
-      base_imposable: parseFloat(base),
+      supplier_name: proveidorNom,
+      category: categoria,
+      concept: concepte,
+      taxable_base: parseFloat(base),
       tipus_iva_id: tipusIvaId || null,
-      iva_pct: parseFloat(ivaPct),
+      vat_pct: parseFloat(ivaPct),
       total: parseFloat(total),
-      estat_pagament: estat,
-      data_pagament: dataPagament || null,
-      metode_pagament: metodePagament || null,
+      payment_status: estat,
+      payment_date: dataPagament || null,
+      payment_method: metodePagament || null,
       notes: notes || null,
     };
     const url = isEdit ? `/admin/despeses/${despesa.id}` : '/admin/despeses';
@@ -334,7 +334,7 @@ function DespesaModal({ despesa, proveidors, tipusIva, onClose, onSaved }) {
               <select value={proveidorId} onChange={e => handleProveidorSelect(e.target.value)}
                 className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
                 <option value="">— Cap (escriu el nom manualment) —</option>
-                {proveidors.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                {proveidors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
@@ -387,7 +387,7 @@ function DespesaModal({ despesa, proveidors, tipusIva, onClose, onSaved }) {
                 <select value={tipusIvaId} onChange={e => handleTipusIvaSelect(e.target.value)}
                   className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
                   <option value="">— Manual —</option>
-                  {tipusIva.map(t => <option key={t.id} value={t.id}>{t.nom} ({parseFloat(t.percentatge).toFixed(0)}%)</option>)}
+                  {tipusIva.map(t => <option key={t.id} value={t.id}>{t.name} ({parseFloat(t.percentage).toFixed(0)}%)</option>)}
                 </select>
               </div>
               <div>

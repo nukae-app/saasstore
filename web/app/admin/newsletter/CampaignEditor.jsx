@@ -6,17 +6,17 @@ import { Save, Code, PenLine, Loader2, AlertCircle, Send, Mail } from 'lucide-re
 import { authFetch } from '../../lib/auth';
 import RichTextEditor from './RichTextEditor';
 
-const EMPTY = { assumpte: '', contingut_html: '', idioma: 'ca' };
+const EMPTY = { subject: '', content_html: '', language: 'ca' };
 
 export default function CampaignEditor({ initial = null }) {
   const isEdit = !!initial;
-  const isDraft = !initial || initial.estat === 'esborrany';
+  const isDraft = !initial || initial.status === 'esborrany';
   const router = useRouter();
   const [campaign, setCampaign] = useState(initial);
   const [form, setForm] = useState(initial ? {
-    assumpte: initial.assumpte,
-    contingut_html: initial.contingut_html,
-    idioma: initial.idioma,
+    subject: initial.subject,
+    content_html: initial.content_html,
+    language: initial.language,
   } : EMPTY);
   const [recipients, setRecipients] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -33,7 +33,7 @@ export default function CampaignEditor({ initial = null }) {
 
   // Mentre s'està enviant, fem poll de l'estat per veure el progrés
   useEffect(() => {
-    if (!campaign || campaign.estat !== 'enviant') return;
+    if (!campaign || campaign.status !== 'enviant') return;
     const id = setInterval(async () => {
       const res = await authFetch(`/admin/newsletter/${campaign.id}`);
       if (res.ok) setCampaign(await res.json());
@@ -108,7 +108,7 @@ export default function CampaignEditor({ initial = null }) {
     }
   }
 
-  const wordCount = form.contingut_html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+  const wordCount = form.content_html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
   const counts = campaign?.counts;
   const total = counts ? counts.pendent + counts.enviat + counts.error : 0;
 
@@ -128,7 +128,7 @@ export default function CampaignEditor({ initial = null }) {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving || !form.assumpte || !form.contingut_html}
+              disabled={saving || !form.subject || !form.content_html}
               className="flex items-center gap-1.5 text-sm bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
             >
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
@@ -155,8 +155,8 @@ export default function CampaignEditor({ initial = null }) {
             <label className="block text-xs font-medium text-zinc-600 mb-1.5">Assumpte *</label>
             <input
               type="text"
-              value={form.assumpte}
-              onChange={e => set('assumpte', e.target.value)}
+              value={form.subject}
+              onChange={e => set('subject', e.target.value)}
               disabled={!isDraft}
               placeholder="Novetats de la setmana…"
               className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 font-medium disabled:bg-zinc-50 disabled:text-zinc-500"
@@ -171,18 +171,18 @@ export default function CampaignEditor({ initial = null }) {
             {!isDraft ? (
               <div
                 className="blog-content min-h-[400px] bg-white border border-zinc-200 rounded-xl p-5 overflow-auto"
-                dangerouslySetInnerHTML={{ __html: form.contingut_html || '<p class="text-zinc-300">Sense contingut…</p>' }}
+                dangerouslySetInnerHTML={{ __html: form.content_html || '<p class="text-zinc-300">Sense contingut…</p>' }}
               />
             ) : showHtml ? (
               <textarea
-                value={form.contingut_html}
-                onChange={e => set('contingut_html', e.target.value)}
+                value={form.content_html}
+                onChange={e => set('content_html', e.target.value)}
                 placeholder="<p>Contingut en HTML…</p>"
                 rows={20}
                 className="w-full border border-zinc-200 rounded-xl px-3 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-y"
               />
             ) : (
-              <RichTextEditor value={form.contingut_html} onChange={v => set('contingut_html', v)} />
+              <RichTextEditor value={form.content_html} onChange={v => set('content_html', v)} />
             )}
           </div>
         </div>
@@ -196,9 +196,9 @@ export default function CampaignEditor({ initial = null }) {
                   <button
                     key={code}
                     type="button"
-                    onClick={() => set('idioma', code)}
+                    onClick={() => set('language', code)}
                     className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${
-                      form.idioma === code
+                      form.language === code
                         ? 'border-zinc-900 bg-zinc-100 text-zinc-900 font-medium'
                         : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
                     }`}
@@ -211,12 +211,12 @@ export default function CampaignEditor({ initial = null }) {
           )}
 
           <div className={`rounded-xl px-4 py-3 text-xs ${
-            campaign?.estat === 'enviada' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-            : campaign?.estat === 'enviant' ? 'bg-blue-50 border border-blue-200 text-blue-700'
+            campaign?.status === 'enviada' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+            : campaign?.status === 'enviant' ? 'bg-blue-50 border border-blue-200 text-blue-700'
             : 'bg-amber-50 border border-amber-200 text-amber-700'
           }`}>
-            {campaign?.estat === 'enviada' ? '● Enviada'
-              : campaign?.estat === 'enviant' ? '● Enviant…'
+            {campaign?.status === 'enviada' ? '● Enviada'
+              : campaign?.status === 'enviant' ? '● Enviant…'
               : '● Esborrany — no s\'ha enviat'}
           </div>
 
@@ -273,7 +273,7 @@ export default function CampaignEditor({ initial = null }) {
 
               <button
                 onClick={handleSendAll}
-                disabled={sending || !form.assumpte || !form.contingut_html}
+                disabled={sending || !form.subject || !form.content_html}
                 className="w-full flex items-center justify-center gap-1.5 text-sm bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
               >
                 {sending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}

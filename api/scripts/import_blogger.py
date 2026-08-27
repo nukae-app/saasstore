@@ -276,9 +276,9 @@ def main():
 
         if existing_by_url:
             if args.overwrite:
-                existing_by_url.titulo = title
-                existing_by_url.contenido = content
-                existing_by_url.publicado_at = published_at
+                existing_by_url.title = title
+                existing_by_url.content = content
+                existing_by_url.published_at = published_at
                 existing_by_url.slug = slug
                 if not args.dry_run:
                     db.commit()
@@ -299,10 +299,10 @@ def main():
 
         post = Post(
             slug=slug,
-            titulo=title,
-            contenido=content,
-            idioma=args.idioma,
-            publicado_at=published_at,
+            title=title,
+            content=content,
+            language=args.idioma,
+            published_at=published_at,
             legacy_blogger_url=blogger_url,
         )
         if not args.dry_run:

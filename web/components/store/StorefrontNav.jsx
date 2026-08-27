@@ -10,7 +10,13 @@ import { useCart } from './CartProvider';
 import { useAuth } from './AuthProvider';
 import { useSubscripcionsActives } from './useSubscripcionsActives';
 import { useManteniment } from './useManteniment';
+import { useTenantConfig } from './useTenantConfig';
 import LanguageSwitcher from './LanguageSwitcher';
+
+// No hi ha sistema de pujada de logo per tenant (fora d'abast, ver plan) —
+// mentrestant, la imatge compartida (/logo.png) només es mostra per al
+// tenant real d'Ultra-Local Records; la resta veu el seu nom en text.
+const TENANT_AMB_LOGO = 'recordstore';
 
 export default function StorefrontNav() {
   const t = useTranslations('nav');
@@ -26,6 +32,7 @@ export default function StorefrontNav() {
   const { user, logout } = useAuth();
   const subscripcionsActives = useSubscripcionsActives();
   const manteniment = useManteniment();
+  const config = useTenantConfig();
   const pathname = usePathname();
   const links = subscripcionsActives ? [...navLinks, { href: '/subscripcio', label: t('club') }] : navLinks;
 
@@ -36,7 +43,7 @@ export default function StorefrontNav() {
         if (!pagines?.length) return;
         const links = [
           { href: '/cataleg', label: t('catalog') },
-          ...pagines.map(p => ({ href: `/${p.slug}`, label: p.nom })),
+          ...pagines.map(p => ({ href: `/${p.slug}`, label: p.name })),
         ];
         setNavLinks(links);
       })
@@ -53,7 +60,11 @@ export default function StorefrontNav() {
       )}
       <div className="container flex items-center h-16 gap-8">
         <Link href="/" className="shrink-0 opacity-90 hover:opacity-100 transition-opacity">
-          <img src="/logo.png" alt="Ultra-Local Records" className="h-8 md:h-10 w-auto invert" />
+          {config.slug === TENANT_AMB_LOGO ? (
+            <img src="/logo.png" alt={config.nombre} className="h-8 md:h-10 w-auto invert" />
+          ) : (
+            <span className="font-serif italic text-xl md:text-2xl text-zinc-900">{config.nombre}</span>
+          )}
         </Link>
 
         <nav className="hidden md:flex items-center gap-6 text-sm text-zinc-500 flex-1">
@@ -90,7 +101,7 @@ export default function StorefrontNav() {
               >
                 <User size={20} />
                 <span className="hidden md:block text-xs max-w-[100px] truncate">
-                  {user.nombre || user.email.split('@')[0]}
+                  {user.name || user.email.split('@')[0]}
                 </span>
               </button>
               {userMenu && (
@@ -112,7 +123,7 @@ export default function StorefrontNav() {
                   >
                     {t('myOrders')}
                   </Link>
-                  {user.rol === 'admin' && (
+                  {user.role === 'admin' && (
                     <NextLink
                       href="/admin"
                       onClick={() => setUserMenu(false)}
@@ -170,7 +181,7 @@ export default function StorefrontNav() {
                 <Link href="/compte" onClick={() => setOpen(false)} className="py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block">
                   {t('myAccount')}
                 </Link>
-                {user.rol === 'admin' && (
+                {user.role === 'admin' && (
                   <NextLink href="/admin" onClick={() => setOpen(false)} className="py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors flex items-center gap-2">
                     <LayoutDashboard size={14} /> {t('adminPanel')}
                   </NextLink>

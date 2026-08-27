@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { authFetch } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
+import { useDiscogsEnabled } from '../../../components/store/useDiscogsEnabled';
+import { useTenantVertical } from '../../../components/store/useTenantVertical';
 import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
@@ -29,6 +31,7 @@ function syncStatus(item, release) {
 }
 
 function SyncBadge({ status, codiDiscogs }) {
+  const t = useT();
   if (status === 'listed') return (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
       <CheckCircle2 size={9} /> #{codiDiscogs}
@@ -36,12 +39,12 @@ function SyncBadge({ status, codiDiscogs }) {
   );
   if (status === 'pending') return (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-      <Clock size={9} /> Pendent
+      <Clock size={9} /> {t('purchases.pending', 'Pendent')}
     </span>
   );
   return (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full">
-      <CircleOff size={9} /> Sense ID
+      <CircleOff size={9} /> {t('catalog.no_discogs_id', 'Sense ID')}
     </span>
   );
 }
@@ -119,6 +122,7 @@ function StatCard({ label, value, color }) {
 
 export default function CatalogoPage() {
   const t = useT();
+  const discogsEnabled = useDiscogsEnabled();
   const [tab, setTab] = useState('llistat');
   const [releases, setReleases] = useState([]);
   const [page, setPage] = useState(0);
@@ -180,11 +184,12 @@ export default function CatalogoPage() {
   const pageRows = sortedFiltered.slice(offset, offset + LIMIT);
 
   const loadStats = useCallback(async () => {
+    if (!discogsEnabled) return;
     try {
       const r = await authFetch('/admin/discogs/sync/stats');
       if (r.ok) setStats(await r.json());
     } catch { /* non-critical */ }
-  }, []);
+  }, [discogsEnabled]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
@@ -200,11 +205,11 @@ export default function CatalogoPage() {
   }
 
   async function deleteRelease(r) {
-    if (!confirm(`Eliminar "${r.artista} - ${r.titulo}"? Aquesta acció no es pot desfer.`)) return;
+    if (!confirm(t('catalog.confirm_delete_release_named', 'Eliminar "{disc}"? Aquesta acció no es pot desfer.').replace('{disc}', `${r.artista} - ${r.titulo}`))) return;
     const resp = await authFetch(`/admin/releases/${r.id}`, { method: 'DELETE' });
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
-      alert(body.detail || 'No s\'ha pogut eliminar.');
+      alert(body.detail || t('catalog.delete_error'));
       return;
     }
     loadReleases();
@@ -240,7 +245,7 @@ export default function CatalogoPage() {
     setExporting(true);
     try {
       const r = await authFetch('/admin/catalog/export.csv');
-      if (!r.ok) { alert('No s\'ha pogut exportar.'); return; }
+      if (!r.ok) { alert(t('catalog.export_error', "No s'ha pogut exportar.")); return; }
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -263,20 +268,22 @@ export default function CatalogoPage() {
           <button onClick={handleExport} disabled={exporting}
             className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 px-3 py-2 rounded-lg transition-colors disabled:opacity-60">
             {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-            Exportar CSV
+            {t('catalog.export_csv', 'Exportar CSV')}
           </button>
           <button onClick={() => setShowImport(true)}
             className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 px-3 py-2 rounded-lg transition-colors">
-            <FileSpreadsheet size={13} /> Importar canvis
+            <FileSpreadsheet size={13} /> {t('catalog.import_changes', 'Importar canvis')}
           </button>
+          {discogsEnabled && (
           <button onClick={handleBulkImages} disabled={bulkSyncing}
             className="flex items-center gap-1.5 text-sm border border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 px-3 py-2 rounded-lg transition-colors disabled:opacity-60">
             {bulkSyncing ? <Loader2 size={13} className="animate-spin" /> : <Image size={13} />}
-            Sync Discogs
+            {t('catalog.sync_discogs', 'Sync Discogs')}
           </button>
+          )}
           <button onClick={refresh}
             className="flex items-center gap-1.5 text-sm text-zinc-600 border border-zinc-200 px-3 py-2 rounded-lg hover:bg-zinc-50 transition-colors">
-            <RefreshCw size={13} /> Actualitzar
+            <RefreshCw size={13} /> {t('catalog.refresh', 'Actualitzar')}
           </button>
           <Button onClick={() => setModal({ mode: 'create', release: null })}>
             <Plus size={16} /> {t('catalog.new_disc')}
@@ -287,7 +294,7 @@ export default function CatalogoPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
-        {[['llistat', 'Llistat'], ['dashboards', 'Dashboards']].map(([key, label]) => (
+        {[['llistat', t('catalog.tab.list', 'Llistat')], ['dashboards', t('catalog.tab.dashboards', 'Dashboards')]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>
             {label}
@@ -301,21 +308,21 @@ export default function CatalogoPage() {
       <>
       {bulkMsg && (
         <div className="bg-violet-50 border border-violet-200 text-violet-800 text-sm rounded-xl px-4 py-3">
-          {bulkMsg} — les estadístiques s&apos;actualitzen en uns minuts.
+          {bulkMsg} — {t('catalog.stats_update_hint', "les estadístiques s'actualitzen en uns minuts.")}
         </div>
       )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
-        <StatCard label="Items actius"      value={stats?.total_actius}     color="blue" />
-        <StatCard label="A Discogs"         value={stats?.listed_discogs}   color="emerald" />
-        <StatCard label="Pendents"          value={stats?.pot_listar}       color="amber" />
-        <StatCard label="Sense Release ID"  value={stats?.sense_release_id} color="zinc" />
-        <StatCard label="Amb caràtula"      value={stats?.amb_caratula}     color="violet" />
-        <StatCard label="Sense caràtula"    value={stats?.sense_caratula}   color="rose" />
-        <StatCard label="Sense gènere"      value={stats?.sense_genere}     color="rose" />
-        <StatCard label="Sense EAN"         value={stats?.sense_ean}        color="rose" />
-        <StatCard label="Sense format"      value={stats?.sense_format}     color="rose" />
+        <StatCard label={t('catalog.stat.active_items', 'Items actius')}      value={stats?.total_actius}     color="blue" />
+        <StatCard label={t('catalog.stat.on_discogs', 'A Discogs')}         value={stats?.listed_discogs}   color="emerald" />
+        <StatCard label={t('purchases.pending', 'Pendents')}          value={stats?.pot_listar}       color="amber" />
+        <StatCard label={t('catalog.stat.no_release_id', 'Sense Release ID')}  value={stats?.sense_release_id} color="zinc" />
+        <StatCard label={t('catalog.stat.with_cover', 'Amb caràtula')}      value={stats?.amb_caratula}     color="violet" />
+        <StatCard label={t('catalog.stat.no_cover', 'Sense caràtula')}    value={stats?.sense_caratula}   color="rose" />
+        <StatCard label={t('catalog.stat.no_genre', 'Sense gènere')}      value={stats?.sense_genere}     color="rose" />
+        <StatCard label={t('catalog.stat.no_ean', 'Sense EAN')}         value={stats?.sense_ean}        color="rose" />
+        <StatCard label={t('catalog.stat.no_format', 'Sense format')}      value={stats?.sense_format}     color="rose" />
       </div>
 
       {/* Search */}
@@ -333,7 +340,7 @@ export default function CatalogoPage() {
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-zinc-400 text-sm flex items-center justify-center gap-2">
-            <Loader2 size={16} className="animate-spin" /> Carregant...
+            <Loader2 size={16} className="animate-spin" /> {t('common.loading')}
           </div>
         ) : sortedFiltered.length === 0 ? (
           <div className="p-12 text-center text-zinc-400 text-sm">{t('catalog.no_results')}</div>
@@ -356,7 +363,7 @@ export default function CatalogoPage() {
                 <SortableTh label={t('catalog.col.ean', 'EAN')} sortKey="ean" sort={sort} onSort={handleSort}
                   className="hidden lg:table-cell" />
                 <th className="px-4 py-3 text-center font-medium">{t('catalog.col.stock')}</th>
-                <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">Discogs</th>
+                <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">{t('catalog.col.discogs', 'Discogs')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('catalog.col.actions', 'Accions')}</th>
               </tr>
             </thead>
@@ -377,12 +384,12 @@ export default function CatalogoPage() {
                             {r.artista}
                             {r.properament && (
                               <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">
-                                <Clock size={8} /> Properament
+                                <Clock size={8} /> {t('catalog.coming_soon', 'Properament')}
                               </span>
                             )}
                             {r.esta_sonant && (
                               <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-zinc-900 bg-zinc-100 border border-zinc-300 px-1.5 py-0.5 rounded-full">
-                                <Music2 size={8} /> Sonant
+                                <Music2 size={8} /> {t('catalog.now_playing', 'Sonant')}
                               </span>
                             )}
                           </div>
@@ -413,15 +420,15 @@ export default function CatalogoPage() {
                     </td>
                     <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setModal({ mode: 'edit', release: r })} title="Editar"
+                        <button onClick={() => setModal({ mode: 'edit', release: r })} title={t('catalog.edit')}
                           className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors">
                           <Pencil size={14} />
                         </button>
-                        <button onClick={() => setModal({ mode: 'duplicate', release: r })} title="Duplicar"
+                        <button onClick={() => setModal({ mode: 'duplicate', release: r })} title={t('catalog.duplicate')}
                           className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors">
                           <Copy size={14} />
                         </button>
-                        <button onClick={() => deleteRelease(r)} title="Eliminar"
+                        <button onClick={() => deleteRelease(r)} title={t('catalog.delete')}
                           className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
                           <Trash2 size={14} />
                         </button>
@@ -448,15 +455,15 @@ export default function CatalogoPage() {
         {/* Pagination */}
         {total > LIMIT && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
-            <span>{offset + 1}–{Math.min(offset + LIMIT, total)} de {total}</span>
+            <span>{offset + 1}–{Math.min(offset + LIMIT, total)} {t('catalog.of', 'de')} {total}</span>
             <div className="flex gap-2">
               <button onClick={() => handlePage(-1)} disabled={offset === 0}
                 className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
-                ← Anterior
+                ← {t('catalog.previous', 'Anterior')}
               </button>
               <button onClick={() => handlePage(1)} disabled={offset + LIMIT >= total}
                 className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
-                Següent →
+                {t('catalog.next', 'Següent')} →
               </button>
             </div>
           </div>
@@ -492,16 +499,20 @@ const AGING_BUCKET_COLOR = {
   sin_fecha: 'bg-zinc-400',
 };
 
-const ORIGEN_LABEL = { compra: 'Compra', discogs: 'Discogs (llegat)', desconegut: 'Desconegut' };
+const ORIGEN_FALLBACK = { compra: 'Compra', discogs: 'Discogs (llegat)', desconegut: 'Desconegut' };
 const ORIGEN_COLOR = {
   compra: 'bg-blue-50 text-blue-700 border-blue-200',
   discogs: 'bg-violet-50 text-violet-700 border-violet-200',
   desconegut: 'bg-zinc-50 text-zinc-500 border-zinc-200',
 };
+function origenLabel(t, origen) {
+  return t(`catalog.aging.origin.${origen}`, ORIGEN_FALLBACK[origen] ?? origen);
+}
 
 const AGING_ITEMS_LIMIT = 20;
 
 function AgingDashboard({ onVeureRelease }) {
+  const t = useT();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bucket, setBucket] = useState(null);
@@ -550,12 +561,12 @@ function AgingDashboard({ onVeureRelease }) {
   if (loading) {
     return (
       <div className="p-12 text-center text-zinc-400 text-sm flex items-center justify-center gap-2">
-        <Loader2 size={16} className="animate-spin" /> Carregant...
+        <Loader2 size={16} className="animate-spin" /> {t('common.loading')}
       </div>
     );
   }
   if (!data) {
-    return <div className="p-12 text-center text-zinc-400 text-sm">No s&apos;han pogut carregar les dades.</div>;
+    return <div className="p-12 text-center text-zinc-400 text-sm">{t('purchases.resum.load_error', "No s'han pogut carregar les dades.")}</div>;
   }
 
   const maxCount = Math.max(1, ...data.buckets.map(b => b.count));
@@ -565,30 +576,29 @@ function AgingDashboard({ onVeureRelease }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500 max-w-2xl">
-          Antiguitat de l&apos;estoc disponible des de la data d&apos;entrada al magatzem
-          (recepció de compra, o &quot;posted&quot; de Discogs per a l&apos;estoc anterior a l&apos;app).
+          {t('catalog.aging.hint', 'Antiguitat de l\'estoc disponible des de la data d\'entrada al magatzem (recepció de compra, o "posted" de Discogs per a l\'estoc anterior a l\'app).')}
         </p>
         <button onClick={refresh}
           className="flex items-center gap-1.5 text-sm text-zinc-600 border border-zinc-200 px-3 py-2 rounded-lg hover:bg-zinc-50 transition-colors shrink-0">
-          <RefreshCw size={13} /> Actualitzar
+          <RefreshCw size={13} /> {t('catalog.refresh', 'Actualitzar')}
         </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <StatCard label="Còpies disponibles" value={data.total_disponible} color="blue" />
-        <StatCard label="Valor en estoc (venda)" value={fmtEur(data.valor_total)} color="emerald" />
-        <StatCard label="Cost adquisició" value={fmtEur(data.coste_total)} color="amber" />
-        <StatCard label="Antiguitat mitjana" value={data.edad_media_dias != null ? `${data.edad_media_dias} dies` : '—'} color="violet" />
-        <StatCard label="Sense data d'entrada" value={data.sin_fecha} color={data.sin_fecha > 0 ? 'rose' : 'zinc'} />
+        <StatCard label={t('catalog.aging.available_copies', 'Còpies disponibles')} value={data.total_disponible} color="blue" />
+        <StatCard label={t('catalog.aging.stock_value', 'Valor en estoc (venda)')} value={fmtEur(data.valor_total)} color="emerald" />
+        <StatCard label={t('catalog.aging.acquisition_cost', 'Cost adquisició')} value={fmtEur(data.coste_total)} color="amber" />
+        <StatCard label={t('catalog.aging.average_age', 'Antiguitat mitjana')} value={data.edad_media_dias != null ? `${data.edad_media_dias} ${t('catalog.aging.days', 'dies')}` : '—'} color="violet" />
+        <StatCard label={t('catalog.aging.no_entry_date', "Sense data d'entrada")} value={data.sin_fecha} color={data.sin_fecha > 0 ? 'rose' : 'zinc'} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1 bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-semibold text-zinc-700">Distribució per antiguitat</div>
+            <div className="text-sm font-semibold text-zinc-700">{t('catalog.aging.distribution', 'Distribució per antiguitat')}</div>
             {bucket && (
               <button onClick={() => selectBucket(bucket)} className="text-xs text-zinc-400 hover:text-zinc-700">
-                Veure tots
+                {t('catalog.aging.view_all', 'Veure tots')}
               </button>
             )}
           </div>
@@ -601,7 +611,7 @@ function AgingDashboard({ onVeureRelease }) {
                   className={`w-full text-left rounded-lg p-1.5 -m-1.5 transition-colors ${selected ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}>
                   <div className="flex items-center justify-between text-xs text-zinc-600 mb-1 gap-2">
                     <span className={`font-medium ${selected ? 'text-zinc-900' : ''}`}>{b.label}</span>
-                    <span className="text-zinc-400 shrink-0">{b.count} · {fmtEur(b.valor)} venda · {fmtEur(b.coste)} cost</span>
+                    <span className="text-zinc-400 shrink-0">{b.count} · {fmtEur(b.valor)} {t('catalog.aging.sale_short', 'venda')} · {fmtEur(b.coste)} {t('catalog.aging.cost_short', 'cost')}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
                     <div className={`h-full rounded-full ${AGING_BUCKET_COLOR[b.key] ?? 'bg-zinc-400'}`} style={{ width: `${pct}%` }} />
@@ -612,8 +622,7 @@ function AgingDashboard({ onVeureRelease }) {
           </div>
           {data.sin_fecha > 0 && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
-              {data.sin_fecha} còpia{data.sin_fecha === 1 ? '' : 's'} sense data d&apos;entrada fiable — normalment
-              per manca del &quot;posted&quot; de Discogs; no compten en la mitjana ni la mediana.
+              {data.sin_fecha} {data.sin_fecha === 1 ? t('catalog.aging.no_date_hint_singular', "còpia sense data d'entrada fiable") : t('catalog.aging.no_date_hint_plural', "còpies sense data d'entrada fiable")} — {t('catalog.aging.no_date_hint_rest', 'normalment per manca del "posted" de Discogs; no compten en la mitjana ni la mediana.')}
             </p>
           )}
         </div>
@@ -621,15 +630,15 @@ function AgingDashboard({ onVeureRelease }) {
         <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3 border-b border-zinc-200">
             <div className="text-sm font-semibold text-zinc-700">
-              {bucketLabel ? `Discs a "${bucketLabel}"` : 'Discs amb més antiguitat (tots els grups)'}
+              {bucketLabel ? t('catalog.aging.records_in_bucket', 'Discs a "{bucket}"').replace('{bucket}', bucketLabel) : t('catalog.aging.oldest_records', 'Discs amb més antiguitat (tots els grups)')}
             </div>
           </div>
           {itemsLoading ? (
             <div className="p-8 text-center text-zinc-400 text-sm flex items-center justify-center gap-2">
-              <Loader2 size={14} className="animate-spin" /> Carregant...
+              <Loader2 size={14} className="animate-spin" /> {t('common.loading')}
             </div>
           ) : items.length === 0 ? (
-            <div className="p-5 text-sm text-zinc-400">Cap còpia en aquest grup.</div>
+            <div className="p-5 text-sm text-zinc-400">{t('catalog.aging.no_copies_in_group', 'Cap còpia en aquest grup.')}</div>
           ) : (
             <>
               <div className="divide-y divide-zinc-100 max-h-[22rem] overflow-y-auto">
@@ -640,20 +649,20 @@ function AgingDashboard({ onVeureRelease }) {
                       <div className="text-sm font-medium text-zinc-900 truncate">{it.artista} — {it.titulo}</div>
                       <div className="flex items-center gap-2 flex-wrap mt-0.5">
                         <span className="text-xs text-zinc-400">
-                          {it.fecha_entrada ? `des de ${new Date(it.fecha_entrada).toLocaleDateString('ca-ES')}` : 'sense data'}
+                          {it.fecha_entrada ? `${t('catalog.aging.since', 'des de')} ${new Date(it.fecha_entrada).toLocaleDateString('ca-ES')}` : t('catalog.aging.no_date', 'sense data')}
                         </span>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border ${ORIGEN_COLOR[it.origen]}`}>
-                          {ORIGEN_LABEL[it.origen]}
+                          {origenLabel(t, it.origen)}
                         </span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-semibold text-zinc-900">{it.dias != null ? `${it.dias} dies` : '—'}</div>
+                      <div className="text-sm font-semibold text-zinc-900">{it.dias != null ? `${it.dias} ${t('catalog.aging.days', 'dies')}` : '—'}</div>
                       <div className="text-xs text-zinc-400">
-                        {fmtEur(it.precio)} venda{it.coste != null ? ` · ${fmtEur(it.coste)} cost` : ''}
+                        {fmtEur(it.precio)} {t('catalog.aging.sale_short', 'venda')}{it.coste != null ? ` · ${fmtEur(it.coste)} ${t('catalog.aging.cost_short', 'cost')}` : ''}
                       </div>
                     </div>
-                    <button onClick={() => onVeureRelease(it.release_id, it.artista, it.titulo)} title="Veure al llistat"
+                    <button onClick={() => onVeureRelease(it.release_id, it.artista, it.titulo)} title={t('catalog.aging.view_in_list', 'Veure al llistat')}
                       className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors shrink-0">
                       <Eye size={14} />
                     </button>
@@ -662,15 +671,15 @@ function AgingDashboard({ onVeureRelease }) {
               </div>
               {itemsTotal > AGING_ITEMS_LIMIT && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
-                  <span>{itemsOffset + 1}–{Math.min(itemsOffset + AGING_ITEMS_LIMIT, itemsTotal)} de {itemsTotal}</span>
+                  <span>{itemsOffset + 1}–{Math.min(itemsOffset + AGING_ITEMS_LIMIT, itemsTotal)} {t('catalog.of', 'de')} {itemsTotal}</span>
                   <div className="flex gap-2">
                     <button onClick={() => setItemsOffset(o => Math.max(0, o - AGING_ITEMS_LIMIT))} disabled={itemsOffset === 0}
                       className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
-                      ← Anterior
+                      ← {t('catalog.previous', 'Anterior')}
                     </button>
                     <button onClick={() => setItemsOffset(o => o + AGING_ITEMS_LIMIT)} disabled={itemsOffset + AGING_ITEMS_LIMIT >= itemsTotal}
                       className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
-                      Següent →
+                      {t('catalog.next', 'Següent')} →
                     </button>
                   </div>
                 </div>
@@ -686,6 +695,7 @@ function AgingDashboard({ onVeureRelease }) {
 // ---- ImportCsvModal ---------------------------------------------------------
 
 function ImportCsvModal({ onClose, onDone }) {
+  const t = useT();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
@@ -702,7 +712,7 @@ function ImportCsvModal({ onClose, onDone }) {
       const r = await authFetch('/admin/catalog/import', { method: 'POST', body: formData });
       if (!r.ok) {
         const body = await r.json().catch(() => ({}));
-        setError(body.detail || 'No s\'ha pogut importar el fitxer.');
+        setError(body.detail || t('catalog.import.file_error', "No s'ha pogut importar el fitxer."));
         return;
       }
       setResult(await r.json());
@@ -712,11 +722,9 @@ function ImportCsvModal({ onClose, onDone }) {
   }
 
   return (
-    <Modal title="Importar canvis del catàleg" onClose={onClose}>
+    <Modal title={t('catalog.import.title', 'Importar canvis del catàleg')} onClose={onClose}>
       <p className="text-sm text-zinc-500">
-        Puja el CSV exportat (amb canvis de preu, condició, grading, segell, format,
-        any o gènere, o amb la columna <strong>eliminar</strong> marcada amb una X
-        per donar de baixa una còpia).
+        {t('catalog.import.hint', "Puja el CSV exportat (amb canvis de preu, condició, grading, segell, format, any o gènere, o amb la columna")} <strong>{t('catalog.import.delete_column', 'eliminar')}</strong> {t('catalog.import.hint_rest', 'marcada amb una X per donar de baixa una còpia).')}
       </p>
 
       {!result ? (
@@ -726,29 +734,29 @@ function ImportCsvModal({ onClose, onDone }) {
             className="block w-full text-sm border border-zinc-300 rounded-lg px-3 py-2 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:text-zinc-700 file:text-sm" />
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel·lar</Button>
-            <Button type="submit" disabled={!file || uploading}>{uploading ? 'Important...' : 'Importar'}</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={!file || uploading}>{uploading ? t('catalog.import.importing', 'Important...') : t('catalog.import.import_btn', 'Importar')}</Button>
           </div>
         </form>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-2">
-            <StatCard label="Actualitzats" value={result.actualitzats} color="emerald" />
-            <StatCard label="Eliminats" value={result.eliminats} color="rose" />
-            <StatCard label="Sense canvis" value={result.sense_canvis} color="zinc" />
+            <StatCard label={t('catalog.import.updated', 'Actualitzats')} value={result.actualitzats} color="emerald" />
+            <StatCard label={t('catalog.import.deleted', 'Eliminats')} value={result.eliminats} color="rose" />
+            <StatCard label={t('catalog.import.unchanged', 'Sense canvis')} value={result.sense_canvis} color="zinc" />
           </div>
           {result.errors?.length > 0 && (
             <div className="border border-amber-200 bg-amber-50 rounded-xl p-3 max-h-48 overflow-y-auto">
-              <div className="text-xs font-semibold text-amber-800 mb-1">{result.errors.length} fila(es) amb problemes:</div>
+              <div className="text-xs font-semibold text-amber-800 mb-1">{result.errors.length} {t('catalog.import.rows_with_problems', 'fila(es) amb problemes:')}</div>
               <ul className="space-y-0.5 text-xs text-amber-700">
                 {result.errors.map((e, i) => (
-                  <li key={i}>Fila {e.fila}{e.item_id ? ` (${e.item_id})` : ''}: {e.motiu}</li>
+                  <li key={i}>{t('purchases.order_modal.csv_row', 'Fila')} {e.fila}{e.item_id ? ` (${e.item_id})` : ''}: {e.motiu}</li>
                 ))}
               </ul>
             </div>
           )}
           <div className="flex justify-end">
-            <Button onClick={onDone}>Tancar</Button>
+            <Button onClick={onDone}>{t('tpv.sale_done.close', 'Tancar')}</Button>
           </div>
         </div>
       )}
@@ -759,11 +767,12 @@ function ImportCsvModal({ onClose, onDone }) {
 // ---- ExpandedPanel (tabs: Còpies | Galeria & Etiquetes) --------------------
 
 function ExpandedPanel({ release, onRefresh }) {
+  const t = useT();
   const [tab, setTab] = useState('copies');
   return (
     <div className="space-y-3">
       <div className="flex gap-1 border-b border-amber-200/60 pb-0">
-        {[{ id: 'copies', label: 'Còpies' }, { id: 'gallery', label: 'Galeria & Etiquetes' }].map(({ id, label }) => (
+        {[{ id: 'copies', label: t('catalog.copies', 'Còpies') }, { id: 'gallery', label: t('catalog.gallery_tags', 'Galeria & Etiquetes') }].map(({ id, label }) => (
           <button key={id} onClick={() => setTab(id)}
             className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors ${tab === id ? 'bg-white border border-b-white border-amber-200/60 text-amber-700' : 'text-zinc-500 hover:text-zinc-700'}`}>
             {label}
@@ -782,6 +791,7 @@ function ExpandedPanel({ release, onRefresh }) {
 // ---- GalleryEtiquetesPanel -------------------------------------------------
 
 function GalleryEtiquetesPanel({ release, onRefresh }) {
+  const t = useT();
   const [images, setImages] = useState(release.images ?? []);
   const [etiquetes, setEtiquetes] = useState(release.etiquetes ?? []);
   const [allEtiquetes, setAllEtiquetes] = useState([]);
@@ -804,12 +814,12 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
       if (!res.ok) {
         setEstaSonant(!val);
         const body = await res.json().catch(() => ({}));
-        alert(body.detail || 'No s\'ha pogut actualitzar "Està sonant".');
+        alert(body.detail || t('catalog.now_playing_update_error', 'No s\'ha pogut actualitzar "Està sonant".'));
         return;
       }
     } catch {
       setEstaSonant(!val);
-      alert('Error de connexió en actualitzar "Està sonant".');
+      alert(t('catalog.now_playing_connection_error', 'Error de connexió en actualitzar "Està sonant".'));
       return;
     } finally {
       setSavingFlag(false);
@@ -835,12 +845,12 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
       if (!res.ok) {
         setEtiquetes(prev);
         const body = await res.json().catch(() => ({}));
-        alert(body.detail || 'No s\'ha pogut actualitzar "Recomanats".');
+        alert(body.detail || t('catalog.recommended_update_error', 'No s\'ha pogut actualitzar "Recomanats".'));
         return;
       }
     } catch {
       setEtiquetes(prev);
-      alert('Error de connexió en actualitzar "Recomanats".');
+      alert(t('catalog.recommended_connection_error', 'Error de connexió en actualitzar "Recomanats".'));
       return;
     } finally {
       setSavingFlag(false);
@@ -861,14 +871,14 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
       onRefresh();
     } else {
       const err = await res.json().catch(() => ({}));
-      alert(err.detail || 'No s\'ha pogut pujar la imatge.');
+      alert(err.detail || t('catalog.image_upload_error', "No s'ha pogut pujar la imatge."));
     }
     setUploading(false);
     e.target.value = '';
   }
 
   async function deleteImage(imgId) {
-    if (!confirm('Eliminar aquesta imatge?')) return;
+    if (!confirm(t('catalog.confirm_delete_image', 'Eliminar aquesta imatge?'))) return;
     const res = await authFetch(`/admin/releases/${release.id}/images/${imgId}`, { method: 'DELETE' });
     if (res.ok) {
       setImages(prev => prev.filter(i => i.id !== imgId));
@@ -899,18 +909,18 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
       {/* Aparició a la portada */}
       <div className="border-b border-zinc-100 pb-4">
         <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">
-          Aparició a la portada {savingFlag && <span className="normal-case font-normal text-zinc-400">· desant...</span>}
+          {t('catalog.homepage_appearance', 'Aparició a la portada')} {savingFlag && <span className="normal-case font-normal text-zinc-400">· {t('catalog.saving_lower', 'desant...')}</span>}
         </div>
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={estaSonant} onChange={handleToggleEstaSonant}
               className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" />
-            <span className="text-sm text-zinc-700">Està sonant <span className="text-zinc-400">(targeta del hero, només un disc alhora)</span></span>
+            <span className="text-sm text-zinc-700">{t('catalog.now_playing', 'Sonant')} <span className="text-zinc-400">{t('catalog.now_playing_hint', '(targeta del hero, només un disc alhora)')}</span></span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={isRecomanat} onChange={handleToggleRecomanat}
               className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" />
-            <span className="text-sm text-zinc-700">Recomanats <span className="text-zinc-400">(Selecció del curador)</span></span>
+            <span className="text-sm text-zinc-700">{t('catalog.recommended', 'Recomanats')} <span className="text-zinc-400">{t('catalog.recommended_hint', '(Selecció del curador)')}</span></span>
           </label>
         </div>
       </div>
@@ -919,7 +929,7 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
       {/* Galeria */}
       <div>
         <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
-          Galeria d&apos;imatges ({images.length})
+          {t('catalog.image_gallery', "Galeria d'imatges")} ({images.length})
         </div>
         <div className="flex flex-wrap gap-2 mb-3">
           {images.map(img => (
@@ -934,19 +944,19 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
               )}
             </div>
           ))}
-          {images.length === 0 && <p className="text-sm text-zinc-400">Cap imatge.</p>}
+          {images.length === 0 && <p className="text-sm text-zinc-400">{t('catalog.no_image', 'Cap imatge.')}</p>}
         </div>
         <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
         <button onClick={() => fileRef.current?.click()} disabled={uploading}
           className="flex items-center gap-1.5 text-xs text-violet-700 border border-violet-200 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60">
           {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-          Pujar imatge
+          {t('catalog.upload_image', 'Pujar imatge')}
         </button>
       </div>
 
       {/* Etiquetes */}
       <div>
-        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Etiquetes</div>
+        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">{t('catalog.tags', 'Etiquetes')}</div>
         <div className="flex flex-wrap gap-2 mb-3">
           {allEtiquetes.filter(et => et.slug !== 'recomanat').map(et => {
             const active = etiquetes.some(e => e.id === et.id);
@@ -954,14 +964,14 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
               <button key={et.id} type="button" onClick={() => toggleEtiqueta(et.id)}
                 className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${active ? 'text-white border-transparent' : 'text-zinc-600 bg-white border-zinc-300 hover:border-zinc-400'}`}
                 style={active ? { backgroundColor: et.color || '#94a3b8', borderColor: et.color || '#94a3b8' } : {}}>
-                {et.nom_ca}
+                {et.name_ca}
               </button>
             );
           })}
         </div>
         <button onClick={saveEtiquetes} disabled={savingEt}
           className="text-xs font-medium bg-primary hover:bg-zinc-800 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60">
-          {savingEt ? 'Desant...' : 'Desar etiquetes'}
+          {savingEt ? t('common.saving') : t('catalog.save_tags', 'Desar etiquetes')}
         </button>
       </div>
     </div>
@@ -1002,12 +1012,12 @@ function CopiesPanel({ release, items, onRefresh }) {
       method: 'POST',
       body: JSON.stringify({
         release_id: release.id,
-        precio: parseFloat(form.precio),
-        coste_adquisicion: form.coste_adquisicion ? parseFloat(form.coste_adquisicion) : null,
-        condicion: form.condicion,
+        price: parseFloat(form.precio),
+        acquisition_cost: form.coste_adquisicion ? parseFloat(form.coste_adquisicion) : null,
+        condition: form.condicion,
         estado_disco: form.condicion === 'nou' ? null : (form.estado_disco || null),
         estado_funda: form.condicion === 'nou' ? null : (form.estado_funda || null),
-        cantidad: form.condicion === 'nou' ? (parseInt(form.cantidad, 10) || 1) : 1,
+        quantity: form.condicion === 'nou' ? (parseInt(form.cantidad, 10) || 1) : 1,
       }),
     });
     setSaving(false);
@@ -1033,9 +1043,9 @@ function CopiesPanel({ release, items, onRefresh }) {
     const resp = await authFetch(`/admin/items/${editingId}`, {
       method: 'PUT',
       body: JSON.stringify({
-        precio: parseFloat(editForm.precio),
-        coste_adquisicion: editForm.coste_adquisicion ? parseFloat(editForm.coste_adquisicion) : null,
-        condicion: editForm.condicion,
+        price: parseFloat(editForm.precio),
+        acquisition_cost: editForm.coste_adquisicion ? parseFloat(editForm.coste_adquisicion) : null,
+        condition: editForm.condicion,
         estado_disco: editForm.condicion === 'nou' ? null : (editForm.estado_disco || null),
         estado_funda: editForm.condicion === 'nou' ? null : (editForm.estado_funda || null),
       }),
@@ -1043,7 +1053,7 @@ function CopiesPanel({ release, items, onRefresh }) {
     setSavingEdit(false);
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
-      alert(body.detail || 'No s\'ha pogut actualitzar.');
+      alert(body.detail || t('catalog.update_error'));
       return;
     }
     setEditingId(null);
@@ -1051,11 +1061,11 @@ function CopiesPanel({ release, items, onRefresh }) {
   }
 
   async function deleteItem(item) {
-    if (!confirm('Eliminar aquesta còpia? Aquesta acció no es pot desfer.')) return;
+    if (!confirm(t('catalog.confirm_delete_item'))) return;
     const resp = await authFetch(`/admin/items/${item.id}`, { method: 'DELETE' });
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
-      alert(body.detail || 'No s\'ha pogut eliminar.');
+      alert(body.detail || t('catalog.delete_error'));
       return;
     }
     onRefresh();
@@ -1073,7 +1083,7 @@ function CopiesPanel({ release, items, onRefresh }) {
   }
 
   async function handleRemove(item) {
-    if (!confirm('Eliminar aquest listing de Discogs?')) return;
+    if (!confirm(t('catalog.confirm_delete_listing', 'Eliminar aquest listing de Discogs?'))) return;
     setActionId(item.id + '_remove');
     const res = await authFetch(`/admin/discogs/sync/items/${item.id}/listing`, { method: 'DELETE' });
     if (!res.ok) {
@@ -1098,9 +1108,9 @@ function CopiesPanel({ release, items, onRefresh }) {
   return (
     <div className="space-y-2">
       <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-        Còpies ({items.length})
+        {t('catalog.copies', 'Còpies')} ({items.length})
       </div>
-      {items.length === 0 && <div className="text-sm text-zinc-400">Cap còpia.</div>}
+      {items.length === 0 && <div className="text-sm text-zinc-400">{t('catalog.no_copies_period', 'Cap còpia.')}</div>}
       <div className="space-y-1.5">
         {items.map(item => editingId === item.id ? (
           <form key={item.id} onSubmit={saveEdit} className="flex flex-wrap items-end gap-3 p-3 bg-white rounded-xl border border-amber-200 shadow-sm">
@@ -1111,12 +1121,12 @@ function CopiesPanel({ release, items, onRefresh }) {
                 <option value="nou">{t('common.condition.new')}</option>
               </select>
             </Field>
-            <Field label="PVP (€)">
+            <Field label={t('purchases.pvp_short', 'PVP') + ' (€)'}>
               <input type="number" step="0.01" min="0" required value={editForm.precio}
                 onChange={e => setEditForm(f => ({ ...f, precio: e.target.value }))}
                 className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </Field>
-            <Field label="Cost (€)">
+            <Field label={t('purchases.cost_short', 'Cost') + ' (€)'}>
               <input type="number" step="0.01" min="0" value={editForm.coste_adquisicion}
                 onChange={e => setEditForm(f => ({ ...f, coste_adquisicion: e.target.value }))}
                 placeholder="—"
@@ -1146,8 +1156,8 @@ function CopiesPanel({ release, items, onRefresh }) {
             <span className="font-semibold text-zinc-900">{item.precio} €</span>
             {item.condicion === 'nou' && (
               <span className="text-xs text-zinc-500">
-                {item.cantidad} unitats
-                {item.cantidad_reservada > 0 && ` (${item.cantidad_reservada} reservades)`}
+                {item.cantidad} {t('catalog.units', 'unitats')}
+                {item.cantidad_reservada > 0 && ` (${item.cantidad_reservada} ${t('catalog.reserved_lower', 'reservades')})`}
               </span>
             )}
             {item.coste_adquisicion != null && (() => {
@@ -1156,8 +1166,8 @@ function CopiesPanel({ release, items, onRefresh }) {
               const marge = pvp - cost;
               const pct = pvp > 0 ? Math.round((marge / pvp) * 100) : 0;
               return (
-                <span className="text-xs text-zinc-400" title={`Cost: ${cost.toFixed(2)} € · Marge: ${marge.toFixed(2)} € (${pct}%)`}>
-                  cost {cost.toFixed(2)} € · <span className={marge >= 0 ? 'text-emerald-600' : 'text-red-500'}>{marge >= 0 ? '+' : ''}{marge.toFixed(2)} €</span>
+                <span className="text-xs text-zinc-400" title={`${t('purchases.cost_short', 'Cost')}: ${cost.toFixed(2)} € · ${t('purchases.margin_capitalized', 'Marge')}: ${marge.toFixed(2)} € (${pct}%)`}>
+                  {t('purchases.cost_short', 'Cost').toLowerCase()} {cost.toFixed(2)} € · <span className={marge >= 0 ? 'text-emerald-600' : 'text-red-500'}>{marge >= 0 ? '+' : ''}{marge.toFixed(2)} €</span>
                 </span>
               );
             })()}
@@ -1168,36 +1178,36 @@ function CopiesPanel({ release, items, onRefresh }) {
             <div className="flex items-center gap-1 ml-1">
               <SyncBadge status={syncStatus(item, release)} codiDiscogs={item.codi_discogs} />
               {syncStatus(item, release) === 'pending' && (
-                <button onClick={() => handlePush(item)} disabled={!!actionId} title="Pujar a Discogs"
+                <button onClick={() => handlePush(item)} disabled={!!actionId} title={t('catalog.push_to_discogs', 'Pujar a Discogs')}
                   className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
                   {actionId === item.id + '_push' ? <Loader2 size={9} className="animate-spin" /> : <Upload size={9} />}
-                  Pujar
+                  {t('catalog.push', 'Pujar')}
                 </button>
               )}
               {syncStatus(item, release) === 'listed' && (
-                <button onClick={() => handleRemove(item)} disabled={!!actionId} title="Eliminar listing"
+                <button onClick={() => handleRemove(item)} disabled={!!actionId} title={t('catalog.delete_listing', 'Eliminar listing')}
                   className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-500 border border-zinc-200 hover:border-red-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
                   {actionId === item.id + '_remove' ? <Loader2 size={9} className="animate-spin" /> : <Trash2 size={9} />}
-                  Treure
+                  {t('catalog.remove', 'Treure')}
                 </button>
               )}
               {(item.codi_discogs || release.discogs_release_id) && (
                 <button onClick={() => handleEnrichImage(item)} disabled={!!actionId}
-                  title={release.imagen_url ? 'Actualitzar caràtula' : 'Obtenir caràtula de Discogs'}
+                  title={release.imagen_url ? t('catalog.update_cover', 'Actualitzar caràtula') : t('catalog.get_cover_from_discogs', 'Obtenir caràtula de Discogs')}
                   className="flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-700 border border-zinc-200 hover:border-violet-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
                   {actionId === item.id + '_img' ? <Loader2 size={9} className="animate-spin" /> : <Image size={9} />}
-                  {release.imagen_url ? '↑ Art' : 'Art'}
+                  {release.imagen_url ? `↑ ${t('catalog.art', 'Art')}` : t('catalog.art', 'Art')}
                 </button>
               )}
             </div>
 
             {item.status !== 'vendido' && (
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => startEdit(item)} title="Editar"
+                <button onClick={() => startEdit(item)} title={t('catalog.edit')}
                   className="p-1 text-zinc-400 hover:text-zinc-700 rounded-md hover:bg-zinc-100">
                   <Pencil size={12} />
                 </button>
-                <button onClick={() => deleteItem(item)} title="Eliminar"
+                <button onClick={() => deleteItem(item)} title={t('catalog.delete')}
                   className="p-1 text-zinc-300 hover:text-red-500 rounded-md hover:bg-red-50">
                   <Trash2 size={12} />
                 </button>
@@ -1209,7 +1219,7 @@ function CopiesPanel({ release, items, onRefresh }) {
 
       {!showForm ? (
         <button onClick={() => setShowForm(true)} className="text-xs text-amber-600 hover:text-amber-700 font-medium mt-1">
-          + Afegir còpia
+          + {t('catalog.add_copy')}
         </button>
       ) : (
         <form onSubmit={save} className="flex flex-wrap items-end gap-3 mt-2 p-4 bg-white rounded-xl border border-amber-200 shadow-sm">
@@ -1220,22 +1230,22 @@ function CopiesPanel({ release, items, onRefresh }) {
               <option value="nou">{t('common.condition.new')}</option>
             </select>
           </Field>
-          <Field label="Cost (€)">
+          <Field label={t('purchases.cost_short', 'Cost') + ' (€)'}>
             <input type="number" step="0.01" min="0" value={form.coste_adquisicion}
               onChange={e => setForm(f => ({ ...f, coste_adquisicion: e.target.value }))}
               placeholder="0.00"
               className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </Field>
-          <Field label="PVP (€)">
+          <Field label={t('purchases.pvp_short', 'PVP') + ' (€)'}>
             <input type="number" step="0.01" min="0" required value={form.precio}
               onChange={e => setForm(f => ({ ...f, precio: e.target.value }))}
               className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </Field>
           {form.condicion === 'nou' ? (
-            <Field label="Unitats">
+            <Field label={t('catalog.units_label', 'Unitats')}>
               <input type="number" step="1" min="1" required value={form.cantidad}
                 onChange={e => setForm(f => ({ ...f, cantidad: e.target.value }))}
-                title="Si ja hi ha estoc nou d'aquest disc, se sumarà a la línia existent"
+                title={t('catalog.units_hint', "Si ja hi ha estoc nou d'aquest disc, se sumarà a la línia existent")}
                 className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </Field>
           ) : (
@@ -1288,6 +1298,7 @@ function emptyForm() {
     tracklist: null, credits: null, pes_g: '', seccio_id: '',
     precio: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '',
     etiqueta_ids: [], properament: false, data_disponibilitat: '',
+    color: '', tipus_flor: '', durabilitat_dies: '',
   };
 }
 
@@ -1306,11 +1317,19 @@ function formFromRelease(release) {
     etiqueta_ids: (release.etiquetes ?? []).map(e => e.id),
     properament: release.properament ?? false,
     data_disponibilitat: release.data_disponibilitat ?? '',
+    color: release.color ?? '', tipus_flor: release.tipus_flor ?? '',
+    durabilitat_dies: release.durabilitat_dies ? String(release.durabilitat_dies) : '',
   };
 }
 
 function DiscModal({ mode, release, onClose, onSaved }) {
   const t = useT();
+  const vertical = useTenantVertical();
+  const isFloristeria = vertical === 'floristry';
+  const discogsEnabled = useDiscogsEnabled();
+  // Floristeria mai té Discogs (ni sentit ni interruptor); un tenant vinils
+  // amb el interruptor apagat tampoc — dues raons diferents, mateix resultat.
+  const showDiscogs = !isFloristeria && !!discogsEnabled;
   const isEdit = mode === 'edit';
   const [discogsQ, setDiscogsQ] = useState('');
   const [discogsRes, setDiscogsRes] = useState([]);
@@ -1405,15 +1424,17 @@ function DiscModal({ mode, release, onClose, onSaved }) {
 
   function buildReleasePayload() {
     return {
-      artista: form.artista, titulo: form.titulo,
+      artista: form.artista, title: form.titulo,
       sello: form.sello || null, ean: form.ean || null, formato: form.formato || null,
       anio: form.anio ? parseInt(form.anio) : null,
       genero: form.genero || null, estilos: form.estilos || null,
-      pais: form.pais || null, imagen_url: form.imagen_url || null,
+      pais: form.pais || null, image_url: form.imagen_url || null,
       tracklist: form.tracklist || null, credits: form.credits || null,
-      pes_g: form.pes_g ? parseInt(form.pes_g) : null,
-      seccio_id: form.seccio_id ? parseInt(form.seccio_id) : null,
+      weight_g: form.pes_g ? parseInt(form.pes_g) : null,
+      section_id: form.seccio_id ? parseInt(form.seccio_id) : null,
       discogs_release_id: form.discogs_release_id ? parseInt(form.discogs_release_id) : null,
+      color: form.color || null, tipus_flor: form.tipus_flor || null,
+      durabilitat_dies: form.durabilitat_dies ? parseInt(form.durabilitat_dies) : null,
     };
   }
 
@@ -1426,7 +1447,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
     });
     if (!saveResp.ok) {
       const body = await saveResp.json().catch(() => ({}));
-      alert(body.detail || 'No s\'ha pogut desar l\'ID de Discogs.');
+      alert(body.detail || t('catalog.modal.discogs_id_save_error', "No s'ha pogut desar l'ID de Discogs."));
       setSaving(false);
       return;
     }
@@ -1447,7 +1468,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
       }));
     } else {
       const body = await resp.json().catch(() => ({}));
-      alert(body.detail || 'No s\'ha pogut actualitzar des de Discogs.');
+      alert(body.detail || t('catalog.modal.discogs_update_error', "No s'ha pogut actualitzar des de Discogs."));
     }
     setSaving(false);
   }
@@ -1463,7 +1484,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
       const resp = await authFetch(`/admin/releases/${release.id}`, { method: 'PUT', body: JSON.stringify(releasePayload) });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        alert(body.detail || 'No s\'ha pogut actualitzar.');
+        alert(body.detail || t('catalog.update_error'));
         setSaving(false);
         return;
       }
@@ -1477,8 +1498,8 @@ function DiscModal({ mode, release, onClose, onSaved }) {
           method: 'POST',
           body: JSON.stringify({
             release_id: savedId,
-            precio: parseFloat(form.precio),
-            condicion: form.condicion,
+            price: parseFloat(form.precio),
+            condition: form.condicion,
             estado_disco: form.condicion === 'nou' ? null : (form.estado_disco || null),
             estado_funda: form.condicion === 'nou' ? null : (form.estado_funda || null),
           }),
@@ -1501,7 +1522,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
     onSaved();
   }
 
-  const title = isEdit ? 'Editar disc' : mode === 'duplicate' ? 'Duplicar disc' : t('catalog.modal.title');
+  const title = isEdit ? t('catalog.modal.edit_title') : mode === 'duplicate' ? t('catalog.modal.duplicate_title') : t('catalog.modal.title');
 
   return (
     <Modal title={title} onClose={onClose}>
@@ -1513,7 +1534,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
             <ul className="mt-1 space-y-0.5">
               {dupMatches.map(m => (
                 <li key={m.id} className="text-amber-700">
-                  {m.artista} — {m.titulo} {m.sello ? `(${m.sello})` : ''} · {m.num_items} còpies
+                  {m.artista} — {m.titulo} {m.sello ? `(${m.sello})` : ''} · {m.num_items} {t('catalog.copies_lower', 'còpies')}
                 </li>
               ))}
             </ul>
@@ -1521,7 +1542,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
         </div>
       )}
 
-      {!isEdit && (
+      {!isEdit && showDiscogs && (
         <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 space-y-3">
           <div className="text-sm font-medium text-zinc-700">{t('catalog.modal.discogs')}</div>
           <div className="flex gap-2">
@@ -1553,7 +1574,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
         </div>
       )}
 
-      {isEdit && (
+      {isEdit && showDiscogs && (
         <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
           <div className="text-sm font-medium text-zinc-700">
             {t('catalog.modal.discogs_id', 'ID de Discogs')}
@@ -1587,17 +1608,20 @@ function DiscModal({ mode, release, onClose, onSaved }) {
                 className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </div>
           ))}
+          {!isFloristeria && (
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.label')}</label>
             <input value={form.sello} onChange={e => f('sello', e.target.value)}
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.ean', 'EAN / codi de barres')}</label>
             <input value={form.ean} onChange={e => f('ean', e.target.value)} onBlur={scheduleDupCheck}
-              placeholder="p.ex. 0888072345678"
+              placeholder={t('catalog.modal.ean_ph', 'p.ex. 0888072345678')}
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
+          {!isFloristeria && (
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.format')}</label>
             <select value={form.formato} onChange={e => f('formato', e.target.value)}
@@ -1605,35 +1629,63 @@ function DiscModal({ mode, release, onClose, onSaved }) {
               {['LP', 'EP', '7"', '12"', 'CD', 'Cassette', 'Altre'].map(x => <option key={x}>{x}</option>)}
             </select>
           </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.year')}</label>
             <input type="number" value={form.anio} onChange={e => f('anio', e.target.value)} min="1900" max="2030"
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
+          {!isFloristeria && (
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.genre')}</label>
             <input value={form.genero} onChange={e => f('genero', e.target.value)}
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
+          )}
+          {!isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Secció (cubeta)</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.section', 'Secció (cubeta)')}</label>
             <select value={form.seccio_id} onChange={e => f('seccio_id', e.target.value)}
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
-              <option value="">Sense classificar</option>
-              {allSeccions.map(s => <option key={s.id} value={s.id}>{s.nom_ca}</option>)}
+              <option value="">{t('catalog.modal.unclassified', 'Sense classificar')}</option>
+              {allSeccions.map(s => <option key={s.id} value={s.id}>{s.name_ca}</option>)}
             </select>
           </div>
+          )}
+          {!isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Pes (grams)</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.weight', 'Pes (grams)')}</label>
             <input type="number" min="1" value={form.pes_g} onChange={e => f('pes_g', e.target.value)}
               placeholder={pesPerFormat[form.formato] != null ? String(pesPerFormat[form.formato]) : ''}
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             <p className="text-xs text-zinc-400 mt-1">
-              Nomes per a casos especials. Buit = pes per defecte del format{' '}
+              {t('catalog.modal.weight_hint_1', 'Nomes per a casos especials. Buit = pes per defecte del format')}{' '}
               {pesPerFormat[form.formato] != null ? `(${pesPerFormat[form.formato]} g, ` : '('}
-              configurable a Configuració → Enviaments).
+              {t('catalog.modal.weight_hint_2', 'configurable a Configuració → Enviaments).')}
             </p>
           </div>
+          )}
+          {isFloristeria && (
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.color', 'Color')}</label>
+            <input value={form.color} onChange={e => f('color', e.target.value)}
+              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          </div>
+          )}
+          {isFloristeria && (
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.flower_type', 'Tipus de flor')}</label>
+            <input value={form.tipus_flor} onChange={e => f('tipus_flor', e.target.value)}
+              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          </div>
+          )}
+          {isFloristeria && (
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.durability', 'Durabilitat (dies)')}</label>
+            <input type="number" min="1" value={form.durabilitat_dies} onChange={e => f('durabilitat_dies', e.target.value)}
+              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          </div>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.image_url')}</label>
@@ -1644,7 +1696,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
         {/* Etiquetes */}
         {allEtiquetes.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">Etiquetes</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-2">{t('catalog.tags', 'Etiquetes')}</label>
             <div className="flex flex-wrap gap-2">
               {allEtiquetes.map(et => {
                 const active = form.etiqueta_ids.includes(et.id);
@@ -1652,7 +1704,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
                   <button key={et.id} type="button" onClick={() => toggleEtiqueta(et.id)}
                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${active ? 'text-white border-transparent' : 'text-zinc-600 bg-white border-zinc-300 hover:border-zinc-400'}`}
                     style={active ? { backgroundColor: et.color || '#94a3b8', borderColor: et.color || '#94a3b8' } : {}}>
-                    {et.nom_ca}
+                    {et.name_ca}
                   </button>
                 );
               })}
@@ -1665,11 +1717,11 @@ function DiscModal({ mode, release, onClose, onSaved }) {
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={form.properament} onChange={e => f('properament', e.target.checked)}
               className="w-4 h-4 rounded border-zinc-300 text-violet-600 focus:ring-violet-500" />
-            <span className="text-sm font-medium text-zinc-700">Properament (pre-venda)</span>
+            <span className="text-sm font-medium text-zinc-700">{t('catalog.modal.coming_soon', 'Properament (pre-venda)')}</span>
           </label>
           {form.properament && (
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">Data disponibilitat (opcional)</label>
+              <label className="block text-xs text-zinc-500 mb-1">{t('catalog.modal.availability_date', 'Data disponibilitat (opcional)')}</label>
               <input type="date" value={form.data_disponibilitat} onChange={e => f('data_disponibilitat', e.target.value)}
                 className="border border-zinc-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
@@ -1694,7 +1746,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
                   className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
               </div>
             </div>
-            {form.condicion === 'segona_ma' && (
+            {!isFloristeria && form.condicion === 'segona_ma' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-zinc-500 mb-1">{t('catalog.disc_grade')}</label>

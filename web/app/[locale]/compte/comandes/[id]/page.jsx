@@ -6,6 +6,7 @@ import { Link } from '../../../../../i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { ArrowLeft, Package, MapPin, Loader2 } from 'lucide-react';
 import { authFetch } from '../../../../../components/store/AuthProvider';
+import { useTenantConfig } from '../../../../../components/store/useTenantConfig';
 
 function submitToRedsys({ url, Ds_SignatureVersion, Ds_MerchantParameters, Ds_Signature }) {
   const form = document.createElement('form');
@@ -34,6 +35,7 @@ const STATUS_COLOR = {
 export default function OrderDetailPage() {
   const t = useTranslations('compte');
   const locale = useLocale();
+  const tenantConfig = useTenantConfig();
   const STEPS = [t('stepReceived'), t('stepPaymentConfirmed'), t('stepShipped'), t('stepDelivered')];
   const { id } = useParams();
   const [order, setOrder] = useState(null);
@@ -127,7 +129,7 @@ export default function OrderDetailPage() {
           {order.status === 'pendiente_pago' && (
             <div className="mt-4 pt-4 border-t border-zinc-50 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3 flex-wrap">
               {order.metodo_pago === 'tienda' ? (
-                <span>{t('payOnPickupNote')}</span>
+                <span>{t('payOnPickupNote', { shopName: tenantConfig.nombre })}</span>
               ) : (
                 <>
                   <span>{t('paymentNotCompletedYet')}</span>
@@ -195,10 +197,10 @@ export default function OrderDetailPage() {
               <p className="text-sm font-medium text-zinc-700">{t('shippingAddress')}</p>
             </div>
             <address className="not-italic text-sm text-zinc-500 leading-relaxed">
-              {order.direccion_envio.nombre_destinatario}<br />
-              {order.direccion_envio.linea1}<br />
-              {order.direccion_envio.cp} {order.direccion_envio.ciudad}
-              {order.direccion_envio.provincia && `, ${order.direccion_envio.provincia}`}
+              {order.direccion_envio.recipient_name}<br />
+              {order.direccion_envio.address_line1}<br />
+              {order.direccion_envio.postal_code} {order.direccion_envio.city}
+              {order.direccion_envio.province && `, ${order.direccion_envio.province}`}
             </address>
           </div>
         )}

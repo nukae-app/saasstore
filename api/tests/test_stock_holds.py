@@ -14,7 +14,7 @@ from app.services.reservations import (
 
 
 def _seed_release(db) -> Release:
-    r = Release(artista="Artista", titulo="Álbum", formato="LP")
+    r = Release(artista="Artista", title="Álbum", formato="LP")
     db.add(r)
     db.commit()
     return r
@@ -22,8 +22,8 @@ def _seed_release(db) -> Release:
 
 def _seed_item_nou(db, release, cantidad=5, precio="20.00") -> Item:
     item = Item(
-        release_id=release.id, precio=Decimal(precio),
-        condicion=CondicionItem.nou, cantidad=cantidad,
+        release_id=release.id, price=Decimal(precio),
+        condition=CondicionItem.nou, quantity=cantidad,
     )
     db.add(item)
     db.commit()
@@ -39,10 +39,10 @@ def test_reserve_stock_ok_descuenta_disponibilidad(db):
 
     assert hold_id is not None
     db.refresh(item)
-    assert item.cantidad == 5
-    assert item.cantidad_reservada == 3
+    assert item.quantity == 5
+    assert item.reserved_quantity == 3
     hold = db.get(StockHold, hold_id)
-    assert hold.cantidad == 3
+    assert hold.quantity == 3
     assert hold.cart_id == cart_id
 
 
@@ -55,7 +55,7 @@ def test_reserve_stock_falla_si_no_hay_suficiente(db):
     assert reserve_stock(db, item.id, 3, cart_id=uuid.uuid4(), ttl_minutes=20) is None
 
     db.refresh(item)
-    assert item.cantidad_reservada == 3  # el intento fallido no ha tocado nada
+    assert item.reserved_quantity == 3  # el intento fallido no ha tocado nada
 
 
 def test_reserve_stock_dos_carritos_se_reparten_las_ultimas_unidades(db):
@@ -67,14 +67,14 @@ def test_reserve_stock_dos_carritos_se_reparten_las_ultimas_unidades(db):
     assert h1 is not None and h2 is not None
 
     db.refresh(item)
-    assert item.cantidad_reservada == 5
+    assert item.reserved_quantity == 5
     # ya no queda nada para un tercero
     assert reserve_stock(db, item.id, 1, cart_id=uuid.uuid4(), ttl_minutes=20) is None
 
 
 def test_reserve_stock_ignora_items_segona_ma(db):
     release = _seed_release(db)
-    item = Item(release_id=release.id, precio=Decimal("10.00"), condicion=CondicionItem.segona_ma)
+    item = Item(release_id=release.id, price=Decimal("10.00"), condition=CondicionItem.segona_ma)
     db.add(item)
     db.commit()
 
@@ -88,7 +88,7 @@ def test_release_stock_hold_devuelve_la_cantidad(db):
 
     assert release_stock_hold(db, hold_id) is True
     db.refresh(item)
-    assert item.cantidad_reservada == 0
+    assert item.reserved_quantity == 0
     assert db.get(StockHold, hold_id) is None
     # liberar dos veces no rompe nada
     assert release_stock_hold(db, hold_id) is False
@@ -103,8 +103,8 @@ def test_confirm_stock_sale_descuenta_cantidad_real(db):
 
     assert vendidos == 2
     db.refresh(item)
-    assert item.cantidad == 3
-    assert item.cantidad_reservada == 0
+    assert item.quantity == 3
+    assert item.reserved_quantity == 0
     assert db.get(StockHold, hold_id) is None
 
 
@@ -125,7 +125,7 @@ def test_release_expired_libera_holds_caducados_de_carrito(db):
     release_expired(db)
 
     db.refresh(item)
-    assert item.cantidad_reservada == 0
+    assert item.reserved_quantity == 0
     assert db.get(StockHold, hold_id) is None
 
 
@@ -139,14 +139,14 @@ def test_reserve_stock_mismo_carrito_renueva_en_vez_de_sumar(db):
 
     assert h1 is not None and h2 is not None and h1 != h2
     db.refresh(item)
-    assert item.cantidad_reservada == 4  # no 6: el segundo hold sustituye al primero
+    assert item.reserved_quantity == 4  # no 6: el segundo hold sustituye al primero
     assert db.get(StockHold, h1) is None
-    assert db.get(StockHold, h2).cantidad == 4
+    assert db.get(StockHold, h2).quantity == 4
 
 
 def test_reserve_stock_bulk_todo_o_nada(db):
     release1 = _seed_release(db)
-    release2 = Release(artista="Artista2", titulo="Àlbum2", formato="LP")
+    release2 = Release(artista="Artista2", title="Àlbum2", formato="LP")
     db.add(release2)
     db.commit()
     item1 = _seed_item_nou(db, release1, cantidad=5)
@@ -159,13 +159,13 @@ def test_reserve_stock_bulk_todo_o_nada(db):
     assert failed == [item2.id]
     db.refresh(item1)
     db.refresh(item2)
-    assert item1.cantidad_reservada == 0  # revertido
-    assert item2.cantidad_reservada == 0
+    assert item1.reserved_quantity == 0  # revertido
+    assert item2.reserved_quantity == 0
 
 
 def test_reserve_stock_bulk_exito(db):
     release1 = _seed_release(db)
-    release2 = Release(artista="Artista2", titulo="Àlbum2", formato="LP")
+    release2 = Release(artista="Artista2", title="Àlbum2", formato="LP")
     db.add(release2)
     db.commit()
     item1 = _seed_item_nou(db, release1, cantidad=5)
@@ -177,8 +177,8 @@ def test_reserve_stock_bulk_exito(db):
     assert failed == []
     db.refresh(item1)
     db.refresh(item2)
-    assert item1.cantidad_reservada == 3
-    assert item2.cantidad_reservada == 2
+    assert item1.reserved_quantity == 3
+    assert item2.reserved_quantity == 2
 
 
 def test_release_expired_no_toca_holds_sin_caducidad(db):
@@ -190,5 +190,5 @@ def test_release_expired_no_toca_holds_sin_caducidad(db):
     release_expired(db)
 
     db.refresh(item)
-    assert item.cantidad_reservada == 2
+    assert item.reserved_quantity == 2
     assert db.get(StockHold, hold_id) is not None

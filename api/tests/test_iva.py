@@ -12,7 +12,7 @@ from app.models import CondicionItem, Item, Release, TipusIva, User
 
 
 def _seed_release(db, artista="Artista", titulo="Àlbum", formato="LP") -> Release:
-    r = Release(artista=artista, titulo=titulo, formato=formato)
+    r = Release(artista=artista, title=titulo, formato=formato)
     db.add(r)
     db.commit()
     return r
@@ -21,9 +21,9 @@ def _seed_release(db, artista="Artista", titulo="Àlbum", formato="LP") -> Relea
 def _seed_item(db, release, precio="20.00", coste="10.00", condicion=CondicionItem.nou) -> Item:
     item = Item(
         release_id=release.id,
-        precio=Decimal(precio),
-        coste_adquisicion=Decimal(coste),
-        condicion=condicion,
+        price=Decimal(precio),
+        acquisition_cost=Decimal(coste),
+        condition=condicion,
     )
     db.add(item)
     db.commit()
@@ -43,7 +43,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -53,8 +53,8 @@ def _auth(token: str) -> dict:
 
 
 def _seed_tipus_iva(db, *, nou_pct="21.00", rebu_pct="21.00") -> tuple[TipusIva, TipusIva]:
-    general = TipusIva(nom="General", percentatge=Decimal(nou_pct), per_defecte_nou=True, actiu=True)
-    rebu = TipusIva(nom="REBU", percentatge=Decimal(rebu_pct), es_rebu=True, per_defecte_segona_ma=True, actiu=True)
+    general = TipusIva(name="General", percentage=Decimal(nou_pct), default_new=True, active=True)
+    rebu = TipusIva(name="REBU", percentage=Decimal(rebu_pct), is_rebu=True, default_used=True, active=True)
     db.add_all([general, rebu])
     db.commit()
     return general, rebu
@@ -69,7 +69,7 @@ def test_crud_tipus_iva(db, client):
 
     resp = client.post(
         "/admin/tipus-iva",
-        json={"nom": "General 21%", "percentatge": "21.00", "per_defecte_nou": True},
+        json={"name": "General 21%", "percentage": "21.00", "default_new": True},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
@@ -79,9 +79,9 @@ def test_crud_tipus_iva(db, client):
     assert resp.status_code == 200
     assert any(t["id"] == tipus_id for t in resp.json())
 
-    resp = client.patch(f"/admin/tipus-iva/{tipus_id}", json={"percentatge": "10.00"}, headers=_auth(admin))
+    resp = client.patch(f"/admin/tipus-iva/{tipus_id}", json={"percentage": "10.00"}, headers=_auth(admin))
     assert resp.status_code == 200
-    assert resp.json()["percentatge"] == "10.00"
+    assert resp.json()["percentage"] == "10.00"
 
 
 def test_nomes_un_tipus_per_defecte_nou_actiu(db, client):
@@ -89,20 +89,20 @@ def test_nomes_un_tipus_per_defecte_nou_actiu(db, client):
     admin = _admin_token(client, db)
     r1 = client.post(
         "/admin/tipus-iva",
-        json={"nom": "A", "percentatge": "21.00", "per_defecte_nou": True},
+        json={"name": "A", "percentage": "21.00", "default_new": True},
         headers=_auth(admin),
     ).json()
     r2 = client.post(
         "/admin/tipus-iva",
-        json={"nom": "B", "percentatge": "10.00", "per_defecte_nou": True},
+        json={"name": "B", "percentage": "10.00", "default_new": True},
         headers=_auth(admin),
     ).json()
 
     db.refresh(db.get(TipusIva, r1["id"]))
     t1 = db.get(TipusIva, r1["id"])
     t2 = db.get(TipusIva, r2["id"])
-    assert t1.per_defecte_nou is False
-    assert t2.per_defecte_nou is True
+    assert t1.default_new is False
+    assert t2.default_new is True
 
 
 # ---------------------------------------------------------------------------
@@ -117,14 +117,14 @@ def test_venta_mostrador_disco_nou_aplica_iva_general(db, client):
 
     resp = client.post(
         "/admin/ventas-externas",
-        json={"item_id": str(item.id), "canal": "mostrador", "precio_venta": "25.00", "fecha": "2026-06-11T16:00:00"},
+        json={"item_id": str(item.id), "channel": "mostrador", "sale_price": "25.00", "date": "2026-06-11T16:00:00"},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
     data = resp.json()
-    assert data["iva_pct"] == "21.00"
+    assert data["vat_pct"] == "21.00"
     # IVA sobre el preu total (25 / 1.21 * 0.21)
-    assert data["iva_import"] == "4.34"
+    assert data["vat_amount"] == "4.34"
 
 
 def test_venta_mostrador_disco_segona_ma_rebu_aplica_iva_sobre_marge(db, client):
@@ -136,13 +136,13 @@ def test_venta_mostrador_disco_segona_ma_rebu_aplica_iva_sobre_marge(db, client)
 
     resp = client.post(
         "/admin/ventas-externas",
-        json={"item_id": str(item.id), "canal": "mostrador", "precio_venta": "25.00", "fecha": "2026-06-11T16:00:00"},
+        json={"item_id": str(item.id), "channel": "mostrador", "sale_price": "25.00", "date": "2026-06-11T16:00:00"},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
     data = resp.json()
-    assert data["iva_pct"] == "21.00"
-    assert data["iva_import"] == "2.60"  # (25-10) * 21/121 = 2.6033... -> 2.60
+    assert data["vat_pct"] == "21.00"
+    assert data["vat_amount"] == "2.60"  # (25-10) * 21/121 = 2.6033... -> 2.60
 
 
 def test_venta_sense_tipus_iva_configurat_no_calcula_res(db, client):
@@ -153,11 +153,11 @@ def test_venta_sense_tipus_iva_configurat_no_calcula_res(db, client):
 
     resp = client.post(
         "/admin/ventas-externas",
-        json={"item_id": str(item.id), "canal": "mostrador", "precio_venta": "25.00", "fecha": "2026-06-11T16:00:00"},
+        json={"item_id": str(item.id), "channel": "mostrador", "sale_price": "25.00", "date": "2026-06-11T16:00:00"},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
-    assert resp.json()["iva_pct"] is None
+    assert resp.json()["vat_pct"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -171,20 +171,20 @@ def test_despesa_amb_tipus_iva_deriva_percentatge(db, client):
     resp = client.post(
         "/admin/despeses",
         json={
-            "data_factura": "2026-06-01",
-            "proveidor_nom": "Subministrador SL",
-            "categoria": "subministraments",
-            "concepte": "Llum juny",
-            "base_imposable": "100.00",
+            "invoice_date": "2026-06-01",
+            "supplier_name": "Subministrador SL",
+            "category": "subministraments",
+            "concept": "Llum juny",
+            "taxable_base": "100.00",
             "tipus_iva_id": general.id,
-            "iva_pct": "21.00",  # s'ignora: mana el tipus seleccionat
+            "vat_pct": "21.00",  # s'ignora: mana el tipus seleccionat
         },
         headers=_auth(admin),
     )
     assert resp.status_code == 201
     data = resp.json()
-    assert data["iva_pct"] == "10.00"
-    assert data["iva_import"] == "10.00"
+    assert data["vat_pct"] == "10.00"
+    assert data["vat_amount"] == "10.00"
     assert data["total"] == "110.00"
 
 
@@ -199,7 +199,7 @@ def test_informe_iva_trimestral_inclou_vendes_externes(db, client):
     item = _seed_item(db, release, precio="25.00", coste="12.00", condicion=CondicionItem.nou)
     client.post(
         "/admin/ventas-externas",
-        json={"item_id": str(item.id), "canal": "mostrador", "precio_venta": "25.00", "fecha": "2026-06-11T16:00:00"},
+        json={"item_id": str(item.id), "channel": "mostrador", "sale_price": "25.00", "date": "2026-06-11T16:00:00"},
         headers=_auth(admin),
     )
 

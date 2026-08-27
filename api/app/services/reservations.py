@@ -15,7 +15,7 @@ orígenes distintos (varios carritos por las últimas unidades, una petición de
 cliente, una asignación de club...). Las funciones de la segunda mitad de
 este archivo (`reserve_stock`, `release_stock_hold`, `confirm_stock_sale`)
 gestionan esto con el mismo patrón UPDATE-y-comprobar-rowcount, pero contra
-`Item.cantidad`/`cantidad_reservada` y una tabla de retenciones (`StockHold`)
+`Item.quantity`/`reserved_quantity` y una tabla de retenciones (`StockHold`)
 en vez de las columnas `status`/`reserved_*`, que solo tienen un titular
 posible a la vez y por tanto no sirven para cantidad agregada.
 """
@@ -37,8 +37,8 @@ _OPTS = {"synchronize_session": False}
 
 
 def reservation_minutes(db: Session) -> int:
-    config = db.get(ConfiguracioBotiga, 1)
-    return config.reserva_minuts if config else 20
+    config = db.scalar(select(ConfiguracioBotiga))
+    return config.reservation_minutes if config else 20
 
 
 def release_expired(db: Session) -> int:
@@ -76,7 +76,7 @@ def release_expired(db: Session) -> int:
         select(PeticionCliente.id)
         .where(
             PeticionCliente.item_id.in_(items_a_alliberar),
-            PeticionCliente.estado == EstadoPeticionCliente.reservada,
+            PeticionCliente.status == EstadoPeticionCliente.reservada,
         )
     ))
     orders_afectades = list(db.scalars(
@@ -85,7 +85,7 @@ def release_expired(db: Session) -> int:
         .where(
             OrderItem.item_id.in_(items_a_alliberar),
             Order.status == OrderStatus.pendiente_pago,
-            Order.metodo_pago == "tienda",
+            Order.payment_method == "tienda",
         )
         .distinct()
     ))
@@ -102,7 +102,7 @@ def release_expired(db: Session) -> int:
         db.execute(
             update(PeticionCliente)
             .where(PeticionCliente.id.in_(peticiones_afectadas))
-            .values(estado=EstadoPeticionCliente.caducada)
+            .values(status=EstadoPeticionCliente.caducada)
             .execution_options(**_OPTS)
         )
     if orders_afectades:
@@ -135,14 +135,14 @@ def _release_expired_stock_holds(db: Session) -> int:
         db.execute(
             update(Item)
             .where(Item.id == hold.item_id)
-            .values(cantidad_reservada=Item.cantidad_reservada - hold.cantidad)
+            .values(reserved_quantity=Item.reserved_quantity - hold.quantity)
             .execution_options(**_OPTS)
         )
         if hold.peticion_id:
             db.execute(
                 update(PeticionCliente)
-                .where(PeticionCliente.id == hold.peticion_id, PeticionCliente.estado == EstadoPeticionCliente.reservada)
-                .values(estado=EstadoPeticionCliente.caducada)
+                .where(PeticionCliente.id == hold.peticion_id, PeticionCliente.status == EstadoPeticionCliente.reservada)
+                .values(status=EstadoPeticionCliente.caducada)
                 .execution_options(**_OPTS)
             )
         if hold.order_id:
@@ -150,7 +150,7 @@ def _release_expired_stock_holds(db: Session) -> int:
                 update(Order)
                 .where(
                     Order.id == hold.order_id, Order.status == OrderStatus.pendiente_pago,
-                    Order.metodo_pago == "tienda",
+                    Order.payment_method == "tienda",
                 )
                 .values(status=OrderStatus.cancelado)
                 .execution_options(**_OPTS)
@@ -339,10 +339,10 @@ def reserve_stock(
         update(Item)
         .where(
             Item.id == item_id,
-            Item.condicion == CondicionItem.nou,
-            Item.cantidad - Item.cantidad_reservada >= cantidad,
+            Item.condition == CondicionItem.nou,
+            Item.quantity - Item.reserved_quantity >= cantidad,
         )
-        .values(cantidad_reservada=Item.cantidad_reservada + cantidad)
+        .values(reserved_quantity=Item.reserved_quantity + cantidad)
         .execution_options(**_OPTS)
     )
     if result.rowcount != 1:
@@ -350,7 +350,7 @@ def reserve_stock(
         return None
 
     hold = StockHold(
-        item_id=item_id, cantidad=cantidad, cart_id=cart_id, peticion_id=peticion_id,
+        item_id=item_id, quantity=cantidad, cart_id=cart_id, peticion_id=peticion_id,
         assignacio_id=assignacio_id, order_id=order_id, reserved_until=until,
     )
     db.add(hold)
@@ -369,7 +369,7 @@ def release_stock_hold(db: Session, hold_id: uuid.UUID) -> bool:
     db.execute(
         update(Item)
         .where(Item.id == hold.item_id)
-        .values(cantidad_reservada=Item.cantidad_reservada - hold.cantidad)
+        .values(reserved_quantity=Item.reserved_quantity - hold.quantity)
         .execution_options(**_OPTS)
     )
     db.delete(hold)
@@ -385,11 +385,11 @@ def confirm_stock_sale(db: Session, hold_id: uuid.UUID) -> int | None:
     hold = db.get(StockHold, hold_id)
     if hold is None:
         return None
-    n = hold.cantidad
+    n = hold.quantity
     result = db.execute(
         update(Item)
-        .where(Item.id == hold.item_id, Item.cantidad >= n, Item.cantidad_reservada >= n)
-        .values(cantidad=Item.cantidad - n, cantidad_reservada=Item.cantidad_reservada - n)
+        .where(Item.id == hold.item_id, Item.quantity >= n, Item.reserved_quantity >= n)
+        .values(quantity=Item.quantity - n, reserved_quantity=Item.reserved_quantity - n)
         .execution_options(**_OPTS)
     )
     if result.rowcount != 1:
@@ -413,7 +413,7 @@ def confirm_stock_sale_bulk(db: Session, hold_ids: list[uuid.UUID]) -> list[uuid
             failed.append(hold_id)
             continue
         snapshot = StockHold(
-            item_id=hold.item_id, cantidad=hold.cantidad, cart_id=hold.cart_id,
+            item_id=hold.item_id, quantity=hold.quantity, cart_id=hold.cart_id,
             peticion_id=hold.peticion_id, assignacio_id=hold.assignacio_id, order_id=hold.order_id,
         )
         if confirm_stock_sale(db, hold_id) is None:
@@ -426,13 +426,13 @@ def confirm_stock_sale_bulk(db: Session, hold_ids: list[uuid.UUID]) -> list[uuid
             db.execute(
                 update(Item).where(Item.id == snap.item_id)
                 .values(
-                    cantidad=Item.cantidad + snap.cantidad,
-                    cantidad_reservada=Item.cantidad_reservada + snap.cantidad,
+                    quantity=Item.quantity + snap.quantity,
+                    reserved_quantity=Item.reserved_quantity + snap.quantity,
                 )
                 .execution_options(**_OPTS)
             )
             db.add(StockHold(
-                item_id=snap.item_id, cantidad=snap.cantidad, cart_id=snap.cart_id,
+                item_id=snap.item_id, quantity=snap.quantity, cart_id=snap.cart_id,
                 peticion_id=snap.peticion_id, assignacio_id=snap.assignacio_id, order_id=snap.order_id,
             ))
         db.commit()

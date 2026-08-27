@@ -15,8 +15,8 @@ function CartItem({ item, onRemove, removing }) {
     <div className="flex items-center gap-4 py-5 border-b border-zinc-100 last:border-0">
       {/* Cover */}
       <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-zinc-100 shrink-0 flex items-center justify-center">
-        {item.imagen_url ? (
-          <Image src={item.imagen_url} alt="" fill sizes="64px" className="object-cover" />
+        {item.image_url ? (
+          <Image src={item.image_url} alt="" fill sizes="64px" className="object-cover" />
         ) : (
           <svg viewBox="0 0 100 100" className="w-8 h-8 text-zinc-300" fill="currentColor">
             <circle cx="50" cy="50" r="48" />
@@ -30,9 +30,9 @@ function CartItem({ item, onRemove, removing }) {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm truncate">{item.artista}</p>
-        <p className="font-serif italic text-sm text-zinc-500 truncate">{item.titulo}</p>
-        {item.condicion === 'nou' && item.cantidad > 1 && (
-          <span className="text-xs text-zinc-500">{t('quantity', { count: item.cantidad })}</span>
+        <p className="font-serif italic text-sm text-zinc-500 truncate">{item.title}</p>
+        {item.condition === 'nou' && item.quantity > 1 && (
+          <span className="text-xs text-zinc-500">{t('quantity', { count: item.quantity })}</span>
         )}
         {item.status === 'reservado' && (
           <span className="text-xs text-amber-600 font-medium">{t('reserved')}</span>
@@ -44,7 +44,7 @@ function CartItem({ item, onRemove, removing }) {
 
       {/* Price + remove */}
       <div className="flex items-center gap-3 shrink-0">
-        <span className="font-semibold">{(parseFloat(item.precio) * item.cantidad).toFixed(2)} €</span>
+        <span className="font-semibold">{(parseFloat(item.price) * item.quantity).toFixed(2)} €</span>
         <button
           onClick={() => onRemove(item.item_id)}
           disabled={removing === item.item_id}
@@ -66,7 +66,7 @@ export default function CarretClient() {
   const t = useTranslations('carret');
   const { items, total, refresh } = useCart();
   const [removing, setRemoving] = useState(null);
-  const totalUnidades = items.reduce((sum, i) => sum + (i.cantidad || 1), 0);
+  const totalUnidades = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
 
   async function handleRemove(itemId) {
     setRemoving(itemId);

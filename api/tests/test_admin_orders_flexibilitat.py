@@ -25,7 +25,7 @@ def _login(client, email):
 def _admin_token(client, db, email="admin@example.com") -> str:
     access = _login(client, email)
     user = db.scalar(select(User).where(User.email == email))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -35,12 +35,12 @@ def _auth(token):
 
 
 def _seed_order(db, status=OrderStatus.pagado, metodo_envio="recogida_tienda") -> Order:
-    r = Release(artista="Artista", titulo="Àlbum", formato="LP")
+    r = Release(artista="Artista", title="Àlbum", formato="LP")
     db.add(r)
     db.flush()
     order = Order(
-        email_contacto="client@example.com", status=status, total=Decimal("20.00"),
-        metodo_envio=metodo_envio, metodo_pago="tienda",
+        contact_email="client@example.com", status=status, total=Decimal("20.00"),
+        shipping_method=metodo_envio, payment_method="tienda",
     )
     db.add(order)
     db.commit()
@@ -91,10 +91,10 @@ def test_cancelar_des_de_pagat_allibera_item(db, client):
     admin_token = _admin_token(client, db)
     order = _seed_order(db, status=OrderStatus.pagado)
     release = db.scalar(select(Release))
-    item = Item(release_id=release.id, precio=Decimal("20.00"), status=ItemStatus.vendido)
+    item = Item(release_id=release.id, price=Decimal("20.00"), status=ItemStatus.vendido)
     db.add(item)
     db.flush()
-    db.add(OrderItem(order_id=order.id, item_id=item.id, precio=Decimal("20.00")))
+    db.add(OrderItem(order_id=order.id, item_id=item.id, price=Decimal("20.00")))
     db.commit()
 
     resp = client.patch(
@@ -110,7 +110,7 @@ def test_canviar_a_envio_sense_adreca_falla(db, client):
     order = _seed_order(db, status=OrderStatus.pagado, metodo_envio="recogida_tienda")
 
     resp = client.patch(
-        f"/admin/orders/{order.id}/status", json={"metodo_envio": "envio"}, headers=_auth(admin_token),
+        f"/admin/orders/{order.id}/status", json={"shipping_method": "envio"}, headers=_auth(admin_token),
     )
     assert resp.status_code == 422
 
@@ -122,10 +122,10 @@ def test_canviar_a_envio_amb_adreca_inline(db, client):
     resp = client.patch(
         f"/admin/orders/{order.id}/status",
         json={
-            "metodo_envio": "envio",
-            "direccion_envio": {
-                "nombre_destinatario": "Client Test", "linea1": "Carrer Fals 1",
-                "cp": "08001", "ciudad": "Barcelona", "pais": "ES",
+            "shipping_method": "envio",
+            "shipping_address": {
+                "recipient_name": "Client Test", "address_line1": "Carrer Fals 1",
+                "postal_code": "08001", "city": "Barcelona", "country": "ES",
             },
         },
         headers=_auth(admin_token),
@@ -133,7 +133,7 @@ def test_canviar_a_envio_amb_adreca_inline(db, client):
     assert resp.status_code == 200
     assert resp.json()["metodo_envio"] == "envio"
     db.expire_all()
-    assert db.get(Order, order.id).direccion_envio["linea1"] == "Carrer Fals 1"
+    assert db.get(Order, order.id).shipping_address["address_line1"] == "Carrer Fals 1"
 
 
 def test_canviar_a_recollida_botiga(db, client):
@@ -141,7 +141,7 @@ def test_canviar_a_recollida_botiga(db, client):
     order = _seed_order(db, status=OrderStatus.pagado, metodo_envio="envio")
 
     resp = client.patch(
-        f"/admin/orders/{order.id}/status", json={"metodo_envio": "recogida_tienda"}, headers=_auth(admin_token),
+        f"/admin/orders/{order.id}/status", json={"shipping_method": "recogida_tienda"}, headers=_auth(admin_token),
     )
     assert resp.status_code == 200
     assert resp.json()["metodo_envio"] == "recogida_tienda"
@@ -150,9 +150,9 @@ def test_canviar_a_recollida_botiga(db, client):
 def test_list_orders_filtra_per_text_lliure(db, client):
     admin_token = _admin_token(client, db)
     o1 = _seed_order(db)
-    o1.email_contacto = "maria@example.com"
+    o1.contact_email = "maria@example.com"
     o2 = _seed_order(db)
-    o2.email_contacto = "joan@example.com"
+    o2.contact_email = "joan@example.com"
     db.commit()
 
     resp = client.get("/admin/orders?q=maria", headers=_auth(admin_token))
@@ -176,7 +176,7 @@ def test_list_orders_filtra_per_origen(db, client):
     admin_token = _admin_token(client, db)
     o1 = _seed_order(db)
     o2 = _seed_order(db)
-    o2.origen = "discogs"
+    o2.origin = "discogs"
     o2.discogs_order_id = "D-123"
     db.commit()
 

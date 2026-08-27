@@ -8,17 +8,18 @@ d'`Assignacio`/`Order`."""
 from datetime import date, timedelta
 from decimal import Decimal
 
-from app.models import Address, EstatCobrament, EstatSubscripcio, Subscripcio, User
+from app.models import Address, EstatCobrament, EstatSubscripcio, Subscripcio, Tenant, User
 from app.services import subscripcions as subscripcions_service
+from app.tenancy import scoped_to
 
 
 def _user_amb_subscripcio(
     db, *, proxima_facturacio, estat=EstatSubscripcio.activa, periodicitat_mesos=1, quantitat=1,
 ) -> Subscripcio:
-    user = User(email=f"{proxima_facturacio}-{estat}-{periodicitat_mesos}@example.com", nombre="Fan")
+    user = User(email=f"{proxima_facturacio}-{estat}-{periodicitat_mesos}@example.com", name="Fan")
     db.add(user)
     db.flush()
-    address = Address(user_id=user.id, nombre_destinatario="Fan", linea1="C", ciudad="BCN", cp="08001")
+    address = Address(user_id=user.id, recipient_name="Fan", address_line1="C", city="BCN", postal_code="08001")
     db.add(address)
     db.flush()
     sub = Subscripcio(
@@ -133,3 +134,31 @@ def test_job_de_celery_crida_la_facturacio(db, monkeypatch):
 
     resultat = facturar_pendents()
     assert resultat == {"cobraments": 1, "cobrats": 1, "fallits": 0}
+
+
+def test_job_de_celery_factura_a_tots_els_tenants(db, monkeypatch):
+    """Regresión de la Fase 4: `facturar_pendents` abre su propia sesión
+    (no pasa por get_db, no hay request) e itera todos los tenants activos
+    — sin ese bucle, con Subscripcio ya TenantScoped, la tarea dejaría de
+    facturar a todo el mundo en silencio (RLS sin app.tenant_id puesto =
+    0 filas). Dos tenants, uno vencido cada uno, confirma que se cobra a
+    ambos, no solo al de la sesión de tests por defecto."""
+    from app.tasks.subscripcions import facturar_pendents
+
+    tenant_a_id = db.info["tenant_id"]
+    _user_amb_subscripcio(db, proxima_facturacio=date(2026, 1, 1))
+
+    tenant_b = Tenant(slug="tenant-b-facturacio", domain="b-facturacio.testserver", nombre="Tenant B", vertical_id="records")
+    db.add(tenant_b)
+    db.commit()
+    with scoped_to(db, tenant_b.id):
+        _user_amb_subscripcio(db, proxima_facturacio=date(2026, 1, 1))
+    db.info["tenant_id"] = tenant_a_id
+
+    monkeypatch.setattr(
+        "app.services.subscripcions.redsys.charge_recurring",
+        lambda **kw: {"Ds_Order": "x", "Ds_Response": "0000"},
+    )
+
+    resultat = facturar_pendents()
+    assert resultat == {"cobraments": 2, "cobrats": 2, "fallits": 0}

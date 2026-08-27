@@ -38,7 +38,7 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy import func, select
 
 from app.database import SessionLocal
-from app.models import HistorialCompra, Proveedor, Release
+from app.models import HistorialCompra, Proveedor, RecordProduct, Release
 
 EXCLUDED_DISTRI = {
     "BUSCAR", "BUSCO", "CREDIT", "VALE", "DIPOSIT", "XXX", "XXXX",
@@ -137,9 +137,9 @@ def match_release(db, artista: str, titulo: str) -> Release | None:
     retorna resultat si n'hi ha exactament una fila que hi coincideixi."""
     titulo_net = strip_trailing_format_info(titulo)
     matches = db.scalars(
-        select(Release).where(
-            func.lower(Release.artista) == artista.lower(),
-            func.lower(Release.titulo) == titulo_net.lower(),
+        select(Release).join(RecordProduct).where(
+            func.lower(RecordProduct.artista) == artista.lower(),
+            func.lower(Release.title) == titulo_net.lower(),
         )
     ).all()
     return matches[0] if len(matches) == 1 else None
@@ -148,9 +148,9 @@ def match_release(db, artista: str, titulo: str) -> Release | None:
 def get_or_create_proveedor(db, cache: dict, distri_norm: str, commit: bool) -> Proveedor | None:
     if distri_norm in cache:
         return cache[distri_norm]
-    prov = db.scalar(select(Proveedor).where(Proveedor.nombre == display_name(distri_norm)))
+    prov = db.scalar(select(Proveedor).where(Proveedor.name == display_name(distri_norm)))
     if prov is None:
-        prov = Proveedor(nombre=display_name(distri_norm), tipo="distribuidor")
+        prov = Proveedor(name=display_name(distri_norm), type="distribuidor")
         if commit:
             db.add(prov)
             db.flush()
@@ -162,9 +162,9 @@ def already_imported(db, proveedor_id, fecha, precio, notas) -> bool:
     return db.scalar(
         select(HistorialCompra.id).where(
             HistorialCompra.proveedor_id == proveedor_id,
-            HistorialCompra.fecha == fecha,
-            HistorialCompra.precio_coste == precio,
-            HistorialCompra.notas == notas,
+            HistorialCompra.date == fecha,
+            HistorialCompra.cost_price == precio,
+            HistorialCompra.notes == notas,
         ).limit(1)
     ) is not None
 
@@ -238,10 +238,10 @@ def main() -> None:
                 stats["release_trobat"] += 1
 
             db.add(HistorialCompra(
-                proveedor_id=prov.id, fecha=fecha, artista=artista, titulo=titulo,
-                sello=release.sello if release else None,
+                proveedor_id=prov.id, date=fecha, artist=artista, title=titulo,
+                label=release.sello if release else None,
                 release_id=release.id if release else None,
-                precio_coste=precio, notas=disco_raw,
+                cost_price=precio, notes=disco_raw,
             ))
             stats["importades"] += 1
 

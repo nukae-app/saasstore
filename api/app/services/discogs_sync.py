@@ -13,15 +13,34 @@ Les crides són best-effort: un error de Discogs no bloqueja l'operació local.
 """
 
 import logging
+import uuid
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..config import get_settings
-from ..models import CondicionItem, Item, ItemStatus, Order, OrderItem, OrderOrigen, OrderStatus, Release
+from ..models import (
+    CondicionItem, ConfiguracioBotiga, Item, ItemStatus, Order, OrderItem, OrderOrigen, OrderStatus,
+    RecordStockDetail, Release,
+)
+from ..tenant_secrets import get_tenant_secrets
 from .discogs import _client, _throttle, get_release
 from .iva import compute_iva_venda
+
+
+def get_discogs_token_if_enabled(db: Session, tenant_id: uuid.UUID) -> str | None:
+    """Punto único de decisión (Fase 4, sección D): `discogs_habilitat`
+    puede estar en False aunque el tenant tenga un `discogs_token` presente
+    en secretos (p. ej. lo tuvo activo antes) — sin este chequeo, cualquier
+    llamador que solo mirara el token seguiría sincronizando con Discogs
+    pese al interruptor apagado. Las funciones de este módulo que reciben
+    `token: str | None` ya hacen `if not token: return` sin más, así que
+    sustituir aquí `get_tenant_secrets(...).discogs_token` por esta función
+    basta para que todos esos call sites respeten el interruptor."""
+    config = db.scalar(select(ConfiguracioBotiga))
+    if not config or not config.discogs_habilitat:
+        return None
+    return get_tenant_secrets(tenant_id).discogs_token
 
 log = logging.getLogger(__name__)
 
@@ -81,6 +100,7 @@ def _map_condition(grading: str | None) -> str:
 
 
 def push_item_to_discogs(
+    token: str | None,
     item_id,
     release_discogs_id: int,
     precio: float,
@@ -98,7 +118,7 @@ def push_item_to_discogs(
 
     Retorna el listing_id (codi_discogs) o None si falla.
     """
-    if not get_settings().discogs_token:
+    if not token:
         log.warning("discogs_sync: sense token, no es pot fer push")
         return None
 
@@ -127,7 +147,7 @@ def push_item_to_discogs(
 
     try:
         _throttle()
-        with _client() as c:
+        with _client(token) as c:
             r = c.post("/marketplace/listings", json=body)
             if r.status_code in (400, 422):
                 log.warning("discogs_sync push 4xx: %s — %s", r.status_code, r.text[:200])
@@ -141,16 +161,16 @@ def push_item_to_discogs(
         return None
 
 
-def remove_item_from_discogs(codi_discogs: int) -> bool:
+def remove_item_from_discogs(token: str | None, codi_discogs: int) -> bool:
     """Elimina un listing del Marketplace de Discogs (disc venut o retirat).
 
     Retorna True si s'ha eliminat (o ja no existia), False si ha fallat.
     """
-    if not get_settings().discogs_token:
+    if not token:
         return False
     try:
         _throttle()
-        with _client() as c:
+        with _client(token) as c:
             r = c.delete(f"/marketplace/listings/{codi_discogs}")
             if r.status_code in (200, 204, 404):
                 log.info("discogs_sync: listing %s eliminat", codi_discogs)
@@ -162,20 +182,20 @@ def remove_item_from_discogs(codi_discogs: int) -> bool:
         return False
 
 
-def sync_stock_listing(db: Session, item: Item) -> None:
+def sync_stock_listing(db: Session, item: Item, token: str | None) -> None:
     """Mantiene el listing de Discogs de una línea `nou` en "stock virtual
-    de 1": como mucho 1 listing activo mientras `item.cantidad > 0`. Hay que
-    llamarla después de CUALQUIER cambio de `item.cantidad` en una línea nou
+    de 1": como mucho 1 listing activo mientras `item.quantity > 0`. Hay que
+    llamarla después de CUALQUIER cambio de `item.quantity` en una línea nou
     (recepción, alta admin, venta TPV/web/club, devolución) — no se llama
     sola, no hay un trigger de BBDD para esto.
 
     No hace nada si el release no está vinculado a Discogs (no hay
     `codi_discogs` que gestionar) o si el item no es `nou`."""
-    if item.condicion != CondicionItem.nou:
+    if item.condition != CondicionItem.nou:
         return
-    if item.cantidad <= 0:
+    if item.quantity <= 0:
         if item.codi_discogs:
-            remove_item_from_discogs(item.codi_discogs)
+            remove_item_from_discogs(token, item.codi_discogs)
             item.codi_discogs = None
         return
 
@@ -185,9 +205,10 @@ def sync_stock_listing(db: Session, item: Item) -> None:
     release = db.get(Release, item.release_id)
     if item.codi_discogs is None and release is not None and release.discogs_release_id:
         listing_id = push_item_to_discogs(
+            token,
             item_id=item.id,
             release_discogs_id=release.discogs_release_id,
-            precio=float(item.precio),
+            precio=float(item.price),
             estado_disco=None,
             estado_funda=None,
             es_nou=True,
@@ -200,17 +221,17 @@ def sync_stock_listing(db: Session, item: Item) -> None:
 # Comandes del Marketplace (pull: Discogs → nosaltres)
 # ---------------------------------------------------------------------------
 
-def fetch_open_discogs_orders() -> list[dict]:
+def fetch_open_discogs_orders(token: str | None) -> list[dict]:
     """Llista les comandes del Marketplace (com a venedors). Best-effort: si falla,
     retorna llista buida i deixa traça al log (no s'ha de trencar el polling per un 5xx puntual)."""
-    if not get_settings().discogs_token:
+    if not token:
         return []
     orders: list[dict] = []
     try:
         page = 1
         while True:
             _throttle()
-            with _client() as c:
+            with _client(token) as c:
                 r = c.get("/marketplace/orders", params={"page": page, "per_page": 50, "sort": "created", "sort_order": "desc"})
                 r.raise_for_status()
                 data = r.json()
@@ -224,7 +245,7 @@ def fetch_open_discogs_orders() -> list[dict]:
     return orders
 
 
-def sync_discogs_orders(db: Session) -> dict:
+def sync_discogs_orders(db: Session, token: str | None) -> dict:
     """Pull de comandes del Marketplace: crea/actualitza Order+OrderItem amb origen='discogs'.
 
     Idempotent per discogs_order_id. Mai sobreescriu un estat local terminal
@@ -232,7 +253,7 @@ def sync_discogs_orders(db: Session) -> dict:
     """
     creats = actualitzats = sense_match = errors = 0
 
-    for raw in fetch_open_discogs_orders():
+    for raw in fetch_open_discogs_orders(token):
         discogs_id = str(raw.get("id"))
         discogs_status = raw.get("status", "")
         nou_status = DISCOGS_ORDER_STATUS_MAP.get(discogs_status)
@@ -251,7 +272,15 @@ def sync_discogs_orders(db: Session) -> dict:
         # Nova comanda: localitzar els items pels listing id (codi_discogs)
         raw_items = raw.get("items", [])
         listing_ids = [it.get("id") for it in raw_items if it.get("id")]
-        items = db.scalars(select(Item).where(Item.codi_discogs.in_(listing_ids))).all() if listing_ids else []
+        items = (
+            db.scalars(
+                select(Item)
+                .join(RecordStockDetail, RecordStockDetail.item_id == Item.id)
+                .where(RecordStockDetail.codi_discogs.in_(listing_ids))
+            ).all()
+            if listing_ids
+            else []
+        )
         if not items:
             log.warning("discogs_sync: comanda %s sense items locals coincidents (listings %s)", discogs_id, listing_ids)
             sense_match += 1
@@ -260,33 +289,33 @@ def sync_discogs_orders(db: Session) -> dict:
         try:
             buyer = (raw.get("buyer") or {}).get("username")
             total_raw = (raw.get("total") or {}).get("value")
-            total = Decimal(str(total_raw)) if total_raw is not None else sum((i.precio for i in items), Decimal("0"))
+            total = Decimal(str(total_raw)) if total_raw is not None else sum((i.price for i in items), Decimal("0"))
             order = Order(
-                email_contacto=f"{buyer or 'comprador'}@discogs-buyer.local",
+                contact_email=f"{buyer or 'comprador'}@discogs-buyer.local",
                 status=nou_status,
                 total=total,
-                metodo_envio="envio",
-                direccion_envio={"raw": raw.get("shipping_address")} if raw.get("shipping_address") else None,
-                origen=OrderOrigen.discogs,
+                shipping_method="envio",
+                shipping_address={"raw": raw.get("shipping_address")} if raw.get("shipping_address") else None,
+                origin=OrderOrigen.discogs,
                 discogs_order_id=discogs_id,
                 discogs_buyer=buyer,
             )
             db.add(order)
             db.flush()
             for item in items:
-                tipus_iva_id, iva_pct, iva_import = compute_iva_venda(item, item.precio, db)
+                tipus_iva_id, iva_pct, iva_import = compute_iva_venda(item, item.price, db)
                 db.add(OrderItem(
-                    order_id=order.id, item_id=item.id, precio=item.precio, cantidad=1,
-                    condicion=item.condicion,
-                    tipus_iva_id=tipus_iva_id, iva_pct=iva_pct, iva_import=iva_import,
+                    order_id=order.id, item_id=item.id, price=item.price, quantity=1,
+                    condition=item.condition,
+                    tipus_iva_id=tipus_iva_id, vat_pct=iva_pct, vat_amount=iva_import,
                 ))
-                if item.condicion == CondicionItem.nou:
+                if item.condition == CondicionItem.nou:
                     # "Stock virtual de 1": el listing vendido ya no existe en
                     # Discogs; se descuenta 1 unidad y, si queda stock, se
                     # publica un listing nuevo para mantener la regla.
-                    item.cantidad = max(0, item.cantidad - 1)
+                    item.quantity = max(0, item.quantity - 1)
                     item.codi_discogs = None
-                    sync_stock_listing(db, item)
+                    sync_stock_listing(db, item, token)
                 elif item.status != ItemStatus.vendido:
                     item.status = ItemStatus.vendido
                     item.reserved_until = None
@@ -301,17 +330,19 @@ def sync_discogs_orders(db: Session) -> dict:
     return {"creats": creats, "actualitzats": actualitzats, "sense_match": sense_match, "errors": errors}
 
 
-def push_shipped_status(discogs_order_id: str, numero_seguiment: str | None, transportista: str | None) -> bool:
+def push_shipped_status(
+    token: str | None, discogs_order_id: str, numero_seguiment: str | None, transportista: str | None,
+) -> bool:
     """Marca la comanda com "Shipped" a Discogs i hi deixa el número de seguiment com a missatge
     (Discogs no té un camp estructurat de tracking a l'API de comandes)."""
-    if not get_settings().discogs_token:
+    if not token:
         return False
     missatge = None
     if numero_seguiment:
         missatge = f"Enviat. Seguiment: {numero_seguiment}" + (f" ({transportista})" if transportista else "")
     try:
         _throttle()
-        with _client() as c:
+        with _client(token) as c:
             body = {"status": "Shipped"}
             if missatge:
                 body["message"] = missatge
@@ -326,7 +357,7 @@ def push_shipped_status(discogs_order_id: str, numero_seguiment: str | None, tra
         return False
 
 
-def enrich_release_from_discogs(release: Release, db: Session) -> bool:
+def enrich_release_from_discogs(release: Release, db: Session, token: str | None) -> bool:
     """Omple tracklist, crèdits i metadades d'un release des de Discogs.
 
     Cal que `release.discogs_release_id` ja estigui fixat (a mà des de
@@ -338,7 +369,7 @@ def enrich_release_from_discogs(release: Release, db: Session) -> bool:
     if not release.discogs_release_id:
         return False
     try:
-        data = get_release(release.discogs_release_id)
+        data = get_release(token, release.discogs_release_id)
     except Exception as exc:
         log.warning("enrich_release_from_discogs: error consultant release %s: %s", release.discogs_release_id, exc)
         return False
@@ -350,8 +381,8 @@ def enrich_release_from_discogs(release: Release, db: Session) -> bool:
     release.genero = release.genero or data.get("genero")
     release.ean = release.ean or data.get("ean")
     release.formato = release.formato or data.get("formato")
-    if not release.imagen_url and data.get("imagen_url"):
-        release.imagen_url = data["imagen_url"]
+    if not release.image_url and data.get("imagen_url"):
+        release.image_url = data["imagen_url"]
     if not release.sello and data.get("sello"):
         release.sello = data["sello"]
     db.commit()

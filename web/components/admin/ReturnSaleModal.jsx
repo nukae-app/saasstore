@@ -26,9 +26,9 @@ export default function ReturnSaleModal({ sale, onClose, onSaved }) {
     setSaving(true);
     const payload = {
       item_id: sale.item_id,
-      motivo,
-      destino_item: destino,
-      fecha: new Date().toISOString(),
+      reason: motivo,
+      item_destination: destino,
+      date: new Date().toISOString(),
       ...(sale.order_item_id
         ? { order_item_id: sale.order_item_id }
         : { venta_externa_id: sale.venta_externa_id }),

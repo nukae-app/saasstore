@@ -1,4 +1,4 @@
-"""Sanitización del HTML del blog/CMS (`post.contenido`, `pagina.contingut`)
+"""Sanitización del HTML del blog/CMS (`post.content`, `pagina.content`)
 antes de guardarlo. Defensa en profundidad: hoy solo el admin escribe aquí
 (`admin.py`, protegido por `require_admin`), pero si esa cuenta se viera
 comprometida esto evita servir contenido inyectado en páginas públicas

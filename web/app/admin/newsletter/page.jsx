@@ -42,13 +42,13 @@ export default function AdminNewsletterPage() {
 
   // Poll mentre hi hagi campanyes enviant-se, per veure el progrés des del llistat
   useEffect(() => {
-    if (!campaigns.some(c => c.estat === 'enviant')) return;
+    if (!campaigns.some(c => c.status === 'enviant')) return;
     const id = setInterval(load, 4000);
     return () => clearInterval(id);
   }, [campaigns]);
 
-  async function handleDelete(id, assumpte) {
-    if (!confirm(`Eliminar l'esborrany "${assumpte}"? Aquesta acció no es pot desfer.`)) return;
+  async function handleDelete(id, subject) {
+    if (!confirm(`Eliminar l'esborrany "${subject}"? Aquesta acció no es pot desfer.`)) return;
     setDeleting(id);
     try {
       await authFetch(`/admin/newsletter/${id}`, { method: 'DELETE' });
@@ -104,11 +104,11 @@ function CampaignRow({ campaign, onDelete, deleting }) {
   return (
     <div className="flex items-center gap-4 px-4 py-3 border-b border-zinc-50 last:border-0 hover:bg-zinc-50/50 transition-colors">
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-zinc-900 truncate">{campaign.assumpte}</p>
+        <p className="font-medium text-sm text-zinc-900 truncate">{campaign.subject}</p>
         <div className="flex items-center gap-3 mt-0.5">
           <span className="text-xs text-zinc-400">{formatDate(campaign.created_at)}</span>
-          <span className={`text-xs px-1.5 py-0.5 rounded font-medium border ${ESTAT_STYLES[campaign.estat]}`}>
-            {ESTAT_LABELS[campaign.estat]}
+          <span className={`text-xs px-1.5 py-0.5 rounded font-medium border ${ESTAT_STYLES[campaign.status]}`}>
+            {ESTAT_LABELS[campaign.status]}
           </span>
           {total > 0 && (
             <span className="text-xs text-zinc-400">
@@ -121,13 +121,13 @@ function CampaignRow({ campaign, onDelete, deleting }) {
         <Link
           href={`/admin/newsletter/${campaign.id}`}
           className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors"
-          title={campaign.estat === 'esborrany' ? 'Editar' : 'Veure'}
+          title={campaign.status === 'esborrany' ? 'Editar' : 'Veure'}
         >
-          {campaign.estat === 'esborrany' ? <Pencil size={13} /> : <Send size={13} />}
+          {campaign.status === 'esborrany' ? <Pencil size={13} /> : <Send size={13} />}
         </Link>
-        {campaign.estat === 'esborrany' && (
+        {campaign.status === 'esborrany' && (
           <button
-            onClick={() => onDelete(campaign.id, campaign.assumpte)}
+            onClick={() => onDelete(campaign.id, campaign.subject)}
             disabled={deleting === campaign.id}
             className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
             title="Eliminar"

@@ -12,7 +12,7 @@ cobrament (enviament) ja fet la revisa i confirma l'admin
 es comporta exactament com qualsevol altra comanda web.
 
 L'algorisme d'assignació MAI tria lliurement de tot el catàleg: només entre
-els exemplars que l'admin ha marcat (`Item.subscripcio_pool`) des de la
+els exemplars que l'admin ha marcat (`Item.subscription_pool`) des de la
 pantalla "Catàleg" del panell — el marge i l'antiguitat hi són com a eines
 per ajudar l'admin a triar, no com a filtre automàtic aquí.
 """
@@ -38,6 +38,7 @@ from ..models import (
     OrderItem,
     OrderOrigen,
     OrderStatus,
+    RecordProduct,
     Release,
     StockHold,
     Subscripcio,
@@ -115,15 +116,15 @@ def _reservar_item(db: Session, item_id: uuid.UUID, assignacio_id: uuid.UUID) ->
     item = db.get(Item, item_id)
     if item is None:
         return False
-    if item.condicion == CondicionItem.nou:
+    if item.condition == CondicionItem.nou:
         result = db.execute(
             update(Item)
-            .where(Item.id == item_id, Item.cantidad - Item.cantidad_reservada >= 1)
-            .values(cantidad_reservada=Item.cantidad_reservada + 1)
+            .where(Item.id == item_id, Item.quantity - Item.reserved_quantity >= 1)
+            .values(reserved_quantity=Item.reserved_quantity + 1)
             .execution_options(synchronize_session=False)
         )
         if result.rowcount == 1:
-            db.add(StockHold(item_id=item_id, cantidad=1, assignacio_id=assignacio_id))
+            db.add(StockHold(item_id=item_id, quantity=1, assignacio_id=assignacio_id))
         return result.rowcount == 1
 
     result = db.execute(
@@ -139,14 +140,14 @@ def _liberar_item_de_assignacio(db: Session, item_id: uuid.UUID, assignacio_id: 
     """Inverso de `_reservar_item`: libera la retención de esta asignación
     sobre este item, sea segona_ma (status) o nou (StockHold)."""
     item = db.get(Item, item_id)
-    if item is not None and item.condicion == CondicionItem.nou:
+    if item is not None and item.condition == CondicionItem.nou:
         hold = db.scalar(
             select(StockHold).where(StockHold.item_id == item_id, StockHold.assignacio_id == assignacio_id)
         )
         if hold is not None:
             db.execute(
                 update(Item).where(Item.id == item_id)
-                .values(cantidad_reservada=Item.cantidad_reservada - hold.cantidad)
+                .values(reserved_quantity=Item.reserved_quantity - hold.quantity)
                 .execution_options(synchronize_session=False)
             )
             db.delete(hold)
@@ -167,7 +168,7 @@ def seleccionar_items_candidats(
     `erp.py::_reservar_item_para_peticion`: `UPDATE ... WHERE status=
     'disponible'` comprovant files afectades, mai un SELECT previ + UPDATE).
 
-    Candidats: **només `Item.subscripcio_pool == True`** (la safata que ha
+    Candidats: **només `Item.subscription_pool == True`** (la safata que ha
     triat l'admin — mai tot el catàleg disponible), dins d'un dels gèneres
     preferits del client (si n'ha triat; substring sobre `Release.genero`,
     veure `GENERES_DISCOGS`), mai un `Release` que ja se li hagi confirmat
@@ -190,17 +191,18 @@ def seleccionar_items_candidats(
     stmt = (
         select(Item)
         .join(Release, Item.release_id == Release.id)
+        .outerjoin(RecordProduct, RecordProduct.release_id == Release.id)
         .where(
             Item.status == ItemStatus.disponible,
-            Item.subscripcio_pool.is_(True),
+            Item.subscription_pool.is_(True),
             # nou (stock agregado): solo cuenta si queda alguna unidad libre;
             # segona_ma ya lo garantiza el filtro de status de arriba.
-            or_(Item.condicion != CondicionItem.nou, Item.cantidad > Item.cantidad_reservada),
+            or_(Item.condition != CondicionItem.nou, Item.quantity > Item.reserved_quantity),
         )
-        .order_by(Item.fecha_entrada.asc().nulls_last())
+        .order_by(Item.entry_date.asc().nulls_last())
     )
     if subscripcio.generes_preferits:
-        stmt = stmt.where(or_(*(Release.genero.ilike(f"%{g}%") for g in subscripcio.generes_preferits)))
+        stmt = stmt.where(or_(*(RecordProduct.genero.ilike(f"%{g}%") for g in subscripcio.generes_preferits)))
 
     triats: list[Item] = []
     ids_pendents = iter(assignacio_ids)
@@ -285,8 +287,8 @@ def reassignar_item(db: Session, assignacio: Assignacio, nou_item: Item) -> None
     if assignacio.estat not in (EstatAssignacio.proposada, EstatAssignacio.sense_match):
         raise ValueError("Només es poden reassignar propostes encara no confirmades")
     disponible = (
-        nou_item.cantidad > nou_item.cantidad_reservada
-        if nou_item.condicion == CondicionItem.nou else nou_item.status == ItemStatus.disponible
+        nou_item.quantity > nou_item.reserved_quantity
+        if nou_item.condition == CondicionItem.nou else nou_item.status == ItemStatus.disponible
     )
     if not disponible:
         raise ValueError("Aquest exemplar ja no està disponible")
@@ -336,21 +338,21 @@ def confirmar_cobrament(db: Session, cobrament: CobramentSubscripcio) -> Order:
 
     order = Order(
         user_id=subscripcio.user_id,
-        email_contacto=subscripcio.user.email,
+        contact_email=subscripcio.user.email,
         status=OrderStatus.pendiente_pago,
-        origen=OrderOrigen.subscripcio,
+        origin=OrderOrigen.subscripcio,
         total=cobrament.import_,
-        metodo_envio="envio",
-        metodo_pago="redsys",
-        direccion_envio={
-            "nombre_destinatario": address.nombre_destinatario,
-            "linea1": address.linea1,
-            "linea2": address.linea2,
-            "ciudad": address.ciudad,
-            "cp": address.cp,
-            "provincia": address.provincia,
-            "pais": address.pais,
-            "telefono": address.telefono,
+        shipping_method="envio",
+        payment_method="redsys",
+        shipping_address={
+            "recipient_name": address.recipient_name,
+            "address_line1": address.address_line1,
+            "address_line2": address.address_line2,
+            "city": address.city,
+            "postal_code": address.postal_code,
+            "province": address.province,
+            "country": address.country,
+            "phone": address.phone,
         },
     )
     db.add(order)
@@ -365,10 +367,10 @@ def confirmar_cobrament(db: Session, cobrament: CobramentSubscripcio) -> Order:
         item = assignacio.item
         tipus_iva_id, iva_pct, iva_import = compute_iva_venda(item, preu, db)
         db.add(OrderItem(
-            order_id=order.id, item_id=item.id, precio=preu, cantidad=1, condicion=item.condicion,
-            tipus_iva_id=tipus_iva_id, iva_pct=iva_pct, iva_import=iva_import,
+            order_id=order.id, item_id=item.id, price=preu, quantity=1, condition=item.condition,
+            tipus_iva_id=tipus_iva_id, vat_pct=iva_pct, vat_amount=iva_import,
         ))
-        if item.condicion == CondicionItem.nou:
+        if item.condition == CondicionItem.nou:
             # finalize_payment (reutilizado tal cual) busca el StockHold por
             # cart_id/order_id, no por assignacio_id: se reasigna aquí,
             # mismo criterio que checkout.py con el pago en tienda.

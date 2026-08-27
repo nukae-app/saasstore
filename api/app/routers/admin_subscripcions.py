@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..models import (
     Assignacio, CobramentSubscripcio, CondicionItem, ConfiguracioSubscripcio, EstatAssignacio,
-    EstatCobrament, EstatSubscripcio, Item, ItemStatus, Release, Subscripcio,
+    EstatCobrament, EstatSubscripcio, Item, ItemStatus, RecordProduct, Release, Subscripcio,
 )
 from ..schemas import ConfiguracioSubscripcioOut, ConfiguracioSubscripcioUpdate, InformeSubscripcioMensualOut
 from ..services.security import require_admin
@@ -32,10 +32,14 @@ router = APIRouter(prefix="/admin/subscripcions", tags=["admin-subscripcions"], 
 # ---------------------------------------------------------------------------
 
 def _get_or_create_config(db: Session) -> ConfiguracioSubscripcio:
-    config = db.get(ConfiguracioSubscripcio, 1)
+    # select() en vez de db.get(..., 1): la fila ya no tiene un id fijo (era
+    # id=1 antes de la Fase 4), el filtro automático de tenant (ver
+    # app/tenancy.py) la resuelve por tenant_id — mismo arreglo que
+    # configuracio.py::_get_or_create_config ya aplicó a ConfiguracioBotiga.
+    config = db.scalar(select(ConfiguracioSubscripcio))
     if config is None:
         config = ConfiguracioSubscripcio(
-            id=1, preu_per_disc=0, periodicitats_mesos_disponibles=[1], quantitats_disponibles=[1],
+            preu_per_disc=0, periodicitats_mesos_disponibles=[1], quantitats_disponibles=[1],
         )
         db.add(config)
         db.commit()
@@ -63,13 +67,13 @@ def update_configuracio(payload: ConfiguracioSubscripcioUpdate, db: Session = De
 # ---------------------------------------------------------------------------
 # Marge i antiguitat són només filtres/ordre per ajudar l'admin a decidir —
 # l'algorisme d'assignació (services/subscripcions.py) mai els torna a
-# comprovar, només mira `Item.subscripcio_pool`.
+# comprovar, només mira `Item.subscription_pool`.
 
 def _dies_estoc(item: Item) -> int | None:
-    if item.fecha_entrada is None:
+    if item.entry_date is None:
         return None
     ara = datetime.now(timezone.utc)
-    entrada = item.fecha_entrada
+    entrada = item.entry_date
     if entrada.tzinfo is None:
         entrada = entrada.replace(tzinfo=timezone.utc)
     return max(0, (ara - entrada).days)
@@ -83,24 +87,25 @@ def _catalog_stmt(
     stmt = (
         select(Item)
         .join(Release, Item.release_id == Release.id)
+        .outerjoin(RecordProduct, RecordProduct.release_id == Release.id)
         .where(
             Item.status == ItemStatus.disponible,
             # nou (stock agregado): solo cuenta si queda alguna unidad libre.
-            or_(Item.condicion != CondicionItem.nou, Item.cantidad > Item.cantidad_reservada),
+            or_(Item.condition != CondicionItem.nou, Item.quantity > Item.reserved_quantity),
         )
         .options(selectinload(Item.release))
     )
     if nomes_pool:
-        stmt = stmt.where(Item.subscripcio_pool.is_(True))
+        stmt = stmt.where(Item.subscription_pool.is_(True))
     if seccio_id is not None:
-        stmt = stmt.where(Release.seccio_id == seccio_id)
+        stmt = stmt.where(Release.section_id == seccio_id)
     if genere:
-        stmt = stmt.where(Release.genero.ilike(f"%{genere}%"))
+        stmt = stmt.where(RecordProduct.genero.ilike(f"%{genere}%"))
     if config.preu_per_disc:
         if marge_min_pct is not None:
-            stmt = stmt.where(Item.precio >= config.preu_per_disc * Decimal(str(marge_min_pct)) / 100)
+            stmt = stmt.where(Item.price >= config.preu_per_disc * Decimal(str(marge_min_pct)) / 100)
         if marge_max_pct is not None:
-            stmt = stmt.where(Item.precio <= config.preu_per_disc * Decimal(str(marge_max_pct)) / 100)
+            stmt = stmt.where(Item.price <= config.preu_per_disc * Decimal(str(marge_max_pct)) / 100)
     return stmt
 
 
@@ -120,9 +125,9 @@ def list_catalog(
         marge_min_pct=marge_min_pct, marge_max_pct=marge_max_pct,
     )
     if ordre == "marge":
-        stmt = stmt.order_by(Item.precio.asc())
+        stmt = stmt.order_by(Item.price.asc())
     else:
-        stmt = stmt.order_by(Item.fecha_entrada.asc().nulls_last())
+        stmt = stmt.order_by(Item.entry_date.asc().nulls_last())
 
     items = list(db.scalars(stmt))
     return [
@@ -130,16 +135,16 @@ def list_catalog(
             "item_id": item.id,
             "release_id": item.release_id,
             "artista": item.release.artista,
-            "titulo": item.release.titulo,
-            "imagen_url": item.release.imagen_url,
+            "titulo": item.release.title,
+            "imagen_url": item.release.image_url,
             "genero": item.release.genero,
-            "precio": item.precio,
-            "marge_pct": round(float(item.precio) / float(config.preu_per_disc) * 100, 1) if config.preu_per_disc else None,
+            "precio": item.price,
+            "marge_pct": round(float(item.price) / float(config.preu_per_disc) * 100, 1) if config.preu_per_disc else None,
             "dies_estoc": _dies_estoc(item),
-            "subscripcio_pool": item.subscripcio_pool,
-            "condicion": item.condicion.value,
-            "cantidad": item.cantidad,
-            "cantidad_reservada": item.cantidad_reservada,
+            "subscripcio_pool": item.subscription_pool,
+            "condicion": item.condition.value,
+            "cantidad": item.quantity,
+            "cantidad_reservada": item.reserved_quantity,
         }
         for item in items
     ]
@@ -169,13 +174,13 @@ def seleccio_automatica(payload: SeleccioAutomaticaIn, db: Session = Depends(get
             config, nomes_pool=False, seccio_id=payload.seccio_id, genere=payload.genere,
             marge_min_pct=payload.marge_min_pct, marge_max_pct=payload.marge_max_pct,
         )
-        .where(Item.subscripcio_pool.is_(False))
-        .order_by(Item.fecha_entrada.asc().nulls_last())
+        .where(Item.subscription_pool.is_(False))
+        .order_by(Item.entry_date.asc().nulls_last())
         .limit(max(0, payload.limit))
     )
     items = list(db.scalars(stmt))
     for item in items:
-        item.subscripcio_pool = True
+        item.subscription_pool = True
     db.commit()
     return {"afegits": len(items)}
 
@@ -185,9 +190,9 @@ def patch_catalog_item(item_id: uuid.UUID, payload: CatalogPoolPatchIn, db: Sess
     item = db.get(Item, item_id)
     if item is None:
         raise HTTPException(404, "Exemplar no trobat")
-    item.subscripcio_pool = payload.subscripcio_pool
+    item.subscription_pool = payload.subscripcio_pool
     db.commit()
-    return {"item_id": item.id, "subscripcio_pool": item.subscripcio_pool}
+    return {"item_id": item.id, "subscripcio_pool": item.subscription_pool}
 
 
 # ---------------------------------------------------------------------------
@@ -203,8 +208,9 @@ def list_subscripcions(db: Session = Depends(get_db)):
     # primer cop que vegem cada subscripció és el seu disc més recent.
     ultim_disc: dict[uuid.UUID, str] = {}
     for sub_id, artista, titulo, _confirmada_at in db.execute(
-        select(Assignacio.subscripcio_id, Release.artista, Release.titulo, Assignacio.confirmada_at)
+        select(Assignacio.subscripcio_id, RecordProduct.artista, Release.title, Assignacio.confirmada_at)
         .join(Release, Release.id == Assignacio.release_id)
+        .outerjoin(RecordProduct, RecordProduct.release_id == Release.id)
         .where(Assignacio.estat == EstatAssignacio.confirmada)
         .order_by(Assignacio.confirmada_at.desc())
     ).all():
@@ -214,7 +220,7 @@ def list_subscripcions(db: Session = Depends(get_db)):
         {
             "id": s.id,
             "email": s.user.email,
-            "nom": s.user.nombre,
+            "nom": s.user.name,
             "periodicitat_mesos": s.periodicitat_mesos,
             "quantitat": s.quantitat,
             "preu_periode": s.preu_periode,
@@ -277,7 +283,7 @@ def _enviament_dict(cobrament: CobramentSubscripcio, config: ConfiguracioSubscri
         marge_pct = None
         dies_estoc = None
         if item is not None and config.preu_per_disc:
-            marge_pct = round(float(item.precio) / float(config.preu_per_disc) * 100, 1)
+            marge_pct = round(float(item.price) / float(config.preu_per_disc) * 100, 1)
             dies_estoc = _dies_estoc(item)
         discos.append({
             "assignacio_id": a.id,
@@ -285,12 +291,12 @@ def _enviament_dict(cobrament: CobramentSubscripcio, config: ConfiguracioSubscri
             "item": None if item is None else {
                 "id": item.id,
                 "artista": item.release.artista,
-                "titulo": item.release.titulo,
-                "imagen_url": item.release.imagen_url,
-                "precio": item.precio,
+                "titulo": item.release.title,
+                "imagen_url": item.release.image_url,
+                "precio": item.price,
                 "marge_pct": marge_pct,
                 "dies_estoc": dies_estoc,
-                "condicion": item.condicion.value,
+                "condicion": item.condition.value,
             },
         })
     return {
@@ -485,8 +491,9 @@ def get_subscripcio_detail(subscripcio_id: uuid.UUID, db: Session = Depends(get_
         raise HTTPException(404, "Subscripció no trobada")
 
     discos_rebuts = list(db.execute(
-        select(Release.id, Release.artista, Release.titulo, Release.imagen_url, Assignacio.confirmada_at)
+        select(Release.id, RecordProduct.artista, Release.title, Release.image_url, Assignacio.confirmada_at)
         .join(Assignacio, Assignacio.release_id == Release.id)
+        .outerjoin(RecordProduct, RecordProduct.release_id == Release.id)
         .where(Assignacio.subscripcio_id == subscripcio.id, Assignacio.estat == EstatAssignacio.confirmada)
         .order_by(Assignacio.confirmada_at.desc())
     ).all())
@@ -495,7 +502,7 @@ def get_subscripcio_detail(subscripcio_id: uuid.UUID, db: Session = Depends(get_
     return {
         "id": subscripcio.id,
         "email": subscripcio.user.email,
-        "nom": subscripcio.user.nombre,
+        "nom": subscripcio.user.name,
         "estat": subscripcio.estat,
         "periodicitat_mesos": subscripcio.periodicitat_mesos,
         "quantitat": subscripcio.quantitat,
@@ -504,13 +511,13 @@ def get_subscripcio_detail(subscripcio_id: uuid.UUID, db: Session = Depends(get_
         "created_at": subscripcio.created_at,
         "generes_preferits": subscripcio.generes_preferits or [],
         "adreca": None if address is None else {
-            "nombre_destinatario": address.nombre_destinatario,
-            "linea1": address.linea1,
-            "linea2": address.linea2,
-            "ciudad": address.ciudad,
-            "cp": address.cp,
-            "provincia": address.provincia,
-            "pais": address.pais,
+            "recipient_name": address.recipient_name,
+            "address_line1": address.address_line1,
+            "address_line2": address.address_line2,
+            "city": address.city,
+            "postal_code": address.postal_code,
+            "province": address.province,
+            "country": address.country,
         },
         "discos_rebuts": [
             {"release_id": r[0], "artista": r[1], "titulo": r[2], "imagen_url": r[3], "confirmada_at": r[4]}

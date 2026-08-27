@@ -25,8 +25,8 @@ export default function AdminBlogPage() {
 
   useEffect(() => { load(); }, [q]);
 
-  async function handleDelete(slug, titulo) {
-    if (!confirm(`Eliminar "${titulo}"? Aquesta acció no es pot desfer.`)) return;
+  async function handleDelete(slug, title) {
+    if (!confirm(`Eliminar "${title}"? Aquesta acció no es pot desfer.`)) return;
     setDeleting(slug);
     try {
       await authFetch(`/admin/posts/${slug}`, { method: 'DELETE' });
@@ -36,8 +36,8 @@ export default function AdminBlogPage() {
     }
   }
 
-  const published = posts.filter(p => p.publicado_at);
-  const drafts = posts.filter(p => !p.publicado_at);
+  const published = posts.filter(p => p.published_at);
+  const drafts = posts.filter(p => !p.published_at);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -109,7 +109,7 @@ export default function AdminBlogPage() {
 }
 
 function PostRow({ post, onDelete, deleting }) {
-  const isPublished = !!post.publicado_at;
+  const isPublished = !!post.published_at;
   return (
     <div className="flex items-center gap-4 px-4 py-3 border-b border-zinc-50 last:border-0 hover:bg-zinc-50/50 transition-colors">
       <div className="shrink-0">
@@ -119,14 +119,14 @@ function PostRow({ post, onDelete, deleting }) {
         }
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-zinc-900 truncate">{post.titulo}</p>
+        <p className="font-medium text-sm text-zinc-900 truncate">{post.title}</p>
         <div className="flex items-center gap-3 mt-0.5">
           <span className="text-xs text-zinc-400 font-mono">{post.slug}</span>
           {isPublished && (
-            <span className="text-xs text-zinc-400">{formatDate(post.publicado_at)}</span>
+            <span className="text-xs text-zinc-400">{formatDate(post.published_at)}</span>
           )}
-          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${post.idioma === 'ca' ? 'bg-zinc-100 text-zinc-500' : 'bg-blue-50 text-blue-600'}`}>
-            {post.idioma}
+          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${post.language === 'ca' ? 'bg-zinc-100 text-zinc-500' : 'bg-blue-50 text-blue-600'}`}>
+            {post.language}
           </span>
         </div>
       </div>
@@ -150,7 +150,7 @@ function PostRow({ post, onDelete, deleting }) {
           <Pencil size={13} />
         </Link>
         <button
-          onClick={() => onDelete(post.slug, post.titulo)}
+          onClick={() => onDelete(post.slug, post.title)}
           disabled={deleting === post.slug}
           className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
           title="Eliminar"

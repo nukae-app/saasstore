@@ -54,7 +54,7 @@ def _login(client, email):
 def _admin_token(client, db, email="admin@example.com") -> str:
     _login(client, email)
     user = db.scalar(select(User).where(User.email == email))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return _login(client, email)
 
@@ -80,7 +80,7 @@ def _client_amb_adreca(client, db, email="client@example.com") -> tuple[str, str
     access = _login(client, email)
     addr = client.post(
         "/me/addresses",
-        json={"nombre_destinatario": "Client", "linea1": "Carrer Fals 1", "ciudad": "Barcelona", "cp": "08001"},
+        json={"recipient_name": "Client", "address_line1": "Carrer Fals 1", "city": "Barcelona", "postal_code": "08001"},
         headers={"Authorization": f"Bearer {access}"},
     )
     assert addr.status_code == 201

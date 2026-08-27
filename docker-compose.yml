@@ -1,10 +1,57 @@
 services:
+  # No existía en el compose original (ni en el de ultralocal, del que se
+  # copió) — el .env.example sugiere que la URL "se construye sola" en
+  # local, pero config.py lee DATABASE_URL directo sin componerla desde
+  # POSTGRES_*. Prod usa RDS aparte; esto es solo para desarrollo/test local.
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ultralocal}
+      POSTGRES_USER: ${POSTGRES_USER:-ultralocal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    expose:
+      - "5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ultralocal}"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # Secrets Manager simulado — los secretos por tenant (Fase 2, ver
+  # app/tenant_secrets.py) necesitan semántica real de Secrets Manager
+  # incluso en local, no un fallback degradado. En producción no existe
+  # esta variable y boto3 apunta a AWS real.
+  localstack:
+    image: localstack/localstack:3
+    restart: unless-stopped
+    environment:
+      SERVICES: secretsmanager
+    expose:
+      - "4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+
   api:
     build: ./api
     restart: unless-stopped
     env_file: .env
-    expose:
-      - "8000"
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+    # Publicado en el host (no solo expose) para poder pegarle directo con
+    # curl en local sin pasar por Caddy — puerto 18000 para no chocar con
+    # el Caddy de RecordShop, que ya ocupa 80/443 en esta misma máquina.
+    ports:
+      - "18000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      localstack:
+        condition: service_started
     volumes:
       - uploads:/app/uploads
 
@@ -18,18 +65,34 @@ services:
     build: ./api
     restart: unless-stopped
     env_file: .env
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
     command: celery -A app.celery_app worker --loglevel=info --concurrency=2
     depends_on:
       redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+      localstack:
         condition: service_started
 
   beat:
     build: ./api
     restart: unless-stopped
     env_file: .env
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
     command: celery -A app.celery_app beat --loglevel=info
     depends_on:
       redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+      localstack:
         condition: service_started
 
   web:
@@ -38,6 +101,8 @@ services:
     environment:
       API_INTERNAL_URL: http://api:8000
       NEXT_PUBLIC_DEV_ADMIN_BYPASS: ${NEXT_PUBLIC_DEV_ADMIN_BYPASS:-false}
+      NEXT_PUBLIC_SUPERADMIN_HOST: ${NEXT_PUBLIC_SUPERADMIN_HOST:-superadmin.localhost}
+      NEXT_PUBLIC_APP_HOST: ${NEXT_PUBLIC_APP_HOST:-localhost}
     depends_on:
       - api
     expose:
@@ -46,13 +111,13 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    # 8080, no 80/443: el Caddy de RecordShop ya ocupa esos puertos en esta
+    # misma máquina. Usa infra/Caddyfile.local (HTTP plano, sin TLS
+    # automático) en vez del Caddyfile de producción — ver ese fichero.
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      - "8080:8080"
     volumes:
-      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./infra/Caddyfile.local:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
       - uploads:/srv/uploads:ro
@@ -64,3 +129,5 @@ volumes:
   caddy_data:
   caddy_config:
   uploads:
+  db_data:
+  localstack_data:

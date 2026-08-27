@@ -4,21 +4,26 @@ import { useState, useEffect, useMemo } from 'react';
 import { authFetch } from '../../lib/auth';
 import { Download, Save, Lock, RefreshCw } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { useT } from '../../lib/i18n';
 
-const CAMPS = [
-  { key: 'targeta_21', label: 'Targeta 21%', auto: true },
-  { key: 'targeta_4', label: 'Targeta 4%', auto: true },
-  { key: 'efectiu_21', label: 'Efectiu 21%', auto: true },
-  { key: 'efectiu_4', label: 'Efectiu 4%', auto: true },
+const CAMPS_FALLBACK = [
+  { key: 'card_21', label: 'Targeta 21%', auto: true },
+  { key: 'card_4', label: 'Targeta 4%', auto: true },
+  { key: 'cash_21', label: 'Efectiu 21%', auto: true },
+  { key: 'cash_4', label: 'Efectiu 4%', auto: true },
   { key: 'bizum_21', label: 'Bizum 21%', auto: true },
   { key: 'bizum_4', label: 'Bizum 4%', auto: true },
   { key: 'paypal_21', label: 'Paypal 21%' },
   { key: 'paypal_4', label: 'Paypal 4%' },
   { key: 'transfer_21', label: 'Transfer 21%' },
-  { key: 'bono_cultural', label: 'Bono cultural', auto: true },
+  { key: 'cultural_voucher', label: 'Bono cultural', auto: true },
 ];
 
-const CAMPS_AUTO = CAMPS.filter((c) => c.auto).map((c) => c.key);
+function camps(t) {
+  return CAMPS_FALLBACK.map((c) => ({ ...c, label: t(`resultat.caixa.camp.${c.key}`, c.label) }));
+}
+
+const CAMPS_AUTO = CAMPS_FALLBACK.filter((c) => c.auto).map((c) => c.key);
 
 function fmtDia(iso) {
   const [, m, d] = iso.split('-');
@@ -31,6 +36,8 @@ function num(v) {
 }
 
 export default function CaixaDiaria({ year, mes }) {
+  const t = useT();
+  const CAMPS = useMemo(() => camps(t), [t]);
   const [dies, setDies] = useState([]);
   const [periodeTancat, setPeriodeTancat] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -64,14 +71,14 @@ export default function CaixaDiaria({ year, mes }) {
   }
 
   const totals = useMemo(() => {
-    const t = Object.fromEntries(CAMPS.map((c) => [c.key, 0]));
+    const sums = Object.fromEntries(CAMPS.map((c) => [c.key, 0]));
     let totalMes = 0;
     for (const dia of dies) {
-      for (const c of CAMPS) t[c.key] += num(dia[c.key]);
+      for (const c of CAMPS) sums[c.key] += num(dia[c.key]);
       totalMes += CAMPS.reduce((s, c) => s + num(dia[c.key]), 0);
     }
-    return { ...t, total_mes: totalMes };
-  }, [dies]);
+    return { ...sums, total_mes: totalMes };
+  }, [dies, CAMPS]);
 
   function totalDia(dia) {
     return CAMPS.reduce((s, c) => s + num(dia[c.key]), 0);
@@ -81,7 +88,7 @@ export default function CaixaDiaria({ year, mes }) {
     setSaving(true);
     try {
       const payload = dies.map((d) => ({
-        data: d.data,
+        date: d.date,
         ...Object.fromEntries(CAMPS.map((c) => [c.key, num(d[c.key])])),
       }));
       const r = await authFetch(`/admin/caixa-diaria/${year}/${mes}`, {
@@ -90,7 +97,7 @@ export default function CaixaDiaria({ year, mes }) {
       });
       if (!r.ok) {
         const err = await r.json().catch(() => null);
-        alert(err?.detail || 'Error desant la caixa');
+        alert(err?.detail || t('resultat.caixa.save_error', 'Error desant la caixa'));
         return;
       }
       const data = await r.json();
@@ -107,10 +114,10 @@ export default function CaixaDiaria({ year, mes }) {
       const r = await authFetch(`/admin/caixa-diaria/${year}/${mes}/vendes-reals`);
       if (!r.ok) return;
       const reals = await r.json();
-      const perDia = Object.fromEntries(reals.map((d) => [d.data, d]));
+      const perDia = Object.fromEntries(reals.map((d) => [d.date, d]));
       const buida = Object.fromEntries(CAMPS_AUTO.map((k) => [k, 0]));
       setDies((prev) => prev.map((dia) => {
-        const real = perDia[dia.data];
+        const real = perDia[dia.date];
         if (!real) return { ...dia, ...buida };
         return { ...dia, ...Object.fromEntries(CAMPS_AUTO.map((k) => [k, real[k] ?? 0])) };
       }));
@@ -137,7 +144,7 @@ export default function CaixaDiaria({ year, mes }) {
     }
   }
 
-  if (loading) return <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>;
+  if (loading) return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>;
 
   return (
     <div className="space-y-3">
@@ -145,16 +152,16 @@ export default function CaixaDiaria({ year, mes }) {
         <div className="flex items-center gap-2">
           {periodeTancat && (
             <span className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200">
-              <Lock size={13} /> Període tancat — no editable
+              <Lock size={13} /> {t('resultat.caixa.period_closed_not_editable', 'Període tancat — no editable')}
             </span>
           )}
           {dirty && !periodeTancat && (
-            <span className="text-xs text-amber-600">Canvis sense desar</span>
+            <span className="text-xs text-amber-600">{t('resultat.caixa.unsaved_changes', 'Canvis sense desar')}</span>
           )}
           {!periodeTancat && (
             <span className="text-xs text-zinc-400">
               <span className="inline-block w-2 h-2 rounded-sm bg-blue-100 border border-blue-200 align-[1px] mr-1" />
-              Targeta / Efectiu / Bizum / Bono cultural es poden omplir automàticament — Paypal i Transfer, a mà
+              {t('resultat.caixa.autofill_hint', 'Targeta / Efectiu / Bizum / Bono cultural es poden omplir automàticament — Paypal i Transfer, a mà')}
             </span>
           )}
         </div>
@@ -162,8 +169,8 @@ export default function CaixaDiaria({ year, mes }) {
           {!periodeTancat && (
             <Button variant="secondary" size="sm" disabled={omplint}
               onClick={omplirAmbVendesReals} className="flex items-center gap-1.5"
-              title="Recalcula Targeta, Efectiu, Bizum i Bono cultural a partir de les vendes web (Redsys) i de mostrador (TPV). Paypal i Transfer no es registren enlloc: cal seguir omplint-los a mà.">
-              <RefreshCw size={14} /> {omplint ? 'Calculant...' : 'Omplir amb vendes reals'}
+              title={t('resultat.caixa.autofill_tooltip', 'Recalcula Targeta, Efectiu, Bizum i Bono cultural a partir de les vendes web (Redsys) i de mostrador (TPV). Paypal i Transfer no es registren enlloc: cal seguir omplint-los a mà.')}>
+              <RefreshCw size={14} /> {omplint ? t('resultat.caixa.calculating', 'Calculant...') : t('resultat.caixa.autofill_button', 'Omplir amb vendes reals')}
             </Button>
           )}
           <Button variant="secondary" size="sm" disabled={exporting === 'excel'}
@@ -176,7 +183,7 @@ export default function CaixaDiaria({ year, mes }) {
           </Button>
           {!periodeTancat && (
             <Button size="sm" disabled={saving || !dirty} onClick={guardar} className="flex items-center gap-1.5">
-              <Save size={14} /> {saving ? 'Desant...' : 'Desar'}
+              <Save size={14} /> {saving ? t('common.saving', 'Desant...') : t('common.save', 'Desar')}
             </Button>
           )}
         </div>
@@ -186,20 +193,20 @@ export default function CaixaDiaria({ year, mes }) {
         <table className="text-sm border-collapse">
           <thead>
             <tr className="bg-blue-700 text-white">
-              <th className="px-2 py-2 text-xs font-semibold sticky left-0 bg-blue-700 whitespace-nowrap">DIA</th>
+              <th className="px-2 py-2 text-xs font-semibold sticky left-0 bg-blue-700 whitespace-nowrap">{t('resultat.caixa.col.day', 'DIA')}</th>
               {CAMPS.map((c) => (
                 <th key={c.key} className={`px-2 py-2 text-xs font-semibold whitespace-nowrap ${c.auto ? 'bg-blue-800' : ''}`}>
                   {c.label}
                 </th>
               ))}
-              <th className="px-2 py-2 text-xs font-semibold whitespace-nowrap">Total dia</th>
+              <th className="px-2 py-2 text-xs font-semibold whitespace-nowrap">{t('resultat.caixa.col.day_total', 'Total dia')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {dies.map((dia, idx) => (
-              <tr key={dia.data} className="hover:bg-zinc-50">
+              <tr key={dia.date} className="hover:bg-zinc-50">
                 <td className="px-2 py-1 text-xs text-zinc-600 sticky left-0 bg-white whitespace-nowrap">
-                  {fmtDia(dia.data)}
+                  {fmtDia(dia.date)}
                 </td>
                 {CAMPS.map((c) => (
                   <td key={c.key} className={`px-1 py-1 ${c.auto ? 'bg-blue-50/50' : ''}`}>
@@ -222,7 +229,7 @@ export default function CaixaDiaria({ year, mes }) {
           </tbody>
           <tfoot>
             <tr className="bg-cyan-400 text-zinc-900 font-bold">
-              <td className="px-2 py-2 text-xs sticky left-0 bg-cyan-400">TOTAL</td>
+              <td className="px-2 py-2 text-xs sticky left-0 bg-cyan-400">{t('resultat.caixa.col.total', 'TOTAL')}</td>
               {CAMPS.map((c) => (
                 <td key={c.key} className="px-2 py-2 text-xs text-right whitespace-nowrap">
                   {totals[c.key].toFixed(2)}

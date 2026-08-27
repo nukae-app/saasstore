@@ -15,10 +15,10 @@ import ArchiveSelect from '../blog/ArchiveSelect';
 export async function generateMetadata({ params }) {
   const { pagina: slug } = await params;
   try {
-    const p = await api(`/pagines/${slug}`);
-    return { title: `${p.nom} — Ultra-Local Records` };
+    const [p, config] = await Promise.all([api(`/pagines/${slug}`), api('/config/public')]);
+    return { title: `${p.name} — ${config.nombre}` };
   } catch {
-    return { title: 'Ultra-Local Records' };
+    return {}; // hereta el title per defecte del layout arrel
   }
 }
 
@@ -31,8 +31,8 @@ function formatDate(iso, locale) {
   return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function hasAudio(contenido) {
-  return /mixcloud\.com|bandcamp\.com|soundcloud\.com|spotify\.com|youtube(-nocookie)?\.com/i.test(contenido || '');
+function hasAudio(content) {
+  return /mixcloud\.com|bandcamp\.com|soundcloud\.com|spotify\.com|youtube(-nocookie)?\.com/i.test(content || '');
 }
 
 // ---------------------------------------------------------------------------
@@ -40,7 +40,7 @@ function hasAudio(contenido) {
 // ---------------------------------------------------------------------------
 
 function PostCard({ post, locale, t }) {
-  const audio = hasAudio(post.contenido);
+  const audio = hasAudio(post.content);
   return (
     <Link href={`/blog/${post.slug}`} className="group block bg-white rounded-2xl overflow-hidden shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] hover:border-zinc-200 hover:shadow-md transition-all duration-200">
       <div className="aspect-[4/3] bg-zinc-100 overflow-hidden relative">
@@ -59,10 +59,10 @@ function PostCard({ post, locale, t }) {
       </div>
       <div className="p-4">
         <time className="text-[11px] text-zinc-500 font-semibold tracking-wide uppercase">
-          {formatDate(post.publicado_at, locale)}
+          {formatDate(post.published_at, locale)}
         </time>
         <h2 className="font-serif italic text-lg leading-snug mt-1.5 text-zinc-900 group-hover:text-zinc-500 transition-colors line-clamp-2">
-          {post.titulo}
+          {post.title}
         </h2>
         {post.excerpt && (
           <p className="text-zinc-500 text-xs leading-relaxed mt-2 line-clamp-3">{post.excerpt}</p>
@@ -76,7 +76,7 @@ function PostCard({ post, locale, t }) {
 // Pàgina tipus llista-posts
 // ---------------------------------------------------------------------------
 
-async function LlistaPostsPage({ pagina, searchParams, locale }) {
+async function LlistaPostsPage({ pagina, searchParams, locale, config }) {
   const t = await getTranslations({ locale, namespace: 'pagina' });
   const sp = await searchParams;
   const page  = Number(sp?.page  ?? 1);
@@ -95,7 +95,7 @@ async function LlistaPostsPage({ pagina, searchParams, locale }) {
     ]);
   } catch {}
 
-  const heading = year && month ? `${t(`monthsLong.${month}`)} ${year}` : year ? `${year}` : pagina.nom;
+  const heading = year && month ? `${t(`monthsLong.${month}`)} ${year}` : year ? `${year}` : pagina.name;
   const slug = pagina.slug;
 
   return (
@@ -103,7 +103,7 @@ async function LlistaPostsPage({ pagina, searchParams, locale }) {
       <section className="bg-zinc-50 text-zinc-900 py-14 md:py-18">
         <div className="container">
           <p className="text-zinc-500 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
-            Ultra-Local Records · Poblenou
+            {config.nombre}
           </p>
           <h1 className="font-serif italic text-4xl md:text-5xl leading-tight">{heading}</h1>
           {!year && (
@@ -168,12 +168,12 @@ async function EstaticaPage({ pagina, locale }) {
     <main className="flex-1">
       <section className="bg-zinc-50 text-zinc-900 py-14 md:py-18">
         <div className="container max-w-3xl">
-          <h1 className="font-serif italic text-4xl md:text-5xl leading-tight">{pagina.nom}</h1>
+          <h1 className="font-serif italic text-4xl md:text-5xl leading-tight">{pagina.name}</h1>
         </div>
       </section>
       <div className="container max-w-3xl py-12 md:py-16">
-        {pagina.contingut ? (
-          <div className="blog-content" dangerouslySetInnerHTML={{ __html: pagina.contingut }} />
+        {pagina.content ? (
+          <div className="blog-content" dangerouslySetInnerHTML={{ __html: pagina.content }} />
         ) : (
           <p className="text-zinc-400 italic">{t('pageNoContentYet')}</p>
         )}
@@ -186,7 +186,7 @@ async function EstaticaPage({ pagina, locale }) {
 // Pàgina d'agenda
 // ---------------------------------------------------------------------------
 
-async function AgendaPage({ pagina, locale }) {
+async function AgendaPage({ pagina, locale, config }) {
   const t = await getTranslations({ locale, namespace: 'pagina' });
   let events = [];
   try { events = await api('/events'); } catch {}
@@ -202,7 +202,7 @@ async function AgendaPage({ pagina, locale }) {
       <section className="bg-zinc-50 text-zinc-900 py-14 md:py-18">
         <div className="container">
           <p className="text-zinc-500 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
-            Ultra-Local Records · Poblenou
+            {config.nombre}
           </p>
           <h1 className="font-serif italic text-4xl md:text-5xl leading-tight">{t('agenda')}</h1>
           <p className="text-zinc-500 mt-3 max-w-lg">{t('agendaSubtitle')}</p>
@@ -217,9 +217,9 @@ async function AgendaPage({ pagina, locale }) {
         ) : (
           <div className="flex flex-col gap-4">
             {events.map(ev => {
-              const d = new Date(ev.fecha);
+              const d = new Date(ev.date);
               const avui = new Date().toDateString() === d.toDateString();
-              const setmana = isThisWeek(ev.fecha);
+              const setmana = isThisWeek(ev.date);
               return (
                 <div key={ev.id} className="flex gap-5 bg-white rounded-2xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] p-5 hover:shadow-sm transition-shadow">
                   <div className="shrink-0 w-14 text-center">
@@ -231,10 +231,10 @@ async function AgendaPage({ pagina, locale }) {
                       {avui && <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">{t('today')}</span>}
                       {!avui && setmana && <span className="text-[10px] bg-zinc-100 text-zinc-600 font-semibold px-2 py-0.5 rounded-full">{t('thisWeek')}</span>}
                     </div>
-                    <h2 className="font-serif italic text-lg text-zinc-900 leading-snug">{ev.titulo}</h2>
-                    {ev.descripcion && <p className="text-zinc-500 text-sm mt-1">{ev.descripcion}</p>}
+                    <h2 className="font-serif italic text-lg text-zinc-900 leading-snug">{ev.title}</h2>
+                    {ev.description && <p className="text-zinc-500 text-sm mt-1">{ev.description}</p>}
                     <div className="flex flex-wrap gap-4 mt-2 text-xs text-zinc-400">
-                      <span className="flex items-center gap-1"><MapPin size={11} />{ev.lugar}</span>
+                      <span className="flex items-center gap-1"><MapPin size={11} />{ev.location}</span>
                       {ev.link && (
                         <a href={ev.link} target="_blank" rel="noopener" className="flex items-center gap-1 text-zinc-900 hover:text-zinc-600">
                           <ExternalLink size={11} /> {t('moreInfo')}
@@ -247,13 +247,15 @@ async function AgendaPage({ pagina, locale }) {
             })}
           </div>
         )}
-        <div className="mt-16 bg-zinc-50 text-zinc-900 rounded-3xl p-8 text-center shadow-[0_2px_24px_-6px_rgba(15,23,42,0.08)]">
-          <h2 className="font-serif italic text-2xl mb-2">{t('wantToHearNews')}</h2>
-          <p className="text-zinc-500 text-sm mb-4">{t('notifyUpcomingEvents')}</p>
-          <a href="mailto:info@ultralocalrecords.com" className="inline-block bg-primary hover:bg-zinc-800 text-white text-sm font-semibold px-6 py-2.5 rounded-full transition-colors">
-            {t('subscribe')}
-          </a>
-        </div>
+        {config.contact_email && (
+          <div className="mt-16 bg-zinc-50 text-zinc-900 rounded-3xl p-8 text-center shadow-[0_2px_24px_-6px_rgba(15,23,42,0.08)]">
+            <h2 className="font-serif italic text-2xl mb-2">{t('wantToHearNews')}</h2>
+            <p className="text-zinc-500 text-sm mb-4">{t('notifyUpcomingEvents')}</p>
+            <a href={`mailto:${config.contact_email}`} className="inline-block bg-primary hover:bg-zinc-800 text-white text-sm font-semibold px-6 py-2.5 rounded-full transition-colors">
+              {t('subscribe')}
+            </a>
+          </div>
+        )}
       </div>
     </main>
   );
@@ -271,9 +273,9 @@ export default async function PaginaDinamica({ params, searchParams }) {
     notFound();
   }
 
-  let pagina;
+  let pagina, config;
   try {
-    pagina = await api(`/pagines/${slug}`);
+    [pagina, config] = await Promise.all([api(`/pagines/${slug}`), api('/config/public')]);
   } catch {
     notFound();
   }
@@ -281,11 +283,11 @@ export default async function PaginaDinamica({ params, searchParams }) {
   return (
     <>
       <StorefrontNav />
-      {pagina.tipus === 'llista-posts' && (
-        <LlistaPostsPage pagina={pagina} searchParams={searchParams} locale={locale} />
+      {pagina.type === 'llista-posts' && (
+        <LlistaPostsPage pagina={pagina} searchParams={searchParams} locale={locale} config={config} />
       )}
-      {pagina.tipus === 'estatica' && <EstaticaPage pagina={pagina} locale={locale} />}
-      {pagina.tipus === 'agenda' && <AgendaPage pagina={pagina} locale={locale} />}
+      {pagina.type === 'estatica' && <EstaticaPage pagina={pagina} locale={locale} />}
+      {pagina.type === 'agenda' && <AgendaPage pagina={pagina} locale={locale} config={config} />}
       <StorefrontFooter />
     </>
   );

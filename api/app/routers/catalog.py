@@ -3,13 +3,13 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from ..config import get_settings
 from ..database import get_db
-from ..models import CondicionItem, Etiqueta, Item, ItemStatus, Release, ReleaseEtiqueta, Seccio
+from ..tenant_secrets import get_tenant_secrets
+from ..models import CondicionItem, Etiqueta, Item, ItemStatus, RecordProduct, Release, ReleaseEtiqueta, Seccio
 from ..schemas import CatalogPage, EtiquetaOut, ReleaseOut, SeccioOut
 from ..services import spotify as spotify_svc
 
@@ -34,14 +34,14 @@ RANGS_ALFABET: dict[str, tuple[str, str] | None] = {
 @router.get("/etiquetes", response_model=list[EtiquetaOut])
 def list_public_etiquetes(db: Session = Depends(get_db)):
     """Etiquetes actives, per al filtre del catàleg públic."""
-    stmt = select(Etiqueta).where(Etiqueta.activa.is_(True)).order_by(Etiqueta.posicio, Etiqueta.nom_ca)
+    stmt = select(Etiqueta).where(Etiqueta.active.is_(True)).order_by(Etiqueta.position, Etiqueta.name_ca)
     return db.scalars(stmt).all()
 
 
 @router.get("/seccions", response_model=list[SeccioOut])
 def list_public_seccions(db: Session = Depends(get_db)):
     """Seccions (cubetes) actives, per al mode 'remena' del catàleg."""
-    stmt = select(Seccio).where(Seccio.activa.is_(True)).order_by(Seccio.posicio, Seccio.nom_ca)
+    stmt = select(Seccio).where(Seccio.active.is_(True)).order_by(Seccio.position, Seccio.name_ca)
     return db.scalars(stmt).all()
 
 
@@ -68,11 +68,15 @@ def list_catalog(
     # aparte, si no una línea nou agotada seguiría listando el release.
     item_disponible = and_(
         Item.status == ItemStatus.disponible,
-        or_(Item.condicion != CondicionItem.nou, Item.cantidad > Item.cantidad_reservada),
+        or_(Item.condition != CondicionItem.nou, Item.quantity > Item.reserved_quantity),
     )
     # Usem EXISTS en comptes de JOIN+DISTINCT perquè DISTINCT falla amb columnes JSON.
+    # LEFT OUTER (no INNER): un release del vertical floristry no té fila a
+    # RecordProduct i tot i així ha d'aparèixer al catàleg — ver
+    # docs/ARQUITECTURA_CORE_VERTICAL.md, Fase 2.
     stmt = (
         select(Release)
+        .outerjoin(RecordProduct, RecordProduct.release_id == Release.id)
         .where(
             select(Item.id)
             .where(Item.release_id == Release.id)
@@ -83,16 +87,16 @@ def list_catalog(
     if q:
         like = f"%{q}%"
         stmt = stmt.where(
-            or_(Release.artista.ilike(like), Release.titulo.ilike(like), Release.sello.ilike(like), Release.ean.ilike(like))
+            or_(RecordProduct.artista.ilike(like), Release.title.ilike(like), RecordProduct.sello.ilike(like), Release.ean.ilike(like))
         )
     if artista:
-        stmt = stmt.where(Release.artista.ilike(f"%{artista}%"))
+        stmt = stmt.where(RecordProduct.artista.ilike(f"%{artista}%"))
     if sello:
-        stmt = stmt.where(Release.sello.ilike(f"%{sello}%"))
+        stmt = stmt.where(RecordProduct.sello.ilike(f"%{sello}%"))
     if formato:
-        stmt = stmt.where(Release.formato.ilike(f"%{formato}%"))
+        stmt = stmt.where(RecordProduct.formato.ilike(f"%{formato}%"))
     if genero:
-        stmt = stmt.where(Release.genero.ilike(f"%{genero}%"))
+        stmt = stmt.where(RecordProduct.genero.ilike(f"%{genero}%"))
     if etiqueta:
         stmt = stmt.where(
             select(ReleaseEtiqueta.release_id)
@@ -102,32 +106,32 @@ def list_catalog(
             .exists()
         )
     if seccio == "sense-classificar":
-        stmt = stmt.where(Release.seccio_id.is_(None))
+        stmt = stmt.where(Release.section_id.is_(None))
     elif seccio:
         stmt = stmt.where(
-            select(Seccio.id).where(Seccio.id == Release.seccio_id).where(Seccio.slug == seccio).exists()
+            select(Seccio.id).where(Seccio.id == Release.section_id).where(Seccio.slug == seccio).exists()
         )
     if rang is not None and rang in RANGS_ALFABET:
         bounds = RANGS_ALFABET[rang]
-        artista_upper = func.upper(Release.artista)
+        artista_upper = func.upper(RecordProduct.artista)
         if bounds is None:
             stmt = stmt.where(artista_upper < "A")
         else:
             letra_min, letra_max = bounds
             stmt = stmt.where(artista_upper >= letra_min, artista_upper < chr(ord(letra_max) + 1))
     if esta_sonant:
-        stmt = stmt.where(Release.esta_sonant.is_(True))
+        stmt = stmt.where(RecordProduct.esta_sonant.is_(True))
     if precio_min is not None:
         stmt = stmt.where(
             select(Item.id).where(Item.release_id == Release.id)
             .where(item_disponible)
-            .where(Item.precio >= precio_min).exists()
+            .where(Item.price >= precio_min).exists()
         )
     if precio_max is not None:
         stmt = stmt.where(
             select(Item.id).where(Item.release_id == Release.id)
             .where(item_disponible)
-            .where(Item.precio <= precio_max).exists()
+            .where(Item.price <= precio_max).exists()
         )
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
@@ -137,8 +141,10 @@ def list_catalog(
             selectinload(Release.etiquetes),
             selectinload(Release.images),
             selectinload(Release.seccio),
+            selectinload(Release.floristeria),
+            selectinload(Release.record),
         )
-        .order_by(Release.artista, Release.titulo)
+        .order_by(RecordProduct.artista, Release.title)
         .offset((page - 1) * page_size)
         .limit(page_size)
     ).all()
@@ -146,7 +152,7 @@ def list_catalog(
 
 
 @router.get("/releases/{release_id}", response_model=ReleaseOut)
-async def get_release(release_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_release(release_id: uuid.UUID, request: Request, db: Session = Depends(get_db)):
     release = db.scalar(
         select(Release)
         .where(Release.id == release_id)
@@ -155,6 +161,8 @@ async def get_release(release_id: uuid.UUID, db: Session = Depends(get_db)):
             selectinload(Release.etiquetes),
             selectinload(Release.images),
             selectinload(Release.seccio),
+            selectinload(Release.floristeria),
+            selectinload(Release.record),
         )
     )
     if release is None:
@@ -164,13 +172,13 @@ async def get_release(release_id: uuid.UUID, db: Session = Depends(get_db)):
     # disc — "" vol dir que ja s'ha buscat i no s'ha trobat, per no tornar-ho
     # a intentar cada visita. Si falla la cerca, no bloqueja la fitxa de disc.
     if release.spotify_album_id is None:
-        settings = get_settings()
-        if settings.spotify_client_id and settings.spotify_client_secret:
+        secrets_ = get_tenant_secrets(request.state.tenant.id)
+        if secrets_.spotify_client_id and secrets_.spotify_client_secret:
             try:
                 token = await spotify_svc.get_app_access_token(
-                    settings.spotify_client_id, settings.spotify_client_secret
+                    secrets_.spotify_client_id, secrets_.spotify_client_secret
                 )
-                album_id = await spotify_svc.search_album(token, release.artista, release.titulo)
+                album_id = await spotify_svc.search_album(token, release.artista, release.title)
             except Exception:
                 log.warning("Error cercant l'àlbum de Spotify per a %s", release_id, exc_info=True)
                 album_id = None

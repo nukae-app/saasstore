@@ -38,7 +38,7 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..models import CondicionItem, Item, ItemStatus, Release
+from ..models import CondicionItem, Item, ItemStatus, RecordProduct, RecordStockDetail, Release
 
 
 def clean(value: str | None) -> str | None:
@@ -78,7 +78,13 @@ def parse_sheet_csv(csv_text: str) -> dict[int, list[str]]:
 
 def diff_catalog(db: Session, sheet_codis: dict[int, list[str]]) -> dict:
     """Compara el sheet amb la BD sense escriure res."""
-    db_items = {i.codi_discogs: i for i in db.query(Item).filter(Item.codi_discogs.isnot(None)).all()}
+    db_items = {
+        i.codi_discogs: i
+        for i in db.query(Item)
+        .join(RecordStockDetail, RecordStockDetail.item_id == Item.id)
+        .filter(RecordStockDetail.codi_discogs.isnot(None))
+        .all()
+    }
     a_afegir = [codi for codi in sheet_codis if codi not in db_items]
     a_retirar = [
         codi for codi, item in db_items.items()
@@ -110,15 +116,18 @@ def apply_sync(db: Session, sheet_codis: dict[int, list[str]], diff: dict) -> di
 
             release = None
             if discogs_release_id:
-                release = db.scalar(select(Release).where(Release.discogs_release_id == discogs_release_id))
+                release = db.scalar(
+                    select(Release).join(RecordProduct).where(RecordProduct.discogs_release_id == discogs_release_id)
+                )
             if release is None:
                 release = db.scalar(
-                    select(Release).where(Release.artista.ilike(artista), Release.titulo.ilike(titulo))
+                    select(Release).join(RecordProduct)
+                    .where(RecordProduct.artista.ilike(artista), Release.title.ilike(titulo))
                 )
             if release is None:
                 release = Release(
                     artista=artista,
-                    titulo=titulo,
+                    title=titulo,
                     sello=sello,
                     referencia=referencia,
                     formato=formato,
@@ -131,11 +140,11 @@ def apply_sync(db: Session, sheet_codis: dict[int, list[str]], diff: dict) -> di
                 Item(
                     release_id=release.id,
                     codi_discogs=codi,
-                    precio=precio,
-                    condicion=derive_condicion(estado_disco),
+                    price=precio,
+                    condition=derive_condicion(estado_disco),
                     estado_disco=estado_disco,
                     estado_funda=estado_funda,
-                    fecha_entrada=fecha_entrada,
+                    entry_date=fecha_entrada,
                     status=ItemStatus.disponible,
                 )
             )

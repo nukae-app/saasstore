@@ -10,7 +10,7 @@ import httpx
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from ..models import Item, ItemStatus, Release, SpotifyConnection
+from ..models import Item, ItemStatus, RecordProduct, Release, SpotifyConnection
 
 log = logging.getLogger(__name__)
 
@@ -208,17 +208,18 @@ def get_catalog_matches(db: Session, artist_names: list[str], limit: int = 12) -
     names_lower = [n.lower() for n in artist_names[:30]]
 
     sim_conditions = [
-        func.similarity(func.lower(Release.artista), name) > SIMILARITY_THRESHOLD
+        func.similarity(func.lower(RecordProduct.artista), name) > SIMILARITY_THRESHOLD
         for name in names_lower
     ]
-    sim_exprs = [func.similarity(func.lower(Release.artista), name) for name in names_lower]
+    sim_exprs = [func.similarity(func.lower(RecordProduct.artista), name) for name in names_lower]
     score_expr = func.greatest(*sim_exprs) if len(sim_exprs) > 1 else sim_exprs[0]
 
     stmt = (
         select(Release, score_expr.label("score"))
         .join(Item, (Item.release_id == Release.id) & (Item.status == ItemStatus.disponible))
+        .join(RecordProduct, RecordProduct.release_id == Release.id)
         .where(or_(*sim_conditions))
-        .group_by(Release.id)
+        .group_by(Release.id, RecordProduct.artista)
         .order_by(score_expr.desc())
         .limit(limit)
     )
@@ -232,13 +233,14 @@ TITLE_MATCH_THRESHOLD = 0.35
 
 def _find_exact_release(db: Session, artist: str, title: str) -> Release | None:
     """Un disc concret: artista I títol similars, amb estoc disponible."""
-    artist_sim = func.similarity(func.lower(Release.artista), artist.lower())
-    title_sim = func.similarity(func.lower(Release.titulo), title.lower())
+    artist_sim = func.similarity(func.lower(RecordProduct.artista), artist.lower())
+    title_sim = func.similarity(func.lower(Release.title), title.lower())
     stmt = (
         select(Release)
         .join(Item, (Item.release_id == Release.id) & (Item.status == ItemStatus.disponible))
+        .join(RecordProduct, RecordProduct.release_id == Release.id)
         .where(artist_sim > ARTIST_MATCH_THRESHOLD, title_sim > TITLE_MATCH_THRESHOLD)
-        .group_by(Release.id)
+        .group_by(Release.id, RecordProduct.artista)
         .order_by((artist_sim + title_sim).desc())
         .limit(1)
     )
@@ -247,10 +249,11 @@ def _find_exact_release(db: Session, artist: str, title: str) -> Release | None:
 
 def _artist_in_catalog(db: Session, artist: str) -> bool:
     """L'artista té algun disc amb estoc disponible, sigui quin sigui."""
-    artist_sim = func.similarity(func.lower(Release.artista), artist.lower())
+    artist_sim = func.similarity(func.lower(RecordProduct.artista), artist.lower())
     stmt = (
         select(Release.id)
         .join(Item, (Item.release_id == Release.id) & (Item.status == ItemStatus.disponible))
+        .join(RecordProduct, RecordProduct.release_id == Release.id)
         .where(artist_sim > ARTIST_MATCH_THRESHOLD)
         .limit(1)
     )

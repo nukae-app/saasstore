@@ -22,7 +22,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -37,21 +37,21 @@ def test_get_configuracio_admin(db, client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["id"] == 1
-    assert body["reserva_minuts"] == 20
+    assert body["reservation_minutes"] == 20
 
 
 def test_patch_configuracio_admin(db, client):
     admin = _admin_token(client, db)
     resp = client.patch(
         "/admin/configuracio",
-        json={"nom_fiscal": "Nova Botiga SL", "nif": "B12345678", "telefon": "931234567"},
+        json={"fiscal_name": "Nova Botiga SL", "nif": "B12345678", "phone": "931234567"},
         headers=_auth(admin),
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["nom_fiscal"] == "Nova Botiga SL"
+    assert body["fiscal_name"] == "Nova Botiga SL"
     assert body["nif"] == "B12345678"
-    assert body["telefon"] == "931234567"
+    assert body["phone"] == "931234567"
 
 
 def test_get_configuracio_requereix_admin(client):
@@ -63,7 +63,7 @@ def test_config_publica_no_exposa_nif(db, client):
     admin = _admin_token(client, db)
     client.patch(
         "/admin/configuracio",
-        json={"nif": "B12345678", "telefon": "931234567", "instagram_url": "https://instagram.com/x"},
+        json={"nif": "B12345678", "phone": "931234567", "instagram_url": "https://instagram.com/x"},
         headers=_auth(admin),
     )
 
@@ -71,14 +71,14 @@ def test_config_publica_no_exposa_nif(db, client):
     assert resp.status_code == 200
     body = resp.json()
     assert "nif" not in body
-    assert body["telefon"] == "931234567"
+    assert body["phone"] == "931234567"
     assert body["instagram_url"] == "https://instagram.com/x"
 
 
 def test_reserva_minuts_es_desa(db, client):
     admin = _admin_token(client, db)
-    resp = client.patch("/admin/configuracio", json={"reserva_minuts": 5}, headers=_auth(admin))
+    resp = client.patch("/admin/configuracio", json={"reservation_minutes": 5}, headers=_auth(admin))
     assert resp.status_code == 200
 
     config = db.get(ConfiguracioBotiga, 1)
-    assert config.reserva_minuts == 5
+    assert config.reservation_minutes == 5

@@ -25,7 +25,7 @@ from app.services.subscripcions import proposar_assignacio, seleccionar_items_ca
 
 
 def _user(db, email="client@example.com") -> User:
-    u = User(email=email, nombre="Client")
+    u = User(email=email, name="Client")
     db.add(u)
     db.commit()
     return u
@@ -33,8 +33,8 @@ def _user(db, email="client@example.com") -> User:
 
 def _address(db, user: User) -> Address:
     a = Address(
-        user_id=user.id, nombre_destinatario="Client", linea1="Carrer Fals 1",
-        ciudad="Barcelona", cp="08001", pais="ES",
+        user_id=user.id, recipient_name="Client", address_line1="Carrer Fals 1",
+        city="Barcelona", postal_code="08001", country="ES",
     )
     db.add(a)
     db.commit()
@@ -53,7 +53,7 @@ def _subscripcio(db, user: User, address: Address, *, generes=None, quantitat=1)
 
 
 def _release(db, artista="Artista", titulo="Àlbum", genero=None) -> Release:
-    r = Release(artista=artista, titulo=titulo, formato="LP", genero=genero)
+    r = Release(artista=artista, title=titulo, formato="LP", genero=genero)
     db.add(r)
     db.commit()
     return r
@@ -61,9 +61,9 @@ def _release(db, artista="Artista", titulo="Àlbum", genero=None) -> Release:
 
 def _item(db, release: Release, precio: str = "20.00", dies_entrada: int = 0, pool: bool = True) -> Item:
     i = Item(
-        release_id=release.id, precio=Decimal(precio), status=ItemStatus.disponible,
-        fecha_entrada=datetime.now(timezone.utc) - timedelta(days=dies_entrada),
-        subscripcio_pool=pool,
+        release_id=release.id, price=Decimal(precio), status=ItemStatus.disponible,
+        entry_date=datetime.now(timezone.utc) - timedelta(days=dies_entrada),
+        subscription_pool=pool,
     )
     db.add(i)
     db.commit()

@@ -24,7 +24,7 @@ def _login(client, email):
 def _admin_token(client, db, email="admin@example.com") -> str:
     access = _login(client, email)
     user = db.scalar(select(User).where(User.email == email))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -35,8 +35,8 @@ def _auth(token):
 
 def _seed_order(db, status=OrderStatus.pagado, metodo_envio="recogida_tienda") -> Order:
     order = Order(
-        email_contacto="client@example.com", status=status, total=Decimal("20.00"),
-        metodo_envio=metodo_envio, metodo_pago="tienda",
+        contact_email="client@example.com", status=status, total=Decimal("20.00"),
+        shipping_method=metodo_envio, payment_method="tienda",
     )
     db.add(order)
     db.commit()
@@ -52,7 +52,7 @@ def test_avisar_recollida_ok(db, client):
     assert resp.json()["avisada_recollida_at"] is not None
 
     db.refresh(order)
-    assert order.avisada_recollida_at is not None
+    assert order.pickup_notified_at is not None
 
 
 def test_avisar_recollida_falla_si_es_enviament(db, client):
@@ -74,10 +74,10 @@ def test_avisar_recollida_falla_si_no_pagada(db, client):
 def test_avisar_recollida_falla_si_pendent_arribada(db, client):
     admin_token = _admin_token(client, db)
     order = _seed_order(db)
-    r = Release(artista="Artista", titulo="Àlbum", formato="LP")
+    r = Release(artista="Artista", title="Àlbum", formato="LP")
     db.add(r)
     db.flush()
-    db.add(OrderItem(order_id=order.id, item_id=None, release_id=r.id, precio=Decimal("20.00")))
+    db.add(OrderItem(order_id=order.id, item_id=None, release_id=r.id, price=Decimal("20.00")))
     db.commit()
 
     resp = client.post(f"/admin/orders/{order.id}/avisar-recollida", headers=_auth(admin_token))

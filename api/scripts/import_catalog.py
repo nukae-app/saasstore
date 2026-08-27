@@ -26,8 +26,10 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy import select
 
 from app.database import SessionLocal
-from app.models import Item, Release
+from app.models import Item, RecordProduct, RecordStockDetail, Release, Tenant
 from app.services import discogs
+from app.tenancy import scoped_to
+from app.tenant_secrets import get_tenant_secrets
 
 COLS = {
     "codi": "CODI",
@@ -73,15 +75,20 @@ def parse_fecha(value: str | None) -> datetime | None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("csv_path", help="ruta al CSV exportado del sheet")
+    parser.add_argument("--tenant", required=True, help="Slug del tenant (ver tabla tenants)")
     parser.add_argument("--enrich", action="store_true", help="consultar Discogs por cada CODI (lento)")
     parser.add_argument("--limit", type=int, default=0, help="procesar solo N filas (para probar)")
     args = parser.parse_args()
 
     db = SessionLocal()
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == args.tenant))
+    if tenant is None:
+        raise SystemExit(f"No existe ningún tenant con slug '{args.tenant}'")
+    token = get_tenant_secrets(tenant.id).discogs_token
     creados, saltados, errores = 0, 0, 0
     releases_cache: dict[tuple, Release] = {}
 
-    with open(args.csv_path, newline="", encoding="utf-8") as fh:
+    with scoped_to(db, tenant.id), open(args.csv_path, newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         # Trigger header read, then strip whitespace from column names
         _ = reader.fieldnames
@@ -98,7 +105,9 @@ def main() -> None:
                     continue  # fila vacía o cabecera repetida
 
                 codi = int(codi_raw) if codi_raw and codi_raw.isdigit() else None
-                if codi and db.scalar(select(Item).where(Item.codi_discogs == codi)):
+                if codi and db.scalar(
+                    select(Item).join(RecordStockDetail).where(RecordStockDetail.codi_discogs == codi)
+                ):
                     saltados += 1
                     continue
 
@@ -110,15 +119,15 @@ def main() -> None:
                 release = releases_cache.get(key)
                 if release is None:
                     release = db.scalar(
-                        select(Release).where(
-                            Release.artista.ilike(artista),
-                            Release.titulo.ilike(titulo),
+                        select(Release).join(RecordProduct).where(
+                            RecordProduct.artista.ilike(artista),
+                            Release.title.ilike(titulo),
                         )
                     )
                 if release is None:
                     release = Release(
                         artista=artista,
-                        titulo=titulo,
+                        title=titulo,
                         sello=sello,
                         referencia=referencia,
                         formato=infer_formato_sheet(row.get(COLS["formato"])),
@@ -128,20 +137,20 @@ def main() -> None:
                 releases_cache[key] = release
 
                 if args.enrich and codi and release.discogs_release_id is None:
-                    info = discogs.get_listing(codi)
+                    info = discogs.get_listing(token, codi)
                     if info:
                         release.discogs_release_id = info["discogs_release_id"]
-                        if info.get("imagen_url") and not release.imagen_url:
-                            release.imagen_url = info["imagen_url"]
+                        if info.get("imagen_url") and not release.image_url:
+                            release.image_url = info["imagen_url"]
 
                 db.add(
                     Item(
                         release_id=release.id,
                         codi_discogs=codi,
-                        precio=precio,
+                        price=precio,
                         estado_disco=clean(row.get(COLS["estado_disco"])),
                         estado_funda=clean(row.get(COLS["estado_funda"])),
-                        fecha_entrada=parse_fecha(row.get(COLS["fecha"])),
+                        entry_date=parse_fecha(row.get(COLS["fecha"])),
                     )
                 )
                 creados += 1

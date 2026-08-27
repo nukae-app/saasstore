@@ -7,7 +7,13 @@ import { Button } from '../../../components/ui/button';
 import ReturnSaleModal from '../../../components/admin/ReturnSaleModal';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
+import { useTenantConfig } from '../../../components/store/useTenantConfig';
 import { Search, X, Disc3, RotateCcw, ChevronDown, ChevronRight, Clock, Bell, Printer, Check, User as UserIcon, UserPlus } from 'lucide-react';
+
+// No hi ha sistema de pujada de logo per tenant (fora d'abast, ver plan) —
+// mentrestant, la imatge compartida només es mostra per al tenant real
+// d'Ultra-Local Records; la resta veu el seu nom en text al tiquet.
+const TENANT_AMB_LOGO = 'recordstore';
 
 const CANAL_COLOR = {
   mostrador: 'bg-amber-100 text-amber-700',
@@ -63,7 +69,7 @@ export default function TpvPage() {
 
   const TABS = [
     { key: 'venda', label: t('tpv.tab.venda') },
-    { key: 'reserves', label: 'Reserves web' },
+    { key: 'reserves', label: t('tpv.tab.reserves', 'Reserves web') },
     { key: 'resum', label: t('tpv.tab.resum') },
     { key: 'caixa', label: t('tpv.tab.caixa') },
   ];
@@ -145,10 +151,14 @@ function VendaTab() {
       const data = await r.json();
       const items = (data.results ?? []).flatMap(rel =>
         (rel.items ?? [])
-          .filter(it => it.condicion === 'nou'
-            ? it.status === 'disponible' && (it.cantidad - it.cantidad_reservada) > 0
+          .filter(it => it.condition === 'nou'
+            ? it.status === 'disponible' && (it.quantity - it.reserved_quantity) > 0
             : it.status === 'disponible')
-          .map(it => ({ ...it, artista: rel.artista, titulo: rel.titulo, imagen_url: rel.imagen_url }))
+          .map(it => ({
+            ...it,
+            artista: rel.artista, titulo: rel.title, imagen_url: rel.image_url,
+            condicion: it.condition, cantidad: it.quantity, cantidad_reservada: it.reserved_quantity, precio: it.price,
+          }))
       );
       setResults(items);
     } catch {
@@ -228,15 +238,15 @@ function VendaTab() {
     const r = await authFetch('/admin/ventas-externas/lote', {
       method: 'POST',
       body: JSON.stringify({
-        // precio_venta és el TOTAL de la línia (preu unitari × cantidad).
+        // sale_price és el TOTAL de la línia (preu unitari × cantidad).
         lineas: cart.map(l => l.manual
-          ? { descripcion: l.descripcion, tipus_iva_id: l.tipus_iva_id, precio_venta: parseFloat(l.precio) }
-          : { item_id: l.id, precio_venta: parseFloat(l.precio) * (l.cantidad || 1), cantidad: l.cantidad || 1 }
+          ? { description: l.descripcion, tipus_iva_id: l.tipus_iva_id, sale_price: parseFloat(l.precio) }
+          : { item_id: l.id, sale_price: parseFloat(l.precio) * (l.cantidad || 1), quantity: l.cantidad || 1 }
         ),
-        canal: 'mostrador',
-        metodo_pago: metodoPago,
-        fecha: new Date().toISOString(),
-        nombre_cliente: nombreCliente || null,
+        channel: 'mostrador',
+        payment_method: metodoPago,
+        date: new Date().toISOString(),
+        client_name: nombreCliente || null,
         user_id: userId || null,
       }),
     });
@@ -307,30 +317,30 @@ function VendaTab() {
         {!manualOpen ? (
           <button onClick={() => setManualOpen(true)}
             className="text-sm text-zinc-500 hover:text-zinc-900 font-medium">
-            + Article manual
+            + {t('tpv.manual_item', 'Article manual')}
           </button>
         ) : (
           <div className="bg-zinc-50 rounded-xl p-4 space-y-3">
-            <div className="text-sm font-semibold text-zinc-700">Article manual</div>
+            <div className="text-sm font-semibold text-zinc-700">{t('tpv.manual_item', 'Article manual')}</div>
             <input value={manualDesc} onChange={e => setManualDesc(e.target.value)}
-              placeholder="Descripció (p.ex. Samarreta talla M)"
+              placeholder={t('tpv.manual_item_ph', 'Descripció (p.ex. Samarreta talla M)')}
               className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
             <div className="flex gap-2">
               <input type="number" step="0.01" min="0" value={manualPrecio} onChange={e => setManualPrecio(e.target.value)}
-                placeholder="Preu final (€)"
+                placeholder={t('tpv.manual_item_price_ph', 'Preu final (€)')}
                 className="flex-1 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
               <select value={manualTipusIvaId} onChange={e => setManualTipusIvaId(e.target.value)}
                 className="flex-1 border border-zinc-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-zinc-900">
-                {tiposIva.length === 0 && <option value="">Cap tipus d'IVA configurat</option>}
+                {tiposIva.length === 0 && <option value="">{t('tpv.no_iva_configured', "Cap tipus d'IVA configurat")}</option>}
                 {tiposIva.map(tp => (
-                  <option key={tp.id} value={tp.id}>{tp.nom} ({parseFloat(tp.percentatge)}%)</option>
+                  <option key={tp.id} value={tp.id}>{tp.name} ({parseFloat(tp.percentage)}%)</option>
                 ))}
               </select>
             </div>
             <div className="flex gap-2">
               <Button type="button" onClick={addManualToCart}
                 disabled={!manualDesc.trim() || !manualPrecio || !manualTipusIvaId}>
-                Afegir a la cistella
+                {t('tpv.add_to_cart', 'Afegir a la cistella')}
               </Button>
               <button type="button" onClick={() => { setManualOpen(false); setManualDesc(''); setManualPrecio(''); }}
                 className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700">
@@ -346,10 +356,10 @@ function VendaTab() {
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
             <span className="text-sm font-semibold text-zinc-700">
-              Cistella · {cart.length} {cart.length === 1 ? 'article' : 'articles'}
+              {t('tpv.cart', 'Cistella')} · {cart.length} {cart.length === 1 ? t('tpv.item_singular', 'article') : t('tpv.item_plural', 'articles')}
             </span>
             <button onClick={() => setCart([])} className="text-xs text-zinc-400 hover:text-red-600 font-medium">
-              Buidar
+              {t('tpv.clear_cart', 'Buidar')}
             </button>
           </div>
           <div className="divide-y divide-zinc-100">
@@ -398,10 +408,10 @@ function VendaTab() {
           </div>
           <div className="px-5 py-4 bg-zinc-50 flex items-center justify-between">
             <div>
-              <div className="text-xs text-zinc-500">Total</div>
+              <div className="text-xs text-zinc-500">{t('tpv.resum.total')}</div>
               <div className="text-2xl font-bold text-zinc-900">{cartTotal.toFixed(2)} €</div>
             </div>
-            <Button onClick={() => setCheckoutOpen(true)}>Cobrar</Button>
+            <Button onClick={() => setCheckoutOpen(true)}>{t('tpv.confirm.sell')}</Button>
           </div>
         </div>
       )}
@@ -432,6 +442,7 @@ function horesRestants(reservedUntil) {
 }
 
 function ReservesWebTab() {
+  const t = useT();
   const [reserves, setReserves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmReserva, setConfirmReserva] = useState(null);
@@ -450,7 +461,7 @@ function ReservesWebTab() {
       <OrdersTiendaSection />
 
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-zinc-700">Peticions de client</h3>
+        <h3 className="text-sm font-semibold text-zinc-700">{t('tpv.customer_requests', 'Peticions de client')}</h3>
         <ReservesList reserves={reserves} loading={loading} confirmReserva={confirmReserva}
           setConfirmReserva={setConfirmReserva} onSold={load} />
       </div>
@@ -459,23 +470,24 @@ function ReservesWebTab() {
 }
 
 function ReservesList({ reserves, loading, confirmReserva, setConfirmReserva, onSold }) {
+  const t = useT();
 
   async function sell(reserva, precio, nombreCliente, metodoPago, userId) {
     const r = await authFetch('/admin/ventas-externas', {
       method: 'POST',
       body: JSON.stringify({
         item_id: reserva.item_id,
-        canal: 'mostrador',
-        metodo_pago: metodoPago,
-        precio_venta: parseFloat(precio),
-        fecha: new Date().toISOString(),
-        nombre_cliente: nombreCliente || null,
+        channel: 'mostrador',
+        payment_method: metodoPago,
+        sale_price: parseFloat(precio),
+        date: new Date().toISOString(),
+        client_name: nombreCliente || null,
         user_id: userId || null,
       }),
     });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
-      throw new Error(body.detail || 'No s\'ha pogut registrar la venda.');
+      throw new Error(body.detail || t('tpv.sale_register_error', 'No s\'ha pogut registrar la venda.'));
     }
     setConfirmReserva(null);
     onSold();
@@ -484,16 +496,16 @@ function ReservesList({ reserves, loading, confirmReserva, setConfirmReserva, on
   return (
     <div className="space-y-4">
       <p className="text-sm text-zinc-500">
-        Ja disponibles a botiga, pendents de recollir i pagar. Es reserven 72 hores.
+        {t('tpv.reserves.hint', 'Ja disponibles a botiga, pendents de recollir i pagar. Es reserven 72 hores.')}
       </p>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-zinc-400 text-sm">Carregant…</div>
+          <div className="p-10 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
         ) : reserves.length === 0 ? (
           <div className="p-10 text-center text-zinc-400 text-sm">
             <Bell size={28} className="text-zinc-200 mx-auto mb-3" />
-            Cap reserva pendent de recollir.
+            {t('tpv.reserves.no_pending', 'Cap reserva pendent de recollir.')}
           </div>
         ) : (
           <div className="divide-y divide-zinc-100">
@@ -519,7 +531,7 @@ function ReservesList({ reserves, loading, confirmReserva, setConfirmReserva, on
                     <div className="text-xl font-bold text-zinc-900 mb-1">{r.precio} €</div>
                     <button onClick={() => setConfirmReserva(r)}
                       className="bg-primary hover:bg-zinc-800 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
-                      Vendre
+                      {t('tpv.sell_verb', 'Vendre')}
                     </button>
                   </div>
                 </div>
@@ -544,6 +556,7 @@ function ReservesList({ reserves, loading, confirmReserva, setConfirmReserva, on
 }
 
 function OrdersTiendaSection() {
+  const t = useT();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payOrder, setPayOrder] = useState(null);
@@ -559,15 +572,15 @@ function OrdersTiendaSection() {
   useEffect(() => { load(); }, []);
 
   async function cobrar(order, metodoPago, precio) {
-    const payload = { metodo_pago: metodoPago };
-    if (precio != null) payload.precio = parseFloat(precio);
+    const payload = { payment_method: metodoPago };
+    if (precio != null) payload.price = parseFloat(precio);
     const r = await authFetch(`/admin/orders/${order.order_id}/marcar-pagado-tienda`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
-      throw new Error(body.detail || 'No s\'ha pogut cobrar la comanda.');
+      throw new Error(body.detail || t('tpv.order_charge_error', 'No s\'ha pogut cobrar la comanda.'));
     }
     setPayOrder(null);
     load();
@@ -577,13 +590,13 @@ function OrdersTiendaSection() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-zinc-700">Comandes web · paga en recollir</h3>
+      <h3 className="text-sm font-semibold text-zinc-700">{t('tpv.web_orders_pickup', 'Comandes web · paga en recollir')}</h3>
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-2.5">{error}</div>
       )}
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-zinc-400 text-sm">Carregant…</div>
+          <div className="p-10 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
         ) : (
           <div className="divide-y divide-zinc-100">
             {orders.map(o => {
@@ -608,7 +621,7 @@ function OrdersTiendaSection() {
                     <div className="text-xl font-bold text-zinc-900 mb-1">{parseFloat(o.total).toFixed(2)} €</div>
                     <button onClick={() => setPayOrder(o)}
                       className="bg-primary hover:bg-zinc-800 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
-                      Cobrar
+                      {t('tpv.confirm.sell')}
                     </button>
                   </div>
                 </div>
@@ -638,6 +651,7 @@ function OrdersTiendaSection() {
 }
 
 function OrderPaymentModal({ order, onConfirm, onClose }) {
+  const t = useT();
   const [pago, setPago] = useState('efectivo');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -648,7 +662,7 @@ function OrderPaymentModal({ order, onConfirm, onClose }) {
     try {
       await onConfirm(pago);
     } catch (err) {
-      setError(err.message || 'No s\'ha pogut cobrar la comanda.');
+      setError(err.message || t('tpv.order_charge_error', 'No s\'ha pogut cobrar la comanda.'));
     } finally {
       setSaving(false);
     }
@@ -658,7 +672,7 @@ function OrderPaymentModal({ order, onConfirm, onClose }) {
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200">
-          <h3 className="font-bold text-zinc-900">Cobrar comanda</h3>
+          <h3 className="font-bold text-zinc-900">{t('tpv.charge_order', 'Cobrar comanda')}</h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
@@ -674,9 +688,9 @@ function OrderPaymentModal({ order, onConfirm, onClose }) {
             {parseFloat(order.total).toFixed(2)} €
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">Mètode de pagament</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-2">{t('tpv.confirm.pago')}</label>
             <div className="grid grid-cols-2 gap-2">
-              {[['efectivo', 'Efectiu', 'bg-green-500'], ['tarjeta', 'Targeta', 'bg-indigo-500']].map(([val, label, color]) => (
+              {[['efectivo', t('tpv.pago.cash'), 'bg-green-500'], ['tarjeta', t('tpv.pago.card'), 'bg-indigo-500']].map(([val, label, color]) => (
                 <button key={val} type="button" onClick={() => setPago(val)}
                   className={`py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
                     pago === val
@@ -690,10 +704,10 @@ function OrderPaymentModal({ order, onConfirm, onClose }) {
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <div className="flex gap-3 pt-1">
-            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>Cancel·lar</Button>
+            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>{t('common.cancel')}</Button>
             <Button type="button" className={`flex-1 ${pago === 'efectivo' ? '' : 'bg-indigo-600 hover:bg-indigo-700'}`}
               disabled={saving} onClick={handle}>
-              {saving ? 'Cobrant…' : `Cobrar · ${pago === 'efectivo' ? 'Efectiu' : 'Targeta'}`}
+              {saving ? t('tpv.confirm.selling') : `${t('tpv.confirm.sell')} · ${pago === 'efectivo' ? t('tpv.pago.cash') : t('tpv.pago.card')}`}
             </Button>
           </div>
         </div>
@@ -723,14 +737,14 @@ function agruparEnTiquets(sales) {
     let tk = map.get(v.ticket_id);
     if (!tk) {
       tk = {
-        ticket_id: v.ticket_id, fecha: v.fecha, canal: v.canal, metodo_pago: v.metodo_pago,
-        nombre_cliente: v.nombre_cliente, user_id: v.user_id, user_nom: v.user_nom,
+        ticket_id: v.ticket_id, fecha: v.date, canal: v.channel, metodo_pago: v.payment_method,
+        nombre_cliente: v.client_name, user_id: v.user_id, user_nom: v.user_nom,
         lines: [], total: 0, retornades: 0,
       };
       map.set(v.ticket_id, tk);
     }
     tk.lines.push(v);
-    tk.total += parseFloat(v.precio_venta) || 0;
+    tk.total += parseFloat(v.sale_price) || 0;
     if (v.devuelta) tk.retornades += 1;
   }
   return [...map.values()];
@@ -740,6 +754,7 @@ function agruparEnTiquets(sales) {
 // ja cobrat — útil quan al moment de vendre no es va triar client i es vol
 // lligar més tard, per exemple per activar-li avantatges de fidelització.
 function LinkUserModal({ ticket, onClose, onSaved }) {
+  const t = useT();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [userQ, setUserQ] = useState('');
@@ -770,7 +785,7 @@ function LinkUserModal({ ticket, onClose, onSaved }) {
       });
       if (!r.ok) {
         const body = await r.json().catch(() => ({}));
-        setError(body.detail || 'No s\'ha pogut desar.');
+        setError(body.detail || t('purchases.supplier_modal.save_error', 'No s\'ha pogut desar.'));
         return;
       }
       onSaved();
@@ -783,40 +798,40 @@ function LinkUserModal({ ticket, onClose, onSaved }) {
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200">
-          <h3 className="font-bold text-zinc-900">Vincular a usuari</h3>
+          <h3 className="font-bold text-zinc-900">{t('tpv.link_user_modal.title', 'Vincular a usuari')}</h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="text-sm text-zinc-500">Tiquet #{ticket.ticket_id.slice(0, 8)} · {ticket.total.toFixed(2)} €</div>
+          <div className="text-sm text-zinc-500">{t('tpv.link_user_modal.ticket', 'Tiquet')} #{ticket.ticket_id.slice(0, 8)} · {ticket.total.toFixed(2)} €</div>
 
           {actual && (
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
               <div className="w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
-                {(actual.nombre || '?')[0].toUpperCase()}
+                {(actual.name || '?')[0].toUpperCase()}
               </div>
-              <div className="flex-1 min-w-0 text-sm font-medium text-zinc-900 truncate">{actual.nombre ?? 'Usuari vinculat'}</div>
+              <div className="flex-1 min-w-0 text-sm font-medium text-zinc-900 truncate">{actual.name ?? t('tpv.link_user_modal.linked_user', 'Usuari vinculat')}</div>
               <button type="button" disabled={saving} onClick={() => desar(null)}
                 className="text-xs text-red-600 hover:underline shrink-0 disabled:opacity-50">
-                Desvincular
+                {t('tpv.link_user_modal.unlink', 'Desvincular')}
               </button>
             </div>
           )}
 
           <div className="relative">
             <input value={userQ} onChange={e => handleUserQ(e.target.value)}
-              placeholder={actual ? "Cerca per canviar d'usuari..." : 'Cerca per nom o email...'} autoFocus
+              placeholder={actual ? t('tpv.link_user_modal.search_to_change_ph', "Cerca per canviar d'usuari...") : t('tpv.search_user_ph', 'Cerca per nom o email...')} autoFocus
               className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
             {userResults.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden max-h-56 overflow-y-auto">
                 {userResults.map(u => (
-                  <button key={u.id} type="button" onClick={() => { setSelected(u); setUserQ(u.nombre || u.email); setUserResults([]); }}
+                  <button key={u.id} type="button" onClick={() => { setSelected(u); setUserQ(u.name || u.email); setUserResults([]); }}
                     className="w-full text-left px-3 py-2.5 hover:bg-zinc-50 flex items-center gap-2 border-b border-zinc-50 last:border-0">
                     <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0">
-                      {(u.nombre || u.email)[0].toUpperCase()}
+                      {(u.name || u.email)[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm text-zinc-900 truncate">{u.nombre || u.email}</div>
-                      {u.nombre && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
+                      <div className="text-sm text-zinc-900 truncate">{u.name || u.email}</div>
+                      {u.name && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
                     </div>
                   </button>
                 ))}
@@ -826,9 +841,9 @@ function LinkUserModal({ ticket, onClose, onSaved }) {
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <div className="flex gap-3 pt-1">
-            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>Cancel·lar</Button>
+            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>{t('common.cancel')}</Button>
             <Button type="button" className="flex-1" disabled={!selected || saving} onClick={() => desar(selected.id)}>
-              {saving ? 'Desant...' : 'Vincular'}
+              {saving ? t('common.saving') : t('tpv.link_user_modal.link', 'Vincular')}
             </Button>
           </div>
         </div>
@@ -910,7 +925,9 @@ function ResumTab() {
           ))}
         </div>
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
-          {[['all', '—'], ...Object.keys(CANAL_KEY).map(k => [k, t(CANAL_KEY[k])])].map(([key, label]) => (
+          {[['all', '—'], ...Object.keys(CANAL_KEY)
+            .filter(k => k !== 'discogs' || shopConfig?.discogs_habilitat)
+            .map(k => [k, t(CANAL_KEY[k])])].map(([key, label]) => (
             <button key={key} onClick={() => setCanalFilter(key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${canalFilter === key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}>
               {label}
@@ -976,7 +993,7 @@ function ResumTab() {
                               <span className="text-zinc-500"> — {tk.lines[0].titulo}</span>
                             </>
                           ) : (
-                            <span className="text-zinc-900">{tk.lines[0].descripcion ?? '—'}</span>
+                            <span className="text-zinc-900">{tk.lines[0].description ?? '—'}</span>
                           )
                         ) : (
                           <span className="text-zinc-900">{tk.lines.length} {t('tpv.resum.articles')}</span>
@@ -989,7 +1006,7 @@ function ResumTab() {
                         <div>{tk.nombre_cliente ?? '—'}</div>
                         <button onClick={(e) => { e.stopPropagation(); setLinkTicket(tk); }}
                           className={`mt-0.5 inline-flex items-center gap-1 text-xs hover:underline ${tk.user_nom ? 'text-amber-700' : 'text-zinc-400'}`}>
-                          {tk.user_nom ? <><UserIcon size={11} /> {tk.user_nom}</> : <><UserPlus size={11} /> Vincular</>}
+                          {tk.user_nom ? <><UserIcon size={11} /> {tk.user_nom}</> : <><UserPlus size={11} /> {t('tpv.link_user_modal.link', 'Vincular')}</>}
                         </button>
                       </td>
                       <td className="px-4 py-2.5">
@@ -1005,7 +1022,7 @@ function ResumTab() {
                       <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{tk.total.toFixed(2)} €</td>
                       <td className="px-2 py-2.5 text-right">
                         <button onClick={(e) => { e.stopPropagation(); setPrintSale({ items: tk.lines, metodo_pago: tk.metodo_pago, nombre_cliente: tk.nombre_cliente, fecha: tk.fecha }); }}
-                          title="Imprimir tiquet"
+                          title={t('tpv.print_ticket', 'Imprimir tiquet')}
                           className="text-zinc-400 hover:text-zinc-700 p-1 rounded-lg hover:bg-zinc-100">
                           <Printer size={14} />
                         </button>
@@ -1027,10 +1044,10 @@ function ResumTab() {
                                         <span className="text-zinc-500"> — {v.titulo}</span>
                                       </>
                                     ) : (
-                                      <span className="text-zinc-900">{v.descripcion ?? '—'}</span>
+                                      <span className="text-zinc-900">{v.description ?? '—'}</span>
                                     )}
                                   </td>
-                                  <td className="px-4 py-2 text-right font-medium text-zinc-700 whitespace-nowrap">{v.precio_venta} €</td>
+                                  <td className="px-4 py-2 text-right font-medium text-zinc-700 whitespace-nowrap">{v.sale_price} €</td>
                                   <td className="px-4 py-2 text-right w-32">
                                     {v.devuelta ? (
                                       <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500">
@@ -1063,7 +1080,7 @@ function ResumTab() {
       {returnVenta && (
         <ReturnSaleModal
           sale={{ item_id: returnVenta.item_id, artista: returnVenta.artista, titulo: returnVenta.titulo,
-                  precio: returnVenta.precio_venta, nombre_cliente: returnVenta.nombre_cliente,
+                  precio: returnVenta.sale_price, nombre_cliente: returnVenta.client_name,
                   venta_externa_id: returnVenta.id }}
           onClose={() => setReturnVenta(null)}
           onSaved={() => { setReturnVenta(null); load(); }} />
@@ -1122,14 +1139,14 @@ function CaixaTab() {
 
   useEffect(() => { loadAll(); }, []);
 
-  const sessionsTancades = useMemo(() => sessions.filter(s => s.fecha_cierre), [sessions]);
+  const sessionsTancades = useMemo(() => sessions.filter(s => s.closed_at), [sessions]);
   const sessionsColumns = useMemo(() => ({
-    fecha_apertura: { sortValue: s => s.fecha_apertura ?? '' },
-    fondo_inicial: { sortValue: s => parseFloat(s.fondo_inicial) || 0 },
-    total_ventas_efectivo: { sortValue: s => parseFloat(s.total_ventas_efectivo) || 0 },
-    total_entradas: { sortValue: s => parseFloat(s.total_entradas) || 0 },
-    total_salidas: { sortValue: s => parseFloat(s.total_salidas) || 0 },
-    conteo_real: { sortValue: s => s.conteo_real != null ? parseFloat(s.conteo_real) : null },
+    opened_at: { sortValue: s => s.opened_at ?? '' },
+    opening_float: { sortValue: s => parseFloat(s.opening_float) || 0 },
+    total_cash_sales: { sortValue: s => parseFloat(s.total_cash_sales) || 0 },
+    total_cash_in: { sortValue: s => parseFloat(s.total_cash_in) || 0 },
+    total_cash_out: { sortValue: s => parseFloat(s.total_cash_out) || 0 },
+    actual_count: { sortValue: s => s.actual_count != null ? parseFloat(s.actual_count) : null },
     diferencia: { sortValue: s => s.diferencia != null ? parseFloat(s.diferencia) : null },
   }), []);
   const { rows: sessionsSorted, sort: sessionsSort, toggleSort: toggleSessionsSort } = useSortFilter(sessionsTancades, sessionsColumns);
@@ -1138,17 +1155,17 @@ function CaixaTab() {
   const [ventesHui, setVentesHui] = useState([]);
   useEffect(() => {
     if (!activa) return;
-    authFetch(`/admin/ventas-externas?metodo_pago=efectivo&desde=${encodeURIComponent(activa.fecha_apertura)}`)
+    authFetch(`/admin/ventas-externas?metodo_pago=efectivo&desde=${encodeURIComponent(activa.opened_at)}`)
       .then(r => (r.ok ? r.json() : []))
       .then(setVentesHui);
   }, [activa]);
 
   // Totals per calcular l'esperat en caixa
-  const totalEfectiu = ventesHui.reduce((s, v) => s + parseFloat(v.precio_venta), 0);
-  const totalEntrades = activa ? parseFloat(activa.total_entradas || 0) : 0;
-  const totalSortides = activa ? parseFloat(activa.total_salidas || 0) : 0;
+  const totalEfectiu = ventesHui.reduce((s, v) => s + parseFloat(v.sale_price), 0);
+  const totalEntrades = activa ? parseFloat(activa.total_cash_in || 0) : 0;
+  const totalSortides = activa ? parseFloat(activa.total_cash_out || 0) : 0;
   const efectiuEsper = activa
-    ? parseFloat(activa.fondo_inicial) + totalEfectiu + totalEntrades - totalSortides
+    ? parseFloat(activa.opening_float) + totalEfectiu + totalEntrades - totalSortides
     : 0;
 
   async function obrir(e) {
@@ -1157,7 +1174,7 @@ function CaixaTab() {
     setError('');
     const r = await authFetch('/admin/caja/apertura', {
       method: 'POST',
-      body: JSON.stringify({ fecha_apertura: new Date().toISOString(), fondo_inicial: parseFloat(fondo), notas: notas || null }),
+      body: JSON.stringify({ opened_at: new Date().toISOString(), opening_float: parseFloat(fondo), notes: notas || null }),
     });
     setSaving(false);
     if (!r.ok) {
@@ -1175,7 +1192,7 @@ function CaixaTab() {
     setError('');
     const r = await authFetch(`/admin/caja/cierre/${activa.id}`, {
       method: 'POST',
-      body: JSON.stringify({ conteo_real: parseFloat(conteo), notas: notas || null }),
+      body: JSON.stringify({ actual_count: parseFloat(conteo), notes: notas || null }),
     });
     setSaving(false);
     if (!r.ok) {
@@ -1194,10 +1211,10 @@ function CaixaTab() {
     const r = await authFetch('/admin/caja/movimientos', {
       method: 'POST',
       body: JSON.stringify({
-        tipo: movTipo,
-        concepto: movConcepto,
-        importe: parseFloat(movImporte),
-        fecha: new Date().toISOString(),
+        type: movTipo,
+        concept: movConcepto,
+        amount: parseFloat(movImporte),
+        date: new Date().toISOString(),
       }),
     });
     setSavingMov(false);
@@ -1248,14 +1265,14 @@ function CaixaTab() {
                 {t('caixa.status.open')}
               </span>
               <span className="text-sm text-zinc-600">
-                {t('caixa.opened_at')} {new Date(activa.fecha_apertura).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                {t('caixa.opened_at')} {new Date(activa.opened_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </div>
 
           {/* Stats */}
           <div className="p-5 grid grid-cols-2 sm:grid-cols-5 gap-3 border-b border-zinc-100">
-            <CaixaStat label={t('caixa.col.fondo')} value={`${parseFloat(activa.fondo_inicial).toFixed(2)} €`} />
+            <CaixaStat label={t('caixa.col.fondo')} value={`${parseFloat(activa.opening_float).toFixed(2)} €`} />
             <CaixaStat label={t('caixa.total_ventas')} value={`${totalEfectiu.toFixed(2)} €`} highlight />
             <CaixaStat label={t('caixa.col.entrades')} value={`+${totalEntrades.toFixed(2)} €`} color="green" />
             <CaixaStat label={t('caixa.col.sortides')} value={`−${totalSortides.toFixed(2)} €`} color="red" />
@@ -1271,10 +1288,10 @@ function CaixaTab() {
               <div className="space-y-0.5">
                 {ventesHui.map(v => (
                   <div key={v.id} className="flex items-center gap-3 text-sm py-1">
-                    <span className="text-zinc-400 w-12 shrink-0 text-xs">{new Date(v.fecha).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
-                    <span className="font-medium text-zinc-900 flex-1 truncate">{v.artista ? `${v.artista} — ${v.titulo}` : v.descripcion}</span>
-                    {v.nombre_cliente && <span className="text-zinc-400 text-xs truncate max-w-[100px]">{v.nombre_cliente}</span>}
-                    <span className="font-semibold text-zinc-900 shrink-0">{parseFloat(v.precio_venta).toFixed(2)} €</span>
+                    <span className="text-zinc-400 w-12 shrink-0 text-xs">{new Date(v.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="font-medium text-zinc-900 flex-1 truncate">{v.artista ? `${v.artista} — ${v.titulo}` : v.description}</span>
+                    {v.client_name && <span className="text-zinc-400 text-xs truncate max-w-[100px]">{v.client_name}</span>}
+                    <span className="font-semibold text-zinc-900 shrink-0">{parseFloat(v.sale_price).toFixed(2)} €</span>
                   </div>
                 ))}
               </div>
@@ -1339,16 +1356,16 @@ function CaixaTab() {
                 {moviments.map(m => (
                   <div key={m.id} className="flex items-center gap-3 text-sm py-1">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${
-                      m.tipo === 'entrada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      m.type === 'entrada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
-                      {t(`caixa.mov.${m.tipo}`)}
+                      {t(`caixa.mov.${m.type}`)}
                     </span>
-                    <span className="flex-1 text-zinc-700">{m.concepto}</span>
+                    <span className="flex-1 text-zinc-700">{m.concept}</span>
                     <span className="text-xs text-zinc-400 shrink-0">
-                      {new Date(m.fecha).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(m.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className={`font-semibold shrink-0 ${m.tipo === 'entrada' ? 'text-green-700' : 'text-red-600'}`}>
-                      {m.tipo === 'entrada' ? '+' : '−'}{parseFloat(m.importe).toFixed(2)} €
+                    <span className={`font-semibold shrink-0 ${m.type === 'entrada' ? 'text-green-700' : 'text-red-600'}`}>
+                      {m.type === 'entrada' ? '+' : '−'}{parseFloat(m.amount).toFixed(2)} €
                     </span>
                   </div>
                 ))}
@@ -1392,12 +1409,12 @@ function CaixaTab() {
             <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-100">
                 <tr>
-                  <SortableTh label={t('caixa.col.date')} sortKey="fecha_apertura" sort={sessionsSort} onSort={toggleSessionsSort} />
-                  <SortableTh label={t('caixa.col.fondo')} sortKey="fondo_inicial" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
-                  <SortableTh label={t('caixa.col.ventas')} sortKey="total_ventas_efectivo" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
-                  <SortableTh label={t('caixa.col.entrades')} sortKey="total_entradas" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
-                  <SortableTh label={t('caixa.col.sortides')} sortKey="total_salidas" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
-                  <SortableTh label={t('caixa.col.conteo')} sortKey="conteo_real" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
+                  <SortableTh label={t('caixa.col.date')} sortKey="opened_at" sort={sessionsSort} onSort={toggleSessionsSort} />
+                  <SortableTh label={t('caixa.col.fondo')} sortKey="opening_float" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
+                  <SortableTh label={t('caixa.col.ventas')} sortKey="total_cash_sales" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
+                  <SortableTh label={t('caixa.col.entrades')} sortKey="total_cash_in" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
+                  <SortableTh label={t('caixa.col.sortides')} sortKey="total_cash_out" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
+                  <SortableTh label={t('caixa.col.conteo')} sortKey="actual_count" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
                   <SortableTh label={t('caixa.col.diferencia')} sortKey="diferencia" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
                 </tr>
               </thead>
@@ -1407,20 +1424,20 @@ function CaixaTab() {
                   return (
                     <tr key={s.id} className="hover:bg-zinc-50">
                       <td className="px-4 py-2.5 text-zinc-500">
-                        {new Date(s.fecha_apertura).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                        {new Date(s.opened_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })}
                         <span className="text-zinc-400 ml-1 text-xs">
-                          {new Date(s.fecha_apertura).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(s.opened_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-right">{parseFloat(s.fondo_inicial).toFixed(2)} €</td>
-                      <td className="px-4 py-2.5 text-right">{s.total_ventas_efectivo ? parseFloat(s.total_ventas_efectivo).toFixed(2) : '0.00'} €</td>
+                      <td className="px-4 py-2.5 text-right">{parseFloat(s.opening_float).toFixed(2)} €</td>
+                      <td className="px-4 py-2.5 text-right">{s.total_cash_sales ? parseFloat(s.total_cash_sales).toFixed(2) : '0.00'} €</td>
                       <td className="px-4 py-2.5 text-right text-green-700">
-                        {s.total_entradas && parseFloat(s.total_entradas) > 0 ? `+${parseFloat(s.total_entradas).toFixed(2)} €` : '—'}
+                        {s.total_cash_in && parseFloat(s.total_cash_in) > 0 ? `+${parseFloat(s.total_cash_in).toFixed(2)} €` : '—'}
                       </td>
                       <td className="px-4 py-2.5 text-right text-red-600">
-                        {s.total_salidas && parseFloat(s.total_salidas) > 0 ? `−${parseFloat(s.total_salidas).toFixed(2)} €` : '—'}
+                        {s.total_cash_out && parseFloat(s.total_cash_out) > 0 ? `−${parseFloat(s.total_cash_out).toFixed(2)} €` : '—'}
                       </td>
-                      <td className="px-4 py-2.5 text-right">{s.conteo_real ? parseFloat(s.conteo_real).toFixed(2) : '—'} €</td>
+                      <td className="px-4 py-2.5 text-right">{s.actual_count ? parseFloat(s.actual_count).toFixed(2) : '—'} €</td>
                       <td className={`px-4 py-2.5 text-right font-semibold ${difNum === null ? '' : difNum < 0 ? 'text-red-600' : difNum > 0 ? 'text-amber-600' : 'text-green-600'}`}>
                         {difNum === null ? '—' : `${difNum >= 0 ? '+' : ''}${difNum.toFixed(2)} €`}
                       </td>
@@ -1454,7 +1471,7 @@ function CaixaStat({ label, value, highlight, color }) {
 function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
   const t = useT();
   const [precio, setPrecio] = useState(item.precio);
-  const [client, setClient] = useState(initialUser ? (initialUser.nombre || '') : '');
+  const [client, setClient] = useState(initialUser ? (initialUser.name || '') : '');
   const [pago, setPago] = useState('efectivo');
   const [selling, setSelling] = useState(false);
   const [error, setError] = useState('');
@@ -1477,9 +1494,9 @@ function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
 
   function selectUser(u) {
     setLinkedUser(u);
-    setUserQ(u.nombre || u.email);
+    setUserQ(u.name || u.email);
     setUserResults([]);
-    if (!client) setClient(u.nombre || '');
+    if (!client) setClient(u.name || '');
   }
 
   function clearUser() {
@@ -1545,15 +1562,15 @@ function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
             </div>
             {/* Vinclar a usuari registrat */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Usuari registrat <span className="text-zinc-400 font-normal">(opcional)</span></label>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.individual_modal.registered_user', 'Usuari registrat')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span></label>
               {linkedUser ? (
                 <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                   <div className="w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
-                    {(linkedUser.nombre || linkedUser.email)[0].toUpperCase()}
+                    {(linkedUser.name || linkedUser.email)[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 truncate">{linkedUser.nombre || linkedUser.email}</div>
-                    {linkedUser.nombre && <div className="text-xs text-zinc-400 truncate">{linkedUser.email}</div>}
+                    <div className="text-sm font-medium text-zinc-900 truncate">{linkedUser.name || linkedUser.email}</div>
+                    {linkedUser.name && <div className="text-xs text-zinc-400 truncate">{linkedUser.email}</div>}
                   </div>
                   <button type="button" onClick={clearUser} className="text-zinc-400 hover:text-zinc-600 shrink-0">
                     <X size={14} />
@@ -1562,7 +1579,7 @@ function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
               ) : (
                 <div className="relative">
                   <input value={userQ} onChange={e => handleUserQ(e.target.value)}
-                    placeholder="Cerca per nom o email..."
+                    placeholder={t('tpv.search_user_ph', 'Cerca per nom o email...')}
                     className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
                   {userResults.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
@@ -1570,11 +1587,11 @@ function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
                         <button key={u.id} type="button" onClick={() => selectUser(u)}
                           className="w-full text-left px-3 py-2.5 hover:bg-zinc-50 flex items-center gap-2 border-b border-zinc-50 last:border-0">
                           <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0">
-                            {(u.nombre || u.email)[0].toUpperCase()}
+                            {(u.name || u.email)[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm text-zinc-900 truncate">{u.nombre || u.email}</div>
-                            {u.nombre && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
+                            <div className="text-sm text-zinc-900 truncate">{u.name || u.email}</div>
+                            {u.name && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
                           </div>
                         </button>
                       ))}
@@ -1585,7 +1602,7 @@ function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
             </div>
             {/* Nom client manual */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('tpv.confirm.client')} <span className="text-zinc-400 font-normal">(opcional)</span></label>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('tpv.confirm.client')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span></label>
               <input value={client} onChange={e => setClient(e.target.value)}
                 placeholder={t('tpv.confirm.client_ph')}
                 className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
@@ -1631,9 +1648,9 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
 
   function selectUser(u) {
     setLinkedUser(u);
-    setUserQ(u.nombre || u.email);
+    setUserQ(u.name || u.email);
     setUserResults([]);
-    if (!client) setClient(u.nombre || '');
+    if (!client) setClient(u.name || '');
   }
 
   function clearUser() {
@@ -1659,7 +1676,7 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 shrink-0">
-          <h3 className="font-bold text-zinc-900">Cobrar cistella</h3>
+          <h3 className="font-bold text-zinc-900">{t('tpv.checkout_cart_title', 'Cobrar cistella')}</h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
         </div>
         <div className="p-5 space-y-4 overflow-y-auto">
@@ -1671,7 +1688,7 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
               </div>
             ))}
             <div className="border-t border-zinc-200 pt-2 flex items-center justify-between font-bold text-zinc-900">
-              <span>Total · {cart.length} {cart.length === 1 ? 'article' : 'articles'}</span>
+              <span>{t('tpv.resum.total')} · {cart.length} {cart.length === 1 ? t('tpv.item_singular', 'article') : t('tpv.item_plural', 'articles')}</span>
               <span>{total.toFixed(2)} €</span>
             </div>
           </div>
@@ -1694,15 +1711,15 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
             </div>
             {/* Vinclar a usuari registrat */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Usuari registrat <span className="text-zinc-400 font-normal">(opcional)</span></label>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.individual_modal.registered_user', 'Usuari registrat')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span></label>
               {linkedUser ? (
                 <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                   <div className="w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
-                    {(linkedUser.nombre || linkedUser.email)[0].toUpperCase()}
+                    {(linkedUser.name || linkedUser.email)[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 truncate">{linkedUser.nombre || linkedUser.email}</div>
-                    {linkedUser.nombre && <div className="text-xs text-zinc-400 truncate">{linkedUser.email}</div>}
+                    <div className="text-sm font-medium text-zinc-900 truncate">{linkedUser.name || linkedUser.email}</div>
+                    {linkedUser.name && <div className="text-xs text-zinc-400 truncate">{linkedUser.email}</div>}
                   </div>
                   <button type="button" onClick={clearUser} className="text-zinc-400 hover:text-zinc-600 shrink-0">
                     <X size={14} />
@@ -1711,7 +1728,7 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
               ) : (
                 <div className="relative">
                   <input value={userQ} onChange={e => handleUserQ(e.target.value)}
-                    placeholder="Cerca per nom o email..."
+                    placeholder={t('tpv.search_user_ph', 'Cerca per nom o email...')}
                     className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
                   {userResults.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
@@ -1719,11 +1736,11 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
                         <button key={u.id} type="button" onClick={() => selectUser(u)}
                           className="w-full text-left px-3 py-2.5 hover:bg-zinc-50 flex items-center gap-2 border-b border-zinc-50 last:border-0">
                           <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0">
-                            {(u.nombre || u.email)[0].toUpperCase()}
+                            {(u.name || u.email)[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm text-zinc-900 truncate">{u.nombre || u.email}</div>
-                            {u.nombre && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
+                            <div className="text-sm text-zinc-900 truncate">{u.name || u.email}</div>
+                            {u.name && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
                           </div>
                         </button>
                       ))}
@@ -1734,7 +1751,7 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
             </div>
             {/* Nom client manual */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('tpv.confirm.client')} <span className="text-zinc-400 font-normal">(opcional)</span></label>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('tpv.confirm.client')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span></label>
               <input value={client} onChange={e => setClient(e.target.value)}
                 placeholder={t('tpv.confirm.client_ph')}
                 className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
@@ -1761,20 +1778,21 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
 // vendes (reimprimir un tiquet ja fet): contingut invisible en pantalla,
 // mostrat només via window.print() (veure @media print a globals.css).
 function ReceiptPrintArea({ sale, shopConfig }) {
+  const tenantConfig = useTenantConfig();
   const fecha = new Date(sale.fecha || Date.now());
   const items = sale.items ?? [];
-  const total = items.reduce((s, it) => s + parseFloat(it.precio_venta ?? 0), 0);
-  const ivaTotal = items.reduce((s, it) => s + (it.iva_import != null ? parseFloat(it.iva_import) : 0), 0);
+  const total = items.reduce((s, it) => s + parseFloat(it.sale_price ?? 0), 0);
+  const ivaTotal = items.reduce((s, it) => s + (it.vat_amount != null ? parseFloat(it.vat_amount) : 0), 0);
 
   // Desglossament per tipus d'IVA (base imposable + quota), agrupat per
   // percentatge — una venda pot barrejar línies al 21% i al 4% (p.ex. un
   // disc + un llibre) en un mateix tiquet.
   const ivaPerTipus = {};
   for (const it of items) {
-    if (it.iva_pct == null || it.iva_import == null) continue;
-    const pct = parseFloat(it.iva_pct);
-    const quota = parseFloat(it.iva_import);
-    const preu = parseFloat(it.precio_venta ?? 0);
+    if (it.vat_pct == null || it.vat_amount == null) continue;
+    const pct = parseFloat(it.vat_pct);
+    const quota = parseFloat(it.vat_amount);
+    const preu = parseFloat(it.sale_price ?? 0);
     if (!ivaPerTipus[pct]) ivaPerTipus[pct] = { base: 0, quota: 0 };
     ivaPerTipus[pct].base += preu - quota;
     ivaPerTipus[pct].quota += quota;
@@ -1784,13 +1802,17 @@ function ReceiptPrintArea({ sale, shopConfig }) {
   return (
     <div id="print-area">
       <div className="receipt-ticket">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ultralocal-logo-tiquet.png" alt="Ultra-Local Records" className="receipt-logo" />
+        {tenantConfig.slug === TENANT_AMB_LOGO ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src="/ultralocal-logo-tiquet.png" alt={tenantConfig.nombre} className="receipt-logo" />
+        ) : (
+          <div className="text-center font-bold" style={{ fontSize: '13px', marginBottom: '4px' }}>{tenantConfig.nombre}</div>
+        )}
         {shopConfig && (
           <>
             {shopConfig.nif && <div className="text-center">NIF {shopConfig.nif}</div>}
-            <div className="text-center">{shopConfig.adreca}</div>
-            {shopConfig.telefon && <div className="text-center">{shopConfig.telefon}</div>}
+            <div className="text-center">{shopConfig.address}</div>
+            {shopConfig.phone && <div className="text-center">{shopConfig.phone}</div>}
             <hr />
           </>
         )}
@@ -1802,15 +1824,15 @@ function ReceiptPrintArea({ sale, shopConfig }) {
             <div>
               {it.artista ? (
                 <>
-                  <div className="font-semibold">{it.artista}{it.cantidad > 1 ? ` ×${it.cantidad}` : ''}</div>
+                  <div className="font-semibold">{it.artista}{it.quantity > 1 ? ` ×${it.quantity}` : ''}</div>
                   <div>{it.titulo}</div>
                   {it.estado_disco && <div>Estat: {it.estado_disco}</div>}
                 </>
               ) : (
-                <div className="font-semibold">{it.descripcion}</div>
+                <div className="font-semibold">{it.description}</div>
               )}
             </div>
-            <div>{parseFloat(it.precio_venta ?? 0).toFixed(2)} €</div>
+            <div>{parseFloat(it.sale_price ?? 0).toFixed(2)} €</div>
           </div>
         ))}
         <hr />
@@ -1843,8 +1865,9 @@ function ReceiptPrintArea({ sale, shopConfig }) {
 }
 
 function SaleDoneModal({ sale, shopConfig, onClose }) {
+  const t = useT();
   const items = sale.items ?? [];
-  const total = items.reduce((s, it) => s + parseFloat(it.precio_venta ?? 0), 0);
+  const total = items.reduce((s, it) => s + parseFloat(it.sale_price ?? 0), 0);
 
   return (
     <>
@@ -1854,20 +1877,20 @@ function SaleDoneModal({ sale, shopConfig, onClose }) {
             <Check size={24} />
           </div>
           <div>
-            <h3 className="font-bold text-zinc-900 text-lg">Venda registrada</h3>
+            <h3 className="font-bold text-zinc-900 text-lg">{t('tpv.sale_done.title', 'Venda registrada')}</h3>
             <p className="text-sm text-zinc-500 mt-1">
               {items.length === 1
-                ? (items[0].artista ? `${items[0].artista} — ${items[0].titulo}` : items[0].descripcion)
-                : `${items.length} articles · ${total.toFixed(2)} €`}
+                ? (items[0].artista ? `${items[0].artista} — ${items[0].titulo}` : items[0].description)
+                : `${items.length} ${t('tpv.item_plural', 'articles')} · ${total.toFixed(2)} €`}
             </p>
           </div>
           <div className="flex gap-3">
             <button onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-zinc-600 border border-zinc-200 hover:bg-zinc-50">
-              Tancar
+              {t('tpv.sale_done.close', 'Tancar')}
             </button>
             <Button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-2">
-              <Printer size={16} /> Imprimir tiquet
+              <Printer size={16} /> {t('tpv.print_ticket', 'Imprimir tiquet')}
             </Button>
           </div>
         </div>

@@ -10,7 +10,7 @@ export function useManteniment() {
   useEffect(() => {
     fetch('/api/config/public')
       .then(r => (r.ok ? r.json() : null))
-      .then(d => setActiu(!!d?.manteniment_actiu))
+      .then(d => setActiu(!!d?.maintenance_active))
       .catch(() => setActiu(false));
   }, []);
 

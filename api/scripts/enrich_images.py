@@ -14,13 +14,16 @@ Requisits:
   Sense token: 25 req/min. Amb token: 60 req/min.
 
 Ús (dins del contenidor api):
-    docker compose exec api python -m scripts.enrich_images
-    docker compose exec api python -m scripts.enrich_images --limit 50
-    docker compose exec api python -m scripts.enrich_images --quality full
-    docker compose exec api python -m scripts.enrich_images --dry-run
+    docker compose exec api python -m scripts.enrich_images --tenant recordstore
+    docker compose exec api python -m scripts.enrich_images --tenant recordstore --limit 50
+    docker compose exec api python -m scripts.enrich_images --tenant recordstore --quality full
+    docker compose exec api python -m scripts.enrich_images --tenant recordstore --dry-run
 
 Es pot interrompre amb Ctrl+C i reprendre; els releases ja processats es salten.
-"""
+
+Fase 2 (secretos por tenant): `--tenant` es obligatorio — este script abre su
+propia sesión sin tenant, y `Release` es TenantScoped, así que sin esto
+consultaría/tocaría releases de TODOS los tenants."""
 
 import argparse
 import sys
@@ -32,16 +35,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import Item, Release
-from app.config import get_settings
+from app.models import Item, RecordProduct, RecordStockDetail, Release, Tenant
+from app.tenancy import scoped_to
+from app.tenant_secrets import get_tenant_secrets
 
 BASE = "https://api.discogs.com"
 USER_AGENT = "UltraLocalRecords/1.0 +https://ultralocalrecords.example"
 
 
-def _headers() -> dict:
+def _headers(token: str | None) -> dict:
     h = {"User-Agent": USER_AGENT}
-    token = get_settings().discogs_token
     if token:
         h["Authorization"] = f"Discogs token={token}"
     return h
@@ -103,7 +106,8 @@ def get_item_codi(db: Session, release_id) -> int | None:
     """Retorna el primer codi_discogs disponible per un release."""
     item = db.scalar(
         select(Item)
-        .where(Item.release_id == release_id, Item.codi_discogs.isnot(None))
+        .join(RecordStockDetail, RecordStockDetail.item_id == Item.id)
+        .where(Item.release_id == release_id, RecordStockDetail.codi_discogs.isnot(None))
         .limit(1)
     )
     return item.codi_discogs if item else None
@@ -112,12 +116,13 @@ def get_item_codi(db: Session, release_id) -> int | None:
 def stats(db: Session) -> tuple[int, int]:
     from sqlalchemy import func
     total = db.scalar(select(func.count(Release.id)))
-    amb = db.scalar(select(func.count(Release.id)).where(Release.imagen_url.isnot(None)))
+    amb = db.scalar(select(func.count(Release.id)).where(Release.image_url.isnot(None)))
     return total, amb
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--tenant", required=True, help="Slug del tenant (ver tabla tenants)")
     parser.add_argument("--quality", choices=["thumbnail", "full"], default="thumbnail",
                         help="thumbnail (ràpid, 150px) o full (lent, 600px+). Per defecte: thumbnail")
     parser.add_argument("--limit", type=int, default=0,
@@ -130,8 +135,18 @@ def main():
                         help="reprocessa releases que ja tenen imatge (per pujar a full quality)")
     args = parser.parse_args()
 
-    settings = get_settings()
-    has_token = bool(settings.discogs_token)
+    db = SessionLocal()
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == args.tenant))
+    if tenant is None:
+        raise SystemExit(f"No existe ningún tenant con slug '{args.tenant}'")
+    with scoped_to(db, tenant.id):
+        _run(db, args)
+    db.close()
+
+
+def _run(db, args) -> None:
+    token = get_tenant_secrets(db.info["tenant_id"]).discogs_token
+    has_token = bool(token)
     if not has_token:
         print("⚠️  Sense DISCOGS_TOKEN: límit de 25 req/min. Afegeix el token a .env per anar més ràpid.")
         print("   https://www.discogs.com/settings/developers → 'Generate new token'")
@@ -142,7 +157,6 @@ def main():
     calls_per_release = 2 if args.quality == "full" else 1
     rl = RateLimiter(rate)
 
-    db = SessionLocal()
     total_releases, amb_img = stats(db)
     sense_img = total_releases - amb_img
     if args.force:
@@ -152,7 +166,6 @@ def main():
 
     if not args.force and sense_img == 0:
         print("Tots els releases ja tenen imatge. Usa --force per actualitzar a full quality. ✓")
-        db.close()
         return
 
     target = total_releases if args.force else sense_img
@@ -167,9 +180,9 @@ def main():
     print()
 
     # Releases a processar
-    stmt = select(Release).order_by(Release.discogs_release_id.desc().nullslast())
+    stmt = select(Release).outerjoin(RecordProduct).order_by(RecordProduct.discogs_release_id.desc().nullslast())
     if not args.force:
-        stmt = stmt.where(Release.imagen_url.is_(None))
+        stmt = stmt.where(Release.image_url.is_(None))
     releases = db.scalars(stmt).all()
     if args.limit:
         releases = releases[: args.limit]
@@ -177,9 +190,9 @@ def main():
     ok = skip = errors = 0
     start = time.monotonic()
 
-    with httpx.Client(base_url=BASE, headers=_headers(), timeout=20) as client:
+    with httpx.Client(base_url=BASE, headers=_headers(token), timeout=20) as client:
         for i, release in enumerate(releases, start=1):
-            prefix = f"[{i}/{len(releases)}] {release.artista[:30]} — {release.titulo[:30]}"
+            prefix = f"[{i}/{len(releases)}] {release.artista[:30]} — {release.title[:30]}"
 
             # --- Pas 1: assegurar que tenim discogs_release_id ---
             imagen_url = None
@@ -226,7 +239,7 @@ def main():
             status = "dry-run" if args.dry_run else "✓"
             print(f"  {prefix} → {status}")
             if not args.dry_run:
-                release.imagen_url = imagen_url
+                release.image_url = imagen_url
                 if discogs_release_id:
                     release.discogs_release_id = discogs_release_id
                 db.add(release)
@@ -235,7 +248,6 @@ def main():
             ok += 1
 
     db.commit()
-    db.close()
 
     elapsed = time.monotonic() - start
     print(f"\n{'DRY-RUN ' if args.dry_run else ''}Fet en {elapsed/60:.1f} min: "

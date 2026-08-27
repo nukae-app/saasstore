@@ -77,8 +77,8 @@ export default function AdminDashboard() {
   }, []);
 
   const pending = orders.filter(o => o.status === 'pagado').length;
-  const peticionsPendentPreu = peticiones.filter(p => p.estado === 'pendent').length;
-  const peticionsPendentComanda = peticiones.filter(p => p.estado === 'acceptada').length;
+  const peticionsPendentPreu = peticiones.filter(p => p.status === 'pendent').length;
+  const peticionsPendentComanda = peticiones.filter(p => p.status === 'acceptada').length;
   const solicitudsLineasPendents = solicitudsObertes
     .flatMap(s => s.lineas ?? [])
     .filter(l => !l.resuelta).length;
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
 
   function resumVendes(from) {
     const web = sumFrom(vendesRealsOrders, from, 'created_at', 'total');
-    const mostrador = sumFrom(ventasExternas, from, 'fecha', 'precio_venta');
+    const mostrador = sumFrom(ventasExternas, from, 'date', 'sale_price');
     return { web, mostrador, total: web + mostrador };
   }
   const vendesAvui = resumVendes(dAvui);

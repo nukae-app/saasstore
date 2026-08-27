@@ -4,10 +4,8 @@ import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Loader2, Calendar, ExternalLink, X, Check } from 'lucide-react';
 import { authFetch } from '../../lib/auth';
 
-const DEFAULT_PLACE = 'Ultra-Local Records, Pujades 113, Barcelona';
-
 const EMPTY_EVENT = {
-  titulo: '', descripcion: '', fecha: '', lugar: DEFAULT_PLACE, link: '',
+  title: '', description: '', date: '', location: '', link: '',
 };
 
 function formatFecha(iso) {
@@ -25,8 +23,8 @@ function EventForm({ initial = EMPTY_EVENT, onSave, onCancel, saving }) {
   const [form, setForm] = useState({
     ...EMPTY_EVENT,
     ...initial,
-    fecha: initial.fecha
-      ? new Date(initial.fecha).toISOString().slice(0, 16)
+    date: initial.date
+      ? new Date(initial.date).toISOString().slice(0, 16)
       : '',
   });
 
@@ -34,7 +32,7 @@ function EventForm({ initial = EMPTY_EVENT, onSave, onCancel, saving }) {
 
   function handleSubmit(e) {
     e.preventDefault();
-    onSave({ ...form, link: form.link || null, descripcion: form.descripcion || null });
+    onSave({ ...form, link: form.link || null, description: form.description || null });
   }
 
   return (
@@ -44,8 +42,8 @@ function EventForm({ initial = EMPTY_EVENT, onSave, onCancel, saving }) {
           <label className="block text-xs font-medium text-zinc-600 mb-1.5">Títol *</label>
           <input
             type="text"
-            value={form.titulo}
-            onChange={e => set('titulo', e.target.value)}
+            value={form.title}
+            onChange={e => set('title', e.target.value)}
             required
             placeholder="Nom de l'esdeveniment…"
             className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
@@ -56,8 +54,8 @@ function EventForm({ initial = EMPTY_EVENT, onSave, onCancel, saving }) {
           <label className="block text-xs font-medium text-zinc-600 mb-1.5">Data i hora *</label>
           <input
             type="datetime-local"
-            value={form.fecha}
-            onChange={e => set('fecha', e.target.value)}
+            value={form.date}
+            onChange={e => set('date', e.target.value)}
             required
             className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
@@ -67,8 +65,8 @@ function EventForm({ initial = EMPTY_EVENT, onSave, onCancel, saving }) {
           <label className="block text-xs font-medium text-zinc-600 mb-1.5">Lloc</label>
           <input
             type="text"
-            value={form.lugar}
-            onChange={e => set('lugar', e.target.value)}
+            value={form.location}
+            onChange={e => set('location', e.target.value)}
             className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
         </div>
@@ -76,8 +74,8 @@ function EventForm({ initial = EMPTY_EVENT, onSave, onCancel, saving }) {
         <div className="md:col-span-2">
           <label className="block text-xs font-medium text-zinc-600 mb-1.5">Descripció</label>
           <textarea
-            value={form.descripcion}
-            onChange={e => set('descripcion', e.target.value)}
+            value={form.description}
+            onChange={e => set('description', e.target.value)}
             placeholder="Detalls opcionals de l'acte…"
             rows={3}
             className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
@@ -125,6 +123,9 @@ export default function AdminAgendaPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [showPast, setShowPast] = useState(false);
+  // Lloc per defecte d'un esdeveniment nou: l'adreça del propi tenant en
+  // lloc d'una hardcodejada — abans sempre deia "Ultra-Local Records...".
+  const [defaultPlace, setDefaultPlace] = useState('');
 
   async function load() {
     const res = await authFetch('/admin/events');
@@ -132,7 +133,13 @@ export default function AdminAgendaPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    authFetch('/admin/configuracio')
+      .then(r => (r.ok ? r.json() : null))
+      .then(config => { if (config) setDefaultPlace([config.fiscal_name, config.address].filter(Boolean).join(', ')); })
+      .catch(() => {});
+  }, []);
 
   async function handleSave(form, id = null) {
     setSaving(true);
@@ -151,8 +158,8 @@ export default function AdminAgendaPage() {
     }
   }
 
-  async function handleDelete(id, titulo) {
-    if (!confirm(`Eliminar "${titulo}"?`)) return;
+  async function handleDelete(id, title) {
+    if (!confirm(`Eliminar "${title}"?`)) return;
     setDeleting(id);
     try {
       await authFetch(`/admin/events/${id}`, { method: 'DELETE' });
@@ -162,8 +169,8 @@ export default function AdminAgendaPage() {
     }
   }
 
-  const upcoming = events.filter(e => !isPast(e.fecha));
-  const past = events.filter(e => isPast(e.fecha));
+  const upcoming = events.filter(e => !isPast(e.date));
+  const past = events.filter(e => isPast(e.date));
   const visible = showPast ? events : upcoming;
 
   return (
@@ -190,6 +197,7 @@ export default function AdminAgendaPage() {
         <div className="bg-white border border-zinc-200 rounded-xl p-5">
           <p className="font-medium text-sm mb-4">Nou esdeveniment</p>
           <EventForm
+            initial={{ ...EMPTY_EVENT, location: defaultPlace }}
             onSave={form => handleSave(form)}
             onCancel={() => setCreating(false)}
             saving={saving}
@@ -229,6 +237,7 @@ export default function AdminAgendaPage() {
               <EventCard
                 key={event.id}
                 event={event}
+                defaultPlace={defaultPlace}
                 onEdit={() => setEditing(event.id)}
                 onDelete={handleDelete}
                 deleting={deleting}
@@ -250,28 +259,28 @@ export default function AdminAgendaPage() {
   );
 }
 
-function EventCard({ event, onEdit, onDelete, deleting }) {
-  const past = isPast(event.fecha);
+function EventCard({ event, defaultPlace, onEdit, onDelete, deleting }) {
+  const past = isPast(event.date);
   return (
     <div className={`bg-white rounded-xl border p-4 transition-colors ${past ? 'opacity-60 border-zinc-100' : 'border-zinc-100 hover:border-zinc-200'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium text-zinc-900">{event.titulo}</p>
+            <p className="font-medium text-zinc-900">{event.title}</p>
             {past && (
               <span className="text-xs text-zinc-400 bg-zinc-50 border border-zinc-200 px-1.5 py-0.5 rounded">Passat</span>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-zinc-500">
             <span className="flex items-center gap-1">
-              <Calendar size={10} /> {formatFecha(event.fecha)}
+              <Calendar size={10} /> {formatFecha(event.date)}
             </span>
-            {event.lugar !== DEFAULT_PLACE && (
-              <span>{event.lugar}</span>
+            {event.location !== defaultPlace && (
+              <span>{event.location}</span>
             )}
           </div>
-          {event.descripcion && (
-            <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2">{event.descripcion}</p>
+          {event.description && (
+            <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2">{event.description}</p>
           )}
           {event.link && (
             <a
@@ -292,7 +301,7 @@ function EventCard({ event, onEdit, onDelete, deleting }) {
             <Pencil size={13} />
           </button>
           <button
-            onClick={() => onDelete(event.id, event.titulo)}
+            onClick={() => onDelete(event.id, event.title)}
             disabled={deleting === event.id}
             className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
           >

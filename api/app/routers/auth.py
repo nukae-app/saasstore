@@ -18,11 +18,12 @@ from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..database import get_db
-from ..models import AuthToken, Identity, User
+from ..models import AuthToken, Identity, Tenant, User
 from ..rate_limit import limiter
 from ..schemas import MagicLinkRequest, MeOut, PasswordLoginRequest, RegisterRequest, SetPasswordRequest, TokenOut
 from ..services.emailer import render_email_html, send_email
 from ..services.i18n import translate
+from ..tenancy import tenant_frontend_url
 from ..services.security import (
     REFRESH_COOKIE,
     as_utc,
@@ -54,14 +55,14 @@ def _get_or_create_user(db: Session, email: str, nombre: str | None = None, idio
     if user is None:
         # email_verified=True: la posesión del email ya queda probada por el propio
         # flujo (magic link canjeado o Google con email_verified=True en el id_token).
-        user = User(email=email.lower(), nombre=nombre, email_verified=True, idioma=idioma or "ca")
+        user = User(email=email.lower(), name=nombre, email_verified=True, language=idioma or "ca")
         db.add(user)
         db.commit()
         db.refresh(user)
     return user
 
 
-def _send_verification_email(db: Session, email: str, idioma: str = "ca") -> None:
+def _send_verification_email(db: Session, email: str, tenant: Tenant, idioma: str = "ca") -> None:
     raw = secrets.token_urlsafe(32)
     hours = get_settings().email_verification_hours
     db.add(
@@ -74,17 +75,20 @@ def _send_verification_email(db: Session, email: str, idioma: str = "ca") -> Non
         )
     )
     db.commit()
-    link = f"{get_settings().frontend_url}/{idioma}/auth/verify-email?token={raw}"
-    body = translate(db, "email.verify_email.body_text", idioma, hours=hours, link=link)
+    link = f"{tenant_frontend_url(tenant)}/{idioma}/auth/verify-email?token={raw}"
+    body = translate(db, "email.verify_email.body_text", idioma, hours=hours, link=link, nom=tenant.nombre)
     html = render_email_html(
-        translate(db, "email.verify_email.heading", idioma),
+        translate(db, "email.verify_email.heading", idioma, nom=tenant.nombre),
         translate(db, "email.verify_email.body_html", idioma, hours=hours, link=link),
+        tenant, db,
         cta=(translate(db, "email.verify_email.cta", idioma), link),
     )
     send_email(
         email,
-        translate(db, "email.verify_email.subject", idioma),
+        translate(db, "email.verify_email.subject", idioma, nom=tenant.nombre),
         body,
+        tenant,
+        db,
         html=html,
     )
 
@@ -114,14 +118,14 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
         raise HTTPException(422, "La contrasenya ha de tenir mínim 8 caràcters")
     user = User(
         email=payload.email.lower(),
-        nombre=payload.nombre or None,
+        name=payload.name or None,
         password_hash=hash_password(payload.password),
         email_verified=False,
-        idioma=payload.idioma,
+        language=payload.language,
     )
     db.add(user)
     db.commit()
-    _send_verification_email(db, user.email, idioma=payload.idioma)
+    _send_verification_email(db, user.email, request.state.tenant, idioma=payload.language)
     return {"detail": "Compte creat. Revisa el teu email per activar-lo."}
 
 
@@ -130,7 +134,7 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
 def resend_verification(request: Request, payload: MagicLinkRequest, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if user is not None and not user.email_verified:
-        _send_verification_email(db, user.email, idioma=user.idioma)
+        _send_verification_email(db, user.email, request.state.tenant, idioma=user.language)
     # 202 siempre: no revelamos si el email existe o ya estaba verificado
     return {"detail": "Si el compte existeix i encara no està activat, rebràs un email"}
 
@@ -161,7 +165,7 @@ def login(request: Request, payload: PasswordLoginRequest, response: Response, d
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if user is None or not user.password_hash or not verify_password(payload.password, user.password_hash):
         raise HTTPException(401, "Email o contrasenya incorrectes")
-    if not user.activo:
+    if not user.active:
         raise HTTPException(403, "Compte desactivat")
     if not user.email_verified:
         raise HTTPException(403, "Confirma el teu email abans d'entrar, revisa la safata d'entrada")
@@ -214,7 +218,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         db.add(Identity(user_id=user.id, provider="google", provider_user_id=sub))
         db.commit()
 
-    response = RedirectResponse(url=f"{get_settings().frontend_url}/{locale}/auth/ok")
+    response = RedirectResponse(url=f"{tenant_frontend_url(request.state.tenant)}/{locale}/auth/ok")
     _set_session(response, db, user)
     return response
 
@@ -230,21 +234,24 @@ def request_magic_link(request: Request, payload: MagicLinkRequest, db: Session 
             email=payload.email.lower(),
             token_hash=hashlib.sha256(raw.encode()).hexdigest(),
             purpose="magic_link",
-            idioma=payload.idioma,
+            idioma=payload.language,
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=get_settings().magic_link_minutes),
         )
     )
     db.commit()
-    link = f"{get_settings().frontend_url}/{payload.idioma}/auth/magic?token={raw}"
+    link = f"{tenant_frontend_url(request.state.tenant)}/{payload.language}/auth/magic?token={raw}"
     minuts = get_settings().magic_link_minutes
     send_email(
         payload.email,
-        translate(db, "email.magic_link.subject", payload.idioma),
-        translate(db, "email.magic_link.body_text", payload.idioma, minuts=minuts, link=link),
+        translate(db, "email.magic_link.subject", payload.language, nom=request.state.tenant.nombre),
+        translate(db, "email.magic_link.body_text", payload.language, minuts=minuts, link=link),
+        request.state.tenant,
+        db,
         html=render_email_html(
-            translate(db, "email.magic_link.heading", payload.idioma),
-            translate(db, "email.magic_link.body_html", payload.idioma, minuts=minuts),
-            cta=(translate(db, "email.magic_link.cta", payload.idioma), link),
+            translate(db, "email.magic_link.heading", payload.language),
+            translate(db, "email.magic_link.body_html", payload.language, minuts=minuts),
+            request.state.tenant, db,
+            cta=(translate(db, "email.magic_link.cta", payload.language), link),
         ),
     )
     # 202 siempre: no revelamos si el email existe o no

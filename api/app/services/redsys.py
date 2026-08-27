@@ -30,6 +30,9 @@ except ImportError:  # cryptography < 43
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
 
 from ..config import get_settings
+from ..models import Tenant
+from ..tenancy import tenant_frontend_url
+from ..tenant_secrets import TenantSecrets
 
 REDSYS_URLS = {
     "test": "https://sis-t.redsys.es:25443/sis/realizarPago",
@@ -77,7 +80,8 @@ def _standard_to_urlsafe_b64(value: str) -> str:
 
 
 def build_payment_form(
-    *, ds_order: str, importe: Decimal, order_id_for_url: str, identifier: str | None = None,
+    *, ds_order: str, importe: Decimal, order_id_for_url: str, tenant: Tenant, secrets: TenantSecrets,
+    environment: str, identifier: str | None = None,
     url_ok: str | None = None, url_ko: str | None = None, notify_url: str | None = None,
 ) -> dict:
     """Construye los campos del formulario que el frontend debe auto-enviar
@@ -95,27 +99,29 @@ def build_payment_form(
     posteriores (MIT, ver `charge_recurring`) puedan acogerse a la exención
     de autenticación reforzada.
 
-    `url_ok`/`url_ko` por defecto apuntan a las páginas de resultado del
-    checkout normal; el alta de una subscripción (sin `Order` de por medio)
-    pasa las suyas propias. Lo mismo con `notify_url`: por defecto es el
-    webhook de checkout (`settings.redsys_notify_url`), pero la notificación
-    de una subscripción tiene que llegar a un endpoint distinto (busca un
-    `CobramentSubscripcio`, no un `Payment`) — si no se sobreescribe aquí,
-    Redsys notifica al sitio equivocado y el cobro se queda "pendent" para
-    siempre aunque el banco lo haya autorizado."""
-    settings = get_settings()
+    `url_ok`/`url_ko`/`notify_url` por defecto se calculan desde el dominio
+    del tenant (ver app/tenancy.py::tenant_frontend_url) — antes salían de
+    `Settings.frontend_url`/`redsys_notify_url`, globales, incorrectos en
+    cuanto hay más de un tenant. El alta de una subscripción (sin `Order` de
+    por medio) sigue pasando las suyas propias: su notificación tiene que
+    llegar a un endpoint distinto (busca un `CobramentSubscripcio`, no un
+    `Payment`) — si no se sobreescribe aquí, Redsys notifica al sitio
+    equivocado y el cobro se queda "pendent" para siempre aunque el banco lo
+    haya autorizado. `secrets` son las credenciales de ESTE tenant (ver
+    app/tenant_secrets.py), nunca compartidas entre tenants."""
     importe_centimos = str(int((importe * 100).to_integral_value()))
+    frontend = tenant_frontend_url(tenant)
 
     merchant_params = {
         "DS_MERCHANT_AMOUNT": importe_centimos,
         "DS_MERCHANT_ORDER": ds_order,
-        "DS_MERCHANT_MERCHANTCODE": settings.redsys_merchant_code,
+        "DS_MERCHANT_MERCHANTCODE": secrets.redsys_merchant_code,
         "DS_MERCHANT_CURRENCY": "978",  # EUR
         "DS_MERCHANT_TRANSACTIONTYPE": "0",  # autorización estándar
-        "DS_MERCHANT_TERMINAL": settings.redsys_terminal,
-        "DS_MERCHANT_MERCHANTURL": notify_url or settings.redsys_notify_url,
-        "DS_MERCHANT_URLOK": url_ok or f"{settings.frontend_url}/checkout/pago-ok?order={order_id_for_url}",
-        "DS_MERCHANT_URLKO": url_ko or f"{settings.frontend_url}/checkout/pago-ko?order={order_id_for_url}",
+        "DS_MERCHANT_TERMINAL": secrets.redsys_terminal,
+        "DS_MERCHANT_MERCHANTURL": notify_url or f"{frontend}/api/checkout/pay/redsys/notify",
+        "DS_MERCHANT_URLOK": url_ok or f"{frontend}/checkout/pago-ok?order={order_id_for_url}",
+        "DS_MERCHANT_URLKO": url_ko or f"{frontend}/checkout/pago-ko?order={order_id_for_url}",
     }
     if identifier:
         merchant_params["DS_MERCHANT_IDENTIFIER"] = identifier
@@ -124,28 +130,44 @@ def build_payment_form(
     params_json = json.dumps(merchant_params)
     params_b64 = base64.b64encode(params_json.encode("utf-8")).decode("ascii")
 
-    derived_key = _derive_key(ds_order, settings.redsys_secret_key)
+    derived_key = _derive_key(ds_order, secrets.redsys_secret_key)
     signature = _hmac_b64(derived_key, params_b64.encode("ascii"))
 
     return {
-        "url": REDSYS_URLS[settings.redsys_environment],
+        "url": REDSYS_URLS[environment],
         "Ds_SignatureVersion": "HMAC_SHA256_V1",
         "Ds_MerchantParameters": params_b64,
         "Ds_Signature": signature,
     }
 
 
-def verify_notification(params_b64: str, signature_urlsafe: str) -> dict | None:
-    """Verifica la firma de una notificación de Redsys. Devuelve el dict de
-    parámetros decodificado si la firma es válida, o None si no lo es."""
-    settings = get_settings()
+def extract_ds_order(params_b64: str) -> str | None:
+    """Decodifica los parámetros de una notificación SIN verificar la firma
+    — solo para saber a qué `Ds_Order` corresponde, y así poder resolver de
+    qué tenant es (buscando el `Payment`) ANTES de saber con qué clave
+    verificarla. Ver checkout.py::redsys_notify: con la clave ya por tenant,
+    no se puede verificar primero y buscar el tenant después (candado
+    circular)."""
+    try:
+        params_json = base64.b64decode(_urlsafe_to_standard_b64(params_b64)).decode("utf-8")
+        params = json.loads(params_json)
+    except Exception:
+        return None
+    return params.get("Ds_Order") or params.get("Ds_Merchant_Order")
+
+
+def verify_signature(params_b64: str, signature_urlsafe: str, secret_key: str) -> dict | None:
+    """Verifica la firma de una notificación de Redsys con la clave YA
+    conocida (la del tenant al que pertenece, resuelto vía `extract_ds_order`
+    + búsqueda del `Payment`). Devuelve el dict de parámetros decodificado
+    si la firma es válida, o None si no lo es."""
     params_json = base64.b64decode(_urlsafe_to_standard_b64(params_b64)).decode("utf-8")
     params = json.loads(params_json)
     ds_order = params.get("Ds_Order") or params.get("Ds_Merchant_Order")
     if not ds_order:
         return None
 
-    derived_key = _derive_key(ds_order, settings.redsys_secret_key)
+    derived_key = _derive_key(ds_order, secret_key)
     expected = _hmac_b64(derived_key, params_b64.encode("ascii"))
     if not hmac.compare_digest(_standard_to_urlsafe_b64(expected), signature_urlsafe):
         return None
@@ -173,7 +195,7 @@ def charge_recurring(
     A diferència de `build_payment_form` (que retorna camps per a un POST-
     redirect del navegador), aquí es crida directament l'endpoint REST de
     Redsys (`REDSYS_WS_URLS`), que respon de forma síncrona amb el mateix
-    format que una notificació normal — es reutilitza `verify_notification`
+    format que una notificació normal — es reutilitza `verify_signature`
     per validar-la. Retorna `None` si la firma de la resposta no és vàlida.
 
     NOTA: aquests camps (COF/MIT/SCA) estan documentats per Redsys per a
@@ -218,7 +240,7 @@ def charge_recurring(
     )
     response.raise_for_status()
     body = response.json()
-    return verify_notification(body["Ds_MerchantParameters"], body["Ds_Signature"])
+    return verify_signature(body["Ds_MerchantParameters"], body["Ds_Signature"], settings.redsys_secret_key)
 
 
 def is_authorised(ds_response_code: str) -> bool:

@@ -12,14 +12,14 @@ const TIPUS_OPTIONS = [
 
 const TIPUS_MAP = Object.fromEntries(TIPUS_OPTIONS.map(t => [t.value, t]));
 
-function TipusIcon({ tipus, size = 14 }) {
-  const opt = TIPUS_MAP[tipus];
+function TipusIcon({ type, size = 14 }) {
+  const opt = TIPUS_MAP[type];
   if (!opt) return null;
   const Icon = opt.icon;
   return <Icon size={size} />;
 }
 
-const EMPTY_FORM = { slug: '', nom: '', tipus: 'llista-posts', posicio: 0, visible_menu: true, contingut: '' };
+const EMPTY_FORM = { slug: '', name: '', type: 'llista-posts', position: 0, menu_visible: true, content: '' };
 
 export default function AdminPaginesPage() {
   const [pagines, setPagines]   = useState([]);
@@ -42,21 +42,21 @@ export default function AdminPaginesPage() {
 
   function openNew() {
     setEditId(null);
-    setEditing({ ...EMPTY_FORM, posicio: pagines.length });
+    setEditing({ ...EMPTY_FORM, position: pagines.length });
     setErr('');
   }
 
   function openEdit(p) {
     setEditId(p.id);
-    setEditing({ slug: p.slug, nom: p.nom, tipus: p.tipus, posicio: p.posicio,
-                 visible_menu: p.visible_menu, contingut: p.contingut || '' });
+    setEditing({ slug: p.slug, name: p.name, type: p.type, position: p.position,
+                 menu_visible: p.menu_visible, content: p.content || '' });
     setErr('');
   }
 
   function cancelEdit() { setEditing(null); setEditId(null); setErr(''); }
 
   async function save() {
-    if (!editing.slug || !editing.nom) { setErr('Slug i nom són obligatoris'); return; }
+    if (!editing.slug || !editing.name) { setErr('Slug i nom són obligatoris'); return; }
     setSaving(true); setErr('');
     try {
       const url = editId ? `/api/admin/pagines/${editId}` : '/api/admin/pagines';
@@ -82,7 +82,7 @@ export default function AdminPaginesPage() {
     await authFetch(`/api/admin/pagines/${p.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...p, visible_menu: !p.visible_menu }),
+      body: JSON.stringify({ ...p, menu_visible: !p.menu_visible }),
     });
     await load();
   }
@@ -113,8 +113,8 @@ export default function AdminPaginesPage() {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-zinc-600 mb-1">Nom *</label>
-              <input value={editing.nom}
-                onChange={e => setEditing(v => ({ ...v, nom: e.target.value, slug: editId ? v.slug : slugify(e.target.value) }))}
+              <input value={editing.name}
+                onChange={e => setEditing(v => ({ ...v, name: e.target.value, slug: editId ? v.slug : slugify(e.target.value) }))}
                 className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
                 placeholder="Ex: Totes les Cançons" />
             </div>
@@ -136,9 +136,9 @@ export default function AdminPaginesPage() {
             <div className="grid grid-cols-3 gap-2">
               {TIPUS_OPTIONS.map(opt => {
                 const Icon = opt.icon;
-                const sel = editing.tipus === opt.value;
+                const sel = editing.type === opt.value;
                 return (
-                  <button key={opt.value} onClick={() => setEditing(v => ({ ...v, tipus: opt.value }))}
+                  <button key={opt.value} onClick={() => setEditing(v => ({ ...v, type: opt.value }))}
                     className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border text-left transition-colors ${
                       sel ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:border-zinc-300 text-zinc-700'
                     }`}>
@@ -152,11 +152,11 @@ export default function AdminPaginesPage() {
           </div>
 
           {/* Contingut per estàtiques */}
-          {editing.tipus === 'estatica' && (
+          {editing.type === 'estatica' && (
             <div className="mb-4">
               <label className="block text-xs font-medium text-zinc-600 mb-1">Contingut (HTML)</label>
-              <textarea value={editing.contingut}
-                onChange={e => setEditing(v => ({ ...v, contingut: e.target.value }))}
+              <textarea value={editing.content}
+                onChange={e => setEditing(v => ({ ...v, content: e.target.value }))}
                 rows={8}
                 className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-300"
                 placeholder="<p>Contingut de la pàgina...</p>" />
@@ -165,15 +165,15 @@ export default function AdminPaginesPage() {
 
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-2">
-              <input type="checkbox" id="visible_menu" checked={editing.visible_menu}
-                onChange={e => setEditing(v => ({ ...v, visible_menu: e.target.checked }))}
+              <input type="checkbox" id="visible_menu" checked={editing.menu_visible}
+                onChange={e => setEditing(v => ({ ...v, menu_visible: e.target.checked }))}
                 className="accent-zinc-900" />
               <label htmlFor="visible_menu" className="text-sm text-zinc-600">Visible al menú</label>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-zinc-500">Posició:</label>
-              <input type="number" value={editing.posicio} min={0}
-                onChange={e => setEditing(v => ({ ...v, posicio: Number(e.target.value) }))}
+              <input type="number" value={editing.position} min={0}
+                onChange={e => setEditing(v => ({ ...v, position: Number(e.target.value) }))}
                 className="w-16 border border-zinc-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300" />
             </div>
           </div>
@@ -203,14 +203,14 @@ export default function AdminPaginesPage() {
               <GripVertical size={16} className="text-zinc-300 shrink-0" />
 
               <div className="flex items-center gap-2 shrink-0 text-zinc-400">
-                <TipusIcon tipus={p.tipus} />
+                <TipusIcon type={p.type} />
               </div>
 
               <div className="flex-1 min-w-0">
-                <span className="font-medium text-zinc-900 text-sm">{p.nom}</span>
+                <span className="font-medium text-zinc-900 text-sm">{p.name}</span>
                 <span className="ml-2 text-xs text-zinc-400">/{p.slug}</span>
                 <span className="ml-2 text-[10px] bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-full">
-                  {TIPUS_MAP[p.tipus]?.label || p.tipus}
+                  {TIPUS_MAP[p.type]?.label || p.type}
                 </span>
               </div>
 
@@ -220,9 +220,9 @@ export default function AdminPaginesPage() {
                   <Globe size={14} />
                 </a>
                 <button onClick={() => toggleVisible(p)}
-                  className={`p-1.5 rounded-lg hover:bg-zinc-50 transition-colors ${p.visible_menu ? 'text-zinc-900' : 'text-zinc-300'}`}
-                  title={p.visible_menu ? 'Visible al menú' : 'Ocult del menú'}>
-                  {p.visible_menu ? <Eye size={14} /> : <EyeOff size={14} />}
+                  className={`p-1.5 rounded-lg hover:bg-zinc-50 transition-colors ${p.menu_visible ? 'text-zinc-900' : 'text-zinc-300'}`}
+                  title={p.menu_visible ? 'Visible al menú' : 'Ocult del menú'}>
+                  {p.menu_visible ? <Eye size={14} /> : <EyeOff size={14} />}
                 </button>
                 <button onClick={() => openEdit(p)}
                   className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors">

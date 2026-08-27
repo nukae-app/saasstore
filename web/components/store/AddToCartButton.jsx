@@ -18,7 +18,7 @@ export default function AddToCartButton({ itemId, cantidad = 1, className }) {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ item_id: itemId, cantidad }),
+        body: JSON.stringify({ item_id: itemId, quantity: cantidad }),
       });
       if (res.ok) {
         setState('done');

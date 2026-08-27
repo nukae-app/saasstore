@@ -8,6 +8,7 @@ import { Loader2, Mail, Lock, UserPlus, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../components/store/AuthProvider';
 import StorefrontNav from '../../../components/store/StorefrontNav';
 import StorefrontFooter from '../../../components/store/StorefrontFooter';
+import { useTenantConfig } from '../../../components/store/useTenantConfig';
 
 const TAB = { password: 'password', magic: 'magic', register: 'register' };
 
@@ -15,6 +16,7 @@ export default function LoginClient() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('login');
+  const tenantConfig = useTenantConfig();
   const { user, login } = useAuth();
   const [tab, setTab] = useState(TAB.password);
   const [email, setEmail] = useState('');
@@ -69,7 +71,7 @@ export default function LoginClient() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, nombre: nombre || undefined, idioma: locale }),
+      body: JSON.stringify({ email, password, name: nombre || undefined, language: locale }),
     });
     setLoading(false);
     if (res.ok) {
@@ -86,7 +88,7 @@ export default function LoginClient() {
     const res = await fetch('/api/auth/magic-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, idioma: locale }),
+      body: JSON.stringify({ email, language: locale }),
     });
     setLoading(false);
     if (res.ok) setSent(true);
@@ -111,7 +113,7 @@ export default function LoginClient() {
             <p className="text-zinc-500 text-sm">
               {tab === TAB.password && t('loginWithEmailPassword')}
               {tab === TAB.magic && t('magicLinkSubtitle')}
-              {tab === TAB.register && t('createAccountSubtitle')}
+              {tab === TAB.register && t('createAccountSubtitle', { shopName: tenantConfig.nombre })}
             </p>
           </div>
 

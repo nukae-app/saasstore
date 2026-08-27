@@ -55,9 +55,9 @@ export default function CuratorSelection({ releases }) {
               href={`/disc/${r.id}`}
               className={`group relative shrink-0 snap-start rounded-3xl overflow-hidden bg-zinc-100 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.12)] ${CARD_SIZE}`}
             >
-              {r.imagen_url && (
+              {r.image_url && (
                 <Image
-                  src={r.imagen_url}
+                  src={r.image_url}
                   alt=""
                   fill
                   sizes="(max-width: 768px) 70vw, 30vw"
@@ -69,7 +69,7 @@ export default function CuratorSelection({ releases }) {
                   {[r.formato, r.sello].filter(Boolean).join(' · ')}
                 </span>
                 <h3 className="font-serif italic text-xl md:text-2xl text-white leading-snug mb-1 line-clamp-2">
-                  {r.titulo}
+                  {r.title}
                 </h3>
                 <p className="text-white/80 text-sm truncate">{r.artista}</p>
               </div>

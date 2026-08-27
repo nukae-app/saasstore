@@ -31,7 +31,7 @@ def _login(client, email):
 def _admin_token(client, db, email="admin@example.com") -> str:
     _login(client, email)
     user = db.scalar(select(User).where(User.email == email))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return _login(client, email)
 
@@ -46,10 +46,10 @@ def _config(db) -> ConfiguracioSubscripcio:
 
 
 def _seed(db, *, quantitat=1, email="fan@example.com"):
-    user = User(email=email, nombre="Fan")
+    user = User(email=email, name="Fan")
     db.add(user)
     db.flush()
-    address = Address(user_id=user.id, nombre_destinatario="Fan", linea1="C. Falsa 1", ciudad="BCN", cp="08001")
+    address = Address(user_id=user.id, recipient_name="Fan", address_line1="C. Falsa 1", city="BCN", postal_code="08001")
     db.add(address)
     db.flush()
     preu_periode = Decimal("25.00") * quantitat
@@ -71,10 +71,10 @@ def _seed(db, *, quantitat=1, email="fan@example.com"):
 
 
 def _item(db, precio="22.00", pool=True, titulo="Àlbum") -> Item:
-    release = Release(artista="Artista", titulo=titulo, formato="LP")
+    release = Release(artista="Artista", title=titulo, formato="LP")
     db.add(release)
     db.flush()
-    item = Item(release_id=release.id, precio=Decimal(precio), status=ItemStatus.disponible, subscripcio_pool=pool)
+    item = Item(release_id=release.id, price=Decimal(precio), status=ItemStatus.disponible, subscription_pool=pool)
     db.add(item)
     db.commit()
     return item
@@ -140,7 +140,7 @@ def test_detall_de_subscriptor_inclou_generes_i_historic_complet(db, client):
     subscripcio, cobrament = _seed(db)
     subscripcio.generes_preferits = ["Jazz"]
 
-    release = Release(artista="Artista", titulo="Àlbum", formato="LP", genero="Jazz")
+    release = Release(artista="Artista", title="Àlbum", formato="LP", genero="Jazz")
     db.add(release)
     db.flush()
     db.add(Assignacio(
@@ -156,7 +156,7 @@ def test_detall_de_subscriptor_inclou_generes_i_historic_complet(db, client):
     assert body["generes_preferits"] == ["Jazz"]
     assert len(body["discos_rebuts"]) == 1
     assert body["discos_rebuts"][0]["titulo"] == "Àlbum"
-    assert body["adreca"]["ciudad"] == "BCN"
+    assert body["adreca"]["city"] == "BCN"
 
     # les rutes d'un sol segment registrades abans de "/{subscripcio_id}"
     # han de continuar funcionant (no interceptades pel path param)
@@ -300,10 +300,10 @@ def test_seleccio_automatica_afegeix_al_pool_respectant_limit_i_filtres(db, clie
     assert r.json()["afegits"] == 2  # limitat a 2, encara que 3 discos compleixen el marge
 
     db.expire_all()
-    en_pool = {i.id for i in dins_marge if db.get(Item, i.id).subscripcio_pool}
+    en_pool = {i.id for i in dins_marge if db.get(Item, i.id).subscription_pool}
     assert len(en_pool) == 2
-    assert db.get(Item, fora_marge.id).subscripcio_pool is False  # fora del marge, mai tocat
-    assert db.get(Item, ja_al_pool.id).subscripcio_pool is True  # ja hi era, no compta pel límit
+    assert db.get(Item, fora_marge.id).subscription_pool is False  # fora del marge, mai tocat
+    assert db.get(Item, ja_al_pool.id).subscription_pool is True  # ja hi era, no compta pel límit
 
 
 def test_informe_mensual_agrega_nomes_les_dades_del_mes_demanat(db, client):
@@ -320,7 +320,7 @@ def test_informe_mensual_agrega_nomes_les_dades_del_mes_demanat(db, client):
     cobrament_a.periode = date(2026, 1, 5)
     cobrament_a.estat = EstatCobrament.cobrat
     cobrament_a.ds_order = "genabcdef01"
-    release_a = Release(artista="A", titulo="Disc A", formato="LP")
+    release_a = Release(artista="A", title="Disc A", formato="LP")
     db.add(release_a)
     db.flush()
     db.add(Assignacio(

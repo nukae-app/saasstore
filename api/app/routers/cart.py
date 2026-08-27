@@ -55,16 +55,16 @@ def _serialize(db: Session, cart: Cart) -> CartOut:
         CartItemOut(
             item_id=ci.item.id,
             artista=ci.item.release.artista,
-            titulo=ci.item.release.titulo,
-            precio=ci.item.precio,
+            title=ci.item.release.title,
+            price=ci.item.price,
             status=ci.item.status.value,
-            cantidad=ci.cantidad,
-            condicion=ci.item.condicion.value,
-            imagen_url=ci.item.release.imagen_url,
+            quantity=ci.quantity,
+            condition=ci.item.condition.value,
+            image_url=ci.item.release.image_url,
         )
         for ci in rows
     ]
-    total = sum((i.precio * i.cantidad for i in items), Decimal("0"))
+    total = sum((i.price * i.quantity for i in items), Decimal("0"))
     return CartOut(items=items, total=total)
 
 
@@ -83,17 +83,17 @@ def add_to_cart(payload: CartAdd, cart: Cart = Depends(get_or_create_cart), db: 
         select(CartItem).where(CartItem.cart_id == cart.id, CartItem.item_id == item.id)
     )
 
-    if item.condicion == CondicionItem.nou:
+    if item.condition == CondicionItem.nou:
         # Comprobación laxa (igual de laxa que la de segona_ma más abajo): la
         # reserva de verdad, atómica, ocurre en /checkout/start. Aquí solo se
         # evita ofrecer más cantidad de la que físicamente existe.
-        cantidad_en_carrito = exists.cantidad if exists else 0
-        if item.cantidad < cantidad_en_carrito + payload.cantidad:
+        cantidad_en_carrito = exists.quantity if exists else 0
+        if item.quantity < cantidad_en_carrito + payload.quantity:
             raise HTTPException(409, "No queda suficiente stock de este disco")
         if exists is None:
-            db.add(CartItem(cart_id=cart.id, item_id=item.id, cantidad=payload.cantidad))
+            db.add(CartItem(cart_id=cart.id, item_id=item.id, quantity=payload.quantity))
         else:
-            exists.cantidad += payload.cantidad
+            exists.quantity += payload.quantity
         db.commit()
         return _serialize(db, cart)
 

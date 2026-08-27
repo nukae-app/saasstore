@@ -45,11 +45,11 @@ def _sign_as_redsys(params: dict) -> tuple[str, str]:
 
 
 def _seed(db):
-    r = Release(artista="Los Ganglios", titulo="Peruguay", formato="LP")
+    r = Release(artista="Los Ganglios", title="Peruguay", formato="LP")
     db.add(r)
     db.flush()
-    i1 = Item(release_id=r.id, precio=Decimal("22.00"), codi_discogs=3844817287)
-    i2 = Item(release_id=r.id, precio=Decimal("18.00"))
+    i1 = Item(release_id=r.id, price=Decimal("22.00"), codi_discogs=3844817287)
+    i2 = Item(release_id=r.id, price=Decimal("18.00"))
     db.add_all([i1, i2])
     db.commit()
     return r, i1, i2
@@ -87,7 +87,7 @@ def test_checkout_completo_con_pago_redsys_y_cancelacion(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda"},
     )
     assert conf.status_code == 201
     order_id = conf.json()["id"]
@@ -130,7 +130,7 @@ def test_checkout_completo_con_pago_redsys_y_cancelacion(db, client):
     # el admin debe poder ver la referencia del cobro Redsys sin ir al portal del banco
     access0, _ = _login(client, "admin_view@example.com")
     user0 = db.scalar(select(User).where(User.email == "admin_view@example.com"))
-    user0.rol = "admin"
+    user0.role = "admin"
     db.commit()
     admin_access0, _ = _login(client, "admin_view@example.com")
     detail = client.get(f"/admin/orders/{order_id}", headers={"Authorization": f"Bearer {admin_access0}"})
@@ -150,7 +150,7 @@ def test_checkout_completo_con_pago_redsys_y_cancelacion(db, client):
     # un admin cancela el pedido -> el ejemplar vuelve a la venta
     access, _ = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     admin_access, _ = _login(client, "admin@example.com")
     orders = client.get("/admin/orders", headers={"Authorization": f"Bearer {admin_access}"})
@@ -174,7 +174,7 @@ def test_checkout_pago_denegado_libera_el_ejemplar(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda"},
     )
     order_id = conf.json()["id"]
 
@@ -210,7 +210,7 @@ def test_checkout_notify_con_firma_invalida_es_rechazada(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda"},
     )
     order_id = conf.json()["id"]
     pay = client.post(f"/checkout/{order_id}/pay/redsys/start")
@@ -234,7 +234,7 @@ def test_pago_en_tienda_solo_con_recogida(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "envio", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "envio", "payment_method": "tienda"},
     )
     assert conf.status_code == 422
 
@@ -249,18 +249,18 @@ def test_pago_en_tienda_admin_marca_pagado(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     assert conf.status_code == 201
     assert conf.json()["status"] == "pendiente_pago"
-    assert conf.json()["metodo_pago"] == "tienda"
+    assert conf.json()["payment_method"] == "tienda"
     order_id = conf.json()["id"]
     db.expire_all()
     assert db.get(Item, i2.id).status == ItemStatus.reservado
 
     access, _ = _login(client, "admin2@example.com")
     user = db.scalar(select(User).where(User.email == "admin2@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     admin_access, _ = _login(client, "admin2@example.com")
 
@@ -279,7 +279,7 @@ def test_pago_en_tienda_admin_marca_pagado(db, client):
 def _admin_headers(client, db, email="admin-caixa@example.com"):
     _login(client, email)
     user = db.scalar(select(User).where(User.email == email))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     admin_access, _ = _login(client, email)
     return {"Authorization": f"Bearer {admin_access}"}
@@ -295,19 +295,19 @@ def test_marcar_pagado_tienda_efectivo_registra_moviment_caixa(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     order_id = conf.json()["id"]
 
     with contextlib.redirect_stdout(io.StringIO()):
         headers = _admin_headers(client, db)
     assert client.post(
-        "/admin/caja/apertura", json={"fecha_apertura": "2026-06-05T09:00:00", "fondo_inicial": "50.00"},
+        "/admin/caja/apertura", json={"opened_at": "2026-06-05T09:00:00", "opening_float": "50.00"},
         headers=headers,
     ).status_code == 201
 
     resp = client.post(
-        f"/admin/orders/{order_id}/marcar-pagado-tienda", json={"metodo_pago": "efectivo"}, headers=headers,
+        f"/admin/orders/{order_id}/marcar-pagado-tienda", json={"payment_method": "efectivo"}, headers=headers,
     )
     assert resp.status_code == 200
     db.expire_all()
@@ -316,8 +316,8 @@ def test_marcar_pagado_tienda_efectivo_registra_moviment_caixa(db, client):
 
     movs = client.get("/admin/caja/movimientos", headers=headers).json()
     assert len(movs) == 1
-    assert movs[0]["tipo"] == "entrada"
-    assert movs[0]["importe"] == str(conf.json()["total"])
+    assert movs[0]["type"] == "entrada"
+    assert movs[0]["amount"] == str(conf.json()["total"])
 
 
 def test_marcar_pagado_tienda_targeta_no_registra_moviment(db, client):
@@ -329,19 +329,19 @@ def test_marcar_pagado_tienda_targeta_no_registra_moviment(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     order_id = conf.json()["id"]
 
     with contextlib.redirect_stdout(io.StringIO()):
         headers = _admin_headers(client, db, "admin-caixa2@example.com")
     assert client.post(
-        "/admin/caja/apertura", json={"fecha_apertura": "2026-06-05T09:00:00", "fondo_inicial": "50.00"},
+        "/admin/caja/apertura", json={"opened_at": "2026-06-05T09:00:00", "opening_float": "50.00"},
         headers=headers,
     ).status_code == 201
 
     resp = client.post(
-        f"/admin/orders/{order_id}/marcar-pagado-tienda", json={"metodo_pago": "tarjeta"}, headers=headers,
+        f"/admin/orders/{order_id}/marcar-pagado-tienda", json={"payment_method": "tarjeta"}, headers=headers,
     )
     assert resp.status_code == 200
     db.expire_all()
@@ -360,7 +360,7 @@ def test_marcar_pagado_tienda_sense_sessio_caixa_no_falla(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     order_id = conf.json()["id"]
 
@@ -368,7 +368,7 @@ def test_marcar_pagado_tienda_sense_sessio_caixa_no_falla(db, client):
         headers = _admin_headers(client, db, "admin-caixa3@example.com")
 
     resp = client.post(
-        f"/admin/orders/{order_id}/marcar-pagado-tienda", json={"metodo_pago": "efectivo"}, headers=headers,
+        f"/admin/orders/{order_id}/marcar-pagado-tienda", json={"payment_method": "efectivo"}, headers=headers,
     )
     assert resp.status_code == 200
     db.expire_all()
@@ -381,15 +381,15 @@ def test_marcar_pagado_tienda_rebutja_si_no_esta_pendent(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda"},
     )
     order_id = conf.json()["id"]
-    assert conf.json()["metodo_pago"] == "redsys"
+    assert conf.json()["payment_method"] == "redsys"
 
     with contextlib.redirect_stdout(io.StringIO()):
         headers = _admin_headers(client, db, "admin-caixa4@example.com")
     resp = client.post(
-        f"/admin/orders/{order_id}/marcar-pagado-tienda", json={"metodo_pago": "efectivo"}, headers=headers,
+        f"/admin/orders/{order_id}/marcar-pagado-tienda", json={"payment_method": "efectivo"}, headers=headers,
     )
     assert resp.status_code == 409
 
@@ -404,7 +404,7 @@ def test_marcar_pagado_tienda_amb_preu_aplica_descompte(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     order_id = conf.json()["id"]
     assert conf.json()["total"] == "18.00"
@@ -412,13 +412,13 @@ def test_marcar_pagado_tienda_amb_preu_aplica_descompte(db, client):
     with contextlib.redirect_stdout(io.StringIO()):
         headers = _admin_headers(client, db, "admin-descompte@example.com")
     assert client.post(
-        "/admin/caja/apertura", json={"fecha_apertura": "2026-06-05T09:00:00", "fondo_inicial": "50.00"},
+        "/admin/caja/apertura", json={"opened_at": "2026-06-05T09:00:00", "opening_float": "50.00"},
         headers=headers,
     ).status_code == 201
 
     resp = client.post(
         f"/admin/orders/{order_id}/marcar-pagado-tienda",
-        json={"metodo_pago": "efectivo", "precio": "15.00"},
+        json={"payment_method": "efectivo", "price": "15.00"},
         headers=headers,
     )
     assert resp.status_code == 200
@@ -426,10 +426,10 @@ def test_marcar_pagado_tienda_amb_preu_aplica_descompte(db, client):
     order = db.get(Order, uuid.UUID(order_id))
     assert order.status == OrderStatus.pagado
     assert order.total == Decimal("15.00")
-    assert order.items[0].precio == Decimal("15.00")
+    assert order.items[0].price == Decimal("15.00")
 
     movs = client.get("/admin/caja/movimientos", headers=headers).json()
-    assert movs[0]["importe"] == "15.00"
+    assert movs[0]["amount"] == "15.00"
 
 
 def test_marcar_pagado_tienda_amb_preu_en_comanda_multi_disc_falla(db, client):
@@ -442,7 +442,7 @@ def test_marcar_pagado_tienda_amb_preu_en_comanda_multi_disc_falla(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     order_id = conf.json()["id"]
 
@@ -450,7 +450,7 @@ def test_marcar_pagado_tienda_amb_preu_en_comanda_multi_disc_falla(db, client):
         headers = _admin_headers(client, db, "admin-descompte2@example.com")
     resp = client.post(
         f"/admin/orders/{order_id}/marcar-pagado-tienda",
-        json={"metodo_pago": "efectivo", "precio": "30.00"},
+        json={"payment_method": "efectivo", "price": "30.00"},
         headers=headers,
     )
     assert resp.status_code == 422
@@ -467,7 +467,7 @@ def test_pago_en_tienda_allarga_la_reserva_72h(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     assert conf.status_code == 201
     db.expire_all()
@@ -490,7 +490,7 @@ def test_pago_en_tienda_caduca_si_no_es_reclama(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     order_id = conf.json()["id"]
 
@@ -514,13 +514,13 @@ def test_admin_orders_pendientes_tienda(db, client):
     assert client.post("/checkout/start").status_code == 200
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda", "metodo_pago": "tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda", "payment_method": "tienda"},
     )
     order_id = conf.json()["id"]
 
     access, _ = _login(client, "admin3@example.com")
     user = db.scalar(select(User).where(User.email == "admin3@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     admin_access, _ = _login(client, "admin3@example.com")
 
@@ -550,7 +550,7 @@ def test_confirm_sin_start_no_vende_ni_crea_pedido(db, client):
     assert client.post("/cart/items", json={"item_id": str(i1.id)}).status_code == 201
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "atacante@example.com", "metodo_envio": "recogida_tienda"},
+        json={"contact_email": "atacante@example.com", "shipping_method": "recogida_tienda"},
     )
     assert conf.status_code == 409
     db.expire_all()
@@ -567,7 +567,7 @@ def test_confirm_no_puede_robar_reserva_ajena(db, client):
 
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "atacante@example.com", "metodo_envio": "recogida_tienda"},
+        json={"contact_email": "atacante@example.com", "shipping_method": "recogida_tienda"},
     )
     assert conf.status_code == 409
     db.expire_all()

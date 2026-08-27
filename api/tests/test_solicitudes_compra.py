@@ -26,7 +26,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -36,14 +36,14 @@ def _auth(token: str) -> dict:
 
 
 def _seed_release(db, artista="Artista", titulo="Àlbum") -> Release:
-    r = Release(artista=artista, titulo=titulo, formato="LP")
+    r = Release(artista=artista, title=titulo, formato="LP")
     db.add(r)
     db.commit()
     return r
 
 
 def _seed_proveedor(db, nombre="DistroX", email="prov@example.com") -> Proveedor:
-    p = Proveedor(nombre=nombre, email=email)
+    p = Proveedor(name=nombre, email=email)
     db.add(p)
     db.commit()
     return p
@@ -54,7 +54,7 @@ def test_crear_solicitud_con_release_existente(db, client):
     release = _seed_release(db)
 
     payload = {
-        "lineas": [{"release_id": str(release.id), "cantidad": 2, "notas": "reposició"}],
+        "lineas": [{"release_id": str(release.id), "quantity": 2, "notes": "reposició"}],
     }
     resp = client.post("/admin/solicitudes-compra", json=payload, headers=_auth(admin))
     assert resp.status_code == 201
@@ -62,8 +62,8 @@ def test_crear_solicitud_con_release_existente(db, client):
     assert body["estado"] == "oberta"
     assert body["origen"] == "manual"
     assert len(body["lineas"]) == 1
-    assert body["lineas"][0]["artista"] == "Artista"
-    assert body["lineas"][0]["cantidad"] == 2
+    assert body["lineas"][0]["artist"] == "Artista"
+    assert body["lineas"][0]["quantity"] == 2
     assert body["lineas"][0]["resuelta"] is False
 
 
@@ -71,18 +71,18 @@ def test_crear_solicitud_con_disco_no_catalogado(db, client):
     admin = _admin_token(client, db)
 
     payload = {
-        "lineas": [{"artista": "Nou Grup", "titulo": "Nou Disc", "sello": "Segell X", "cantidad": 1}],
+        "lineas": [{"artist": "Nou Grup", "title": "Nou Disc", "label": "Segell X", "quantity": 1}],
     }
     resp = client.post("/admin/solicitudes-compra", json=payload, headers=_auth(admin))
     assert resp.status_code == 201
     body = resp.json()
     assert body["lineas"][0]["release_id"] is None
-    assert body["lineas"][0]["artista"] == "Nou Grup"
+    assert body["lineas"][0]["artist"] == "Nou Grup"
 
 
 def test_crear_solicitud_sin_release_ni_artista_falla(db, client):
     admin = _admin_token(client, db)
-    payload = {"lineas": [{"cantidad": 1}]}
+    payload = {"lineas": [{"quantity": 1}]}
     resp = client.post("/admin/solicitudes-compra", json=payload, headers=_auth(admin))
     assert resp.status_code == 422
 
@@ -94,7 +94,7 @@ def test_resolver_solicitud_crea_comanda(db, client):
 
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 3}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 3}]},
         headers=_auth(admin),
     ).json()
     linea_id = solicitud["lineas"][0]["id"]
@@ -103,15 +103,15 @@ def test_resolver_solicitud_crea_comanda(db, client):
         "/admin/solicitudes-compra/resolver",
         json={
             "proveedor_id": str(prov.id),
-            "fecha": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": linea_id, "precio_unitario_estimado": "10.00"}],
+            "date": "2026-06-01T10:00:00",
+            "lineas": [{"solicitud_linea_id": linea_id, "estimated_unit_price": "10.00"}],
         },
         headers=_auth(admin),
     )
     assert resp.status_code == 201
     comanda = resp.json()
     assert comanda["proveedor_id"] == str(prov.id)
-    assert comanda["lineas"][0]["cantidad"] == 3
+    assert comanda["lineas"][0]["quantity"] == 3
 
     solicitud_actualitzada = client.get(
         f"/admin/solicitudes-compra/{solicitud['id']}", headers=_auth(admin)
@@ -127,7 +127,7 @@ def test_resolver_solicitud_sense_release_falla(db, client):
 
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"artista": "X", "titulo": "Y", "cantidad": 1}]},
+        json={"lineas": [{"artist": "X", "title": "Y", "quantity": 1}]},
         headers=_auth(admin),
     ).json()
     linea_id = solicitud["lineas"][0]["id"]
@@ -136,7 +136,7 @@ def test_resolver_solicitud_sense_release_falla(db, client):
         "/admin/solicitudes-compra/resolver",
         json={
             "proveedor_id": str(prov.id),
-            "fecha": "2026-06-01T10:00:00",
+            "date": "2026-06-01T10:00:00",
             "lineas": [{"solicitud_linea_id": linea_id}],
         },
         headers=_auth(admin),
@@ -151,12 +151,12 @@ def test_resolver_linia_ya_resuelta_falla(db, client):
 
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 1}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
         headers=_auth(admin),
     ).json()
     linea_id = solicitud["lineas"][0]["id"]
     resolver_payload = {
-        "proveedor_id": str(prov.id), "fecha": "2026-06-01T10:00:00",
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
         "lineas": [{"solicitud_linea_id": linea_id}],
     }
     assert client.post("/admin/solicitudes-compra/resolver", json=resolver_payload, headers=_auth(admin)).status_code == 201
@@ -174,8 +174,8 @@ def test_partial_resolution_manté_solicitud_oberta(db, client):
     solicitud = client.post(
         "/admin/solicitudes-compra",
         json={"lineas": [
-            {"release_id": str(r1.id), "cantidad": 1},
-            {"release_id": str(r2.id), "cantidad": 1},
+            {"release_id": str(r1.id), "quantity": 1},
+            {"release_id": str(r2.id), "quantity": 1},
         ]},
         headers=_auth(admin),
     ).json()
@@ -184,7 +184,7 @@ def test_partial_resolution_manté_solicitud_oberta(db, client):
     client.post(
         "/admin/solicitudes-compra/resolver",
         json={
-            "proveedor_id": str(prov.id), "fecha": "2026-06-01T10:00:00",
+            "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
             "lineas": [{"solicitud_linea_id": linea1_id}],
         },
         headers=_auth(admin),
@@ -205,14 +205,14 @@ def test_eliminar_linia_resolta_falla(db, client):
 
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 1}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
         headers=_auth(admin),
     ).json()
     linea_id = solicitud["lineas"][0]["id"]
     client.post(
         "/admin/solicitudes-compra/resolver",
         json={
-            "proveedor_id": str(prov.id), "fecha": "2026-06-01T10:00:00",
+            "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
             "lineas": [{"solicitud_linea_id": linea_id}],
         },
         headers=_auth(admin),
@@ -227,7 +227,7 @@ def test_cancelar_solicitud(db, client):
     release = _seed_release(db)
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 1}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
         headers=_auth(admin),
     ).json()
 
@@ -244,7 +244,7 @@ def test_eliminar_solicitud_sense_resoldre(db, client):
     release = _seed_release(db)
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 1}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
         headers=_auth(admin),
     ).json()
 
@@ -258,7 +258,7 @@ def test_list_solicitudes_filtra_per_estat(db, client):
     release = _seed_release(db)
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 1}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
         headers=_auth(admin),
     ).json()
     client.patch(f"/admin/solicitudes-compra/{solicitud['id']}/cancelar", headers=_auth(admin))
@@ -274,12 +274,12 @@ def test_resoldre_estoc_manual_tanca_linia_sense_comanda(db, client):
     release = _seed_release(db)
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 1}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
         headers=_auth(admin),
     ).json()
     linea_id = solicitud["lineas"][0]["id"]
 
-    item = Item(release_id=release.id, precio=20, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=20, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
 
@@ -304,13 +304,13 @@ def test_resoldre_estoc_linia_ja_resolta_falla(db, client):
     release = _seed_release(db)
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 1}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
         headers=_auth(admin),
     ).json()
     linea_id = solicitud["lineas"][0]["id"]
 
-    item1 = Item(release_id=release.id, precio=20, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
-    item2 = Item(release_id=release.id, precio=22, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item1 = Item(release_id=release.id, price=20, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item2 = Item(release_id=release.id, price=22, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add_all([item1, item2])
     db.commit()
 
@@ -334,12 +334,12 @@ def test_eliminar_linia_resolta_desde_estoc_falla(db, client):
     release = _seed_release(db)
     solicitud = client.post(
         "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "cantidad": 1}]},
+        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
         headers=_auth(admin),
     ).json()
     linea_id = solicitud["lineas"][0]["id"]
 
-    item = Item(release_id=release.id, precio=20, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=20, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     client.post(

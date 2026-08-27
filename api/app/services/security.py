@@ -53,7 +53,7 @@ def create_access_token(user: User) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user.id),
-        "rol": user.rol,
+        "rol": user.role,
         "iat": now,
         "exp": now + timedelta(minutes=s.access_token_minutes),
     }
@@ -107,7 +107,11 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     except jwt.PyJWTError:
         raise HTTPException(401, "Token inválido o caducado")
     user = db.get(User, uuid.UUID(payload["sub"]))
-    if user is None:
+    # `db.get()` puede devolver un hit del identity map sin pasar por el
+    # filtro automático de tenant (ver app/tenancy.py::_filter_by_tenant) —
+    # por eso aquí la comprobación de tenant es explícita: esto es la puerta
+    # de autenticación, no nos fiamos solo del filtro implícito.
+    if user is None or user.tenant_id != request.state.tenant.id:
         raise HTTPException(401, "Usuario no encontrado")
     return user
 
@@ -124,15 +128,15 @@ def require_admin(request: Request, db: Session = Depends(get_db)) -> User:
     # se activa si el entorno se ha declarado como producción (misma señal
     # que ya distingue el TPV de Redsys entre test/production).
     if get_settings().dev_admin_bypass and get_settings().redsys_environment != "production":
-        user = db.scalar(select(User).where(User.rol == "admin"))
+        user = db.scalar(select(User).where(User.role == "admin"))
         if user is None:
-            user = User(email="dev@admin.local", rol="admin", nombre="Dev Admin")
+            user = User(email="dev@admin.local", role="admin", name="Dev Admin")
             db.add(user)
             db.commit()
             db.refresh(user)
         return user
     user = get_current_user(request, db)
-    if user.rol != "admin":
+    if user.role != "admin":
         raise HTTPException(403, "Solo administración")
     return user
 

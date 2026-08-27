@@ -20,7 +20,7 @@ export default function NovaPeticioModal({ onClose, onSaved, initialArtista = ''
     try {
       const res = await authFetch('/me/peticiones', {
         method: 'POST',
-        body: JSON.stringify({ artista_lliure: artista, titulo_lliure: titulo, notas_cliente: notas || null }),
+        body: JSON.stringify({ free_artist: artista, free_title: titulo, client_notes: notas || null }),
       });
       if (res.ok) {
         onSaved();

@@ -41,14 +41,14 @@ def _excerpt(html: str, max_chars: int = 160) -> str:
 def _post_out(post: Post) -> dict:
     return {
         "slug": post.slug,
-        "titulo": post.titulo,
-        "contenido": post.contenido,
-        "idioma": post.idioma,
-        "publicado_at": post.publicado_at.isoformat() if post.publicado_at else None,
-        "thumbnail_url": _extract_thumbnail(post.contenido),
-        "excerpt": _excerpt(post.contenido),
+        "title": post.title,
+        "content": post.content,
+        "language": post.language,
+        "published_at": post.published_at.isoformat() if post.published_at else None,
+        "thumbnail_url": _extract_thumbnail(post.content),
+        "excerpt": _excerpt(post.content),
         "legacy_blogger_url": post.legacy_blogger_url,
-        "pagines": [{"id": p.id, "slug": p.slug, "nom": p.nom} for p in post.pagines],
+        "pagines": [{"id": p.id, "slug": p.slug, "name": p.name} for p in post.pagines],
     }
 
 
@@ -63,14 +63,14 @@ def list_pagines(db: Session = Depends(get_db)):
         {
             "id": p.id,
             "slug": p.slug,
-            "nom": p.nom,
-            "tipus": p.tipus,
-            "posicio": p.posicio,
+            "name": p.name,
+            "type": p.type,
+            "position": p.position,
         }
         for p in db.scalars(
             select(Pagina)
-            .where(Pagina.visible_menu == True)
-            .order_by(Pagina.posicio)
+            .where(Pagina.menu_visible == True)
+            .order_by(Pagina.position)
         ).all()
     ]
 
@@ -84,9 +84,9 @@ def get_pagina(slug: str, db: Session = Depends(get_db)):
     return {
         "id": pagina.id,
         "slug": pagina.slug,
-        "nom": pagina.nom,
-        "tipus": pagina.tipus,
-        "contingut": pagina.contingut,
+        "name": pagina.name,
+        "type": pagina.type,
+        "content": pagina.content,
     }
 
 
@@ -105,7 +105,7 @@ def list_posts(
 ):
     stmt = (
         select(Post)
-        .where(Post.publicado_at.is_not(None))
+        .where(Post.published_at.is_not(None))
     )
     if pagina:
         pg = db.scalar(select(Pagina).where(Pagina.slug == pagina))
@@ -116,10 +116,10 @@ def list_posts(
         else:
             return []
     if year:
-        stmt = stmt.where(extract("year", Post.publicado_at) == year)
+        stmt = stmt.where(extract("year", Post.published_at) == year)
     if month:
-        stmt = stmt.where(extract("month", Post.publicado_at) == month)
-    stmt = stmt.order_by(Post.publicado_at.desc()).offset((page - 1) * page_size).limit(page_size)
+        stmt = stmt.where(extract("month", Post.published_at) == month)
+    stmt = stmt.order_by(Post.published_at.desc()).offset((page - 1) * page_size).limit(page_size)
     return [_post_out(p) for p in db.scalars(stmt).all()]
 
 
@@ -131,11 +131,11 @@ def posts_archive(
     """Recompte de posts per any i mes, opcionalment filtrat per pàgina."""
     stmt = (
         select(
-            extract("year", Post.publicado_at).label("year"),
-            extract("month", Post.publicado_at).label("month"),
+            extract("year", Post.published_at).label("year"),
+            extract("month", Post.published_at).label("month"),
             func.count(Post.slug).label("count"),
         )
-        .where(Post.publicado_at.is_not(None))
+        .where(Post.published_at.is_not(None))
     )
     if pagina:
         pg = db.scalar(select(Pagina).where(Pagina.slug == pagina))
@@ -166,7 +166,7 @@ def posts_archive(
 @router.get("/posts/{slug}")
 def get_post(slug: str, db: Session = Depends(get_db)):
     post = db.scalar(select(Post).where(Post.slug == slug))
-    if post is None or post.publicado_at is None:
+    if post is None or post.published_at is None:
         raise HTTPException(404, "Post no trobat")
     return _post_out(post)
 
@@ -179,6 +179,6 @@ def get_post(slug: str, db: Session = Depends(get_db)):
 def list_events(db: Session = Depends(get_db)):
     return db.scalars(
         select(Event)
-        .where(Event.fecha >= datetime.now(timezone.utc))
-        .order_by(Event.fecha)
+        .where(Event.date >= datetime.now(timezone.utc))
+        .order_by(Event.date)
     ).all()

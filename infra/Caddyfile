@@ -1,5 +1,49 @@
+# Fase 4 (roadmap de superadmin): TLS on-demand para dominios de tenant
+# dados de alta después del deploy — sin esto, un tenant nuevo con `domain`
+# propio (ver POST/PATCH /superadmin/tenants) queda creado en BD pero no
+# sirve tráfico hasta editar este Caddyfile a mano y redesplegar. `ask`
+# consulta a la API (api/app/routers/internal.py::ask_domain, container a
+# container, nunca a través de este mismo Caddy) antes de pedir un
+# certificado nuevo a Let's Encrypt — así un hostname aleatorio que
+# resuelva aquí no puede disparar peticiones de certificado y agotar el
+# rate limit de la cuenta ACME, y un tenant suspendido (Tenant.activo=False)
+# tampoco consigue certificado nuevo.
+{
+	email {$ACME_EMAIL}
+	on_demand_tls {
+		ask http://api:8000/internal/caddy/ask-domain
+	}
+}
+
 www.{$SITE_ADDRESS} {
 	redir https://{$SITE_ADDRESS}{uri} permanent
+}
+
+# Panel de superadmin (Fase 3) — dominio dedicado, distinto del de
+# cualquier tenant. El gate real vive en el backend
+# (_require_superadmin_host, api/app/routers/superadmin.py, comprueba el
+# Host y devuelve 404 si no coincide); este bloque solo asegura que el
+# Host que llega a la API es el correcto (a diferencia de /api/* en el
+# bloque de {$SITE_ADDRESS} de abajo, que reenvía sin más). Debe coincidir
+# con SUPERADMIN_HOST (backend) y NEXT_PUBLIC_SUPERADMIN_HOST (frontend).
+{$SUPERADMIN_HOST} {
+	encode gzip
+
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+
+	handle {
+		header {
+			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+			X-Frame-Options "SAMEORIGIN"
+			-X-Powered-By
+		}
+		reverse_proxy web:3000
+	}
 }
 
 {$SITE_ADDRESS} {
@@ -9,6 +53,57 @@ www.{$SITE_ADDRESS} {
 	# (api:8000/metrics directament, sense passar per Caddy) — bloquejat
 	# aquí perquè no quedi accessible des d'internet.
 	handle /api/metrics {
+		respond 404
+	}
+
+	# Defensa en profunditat: /internal/* (ver api/app/routers/internal.py)
+	# només l'ha de cridar Caddy mateix, contenidor a contenidor — mai s'hi
+	# hauria d'arribar per aquí, però es bloqueja igualment igual que
+	# /api/metrics.
+	handle /api/internal/* {
+		respond 404
+	}
+
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+
+	handle /uploads/* {
+		uri strip_prefix /uploads
+		root * /srv/uploads
+		file_server
+	}
+
+	handle {
+		header {
+			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+			Permissions-Policy "geolocation=(), camera=(), microphone=()"
+			X-Frame-Options "SAMEORIGIN"
+			-X-Powered-By
+		}
+		reverse_proxy web:3000
+	}
+}
+
+# Fase 4: dominis de tenant donats d'alta des del superadmin DESPRÉS
+# d'aquest deploy — {$SITE_ADDRESS}/{$SUPERADMIN_HOST} de dalt són blocs
+# explícits, Caddy sempre els prioritza sobre aquest catch-all, així que no
+# xoquen. TLS on-demand (`tls { on_demand }`) usa el bloc global `ask` de
+# dalt d'aquest fitxer per decidir si val la pena demanar un certificat.
+https:// {
+	encode gzip
+	tls {
+		on_demand
+	}
+
+	handle /api/metrics {
+		respond 404
+	}
+
+	handle /api/internal/* {
 		respond 404
 	}
 

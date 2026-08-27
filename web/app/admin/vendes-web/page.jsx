@@ -32,12 +32,15 @@ const PAYMENT_STATUS_COLOR = {
   denegado:   'bg-red-100 text-red-700',
   error:      'bg-amber-100 text-amber-700',
 };
-const PAYMENT_STATUS_LABEL = {
+const PAYMENT_STATUS_FALLBACK = {
   creado:     'Creat',
   autorizado: 'Autoritzat',
   denegado:   'Denegat',
   error:      'Error',
 };
+function paymentStatusLabel(t, estat) {
+  return t(`orders.payment_status.${estat}`, PAYMENT_STATUS_FALLBACK[estat] ?? estat);
+}
 // Una comanda neix "pendiente_pago": si es paga amb targeta (Redsys), el pas
 // a "pagado" l'automatitza la notificació del banc; si es paga a la botiga
 // (recollida en persona), un admin la marca com pagada aquí a mà. Un cop
@@ -84,7 +87,7 @@ export default function VendesWebPage() {
     { key: null,             label: t('orders.tab.all') },
     { key: 'pagado',         label: t('orders.tab.paid') },
     { key: 'enviado',        label: t('orders.tab.shipped') },
-    { key: TAB_RECOLLIDA,    label: 'Pendents de recollir' },
+    { key: TAB_RECOLLIDA,    label: t('orders.tab.pickup_pending', 'Pendents de recollir') },
     { key: 'entregado',      label: t('orders.tab.delivered') },
     { key: 'cancelado',      label: t('orders.tab.cancelled') },
     { key: 'pendiente_pago', label: t('orders.tab.pending') }, // legacy
@@ -211,33 +214,33 @@ export default function VendesWebPage() {
           <div className="relative flex-1 min-w-[220px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input value={q} onChange={e => setQ(e.target.value)}
-              placeholder="Cerca per email, disc o comanda de Discogs..."
+              placeholder={t('orders.search_ph', 'Cerca per email, disc o comanda de Discogs...')}
               className="w-full pl-9 pr-4 py-2 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white" />
           </div>
           <select value={metodoEnvioFilter} onChange={e => setMetodoEnvioFilter(e.target.value)}
             className="border border-zinc-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
-            <option value="">{t('orders.col.shipping')}: tots</option>
+            <option value="">{t('orders.col.shipping')}: {t('orders.filter.all', 'tots')}</option>
             <option value="envio">{t('orders.shipping.delivery')}</option>
             <option value="recogida_tienda">{t('orders.shipping.pickup')}</option>
           </select>
           <select value={metodoPagoFilter} onChange={e => setMetodoPagoFilter(e.target.value)}
             className="border border-zinc-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
-            <option value="">{t('tpv.col.pago')}: tots</option>
-            <option value="redsys">Targeta (Redsys)</option>
-            <option value="tienda">Paga en recollir</option>
+            <option value="">{t('tpv.col.pago')}: {t('orders.filter.all', 'tots')}</option>
+            <option value="redsys">{t('orders.payment.card_redsys', 'Targeta (Redsys)')}</option>
+            <option value="tienda">{t('orders.payment.pay_on_pickup', 'Paga en recollir')}</option>
           </select>
           <select value={origenFilter} onChange={e => setOrigenFilter(e.target.value)}
             className="border border-zinc-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
-            <option value="">Origen: tots</option>
-            <option value="web">Web</option>
+            <option value="">{t('orders.col.origin', 'Origen')}: {t('orders.filter.all', 'tots')}</option>
+            <option value="web">{t('orders.origin.web', 'Web')}</option>
             <option value="discogs">Discogs</option>
-            <option value="subscripcio">Subscripció</option>
+            <option value="subscripcio">{t('orders.origin.subscription', 'Subscripció')}</option>
           </select>
           {(q || metodoEnvioFilter || metodoPagoFilter || origenFilter) && (
             <button
               onClick={() => { setQ(''); setMetodoEnvioFilter(''); setMetodoPagoFilter(''); setOrigenFilter(''); }}
               className="text-xs text-zinc-500 hover:text-zinc-900 font-medium px-2">
-              Netejar filtres
+              {t('orders.clear_filters', 'Netejar filtres')}
             </button>
           )}
         </div>
@@ -264,8 +267,8 @@ export default function VendesWebPage() {
                   <SortableTh label={t('orders.col.date')} sortKey="created_at" sort={ordersSort} onSort={toggleOrdersSort} />
                   <SortableTh label={t('orders.col.email')} sortKey="email" sort={ordersSort} onSort={toggleOrdersSort} />
                   <SortableTh label={t('orders.col.shipping')} sortKey="metodo_envio" sort={ordersSort} onSort={toggleOrdersSort} />
-                  <SortableTh label="Total" sortKey="total" sort={ordersSort} onSort={toggleOrdersSort} align="right" />
-                  <SortableTh label={t('orders.tab.all')} sortKey="status" sort={ordersSort} onSort={toggleOrdersSort} />
+                  <SortableTh label={t('tpv.resum.total')} sortKey="total" sort={ordersSort} onSort={toggleOrdersSort} align="right" />
+                  <SortableTh label={t('purchases.col.status', 'Estat')} sortKey="status" sort={ordersSort} onSort={toggleOrdersSort} />
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -321,10 +324,11 @@ function horesRestants(reservedUntil) {
 }
 
 function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, loading, onMarcarRecollit, updating }) {
+  const t = useT();
   if (loading) {
     return (
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-12 text-center text-zinc-400 text-sm">
-        Carregant…
+        {t('common.loading')}
       </div>
     );
   }
@@ -335,7 +339,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
     return (
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-12 text-center text-zinc-400 text-sm">
         <Store size={28} className="text-zinc-200 mx-auto mb-3" />
-        Cap disc pendent de recollir a botiga.
+        {t('orders.pickup.no_pending', 'Cap disc pendent de recollir a botiga.')}
       </div>
     );
   }
@@ -345,7 +349,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
       {llestes.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3 bg-zinc-50 text-xs font-semibold text-zinc-500 uppercase tracking-wide border-b border-zinc-100">
-            Comandes web pagades, esperant que el client vingui
+            {t('orders.pickup.paid_waiting_client', 'Comandes web pagades, esperant que el client vingui')}
           </div>
           <div className="divide-y divide-zinc-100">
             {llestes.map(o => (
@@ -357,7 +361,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
                 <span className="font-semibold text-zinc-900 shrink-0">{o.total} €</span>
                 <button onClick={() => onMarcarRecollit(o)} disabled={updating}
                   className="bg-primary hover:bg-zinc-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 shrink-0">
-                  Recollit pel client
+                  {t('orders.pickup.collected_by_client', 'Recollit pel client')}
                 </button>
               </div>
             ))}
@@ -368,7 +372,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
       {esperantExemplar.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3 bg-zinc-50 text-xs font-semibold text-zinc-500 uppercase tracking-wide border-b border-zinc-100">
-            Ja pagades, esperant que arribi l'exemplar del proveïdor
+            {t('orders.pickup.paid_waiting_supplier', "Ja pagades, esperant que arribi l'exemplar del proveïdor")}
           </div>
           <div className="divide-y divide-zinc-100">
             {esperantExemplar.map(o => (
@@ -380,7 +384,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
                 <span className="font-semibold text-zinc-900 shrink-0">{o.total} €</span>
                 <Link href="/admin/peticions"
                   className="text-xs font-semibold text-amber-600 hover:text-amber-700 border border-amber-200 rounded-lg px-3 py-1.5 hover:bg-amber-50 transition-colors shrink-0">
-                  Veure a Peticions
+                  {t('orders.pickup.see_in_requests', 'Veure a Peticions')}
                 </Link>
               </div>
             ))}
@@ -391,7 +395,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
       {ordersTiendaPendents.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3 bg-zinc-50 text-xs font-semibold text-zinc-500 uppercase tracking-wide border-b border-zinc-100">
-            Comandes web reservades, pendents de pagar i recollir (72h)
+            {t('orders.pickup.reserved_orders', 'Comandes web reservades, pendents de pagar i recollir (72h)')}
           </div>
           <div className="divide-y divide-zinc-100">
             {ordersTiendaPendents.map(o => {
@@ -410,7 +414,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
                   <span className="font-semibold text-zinc-900 shrink-0">{o.total} €</span>
                   <Link href="/admin/tpv"
                     className="bg-primary hover:bg-zinc-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shrink-0">
-                    Cobrar al TPV
+                    {t('orders.pickup.charge_at_tpv', 'Cobrar al TPV')}
                   </Link>
                 </div>
               );
@@ -422,7 +426,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
       {reservesBotiga.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3 bg-zinc-50 text-xs font-semibold text-zinc-500 uppercase tracking-wide border-b border-zinc-100">
-            Peticions reservades, pendents de pagar i recollir (72h)
+            {t('orders.pickup.reserved_requests', 'Peticions reservades, pendents de pagar i recollir (72h)')}
           </div>
           <div className="divide-y divide-zinc-100">
             {reservesBotiga.map(r => {
@@ -439,7 +443,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
                   <span className="font-semibold text-zinc-900 shrink-0">{r.precio} €</span>
                   <Link href="/admin/tpv"
                     className="bg-primary hover:bg-zinc-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shrink-0">
-                    Vendre al TPV
+                    {t('orders.pickup.sell_at_tpv', 'Vendre al TPV')}
                   </Link>
                 </div>
               );
@@ -480,7 +484,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
     const r = await onUpdate(order.id, { status, ...extra });
     if (!r.ok) {
       const d = await r.json().catch(() => ({}));
-      setStatusError(d.detail || 'No s\'ha pogut canviar l\'estat.');
+      setStatusError(d.detail || t('orders.detail.status_error', "No s'ha pogut canviar l'estat."));
     }
   }
 
@@ -489,7 +493,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
     const r = await onAvisarRecollida(order.id);
     if (!r.ok) {
       const d = await r.json().catch(() => ({}));
-      setAvisError(d.detail || 'No s\'ha pogut avisar el client.');
+      setAvisError(d.detail || t('orders.detail.notify_error', "No s'ha pogut avisar el client."));
     }
   }
 
@@ -504,23 +508,23 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
 
         <div className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
-            <InfoBlock label="Email" value={order.email} />
-            <InfoBlock label="Total" value={<span className="text-xl font-bold">{order.total} €</span>} />
+            <InfoBlock label={t('purchases.col.email', 'Email')} value={order.email} />
+            <InfoBlock label={t('tpv.resum.total')} value={<span className="text-xl font-bold">{order.total} €</span>} />
             <InfoBlock label={t('orders.col.shipping')} value={
               <span className="inline-flex items-center gap-2">
                 {order.metodo_envio === 'recogida_tienda' ? t('orders.detail.pickup') : t('orders.detail.delivery')}
                 {order.status !== 'cancelado' && (
                   <button onClick={() => setEditingMetode(v => !v)} className="text-zinc-900 hover:text-zinc-600 text-xs font-medium">
-                    Canviar
+                    {t('orders.detail.change_short', 'Canviar')}
                   </button>
                 )}
               </span>
             } />
-            <InfoBlock label="Pagament"
-              value={order.metodo_pago === 'tienda' ? 'A la botiga' : 'Targeta (Redsys)'} />
+            <InfoBlock label={t('tpv.confirm.pago')}
+              value={order.metodo_pago === 'tienda' ? t('orders.payment.at_shop', 'A la botiga') : t('orders.payment.card_redsys', 'Targeta (Redsys)')} />
             <InfoBlock label={t('orders.col.date')}
               value={new Date(order.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })} />
-            <InfoBlock label="Estat" value={
+            <InfoBlock label={t('purchases.col.status', 'Estat')} value={
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[order.status]}`}>
                 {t(STATUS_KEY[order.status])}
               </span>
@@ -538,7 +542,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
           {potImprimirEtiqueta && (
             <div className="flex justify-end">
               <Button size="sm" variant="secondary" onClick={() => window.print()}>
-                <Printer size={14} /> Imprimir etiqueta d'enviament
+                <Printer size={14} /> {t('orders.detail.print_shipping_label', "Imprimir etiqueta d'enviament")}
               </Button>
             </div>
           )}
@@ -559,7 +563,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
           {order.metodo_pago === 'redsys' && order.payments?.length > 0 && (
             <div className="shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] rounded-xl overflow-hidden">
               <div className="px-4 py-2.5 bg-zinc-50 text-xs font-semibold text-zinc-500 uppercase tracking-wide border-b border-zinc-100 flex items-center gap-1.5">
-                <CreditCard size={13} /> Pagament Redsys
+                <CreditCard size={13} /> {t('orders.detail.redsys_payment', 'Pagament Redsys')}
               </div>
               <div className="divide-y divide-zinc-100">
                 {order.payments.map(p => (
@@ -567,11 +571,11 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
                     <div className="min-w-0">
                       <div className="font-mono text-xs text-zinc-500">Ds_Order {p.ds_order}</div>
                       {p.ds_authorisation_code && (
-                        <div className="text-xs text-zinc-400">Autorització {p.ds_authorisation_code}</div>
+                        <div className="text-xs text-zinc-400">{t('orders.detail.authorization', 'Autorització')} {p.ds_authorisation_code}</div>
                       )}
                     </div>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${PAYMENT_STATUS_COLOR[p.estado] ?? 'bg-zinc-100 text-zinc-700'}`}>
-                      {PAYMENT_STATUS_LABEL[p.estado] ?? p.estado}
+                      {paymentStatusLabel(t, p.estado)}
                     </span>
                   </div>
                 ))}
@@ -594,7 +598,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
                     </div>
                     {it.pendent_arribada ? (
                       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 shrink-0">
-                        Pendent d'arribar
+                        {t('orders.detail.pending_arrival', "Pendent d'arribar")}
                       </span>
                     ) : it.devuelto ? (
                       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500 shrink-0">
@@ -626,13 +630,13 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <p className="text-sm text-zinc-600">
                   {order.avisada_recollida_at
-                    ? `Client avisat el ${new Date(order.avisada_recollida_at).toLocaleDateString()}`
-                    : 'El client encara no sap que ja el pot recollir.'}
+                    ? `${t('orders.detail.client_notified_on', 'Client avisat el')} ${new Date(order.avisada_recollida_at).toLocaleDateString()}`
+                    : t('orders.detail.client_not_notified', 'El client encara no sap que ja el pot recollir.')}
                 </p>
                 <Button size="sm" variant={order.avisada_recollida_at ? 'secondary' : 'default'}
                   disabled={updating} onClick={handleAvisarRecollida}>
                   <Store size={14} />
-                  {order.avisada_recollida_at ? 'Tornar a avisar' : 'Avisar client — ja el pot recollir'}
+                  {order.avisada_recollida_at ? t('orders.detail.notify_again', 'Tornar a avisar') : t('orders.detail.notify_ready', 'Avisar client — ja el pot recollir')}
                 </Button>
               </div>
               {avisError && <p className="text-xs text-red-600 mt-2">{avisError}</p>}
@@ -657,7 +661,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
                   <Button key={s} variant={s === 'cancelado' ? 'danger' : 'default'} size="sm"
                     disabled={updating}
                     onClick={() => s === 'enviado' ? setShipping(true) : handleChangeStatus(s)}>
-                    {esRecollida && s === 'entregado' ? 'Recollit pel client' : t(STATUS_KEY[s])}
+                    {esRecollida && s === 'entregado' ? t('orders.pickup.collected_by_client', 'Recollit pel client') : t(STATUS_KEY[s])}
                   </Button>
                 ))}
               </div>
@@ -684,22 +688,22 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
           <div className="text-xs uppercase tracking-wide">Remitent</div>
           {shopConfig ? (
             <>
-              <div className="font-semibold">{shopConfig.nom_fiscal}</div>
-              <div>{shopConfig.adreca}</div>
-              {shopConfig.telefon && <div>{shopConfig.telefon}</div>}
+              <div className="font-semibold">{shopConfig.fiscal_name}</div>
+              <div>{shopConfig.address}</div>
+              {shopConfig.phone && <div>{shopConfig.phone}</div>}
             </>
           ) : (
             <div>—</div>
           )}
           <hr />
           <div className="text-xs uppercase tracking-wide">Destinatari</div>
-          <div className="font-semibold text-lg">{order.direccion_envio.nombre_destinatario}</div>
-          <div>{order.direccion_envio.linea1}</div>
-          {order.direccion_envio.linea2 && <div>{order.direccion_envio.linea2}</div>}
-          <div>{order.direccion_envio.cp} {order.direccion_envio.ciudad}</div>
-          {order.direccion_envio.provincia && <div>{order.direccion_envio.provincia}</div>}
-          <div>{order.direccion_envio.pais || 'ES'}</div>
-          {order.direccion_envio.telefono && <div>Tel. {order.direccion_envio.telefono}</div>}
+          <div className="font-semibold text-lg">{order.direccion_envio.recipient_name}</div>
+          <div>{order.direccion_envio.address_line1}</div>
+          {order.direccion_envio.address_line2 && <div>{order.direccion_envio.address_line2}</div>}
+          <div>{order.direccion_envio.postal_code} {order.direccion_envio.city}</div>
+          {order.direccion_envio.province && <div>{order.direccion_envio.province}</div>}
+          <div>{order.direccion_envio.country || 'ES'}</div>
+          {order.direccion_envio.phone && <div>Tel. {order.direccion_envio.phone}</div>}
           <hr />
           <div>Comanda #{order.id?.slice(0, 8)}</div>
           {order.numero_seguiment && (
@@ -713,27 +717,28 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
 }
 
 function MetodeEditor({ order, onCancel, onConfirm, updating }) {
+  const t = useT();
   const [metode, setMetode] = useState(order.metodo_envio);
-  const [form, setForm] = useState({ nombre_destinatario: '', linea1: '', ciudad: '', cp: '' });
+  const [form, setForm] = useState({ recipient_name: '', address_line1: '', city: '', postal_code: '' });
   const [error, setError] = useState('');
 
   async function confirm() {
     setError('');
-    const payload = { metodo_envio: metode };
+    const payload = { shipping_method: metode };
     if (metode === 'envio' && !order.direccion_envio) {
-      payload.direccion_envio = { ...form, pais: 'ES' };
+      payload.shipping_address = { ...form, country: 'ES' };
     }
     const r = await onConfirm(payload);
     if (!r.ok) {
       const d = await r.json().catch(() => ({}));
-      setError(d.detail || 'No s\'ha pogut canviar el mètode.');
+      setError(d.detail || t('orders.detail.change_method_error', "No s'ha pogut canviar el mètode."));
     }
   }
 
   return (
     <div className="border border-zinc-200 rounded-xl p-4 space-y-3 bg-zinc-50">
       <div className="flex gap-2">
-        {[['recogida_tienda', 'Recollida a botiga'], ['envio', 'Enviament']].map(([val, label]) => (
+        {[['recogida_tienda', t('orders.detail.pickup')], ['envio', t('orders.detail.delivery')]].map(([val, label]) => (
           <button key={val} type="button" onClick={() => setMetode(val)}
             className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${metode === val ? 'border-zinc-900 bg-zinc-100 text-zinc-900' : 'border-zinc-200 text-zinc-600 bg-white'}`}>
             {label}
@@ -742,24 +747,24 @@ function MetodeEditor({ order, onCancel, onConfirm, updating }) {
       </div>
       {metode === 'envio' && !order.direccion_envio && (
         <div className="grid grid-cols-2 gap-2">
-          <input placeholder="Nom del destinatari" value={form.nombre_destinatario}
-            onChange={e => setForm(f => ({ ...f, nombre_destinatario: e.target.value }))}
+          <input placeholder={t('orders.detail.recipient_name_ph', 'Nom del destinatari')} value={form.recipient_name}
+            onChange={e => setForm(f => ({ ...f, recipient_name: e.target.value }))}
             className="col-span-2 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <input placeholder="Adreça" value={form.linea1}
-            onChange={e => setForm(f => ({ ...f, linea1: e.target.value }))}
+          <input placeholder={t('orders.detail.address_ph', 'Adreça')} value={form.address_line1}
+            onChange={e => setForm(f => ({ ...f, address_line1: e.target.value }))}
             className="col-span-2 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <input placeholder="Codi postal" value={form.cp}
-            onChange={e => setForm(f => ({ ...f, cp: e.target.value }))}
+          <input placeholder={t('orders.detail.postcode_ph', 'Codi postal')} value={form.postal_code}
+            onChange={e => setForm(f => ({ ...f, postal_code: e.target.value }))}
             className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <input placeholder="Ciutat" value={form.ciudad}
-            onChange={e => setForm(f => ({ ...f, ciudad: e.target.value }))}
+          <input placeholder={t('orders.detail.city_ph', 'Ciutat')} value={form.city}
+            onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
             className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
         </div>
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <Button size="sm" disabled={updating} onClick={confirm}>Confirmar</Button>
-        <button onClick={onCancel} className="text-sm px-3 py-1.5 text-zinc-500 hover:text-zinc-700">Cancel·lar</button>
+        <Button size="sm" disabled={updating} onClick={confirm}>{t('orders.detail.confirm', 'Confirmar')}</Button>
+        <button onClick={onCancel} className="text-sm px-3 py-1.5 text-zinc-500 hover:text-zinc-700">{t('common.cancel')}</button>
       </div>
     </div>
   );
@@ -783,7 +788,7 @@ function ShipForm({ order, onCancel, onConfirm, updating }) {
       </div>
       <div className="flex gap-2">
         <Button size="sm" disabled={updating}
-          onClick={() => onConfirm({ numero_seguiment: numero || null, transportista: transportista || null })}>
+          onClick={() => onConfirm({ tracking_number: numero || null, carrier: transportista || null })}>
           {t('orders.modal.confirm_ship')}
         </Button>
         <button onClick={onCancel} className="text-sm px-3 py-1.5 text-zinc-500 hover:text-zinc-700">

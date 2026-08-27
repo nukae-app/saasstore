@@ -20,10 +20,10 @@ from app.services.subscripcions import (
 def _seed_subscripcio(db, email="fan@example.com", ds_order="123abcdef01") -> tuple[Subscripcio, CobramentSubscripcio]:
     from app.models import Address
 
-    user = User(email=email, nombre="Fan")
+    user = User(email=email, name="Fan")
     db.add(user)
     db.flush()
-    address = Address(user_id=user.id, nombre_destinatario="Fan", linea1="C. Falsa 1", ciudad="BCN", cp="08001")
+    address = Address(user_id=user.id, recipient_name="Fan", address_line1="C. Falsa 1", city="BCN", postal_code="08001")
     db.add(address)
     db.flush()
     subscripcio = Subscripcio(
@@ -43,12 +43,12 @@ def _seed_subscripcio(db, email="fan@example.com", ds_order="123abcdef01") -> tu
 
 
 def _item_nou(db, cantidad=3, precio="22.00", pool=True) -> Item:
-    release = Release(artista="Artista", titulo="Àlbum", formato="LP")
+    release = Release(artista="Artista", title="Àlbum", formato="LP")
     db.add(release)
     db.flush()
     item = Item(
-        release_id=release.id, precio=Decimal(precio), condicion=CondicionItem.nou,
-        cantidad=cantidad, subscripcio_pool=pool,
+        release_id=release.id, price=Decimal(precio), condition=CondicionItem.nou,
+        quantity=cantidad, subscription_pool=pool,
     )
     db.add(item)
     db.commit()
@@ -67,8 +67,8 @@ def test_proposar_reserva_1_unidad_via_stockhold(db):
     assert assignacions[0].estat == EstatAssignacio.proposada
 
     db.refresh(item)
-    assert item.cantidad == 3  # no se vende todavía, solo se reserva
-    assert item.cantidad_reservada == 1
+    assert item.quantity == 3  # no se vende todavía, solo se reserva
+    assert item.reserved_quantity == 1
     hold = db.scalar(select(StockHold).where(StockHold.item_id == item.id))
     assert hold is not None
     assert hold.assignacio_id == assignacions[0].id
@@ -91,8 +91,8 @@ def test_dos_suscriptores_comparten_la_misma_linia_nou(db):
     assert a2[0].item_id == item.id  # mismo disco, dos asignaciones distintas
 
     db.refresh(item)
-    assert item.cantidad_reservada == 2
-    assert db.scalar(select(StockHold).where(StockHold.item_id == item.id)).cantidad in (1,)
+    assert item.reserved_quantity == 2
+    assert db.scalar(select(StockHold).where(StockHold.item_id == item.id)).quantity in (1,)
     holds = db.scalars(select(StockHold).where(StockHold.item_id == item.id)).all()
     assert len(holds) == 2
 
@@ -107,7 +107,7 @@ def test_ometre_assignacio_libera_hold_nou(db):
     db.commit()
 
     db.refresh(item)
-    assert item.cantidad_reservada == 0
+    assert item.reserved_quantity == 0
     assert db.scalar(select(StockHold).where(StockHold.item_id == item.id)) is None
     assert assignacions[0].estat == EstatAssignacio.omesa
     assert assignacions[0].item_id is None
@@ -126,9 +126,9 @@ def test_reassignar_item_nou_a_nou(db):
 
     db.refresh(item1)
     db.refresh(item2)
-    assert item1.cantidad_reservada == 0
+    assert item1.reserved_quantity == 0
     assert db.scalar(select(StockHold).where(StockHold.item_id == item1.id)) is None
-    assert item2.cantidad_reservada == 1
+    assert item2.reserved_quantity == 1
     assert db.scalar(select(StockHold).where(StockHold.item_id == item2.id)) is not None
     assert assignacions[0].item_id == item2.id
 
@@ -142,13 +142,13 @@ def test_confirmar_cobrament_vende_y_descuenta_cantidad(db):
     order = confirmar_cobrament(db, cobrament)
 
     db.refresh(item)
-    assert item.cantidad == 2  # se vendió 1 unidad, la línea sigue viva
-    assert item.cantidad_reservada == 0
+    assert item.quantity == 2  # se vendió 1 unidad, la línea sigue viva
+    assert item.reserved_quantity == 0
     assert db.scalar(select(StockHold).where(StockHold.item_id == item.id)) is None
 
     order_item = db.scalar(select(OrderItem).where(OrderItem.order_id == order.id))
-    assert order_item.cantidad == 1
-    assert order_item.condicion == CondicionItem.nou
+    assert order_item.quantity == 1
+    assert order_item.condition == CondicionItem.nou
     assert order_item.item_id == item.id
 
     db.refresh(assignacions[0])

@@ -11,8 +11,8 @@ from app.models import Pagina, Post, PostPagina
 from sqlalchemy import select
 
 DEFAULT_PAGES = [
-    {"slug": "blog",    "nom": "Blog",    "tipus": "llista-posts", "posicio": 1},
-    {"slug": "agenda",  "nom": "Agenda",  "tipus": "agenda",       "posicio": 2},
+    {"slug": "blog",    "name": "Blog",    "type": "llista-posts", "position": 1},
+    {"slug": "agenda",  "name": "Agenda",  "type": "agenda",       "position": 2},
 ]
 
 
@@ -34,7 +34,7 @@ def main():
     # Assignar tots els posts publicats a la pàgina 'blog' si no estan assignats ja
     blog = db.scalar(select(Pagina).where(Pagina.slug == "blog"))
     if blog:
-        posts = db.scalars(select(Post).where(Post.publicado_at.is_not(None))).all()
+        posts = db.scalars(select(Post).where(Post.published_at.is_not(None))).all()
         assigned = 0
         for post in posts:
             exists = db.scalar(

@@ -37,18 +37,18 @@ def paisos_disponibles(db: Session) -> list[str]:
     comprar amb enviament avui. Font única de veritat pel checkout (client
     i validació de backend): no hi ha cap llista separada a mantenir."""
     return sorted(set(db.scalars(
-        select(TramEnviament.pais).where(TramEnviament.actiu == True)
+        select(TramEnviament.country).where(TramEnviament.active == True)
     )))
 
 
 def pes_total_g(items: list[Item], db: Session) -> int:
-    """Suma el pes de totes les còpies. Per cada còpia: `Item.release.pes_g`
+    """Suma el pes de totes les còpies. Per cada còpia: `Item.release.weight_g`
     si s'ha informat a mà (excepcions: box sets, vinil de 180g...), si no el
     pes per defecte del seu format (`PesFormat`, editable des de l'admin), i
     si tampoc hi ha res configurat per aquest format, `DEFAULT_PES_G`."""
     pes_per_format = {p.formato: p.pes_g for p in db.scalars(select(PesFormat))}
     return sum(
-        (item.release.pes_g or pes_per_format.get(item.release.formato) or DEFAULT_PES_G)
+        (item.release.weight_g or pes_per_format.get(item.release.formato) or DEFAULT_PES_G)
         for item in items
     )
 
@@ -74,18 +74,18 @@ def compute_coste_enviament(pes_g: int, metodo_envio: str, pais: str | None, db:
 
     tram = db.scalar(
         select(TramEnviament)
-        .where(TramEnviament.actiu == True, TramEnviament.pais == pais_norm, TramEnviament.pes_maxim_g >= pes_g)
-        .order_by(TramEnviament.pes_maxim_g.asc())
+        .where(TramEnviament.active == True, TramEnviament.country == pais_norm, TramEnviament.max_weight_g >= pes_g)
+        .order_by(TramEnviament.max_weight_g.asc())
     )
     if tram is not None:
-        return tram.preu
+        return tram.price
 
     tram_mes_car = db.scalar(
         select(TramEnviament)
-        .where(TramEnviament.actiu == True, TramEnviament.pais == pais_norm)
-        .order_by(TramEnviament.pes_maxim_g.desc())
+        .where(TramEnviament.active == True, TramEnviament.country == pais_norm)
+        .order_by(TramEnviament.max_weight_g.desc())
     )
     if tram_mes_car is not None:
-        return tram_mes_car.preu
+        return tram_mes_car.price
 
     raise PaisNoDisponible(f"No fem enviaments a aquest país ({pais or 'cap indicat'}).")

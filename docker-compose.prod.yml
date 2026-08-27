@@ -49,6 +49,7 @@ services:
       API_INTERNAL_URL: http://api:8000
       NEXT_PUBLIC_DEV_ADMIN_BYPASS: ${NEXT_PUBLIC_DEV_ADMIN_BYPASS:-false}
       NEXT_PUBLIC_FARO_COLLECTOR_URL: ${NEXT_PUBLIC_FARO_COLLECTOR_URL:-}
+      NEXT_PUBLIC_SUPERADMIN_HOST: ${NEXT_PUBLIC_SUPERADMIN_HOST:-superadmin.localhost}
     depends_on:
       - api
     expose:
@@ -76,6 +77,8 @@ services:
       - "443:443"
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      SUPERADMIN_HOST: ${SUPERADMIN_HOST:-superadmin.localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
     volumes:
       - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

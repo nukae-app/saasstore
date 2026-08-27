@@ -10,7 +10,7 @@ from app.models import Release
 
 
 def _seed_release(db, **kwargs):
-    r = Release(artista="Los Ganglios", titulo="Peruguay", discogs_release_id=999888, **kwargs)
+    r = Release(artista="Los Ganglios", title="Peruguay", discogs_release_id=999888, **kwargs)
     db.add(r)
     db.commit()
     return r
@@ -21,10 +21,10 @@ def test_enrich_omple_formato_buit(db, monkeypatch):
 
     monkeypatch.setattr(
         discogs_sync, "get_release",
-        lambda release_id: {"formato": "12\"", "tracklist": [], "credits": []},
+        lambda token, release_id: {"formato": "12\"", "tracklist": [], "credits": []},
     )
 
-    ok = discogs_sync.enrich_release_from_discogs(release, db)
+    ok = discogs_sync.enrich_release_from_discogs(release, db, "fake-token")
     assert ok is True
     db.refresh(release)
     assert release.formato == '12"'
@@ -35,9 +35,9 @@ def test_enrich_no_trepitja_format_ja_omplert_a_ma(db, monkeypatch):
 
     monkeypatch.setattr(
         discogs_sync, "get_release",
-        lambda release_id: {"formato": "LP", "tracklist": [], "credits": []},
+        lambda token, release_id: {"formato": "LP", "tracklist": [], "credits": []},
     )
 
-    discogs_sync.enrich_release_from_discogs(release, db)
+    discogs_sync.enrich_release_from_discogs(release, db, "fake-token")
     db.refresh(release)
     assert release.formato == "EP"

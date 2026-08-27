@@ -144,7 +144,7 @@ export default function ComptePage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-serif italic text-2xl md:text-3xl">
-          {user?.nombre?.split(' ')[0] ? t('helloName', { name: user.nombre.split(' ')[0] }) : t('helloAgain')}
+          {user?.name?.split(' ')[0] ? t('helloName', { name: user.name.split(' ')[0] }) : t('helloAgain')}
         </h1>
         <p className="text-zinc-500 text-sm mt-1">{t('welcomeToAccount')}</p>
       </div>

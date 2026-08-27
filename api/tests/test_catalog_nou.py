@@ -28,12 +28,12 @@ def _auth(token: str) -> dict:
 
 
 def _seed_release_nou(db, cantidad, cantidad_reservada=0, precio="20.00") -> Release:
-    r = Release(artista="Artista", titulo="Àlbum", formato="LP")
+    r = Release(artista="Artista", title="Àlbum", formato="LP")
     db.add(r)
     db.flush()
     db.add(Item(
-        release_id=r.id, precio=Decimal(precio), condicion=CondicionItem.nou,
-        cantidad=cantidad, cantidad_reservada=cantidad_reservada,
+        release_id=r.id, price=Decimal(precio), condition=CondicionItem.nou,
+        quantity=cantidad, reserved_quantity=cantidad_reservada,
     ))
     db.commit()
     return r
@@ -85,7 +85,7 @@ def test_crear_peticion_release_con_nou_reservado_no_falla(db, client):
 def test_crear_peticion_tienda_con_nou_agotado_no_falla(db, client):
     admin_token = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
 
     _login(client, "mostrador@example.com")

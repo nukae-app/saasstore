@@ -26,7 +26,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -39,20 +39,20 @@ def test_crear_i_editar_esborrany(client, db):
     token = _admin_token(client, db)
     resp = client.post(
         "/admin/newsletter",
-        json={"assumpte": "Novetats de la setmana", "contingut_html": "<p>Hola</p>"},
+        json={"subject": "Novetats de la setmana", "content_html": "<p>Hola</p>"},
         headers=_auth(token),
     )
     assert resp.status_code == 201
     campaign_id = resp.json()["id"]
-    assert resp.json()["estat"] == "esborrany"
+    assert resp.json()["status"] == "esborrany"
 
     resp = client.patch(
         f"/admin/newsletter/{campaign_id}",
-        json={"assumpte": "Novetats actualitzades"},
+        json={"subject": "Novetats actualitzades"},
         headers=_auth(token),
     )
     assert resp.status_code == 200
-    assert resp.json()["assumpte"] == "Novetats actualitzades"
+    assert resp.json()["subject"] == "Novetats actualitzades"
 
 
 def test_no_es_pot_editar_ni_esborrar_un_cop_enviada(client, db, monkeypatch):
@@ -61,7 +61,7 @@ def test_no_es_pot_editar_ni_esborrar_un_cop_enviada(client, db, monkeypatch):
 
     resp = client.post(
         "/admin/newsletter",
-        json={"assumpte": "Assumpte", "contingut_html": "<p>Contingut</p>"},
+        json={"subject": "Assumpte", "content_html": "<p>Contingut</p>"},
         headers=_auth(token),
     )
     campaign_id = resp.json()["id"]
@@ -70,9 +70,9 @@ def test_no_es_pot_editar_ni_esborrar_un_cop_enviada(client, db, monkeypatch):
     assert resp.status_code == 202
 
     campaign = db.get(NewsletterCampaign, uuid.UUID(campaign_id))
-    assert campaign.estat == NewsletterCampaignStatus.enviant
+    assert campaign.status == NewsletterCampaignStatus.enviant
 
-    resp = client.patch(f"/admin/newsletter/{campaign_id}", json={"assumpte": "x"}, headers=_auth(token))
+    resp = client.patch(f"/admin/newsletter/{campaign_id}", json={"subject": "x"}, headers=_auth(token))
     assert resp.status_code == 409
 
     resp = client.delete(f"/admin/newsletter/{campaign_id}", headers=_auth(token))
@@ -86,7 +86,7 @@ def test_send_test_no_crea_files_de_seguiment(client, db, monkeypatch):
     token = _admin_token(client, db)
     resp = client.post(
         "/admin/newsletter",
-        json={"assumpte": "Assumpte", "contingut_html": "<p>Contingut</p>"},
+        json={"subject": "Assumpte", "content_html": "<p>Contingut</p>"},
         headers=_auth(token),
     )
     campaign_id = resp.json()["id"]
@@ -102,10 +102,10 @@ def test_send_test_no_crea_files_de_seguiment(client, db, monkeypatch):
 
 def test_recipients_count_nomes_compta_actius_amb_consentiment(client, db):
     token = _admin_token(client, db)
-    db.add(User(email="subscriu1@example.com", activo=True, consent_newsletter=True))
-    db.add(User(email="subscriu2@example.com", activo=True, consent_newsletter=True))
-    db.add(User(email="sense-consentiment@example.com", activo=True, consent_newsletter=False))
-    db.add(User(email="inactiu@example.com", activo=False, consent_newsletter=True))
+    db.add(User(email="subscriu1@example.com", active=True, consent_newsletter=True))
+    db.add(User(email="subscriu2@example.com", active=True, consent_newsletter=True))
+    db.add(User(email="sense-consentiment@example.com", active=True, consent_newsletter=False))
+    db.add(User(email="inactiu@example.com", active=False, consent_newsletter=True))
     db.commit()
 
     resp = client.get("/admin/newsletter/recipients/count", headers=_auth(token))
@@ -115,12 +115,12 @@ def test_recipients_count_nomes_compta_actius_amb_consentiment(client, db):
 
 
 def test_baixa_desactiva_consent_newsletter(client, db):
-    user = User(email="subscriptor@example.com", activo=True, consent_newsletter=True)
+    user = User(email="subscriptor@example.com", active=True, consent_newsletter=True)
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    campaign = NewsletterCampaign(assumpte="x", contingut_html="<p>x</p>")
+    campaign = NewsletterCampaign(subject="x", content_html="<p>x</p>")
     db.add(campaign)
     db.commit()
 
@@ -147,11 +147,11 @@ def test_baixa_amb_token_invalid_dona_404(client, db):
 
 def test_send_campaign_compta_metrica_per_exit_i_error(client, db, monkeypatch):
     monkeypatch.setattr("app.tasks.newsletter.time.sleep", lambda *a, **k: None)
-    ok_user = User(email="ok@example.com", activo=True, consent_newsletter=True)
-    fail_user = User(email="fail@example.com", activo=True, consent_newsletter=True)
+    ok_user = User(email="ok@example.com", active=True, consent_newsletter=True)
+    fail_user = User(email="fail@example.com", active=True, consent_newsletter=True)
     db.add_all([ok_user, fail_user])
     campaign = NewsletterCampaign(
-        assumpte="x", contingut_html="<p>x</p>", estat=NewsletterCampaignStatus.enviant
+        subject="x", content_html="<p>x</p>", status=NewsletterCampaignStatus.enviant
     )
     db.add(campaign)
     db.commit()
@@ -165,11 +165,11 @@ def test_send_campaign_compta_metrica_per_exit_i_error(client, db, monkeypatch):
     abans_ok = newsletter_send_result_total.labels(result="enviat")._value.get()
     abans_error = newsletter_send_result_total.labels(result="error")._value.get()
 
-    send_campaign(campaign.id)
+    send_campaign(campaign.id, str(db.info["tenant_id"]))
 
     assert newsletter_send_result_total.labels(result="enviat")._value.get() == abans_ok + 1
     assert newsletter_send_result_total.labels(result="error")._value.get() == abans_error + 1
 
-    sends = {s.email: s.estat for s in db.scalars(select(NewsletterSend)).all()}
+    sends = {s.email: s.status for s in db.scalars(select(NewsletterSend)).all()}
     assert sends["ok@example.com"] == NewsletterSendStatus.enviat
     assert sends["fail@example.com"] == NewsletterSendStatus.error

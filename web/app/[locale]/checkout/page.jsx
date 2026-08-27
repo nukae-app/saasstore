@@ -9,6 +9,7 @@ import { useCart } from '../../../components/store/CartProvider';
 import { useAuth, authFetch } from '../../../components/store/AuthProvider';
 import StorefrontNav from '../../../components/store/StorefrontNav';
 import StorefrontFooter from '../../../components/store/StorefrontFooter';
+import { useTenantConfig } from '../../../components/store/useTenantConfig';
 
 // Redirige el navegador a Redsys con un POST real (Ds_MerchantParameters no
 // cabe en una URL y Redsys exige POST): se construye un <form> oculto y se
@@ -92,6 +93,7 @@ export default function CheckoutPage() {
   const locale = useLocale();
   const t = useTranslations('checkout');
   const tCountries = useTranslations('checkout.countries');
+  const tenantConfig = useTenantConfig();
   const { items, total, refresh } = useCart();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
@@ -216,20 +218,20 @@ export default function CheckoutPage() {
     setError('');
     try {
       const payload = {
-        email_contacto: form.email,
-        metodo_envio: form.metodo_envio,
-        metodo_pago: form.metodo_envio === 'recogida_tienda' ? form.metodo_pago : 'redsys',
-        notas: form.notas || null,
-        direccion_envio: form.metodo_envio === 'envio' ? {
-          nombre_destinatario: form.nombre,
-          linea1: form.linea1,
-          ciudad: form.ciudad,
-          cp: form.cp,
-          provincia: form.provincia || null,
-          pais: form.pais,
-          telefono: form.telefono || null,
+        contact_email: form.email,
+        shipping_method: form.metodo_envio,
+        payment_method: form.metodo_envio === 'recogida_tienda' ? form.metodo_pago : 'redsys',
+        notes: form.notas || null,
+        shipping_address: form.metodo_envio === 'envio' ? {
+          recipient_name: form.nombre,
+          address_line1: form.linea1,
+          city: form.ciudad,
+          postal_code: form.cp,
+          province: form.provincia || null,
+          country: form.pais,
+          phone: form.telefono || null,
         } : null,
-        idioma: locale,
+        language: locale,
       };
       const res = await fetch('/api/checkout/confirm', {
         method: 'POST',
@@ -245,7 +247,7 @@ export default function CheckoutPage() {
       const order = await res.json();
       await refresh();
 
-      if (order.metodo_pago === 'tienda') {
+      if (order.payment_method === 'tienda') {
         setOrderId(order.id);
         setStep(3);
         return;
@@ -283,7 +285,7 @@ export default function CheckoutPage() {
             {t('reference')}: <span className="font-mono text-zinc-700">{orderId?.toString().slice(0, 8).toUpperCase()}</span>
           </p>
           <p className="text-zinc-500 mb-8 text-sm">
-            {t('pickupInstructions', { email: form.email })}
+            {t('pickupInstructions', { email: form.email, shopName: tenantConfig.nombre })}
           </p>
           <Link
             href="/cataleg"
@@ -333,16 +335,16 @@ export default function CheckoutPage() {
                     items.map(item => (
                       <div key={item.item_id} className="flex items-center gap-3 px-4 py-3">
                         <div className="relative w-10 h-10 rounded bg-zinc-100 shrink-0 overflow-hidden">
-                          {item.imagen_url && (
-                            <Image src={item.imagen_url} alt="" fill sizes="40px" className="object-cover" />
+                          {item.image_url && (
+                            <Image src={item.image_url} alt="" fill sizes="40px" className="object-cover" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{item.artista}</p>
-                          <p className="text-xs text-zinc-500 truncate font-serif italic">{item.titulo}</p>
+                          <p className="text-xs text-zinc-500 truncate font-serif italic">{item.title}</p>
                         </div>
                         <span className="text-sm font-semibold shrink-0">
-                          {parseFloat(item.precio).toFixed(2)} €
+                          {parseFloat(item.price).toFixed(2)} €
                         </span>
                       </div>
                     ))
@@ -458,18 +460,18 @@ export default function CheckoutPage() {
                             type="button"
                             onClick={() => setForm(f => ({
                               ...f,
-                              nombre: addr.nombre_destinatario,
-                              linea1: addr.linea1,
-                              ciudad: addr.ciudad,
-                              cp: addr.cp,
-                              provincia: addr.provincia || '',
-                              pais: addr.pais,
-                              telefono: addr.telefono || '',
+                              nombre: addr.recipient_name,
+                              linea1: addr.address_line1,
+                              ciudad: addr.city,
+                              cp: addr.postal_code,
+                              provincia: addr.province || '',
+                              pais: addr.country,
+                              telefono: addr.phone || '',
                             }))}
                             className="w-full text-left px-3 py-2.5 rounded-lg border border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-colors text-sm"
                           >
-                            <p className="font-medium text-zinc-800">{addr.nombre_destinatario}</p>
-                            <p className="text-zinc-500 text-xs">{addr.linea1}, {addr.cp} {addr.ciudad}</p>
+                            <p className="font-medium text-zinc-800">{addr.recipient_name}</p>
+                            <p className="text-zinc-500 text-xs">{addr.address_line1}, {addr.postal_code} {addr.city}</p>
                           </button>
                         ))}
                         <div className="relative my-1">
@@ -636,8 +638,8 @@ export default function CheckoutPage() {
             <div className="space-y-2 text-sm mb-4">
               {items.map(item => (
                 <div key={item.item_id} className="flex justify-between gap-2">
-                  <span className="text-zinc-500 truncate">{item.artista} — {item.titulo}</span>
-                  <span className="shrink-0 font-medium">{parseFloat(item.precio).toFixed(2)} €</span>
+                  <span className="text-zinc-500 truncate">{item.artista} — {item.title}</span>
+                  <span className="shrink-0 font-medium">{parseFloat(item.price).toFixed(2)} €</span>
                 </div>
               ))}
             </div>

@@ -3,11 +3,22 @@ import './globals.css';
 import CartProvider from '../components/store/CartProvider';
 import AuthProvider from '../components/store/AuthProvider';
 import FaroInit from '../components/observability/FaroInit';
+import { api } from './lib/api';
 
-export const metadata = {
-  title: { default: 'Ultra-Local Records', template: '%s · Ultra-Local Records' },
-  description: 'Discos nous i de segona mà a Poblenou, Barcelona. Pujades 113.',
-};
+// Dinàmic per tenant (abans era estàtic i sempre deia "Ultra-Local
+// Records", també per a la resta de tenants) — es resol per Host a cada
+// request, mateix mecanisme que qualsevol altra pàgina SSR (ver lib/api.js).
+export async function generateMetadata() {
+  try {
+    const config = await api('/config/public');
+    return {
+      title: { default: config.nombre, template: `%s · ${config.nombre}` },
+      description: config.address ? config.address.replace(/\n/g, ', ') : undefined,
+    };
+  } catch {
+    return { title: 'Botiga online' };
+  }
+}
 
 export default async function RootLayout({ children }) {
   // /admin no pasa por el middleware de next-intl: getLocale() cae al

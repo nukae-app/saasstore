@@ -14,7 +14,7 @@ export async function generateMetadata({ params }) {
   const { id, locale } = await params;
   try {
     const r = await api(`/catalog/releases/${id}`);
-    return { title: `${r.artista} — ${r.titulo}` };
+    return { title: `${r.artista} — ${r.title}` };
   } catch {
     const t = await getTranslations({ locale, namespace: 'disc' });
     return { title: t('record') };
@@ -55,20 +55,25 @@ export default async function DiscPage({ params }) {
   } catch {
     notFound();
   }
+  let config = null;
+  try {
+    config = await api('/config/public');
+  } catch {}
+  const isVinils = !config || config.vertical === 'records';
 
   // Para nou (stock agregado), `status` se mantiene 'disponible' mientras la
   // línea no se retire a mano: la disponibilidad real depende de si queda
   // alguna unidad libre (cantidad - cantidad_reservada), no solo del status.
-  const esVenible = (i) => i.condicion === 'nou'
-    ? i.status === 'disponible' && (i.cantidad - i.cantidad_reservada) > 0
+  const esVenible = (i) => i.condition === 'nou'
+    ? i.status === 'disponible' && (i.quantity - i.reserved_quantity) > 0
     : i.status === 'disponible';
 
   const disponibles = release.items.filter(esVenible);
   const agotats = release.items.filter(i => !esVenible(i));
-  const disponiblesNou = disponibles.filter(i => i.condicion === 'nou');
-  const disponiblesSegonaMa = disponibles.filter(i => i.condicion !== 'nou');
+  const disponiblesNou = disponibles.filter(i => i.condition === 'nou');
+  const disponiblesSegonaMa = disponibles.filter(i => i.condition !== 'nou');
   const totalUnidadesDisponibles = disponiblesSegonaMa.length
-    + disponiblesNou.reduce((sum, i) => sum + (i.cantidad - i.cantidad_reservada), 0);
+    + disponiblesNou.reduce((sum, i) => sum + (i.quantity - i.reserved_quantity), 0);
 
   return (
     <>
@@ -90,10 +95,10 @@ export default async function DiscPage({ params }) {
           <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-start">
             {/* Cover */}
             <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center sticky top-24">
-              {release.imagen_url ? (
+              {release.image_url ? (
                 <Image
-                  src={release.imagen_url}
-                  alt={`${release.artista} — ${release.titulo}`}
+                  src={release.image_url}
+                  alt={`${release.artista} — ${release.title}`}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
                   priority
@@ -111,21 +116,23 @@ export default async function DiscPage({ params }) {
 
             {/* Info */}
             <div>
-              <p className="text-zinc-500 text-sm mb-1 font-medium tracking-wide uppercase text-xs">
-                {release.formato}
-              </p>
+              {isVinils && (
+                <p className="text-zinc-500 text-sm mb-1 font-medium tracking-wide uppercase text-xs">
+                  {release.formato}
+                </p>
+              )}
               <h1 className="font-serif italic text-3xl md:text-4xl leading-tight mb-1">
-                {release.titulo}
+                {release.title}
               </h1>
               <p className="text-xl font-medium text-zinc-700 mb-4">{release.artista}</p>
 
               <DiscInfoTabs
-                spotifyAlbumId={release.spotify_album_id}
+                spotifyAlbumId={isVinils ? release.spotify_album_id : null}
                 infoContent={
                   <>
                     {/* Metadata grid */}
                     <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mb-6 border-t border-b border-zinc-100 py-4">
-                      {release.sello && (
+                      {isVinils && release.sello && (
                         <>
                           <dt className="text-zinc-500">{t('label')}</dt>
                           <dd className="text-zinc-700">{release.sello}</dd>
@@ -137,25 +144,25 @@ export default async function DiscPage({ params }) {
                           <dd className="text-zinc-700">{release.anio}</dd>
                         </>
                       )}
-                      {release.genero && (
+                      {isVinils && release.genero && (
                         <>
                           <dt className="text-zinc-500">{t('genre')}</dt>
                           <dd className="text-zinc-700">{release.genero}</dd>
                         </>
                       )}
-                      {release.referencia && (
+                      {isVinils && release.referencia && (
                         <>
                           <dt className="text-zinc-500">{t('catalogNumber')}</dt>
                           <dd className="text-zinc-700 font-mono text-xs">{release.referencia}</dd>
                         </>
                       )}
-                      {release.pais && (
+                      {isVinils && release.pais && (
                         <>
                           <dt className="text-zinc-500">{t('country')}</dt>
                           <dd className="text-zinc-700">{release.pais}</dd>
                         </>
                       )}
-                      {release.estilos && (
+                      {isVinils && release.estilos && (
                         <>
                           <dt className="text-zinc-500">{t('style')}</dt>
                           <dd className="text-zinc-700">{release.estilos}</dd>
@@ -167,10 +174,29 @@ export default async function DiscPage({ params }) {
                           <dd className="text-zinc-700 font-mono text-xs">{release.ean}</dd>
                         </>
                       )}
+                      {/* Extensió de floristeria (Fase 4/7) — sempre None per a vinils */}
+                      {release.color && (
+                        <>
+                          <dt className="text-zinc-500">{t('color')}</dt>
+                          <dd className="text-zinc-700">{release.color}</dd>
+                        </>
+                      )}
+                      {release.tipus_flor && (
+                        <>
+                          <dt className="text-zinc-500">{t('flowerType')}</dt>
+                          <dd className="text-zinc-700">{release.tipus_flor}</dd>
+                        </>
+                      )}
+                      {release.durabilitat_dies != null && (
+                        <>
+                          <dt className="text-zinc-500">{t('durabilityDays')}</dt>
+                          <dd className="text-zinc-700">{release.durabilitat_dies}</dd>
+                        </>
+                      )}
                     </dl>
 
-                    {release.descripcion && (
-                      <p className="text-zinc-500 text-sm leading-relaxed">{release.descripcion}</p>
+                    {release.description && (
+                      <p className="text-zinc-500 text-sm leading-relaxed">{release.description}</p>
                     )}
                   </>
                 }
@@ -186,8 +212,8 @@ export default async function DiscPage({ params }) {
                     <NouStockLine
                       key={item.id}
                       itemId={item.id}
-                      precio={item.precio}
-                      disponibles={item.cantidad - item.cantidad_reservada}
+                      precio={item.price}
+                      disponibles={item.quantity - item.reserved_quantity}
                     />
                   ))}
                   {disponiblesSegonaMa.map(item => (
@@ -196,17 +222,23 @@ export default async function DiscPage({ params }) {
                       className="flex items-center justify-between gap-4 p-4 border border-zinc-200 rounded-xl hover:border-zinc-300 transition-colors bg-white"
                     >
                       <div className="flex items-center gap-3 flex-wrap">
-                        <ConditionBadge value={item.condicion} />
-                        {item.estado_disco && (
-                          <span className="text-xs text-zinc-500">{t('vinylCondition')}: {item.estado_disco}</span>
-                        )}
-                        {item.estado_funda && (
-                          <span className="text-xs text-zinc-500">{t('sleeveCondition')}: {item.estado_funda}</span>
+                        {isVinils ? (
+                          <>
+                            <ConditionBadge value={item.condition} />
+                            {item.estado_disco && (
+                              <span className="text-xs text-zinc-500">{t('vinylCondition')}: {item.estado_disco}</span>
+                            )}
+                            {item.estado_funda && (
+                              <span className="text-xs text-zinc-500">{t('sleeveCondition')}: {item.estado_funda}</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-zinc-500">{t('usedItem')}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="text-lg font-semibold text-zinc-900">
-                          {parseFloat(item.precio).toFixed(2)} €
+                          {parseFloat(item.price).toFixed(2)} €
                         </span>
                         <AddToCartButton itemId={item.id} />
                       </div>
@@ -228,17 +260,17 @@ export default async function DiscPage({ params }) {
               {/* Para nou no hay contador histórico de unidades vendidas
                   (solo el stock actual): esta estadística se limita a
                   segona_ma, donde cada fila agotada sí es una venta real. */}
-              {agotats.filter(i => i.condicion !== 'nou').length > 0 && (
+              {agotats.filter(i => i.condition !== 'nou').length > 0 && (
                 <p className="text-xs text-zinc-500 mt-3">
-                  {t('copiesSold', { count: agotats.filter(i => i.condicion !== 'nou').length })}
+                  {t('copiesSold', { count: agotats.filter(i => i.condition !== 'nou').length })}
                 </p>
               )}
               </div>
             </div>
           </div>
 
-          {/* Tracklist + Crèdits */}
-          {(release.tracklist?.length > 0 || release.credits?.length > 0) && (
+          {/* Tracklist + Crèdits — vocabulari musical, només per a vinils */}
+          {isVinils && (release.tracklist?.length > 0 || release.credits?.length > 0) && (
             <div className="mt-12 grid md:grid-cols-2 gap-10 lg:gap-16">
 
               {release.tracklist?.length > 0 && (

@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -21,15 +21,15 @@ router = APIRouter(prefix="/admin/newsletter", tags=["admin-newsletter"], depend
 
 
 class CampaignCreateIn(BaseModel):
-    assumpte: str
-    contingut_html: str
-    idioma: str = "ca"
+    subject: str
+    content_html: str
+    language: str = "ca"
 
 
 class CampaignPatchIn(BaseModel):
-    assumpte: str | None = None
-    contingut_html: str | None = None
-    idioma: str | None = None
+    subject: str | None = None
+    content_html: str | None = None
+    language: str | None = None
 
 
 class SendTestIn(BaseModel):
@@ -39,13 +39,13 @@ class SendTestIn(BaseModel):
 def _campaign_dict(c: NewsletterCampaign, counts: dict[str, int]) -> dict:
     return {
         "id": c.id,
-        "assumpte": c.assumpte,
-        "contingut_html": c.contingut_html,
-        "idioma": c.idioma,
-        "estat": c.estat,
+        "subject": c.subject,
+        "content_html": c.content_html,
+        "language": c.language,
+        "status": c.status,
         "created_at": c.created_at,
-        "enviament_iniciat_at": c.enviament_iniciat_at,
-        "enviament_acabat_at": c.enviament_acabat_at,
+        "sending_started_at": c.sending_started_at,
+        "sending_finished_at": c.sending_finished_at,
         "counts": {
             "pendent": counts.get(NewsletterSendStatus.pendent.value, 0),
             "enviat": counts.get(NewsletterSendStatus.enviat.value, 0),
@@ -56,17 +56,17 @@ def _campaign_dict(c: NewsletterCampaign, counts: dict[str, int]) -> dict:
 
 def _counts_for(db: Session, campaign_id: uuid.UUID) -> dict[str, int]:
     rows = db.execute(
-        select(NewsletterSend.estat, func.count(NewsletterSend.id))
+        select(NewsletterSend.status, func.count(NewsletterSend.id))
         .where(NewsletterSend.campaign_id == campaign_id)
-        .group_by(NewsletterSend.estat)
+        .group_by(NewsletterSend.status)
     ).all()
-    return {estat.value: n for estat, n in rows}
+    return {status.value: n for status, n in rows}
 
 
 @router.get("/recipients/count")
 def count_recipients(db: Session = Depends(get_db)):
     total = db.scalar(
-        select(func.count(User.id)).where(User.activo == True, User.consent_newsletter == True)
+        select(func.count(User.id)).where(User.active == True, User.consent_newsletter == True)
     )
     return {"total": total}
 
@@ -96,9 +96,9 @@ def list_campaigns(db: Session = Depends(get_db)):
 @router.post("", status_code=201)
 def create_campaign(payload: CampaignCreateIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     c = NewsletterCampaign(
-        assumpte=payload.assumpte,
-        contingut_html=payload.contingut_html,
-        idioma=payload.idioma,
+        subject=payload.subject,
+        content_html=payload.content_html,
+        language=payload.language,
         creat_by_id=admin.id,
     )
     db.add(c)
@@ -115,7 +115,7 @@ def get_campaign(campaign_id: uuid.UUID, db: Session = Depends(get_db)):
     d = _campaign_dict(c, _counts_for(db, c.id))
     errors = db.scalars(
         select(NewsletterSend)
-        .where(NewsletterSend.campaign_id == c.id, NewsletterSend.estat == NewsletterSendStatus.error)
+        .where(NewsletterSend.campaign_id == c.id, NewsletterSend.status == NewsletterSendStatus.error)
         .limit(20)
     ).all()
     d["errors"] = [{"email": e.email, "error_msg": e.error_msg} for e in errors]
@@ -127,7 +127,7 @@ def update_campaign(campaign_id: uuid.UUID, payload: CampaignPatchIn, db: Sessio
     c = db.get(NewsletterCampaign, campaign_id)
     if c is None:
         raise HTTPException(404, "Campanya no trobada")
-    if c.estat != NewsletterCampaignStatus.esborrany:
+    if c.status != NewsletterCampaignStatus.esborrany:
         raise HTTPException(409, "Només es pot editar una campanya en esborrany")
     for field, val in payload.model_dump(exclude_unset=True).items():
         setattr(c, field, val)
@@ -141,35 +141,42 @@ def delete_campaign(campaign_id: uuid.UUID, db: Session = Depends(get_db)):
     c = db.get(NewsletterCampaign, campaign_id)
     if c is None:
         raise HTTPException(404, "Campanya no trobada")
-    if c.estat != NewsletterCampaignStatus.esborrany:
+    if c.status != NewsletterCampaignStatus.esborrany:
         raise HTTPException(409, "Només es pot esborrar una campanya en esborrany")
     db.delete(c)
     db.commit()
 
 
 @router.post("/{campaign_id}/send-test")
-def send_test(campaign_id: uuid.UUID, payload: SendTestIn, db: Session = Depends(get_db)):
+def send_test(campaign_id: uuid.UUID, payload: SendTestIn, request: Request, db: Session = Depends(get_db)):
     c = db.get(NewsletterCampaign, campaign_id)
     if c is None:
         raise HTTPException(404, "Campanya no trobada")
     send_email(
         to=payload.email,
-        subject=f"[PROVA] {c.assumpte}",
-        body=f"{c.assumpte}\n\n(Correu de prova, no s'ha enviat a cap subscriptor.)",
-        html=absolutize_upload_urls(c.contingut_html),
+        subject=f"[PROVA] {c.subject}",
+        body=f"{c.subject}\n\n(Correu de prova, no s'ha enviat a cap subscriptor.)",
+        tenant=request.state.tenant,
+        db=db,
+        html=absolutize_upload_urls(c.content_html, request.state.tenant),
     )
     return {"ok": True}
 
 
 @router.post("/{campaign_id}/send", status_code=202)
-def send(campaign_id: uuid.UUID, db: Session = Depends(get_db)):
+def send(campaign_id: uuid.UUID, request: Request, db: Session = Depends(get_db)):
     c = db.get(NewsletterCampaign, campaign_id)
     if c is None:
         raise HTTPException(404, "Campanya no trobada")
-    if c.estat != NewsletterCampaignStatus.esborrany:
+    if c.status != NewsletterCampaignStatus.esborrany:
         raise HTTPException(409, "La campanya ja s'ha enviat o s'està enviant")
-    c.estat = NewsletterCampaignStatus.enviant
-    c.enviament_iniciat_at = datetime.now(timezone.utc)
+    c.status = NewsletterCampaignStatus.enviant
+    c.sending_started_at = datetime.now(timezone.utc)
     db.commit()
-    send_campaign.delay(str(c.id))
+    # `NewsletterCampaign` en sí no lleva tenant_id todavía (funcionalidad
+    # aplazada desde la Fase 1), pero `User` sí — sin pasar el tenant, la
+    # tarea (que abre su propia sesión sin contexto, ver tasks/newsletter.py)
+    # consultaría TODOS los usuarios de TODOS los tenants con
+    # consent_newsletter=True, no solo los de este.
+    send_campaign.delay(str(c.id), str(request.state.tenant.id))
     return {"ok": True}

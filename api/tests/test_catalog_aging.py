@@ -25,7 +25,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -35,7 +35,7 @@ def _auth(token: str) -> dict:
 
 
 def _seed_release(db, artista="Artista", titulo="Àlbum") -> Release:
-    r = Release(artista=artista, titulo=titulo, formato="LP")
+    r = Release(artista=artista, title=titulo, formato="LP")
     db.add(r)
     db.commit()
     return r
@@ -50,10 +50,10 @@ def test_aging_agrupa_per_buckets_i_ignora_sense_estoc_disponible(db, client):
     r = _seed_release(db)
 
     db.add_all([
-        Item(release_id=r.id, precio=Decimal("10.00"), fecha_entrada=_dias_atras(5)),
-        Item(release_id=r.id, precio=Decimal("20.00"), fecha_entrada=_dias_atras(400)),
+        Item(release_id=r.id, price=Decimal("10.00"), entry_date=_dias_atras(5)),
+        Item(release_id=r.id, price=Decimal("20.00"), entry_date=_dias_atras(400)),
         # No disponible: no ha de comptar per a l'antiguitat.
-        Item(release_id=r.id, precio=Decimal("15.00"), fecha_entrada=_dias_atras(900), status=ItemStatus.vendido),
+        Item(release_id=r.id, price=Decimal("15.00"), entry_date=_dias_atras(900), status=ItemStatus.vendido),
     ])
     db.commit()
 
@@ -76,7 +76,7 @@ def test_aging_compta_sin_fecha_per_separat(db, client):
     admin = _admin_token(client, db)
     r = _seed_release(db)
 
-    db.add(Item(release_id=r.id, precio=Decimal("30.00"), fecha_entrada=None))
+    db.add(Item(release_id=r.id, price=Decimal("30.00"), entry_date=None))
     db.commit()
 
     resp = client.get("/admin/catalog/aging", headers=_auth(admin))
@@ -93,9 +93,9 @@ def test_aging_coste_total_i_per_bucket(db, client):
     r = _seed_release(db)
 
     db.add_all([
-        Item(release_id=r.id, precio=Decimal("10.00"), coste_adquisicion=Decimal("4.00"), fecha_entrada=_dias_atras(5)),
+        Item(release_id=r.id, price=Decimal("10.00"), acquisition_cost=Decimal("4.00"), entry_date=_dias_atras(5)),
         # Sense coste_adquisicion (legacy de Discogs): no ha de petar, compta com a 0.
-        Item(release_id=r.id, precio=Decimal("20.00"), fecha_entrada=_dias_atras(400)),
+        Item(release_id=r.id, price=Decimal("20.00"), entry_date=_dias_atras(400)),
     ])
     db.commit()
 
@@ -112,8 +112,8 @@ def test_aging_items_ordenats_i_origen(db, client):
     admin = _admin_token(client, db)
     r = _seed_release(db)
 
-    vell = Item(release_id=r.id, precio=Decimal("25.00"), fecha_entrada=_dias_atras(500), codi_discogs=111)
-    nou = Item(release_id=r.id, precio=Decimal("18.00"), fecha_entrada=_dias_atras(10))
+    vell = Item(release_id=r.id, price=Decimal("25.00"), entry_date=_dias_atras(500), codi_discogs=111)
+    nou = Item(release_id=r.id, price=Decimal("18.00"), entry_date=_dias_atras(10))
     db.add_all([vell, nou])
     db.commit()
 
@@ -131,9 +131,9 @@ def test_aging_items_filtra_per_bucket(db, client):
     admin = _admin_token(client, db)
     r = _seed_release(db)
 
-    recent = Item(release_id=r.id, precio=Decimal("18.00"), fecha_entrada=_dias_atras(10))
-    vell = Item(release_id=r.id, precio=Decimal("25.00"), fecha_entrada=_dias_atras(500))
-    sense = Item(release_id=r.id, precio=Decimal("12.00"), fecha_entrada=None)
+    recent = Item(release_id=r.id, price=Decimal("18.00"), entry_date=_dias_atras(10))
+    vell = Item(release_id=r.id, price=Decimal("25.00"), entry_date=_dias_atras(500))
+    sense = Item(release_id=r.id, price=Decimal("12.00"), entry_date=None)
     db.add_all([recent, vell, sense])
     db.commit()
 
@@ -160,7 +160,7 @@ def test_aging_items_pagina(db, client):
     admin = _admin_token(client, db)
     r = _seed_release(db)
     db.add_all([
-        Item(release_id=r.id, precio=Decimal("10.00"), fecha_entrada=_dias_atras(n))
+        Item(release_id=r.id, price=Decimal("10.00"), entry_date=_dias_atras(n))
         for n in (1, 2, 3)
     ])
     db.commit()
@@ -180,9 +180,9 @@ def test_aging_edad_media_i_mediana(db, client):
     r = _seed_release(db)
 
     db.add_all([
-        Item(release_id=r.id, precio=Decimal("10.00"), fecha_entrada=_dias_atras(10)),
-        Item(release_id=r.id, precio=Decimal("10.00"), fecha_entrada=_dias_atras(20)),
-        Item(release_id=r.id, precio=Decimal("10.00"), fecha_entrada=_dias_atras(30)),
+        Item(release_id=r.id, price=Decimal("10.00"), entry_date=_dias_atras(10)),
+        Item(release_id=r.id, price=Decimal("10.00"), entry_date=_dias_atras(20)),
+        Item(release_id=r.id, price=Decimal("10.00"), entry_date=_dias_atras(30)),
     ])
     db.commit()
 

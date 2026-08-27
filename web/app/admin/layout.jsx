@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -11,61 +11,81 @@ import {
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
+import { useTenantConfig } from '../../components/store/useTenantConfig';
 import { TranslationProvider, useT, useLang } from '../lib/i18n';
 
-const NAV_GROUPS = [
-  {
-    label: null,
-    items: [
-      { href: '/admin', key: 'nav.dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-    ],
-  },
-  {
-    label: 'Catàleg',
-    items: [
-      { href: '/admin/catalogo',     key: 'nav.catalog',      label: 'Discos',          icon: Disc3 },
-      { href: '/admin/etiquetes',    key: 'nav.etiquetes',    label: 'Etiquetes',       icon: Tag },
-      { href: '/admin/vendes-web',   key: 'nav.orders',       label: 'Vendes web',      icon: ShoppingCart },
-    ],
-  },
-  {
-    label: 'ERP',
-    items: [
-      { href: '/admin/compras',   key: 'nav.purchases', label: 'Compres',   icon: PackagePlus },
-      { href: '/admin/tpv',       key: 'nav.tpv',       label: 'TPV',       icon: Store },
-      { href: '/admin/peticions', key: 'nav.peticions', label: 'Peticions', icon: Bell },
-      { href: '/admin/subscripcions', key: 'nav.subscripcions', label: 'Club del disc', icon: Repeat },
-    ],
-  },
-  {
-    label: 'Comptabilitat',
-    items: [
-      { href: '/admin/despeses', key: 'nav.despeses', label: 'Despeses',  icon: Receipt },
-      { href: '/admin/banc',     key: 'nav.banc',     label: 'Banc',      icon: Landmark },
-      { href: '/admin/resultat', key: 'nav.resultat', label: 'Resultat',  icon: TrendingUp },
-      { href: '/admin/iva',      key: 'nav.iva',      label: 'IVA',       icon: Calculator },
-    ],
-  },
-  {
-    label: 'CMS',
-    items: [
-      { href: '/admin/pagines',    key: 'nav.pagines',    label: 'Pàgines',    icon: Layers },
-      { href: '/admin/blog',       key: 'nav.blog',       label: 'Blog',       icon: FileText },
-      { href: '/admin/agenda',     key: 'nav.agenda',     label: 'Agenda',     icon: CalendarDays },
-      { href: '/admin/newsletter', key: 'nav.newsletter', label: 'Newsletter', icon: Mail },
-    ],
-  },
-  {
-    label: 'Admin',
-    items: [
-      { href: '/admin/usuaris',       key: 'nav.users',         label: 'Usuaris',       icon: Users },
-      { href: '/admin/configuracio',  key: 'nav.configuracio',  label: 'Configuració',  icon: Settings },
-    ],
-  },
-];
-
-// Llista plana per a cerques (breadcrumb topbar, etc.)
-const NAV = NAV_GROUPS.flatMap(g => g.items);
+// Function del `config` complet (/config/public) en lloc d'array estàtic:
+// l'etiqueta de fallback del catàleg varia per vertical (la traducció real
+// de `nav.catalog` ja és genèrica — "Catàleg"/"Catálogo" — així que això
+// només afecta el text abans que les traduccions carreguin). Un ítem pot
+// declarar `requiresFeature: '<camp de ConfiguracioBotigaPublic>'` — es
+// filtra si aquell camp és estrictament `false`; mentre `config` encara no
+// s'ha resolt (`undefined`) es mostra, per no parpellejar. Un vertical nou
+// que necessiti amagar/mostrar seccions senceres ho fa amb el mateix
+// mecanisme, sense afegir un altre spread condicional a mà com abans.
+function getNavGroups(config) {
+  const vertical = config.vertical;
+  const groups = [
+    {
+      label: null,
+      items: [
+        { href: '/admin', key: 'nav.dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+      ],
+    },
+    {
+      label: 'Catàleg',
+      items: [
+        {
+          href: '/admin/catalogo', key: 'nav.catalog',
+          label: vertical === 'floristry' ? 'Productes' : 'Discos', icon: Disc3,
+        },
+        { href: '/admin/etiquetes',    key: 'nav.etiquetes',    label: 'Etiquetes',       icon: Tag },
+        { href: '/admin/vendes-web',   key: 'nav.orders',       label: 'Vendes web',      icon: ShoppingCart },
+      ],
+    },
+    {
+      label: 'ERP',
+      items: [
+        { href: '/admin/compras',   key: 'nav.purchases', label: 'Compres',   icon: PackagePlus },
+        { href: '/admin/tpv',       key: 'nav.tpv',       label: 'TPV',       icon: Store },
+        { href: '/admin/peticions', key: 'nav.peticions', label: 'Peticions', icon: Bell },
+        {
+          href: '/admin/subscripcions', key: 'nav.subscripcions', label: 'Club del disc', icon: Repeat,
+          requiresFeature: 'subscripcions_actives',
+        },
+      ],
+    },
+    {
+      label: 'Comptabilitat',
+      items: [
+        { href: '/admin/despeses', key: 'nav.despeses', label: 'Despeses',  icon: Receipt },
+        { href: '/admin/banc',     key: 'nav.banc',     label: 'Banc',      icon: Landmark },
+        { href: '/admin/resultat', key: 'nav.resultat', label: 'Resultat',  icon: TrendingUp },
+        { href: '/admin/iva',      key: 'nav.iva',      label: 'IVA',       icon: Calculator },
+      ],
+    },
+    {
+      label: 'CMS',
+      items: [
+        { href: '/admin/pagines',    key: 'nav.pagines',    label: 'Pàgines',    icon: Layers },
+        { href: '/admin/blog',       key: 'nav.blog',       label: 'Blog',       icon: FileText },
+        { href: '/admin/agenda',     key: 'nav.agenda',     label: 'Agenda',     icon: CalendarDays },
+        { href: '/admin/newsletter', key: 'nav.newsletter', label: 'Newsletter', icon: Mail },
+      ],
+    },
+    {
+      label: 'Admin',
+      items: [
+        { href: '/admin/usuaris',       key: 'nav.users',         label: 'Usuaris',       icon: Users },
+        { href: '/admin/configuracio',  key: 'nav.configuracio',  label: 'Configuració',  icon: Settings },
+      ],
+    },
+  ];
+  return groups.map((g) => ({
+    ...g,
+    items: g.items.filter((it) => !it.requiresFeature || config[it.requiresFeature] !== false),
+  }));
+}
 
 const LANGS = [
   { code: 'ca', label: 'CAT' },
@@ -89,6 +109,11 @@ function AdminShell({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const devBypass = process.env.NEXT_PUBLIC_DEV_ADMIN_BYPASS === 'true';
   const { user: sessionUser, loading, logout: sessionLogout } = useAuth();
+  const config = useTenantConfig();
+  const NAV_GROUPS = useMemo(
+    () => getNavGroups(config), [config]
+  );
+  const NAV = useMemo(() => NAV_GROUPS.flatMap(g => g.items), [NAV_GROUPS]);
 
   // Tanca el drawer mòbil en canviar de pàgina.
   useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -115,8 +140,7 @@ function AdminShell({ children }) {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-          <div className="text-4xl mb-3">💿</div>
-          <h1 className="text-xl font-bold text-zinc-900 mb-1">Ultra-Local Admin</h1>
+          <h1 className="text-xl font-bold text-zinc-900 mb-1">{config.nombre || 'Admin'}</h1>
           <p className="text-sm text-zinc-500 mb-6">Cal iniciar sessió per accedir al panell.</p>
           <Link
             href="/login"
@@ -129,7 +153,7 @@ function AdminShell({ children }) {
     );
   }
 
-  if (user.rol !== 'admin') {
+  if (user.role !== 'admin') {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
@@ -168,7 +192,7 @@ function AdminShell({ children }) {
         {/* Brand */}
         <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-800 shrink-0">
           {showLabels && (
-            <span className="font-bold text-white text-sm tracking-wide">UL Records</span>
+            <span className="font-bold text-white text-sm tracking-wide truncate">{config.nombre || 'Admin'}</span>
           )}
           <button onClick={() => setCollapsed(!collapsed)} className="hidden md:block text-zinc-500 hover:text-white p-1 rounded ml-auto">
             {collapsed ? <Menu size={18} /> : <X size={18} />}
@@ -268,7 +292,7 @@ function AdminShell({ children }) {
             >
               <Home size={13} /> <span className="hidden sm:inline">Web</span>
             </Link>
-            <span className="hidden lg:inline text-xs text-zinc-400">{user.nombre ?? user.email}</span>
+            <span className="hidden lg:inline text-xs text-zinc-400">{user.name ?? user.email}</span>
           </div>
         </header>
 

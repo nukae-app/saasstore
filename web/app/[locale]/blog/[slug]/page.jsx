@@ -8,10 +8,10 @@ import StorefrontFooter from '../../../../components/store/StorefrontFooter';
 export async function generateMetadata({ params }) {
   const { slug, locale } = await params;
   try {
-    const post = await api(`/posts/${slug}`);
-    const plain = post.contenido.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+    const [post, config] = await Promise.all([api(`/posts/${slug}`), api('/config/public')]);
+    const plain = post.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
     return {
-      title: `${post.titulo} — Ultra-Local Records`,
+      title: `${post.title} — ${config.nombre}`,
       description: plain,
     };
   } catch {
@@ -51,10 +51,10 @@ export default async function PostPage({ params }) {
               {t('backToBlog')}
             </Link>
             <time className="block text-zinc-500 text-xs font-semibold tracking-[0.15em] uppercase mb-4">
-              {formatDate(post.publicado_at, locale)}
+              {formatDate(post.published_at, locale)}
             </time>
             <h1 className="font-serif italic text-3xl md:text-4xl lg:text-5xl leading-tight">
-              {post.titulo}
+              {post.title}
             </h1>
           </div>
         </section>
@@ -63,7 +63,7 @@ export default async function PostPage({ params }) {
         <article className="container max-w-2xl py-12 md:py-16">
           <div
             className="blog-content"
-            dangerouslySetInnerHTML={{ __html: post.contenido }}
+            dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
           {/* Back link */}

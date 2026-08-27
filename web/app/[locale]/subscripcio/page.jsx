@@ -24,7 +24,7 @@ function submitToRedsys({ url, Ds_SignatureVersion, Ds_MerchantParameters, Ds_Si
   form.submit();
 }
 
-const EMPTY_ADDR = { nombre_destinatario: '', linea1: '', linea2: '', ciudad: '', cp: '', provincia: '', pais: 'ES', telefono: '' };
+const EMPTY_ADDR = { recipient_name: '', address_line1: '', address_line2: '', city: '', postal_code: '', province: '', country: 'ES', phone: '' };
 
 export default function SubscripcioPage() {
   const t = useTranslations('subscripcio');
@@ -61,7 +61,7 @@ export default function SubscripcioPage() {
     if (!user) return;
     authFetch('/me/addresses').then(r => r.json()).then(list => {
       setAddresses(list);
-      const def = list.find(a => a.predeterminada) || list[0];
+      const def = list.find(a => a.is_default) || list[0];
       if (def) setAddressId(def.id);
     });
   }, [user]);
@@ -80,7 +80,7 @@ export default function SubscripcioPage() {
     try {
       let finalAddressId = addressId;
       if (!finalAddressId) {
-        if (!novaAdreca.nombre_destinatario || !novaAdreca.linea1 || !novaAdreca.ciudad || !novaAdreca.cp) {
+        if (!novaAdreca.recipient_name || !novaAdreca.address_line1 || !novaAdreca.city || !novaAdreca.postal_code) {
           setError(t('fillShippingAddress'));
           setSubmitting(false);
           return;
@@ -198,24 +198,24 @@ export default function SubscripcioPage() {
                 <select value={addressId} onChange={e => setAddressId(e.target.value)}
                   className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-zinc-900">
                   {addresses.map(a => (
-                    <option key={a.id} value={a.id}>{a.nombre_destinatario} — {a.linea1}, {a.ciudad}</option>
+                    <option key={a.id} value={a.id}>{a.recipient_name} — {a.address_line1}, {a.city}</option>
                   ))}
                   <option value="">{t('newAddressOption')}</option>
                 </select>
               )}
               {!addressId && (
                 <div className="grid grid-cols-2 gap-2">
-                  <input placeholder={t('recipientName')} value={novaAdreca.nombre_destinatario}
-                    onChange={e => setNovaAdreca(a => ({ ...a, nombre_destinatario: e.target.value }))}
+                  <input placeholder={t('recipientName')} value={novaAdreca.recipient_name}
+                    onChange={e => setNovaAdreca(a => ({ ...a, recipient_name: e.target.value }))}
                     className="col-span-2 border border-zinc-200 rounded-lg px-3 py-2 text-sm" />
-                  <input placeholder={t('address')} value={novaAdreca.linea1}
-                    onChange={e => setNovaAdreca(a => ({ ...a, linea1: e.target.value }))}
+                  <input placeholder={t('address')} value={novaAdreca.address_line1}
+                    onChange={e => setNovaAdreca(a => ({ ...a, address_line1: e.target.value }))}
                     className="col-span-2 border border-zinc-200 rounded-lg px-3 py-2 text-sm" />
-                  <input placeholder={t('postalCode')} value={novaAdreca.cp}
-                    onChange={e => setNovaAdreca(a => ({ ...a, cp: e.target.value }))}
+                  <input placeholder={t('postalCode')} value={novaAdreca.postal_code}
+                    onChange={e => setNovaAdreca(a => ({ ...a, postal_code: e.target.value }))}
                     className="border border-zinc-200 rounded-lg px-3 py-2 text-sm" />
-                  <input placeholder={t('city')} value={novaAdreca.ciudad}
-                    onChange={e => setNovaAdreca(a => ({ ...a, ciudad: e.target.value }))}
+                  <input placeholder={t('city')} value={novaAdreca.city}
+                    onChange={e => setNovaAdreca(a => ({ ...a, city: e.target.value }))}
                     className="border border-zinc-200 rounded-lg px-3 py-2 text-sm" />
                 </div>
               )}

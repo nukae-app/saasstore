@@ -12,10 +12,10 @@ import {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function initials(u) {
-  if (u.nombre) return u.nombre.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+  if (u.name) return u.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
   return u.email[0].toUpperCase();
 }
-function displayName(u) { return u.nombre || u.email; }
+function displayName(u) { return u.name || u.email; }
 const PROVIDER_LABELS = { google: 'Google', magic_link: 'Email', magic: 'Email' };
 const fmt = d => new Date(d).toLocaleDateString('ca', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
@@ -49,9 +49,9 @@ export default function UsuarisPage() {
     setLoading(true);
     const params = new URLSearchParams({ limit: String(pageSize), skip: String(page * pageSize) });
     if (q) params.set('q', q);
-    if (filterActivo !== '') params.set('activo', filterActivo);
+    if (filterActivo !== '') params.set('active', filterActivo);
     if (filterNewsletter !== '') params.set('newsletter', filterNewsletter);
-    if (filterRol !== '') params.set('rol', filterRol);
+    if (filterRol !== '') params.set('role', filterRol);
     if (sort.key) { params.set('order_by', sort.key); params.set('order_dir', sort.dir); }
     const [rU, rS] = await Promise.all([
       authFetch(`/admin/users?${params}`),
@@ -190,25 +190,25 @@ export default function UsuarisPage() {
                     const isSelected = selected?.id === u.id;
                     return (
                       <tr key={u.id}
-                        className={`hover:bg-zinc-50 cursor-pointer transition-colors ${isSelected ? 'bg-zinc-50' : ''} ${!u.activo ? 'opacity-60' : ''}`}
+                        className={`hover:bg-zinc-50 cursor-pointer transition-colors ${isSelected ? 'bg-zinc-50' : ''} ${!u.active ? 'opacity-60' : ''}`}
                         onClick={() => setSelected(isSelected ? null : u)}>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                              u.rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-700'
+                              u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-700'
                             }`}>
                               {initials(u)}
                             </div>
                             <div className="min-w-0">
                               <div className="font-medium text-zinc-900 truncate">{displayName(u)}</div>
-                              {u.nombre && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
-                              {u.telefon && <div className="text-xs text-zinc-400">{u.telefon}</div>}
+                              {u.name && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
+                              {u.phone && <div className="text-xs text-zinc-400">{u.phone}</div>}
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1 flex-wrap">
-                            {u.rol === 'admin' && (
+                            {u.role === 'admin' && (
                               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-purple-100 text-purple-700 font-medium">Admin</span>
                             )}
                             {(u.providers || []).map(p => (
@@ -254,15 +254,15 @@ export default function UsuarisPage() {
                         </td>
                         <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                           <button
-                            onClick={() => quickPatch(u.id, { activo: !u.activo })}
-                            title={u.activo ? 'Desactivar compte' : 'Reactivar compte'}
+                            onClick={() => quickPatch(u.id, { active: !u.active })}
+                            title={u.active ? 'Desactivar compte' : 'Reactivar compte'}
                             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                              u.activo
+                              u.active
                                 ? 'bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600'
                                 : 'bg-zinc-100 text-zinc-500 hover:bg-green-50 hover:text-green-700'
                             }`}>
-                            {u.activo ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
-                            {u.activo ? 'Actiu' : 'Inactiu'}
+                            {u.active ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
+                            {u.active ? 'Actiu' : 'Inactiu'}
                           </button>
                         </td>
                         <td className="px-4 py-3 text-right text-zinc-400 text-xs whitespace-nowrap">
@@ -355,8 +355,8 @@ function FilterSelect({ value, onChange, options }) {
 
 function CreateUserModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
-    email: '', nombre: '', telefon: '', rol: 'cliente',
-    activo: true, consent_newsletter: false, idioma: 'ca', notas_internes: '',
+    email: '', name: '', phone: '', role: 'cliente',
+    active: true, consent_newsletter: false, language: 'ca', internal_notes: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -370,9 +370,9 @@ function CreateUserModal({ onClose, onCreated }) {
       method: 'POST',
       body: JSON.stringify({
         ...form,
-        nombre: form.nombre || null,
-        telefon: form.telefon || null,
-        notas_internes: form.notas_internes || null,
+        name: form.name || null,
+        phone: form.phone || null,
+        internal_notes: form.internal_notes || null,
       }),
     });
     setSaving(false);
@@ -399,21 +399,21 @@ function CreateUserModal({ onClose, onCreated }) {
           </FormField>
           <div className="grid grid-cols-2 gap-3">
             <FormField label="Nom">
-              <input value={form.nombre} onChange={e => set('nombre', e.target.value)} className={INPUT} placeholder="Nom i cognoms" />
+              <input value={form.name} onChange={e => set('name', e.target.value)} className={INPUT} placeholder="Nom i cognoms" />
             </FormField>
             <FormField label="Telèfon">
-              <input value={form.telefon} onChange={e => set('telefon', e.target.value)} className={INPUT} placeholder="+34 600..." />
+              <input value={form.phone} onChange={e => set('phone', e.target.value)} className={INPUT} placeholder="+34 600..." />
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <FormField label="Rol">
-              <select value={form.rol} onChange={e => set('rol', e.target.value)} className={INPUT}>
+              <select value={form.role} onChange={e => set('role', e.target.value)} className={INPUT}>
                 <option value="cliente">Client</option>
                 <option value="admin">Admin</option>
               </select>
             </FormField>
             <FormField label="Idioma">
-              <select value={form.idioma} onChange={e => set('idioma', e.target.value)} className={INPUT}>
+              <select value={form.language} onChange={e => set('language', e.target.value)} className={INPUT}>
                 <option value="ca">Català</option>
                 <option value="es">Castellà</option>
                 <option value="en">Anglès</option>
@@ -421,12 +421,12 @@ function CreateUserModal({ onClose, onCreated }) {
             </FormField>
           </div>
           <FormField label="Notes internes">
-            <textarea value={form.notas_internes} onChange={e => set('notas_internes', e.target.value)}
+            <textarea value={form.internal_notes} onChange={e => set('internal_notes', e.target.value)}
               rows={2} className={INPUT} placeholder="Nota visible només per admin..." />
           </FormField>
           <div className="flex gap-5">
             <label className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
-              <input type="checkbox" checked={form.activo} onChange={e => set('activo', e.target.checked)}
+              <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)}
                 className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" />
               Compte actiu
             </label>
@@ -483,10 +483,10 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
     authFetch(`/admin/users/${userId}`).then(r => r.json()).then(d => {
       setUser(d);
       setForm({
-        nombre: d.nombre || '', telefon: d.telefon || '',
-        notas_internes: d.notas_internes || '',
+        name: d.name || '', phone: d.phone || '',
+        internal_notes: d.internal_notes || '',
         consent_newsletter: d.consent_newsletter,
-        activo: d.activo, rol: d.rol, idioma: d.idioma,
+        active: d.active, role: d.role, language: d.language,
       });
     });
   }, [userId]);
@@ -496,10 +496,10 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
     const r = await authFetch(`/admin/users/${userId}`, {
       method: 'PATCH',
       body: JSON.stringify({
-        nombre: form.nombre || null, telefon: form.telefon || null,
-        notas_internes: form.notas_internes || null,
+        name: form.name || null, phone: form.phone || null,
+        internal_notes: form.internal_notes || null,
         consent_newsletter: form.consent_newsletter,
-        activo: form.activo, rol: form.rol, idioma: form.idioma,
+        active: form.active, role: form.role, language: form.language,
       }),
     });
     const updated = await r.json();
@@ -511,7 +511,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
   async function toggleActivo() {
     const r = await authFetch(`/admin/users/${userId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ activo: !user.activo }),
+      body: JSON.stringify({ active: !user.active }),
     });
     const updated = await r.json();
     setUser(prev => ({ ...prev, ...updated }));
@@ -542,7 +542,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
   );
 
   const totalOrders = (user.orders || []).reduce((s, o) => s + o.total, 0);
-  const totalTpv = (user.vendes_tpv || []).reduce((s, v) => s + v.precio_venta, 0);
+  const totalTpv = (user.vendes_tpv || []).reduce((s, v) => s + v.sale_price, 0);
   const totalRecords = (user.compres_records || []).reduce((s, c) => s + c.total_pagat, 0);
 
   const TABS = [
@@ -557,20 +557,20 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
       {/* Capçalera */}
       <div className="px-6 py-5 border-b border-zinc-100 flex items-start gap-4">
         <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold shrink-0 ${
-          user.rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-700'
+          user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-700'
         }`}>
           {initials(user)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-zinc-900 text-lg">{displayName(user)}</span>
-            {user.rol === 'admin' && (
+            {user.role === 'admin' && (
               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">Admin</span>
             )}
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-              user.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+              user.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
             }`}>
-              {user.activo ? 'Actiu' : 'Inactiu'}
+              {user.active ? 'Actiu' : 'Inactiu'}
             </span>
             {user.consent_newsletter && (
               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-700">
@@ -578,17 +578,17 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
               </span>
             )}
           </div>
-          {user.nombre && <div className="text-sm text-zinc-500 mt-0.5">{user.email}</div>}
-          {user.telefon && <div className="text-sm text-zinc-400">{user.telefon}</div>}
+          {user.name && <div className="text-sm text-zinc-500 mt-0.5">{user.email}</div>}
+          {user.phone && <div className="text-sm text-zinc-400">{user.phone}</div>}
           {/* Accions ràpides */}
           <div className="flex gap-2 mt-3 flex-wrap">
             <button onClick={toggleActivo}
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium ${
-                user.activo
+                user.active
                   ? 'border-red-200 text-red-600 hover:bg-red-50'
                   : 'border-green-200 text-green-600 hover:bg-green-50'
               }`}>
-              {user.activo ? <><UserX className="w-3.5 h-3.5" /> Desactivar</> : <><UserCheck className="w-3.5 h-3.5" /> Reactivar</>}
+              {user.active ? <><UserX className="w-3.5 h-3.5" /> Desactivar</> : <><UserCheck className="w-3.5 h-3.5" /> Reactivar</>}
             </button>
             <button onClick={toggleNewsletter}
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium ${
@@ -637,21 +637,21 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
               <div className="space-y-4 max-w-md">
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Nom">
-                    <input value={form.nombre} onChange={e => set('nombre', e.target.value)} className={INPUT} />
+                    <input value={form.name} onChange={e => set('name', e.target.value)} className={INPUT} />
                   </FormField>
                   <FormField label="Telèfon">
-                    <input value={form.telefon} onChange={e => set('telefon', e.target.value)} className={INPUT} />
+                    <input value={form.phone} onChange={e => set('phone', e.target.value)} className={INPUT} />
                   </FormField>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Rol">
-                    <select value={form.rol} onChange={e => set('rol', e.target.value)} className={INPUT}>
+                    <select value={form.role} onChange={e => set('role', e.target.value)} className={INPUT}>
                       <option value="cliente">Client</option>
                       <option value="admin">Admin</option>
                     </select>
                   </FormField>
                   <FormField label="Idioma">
-                    <select value={form.idioma} onChange={e => set('idioma', e.target.value)} className={INPUT}>
+                    <select value={form.language} onChange={e => set('language', e.target.value)} className={INPUT}>
                       <option value="ca">Català</option>
                       <option value="es">Castellà</option>
                       <option value="en">Anglès</option>
@@ -659,7 +659,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                   </FormField>
                 </div>
                 <FormField label="Notes internes">
-                  <textarea value={form.notas_internes} onChange={e => set('notas_internes', e.target.value)}
+                  <textarea value={form.internal_notes} onChange={e => set('internal_notes', e.target.value)}
                     rows={3} className={INPUT} placeholder="Visible només per admin..." />
                 </FormField>
                 <div className="flex gap-5">
@@ -669,7 +669,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                     Newsletter
                   </label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" checked={form.activo} onChange={e => set('activo', e.target.checked)}
+                    <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)}
                       className="rounded border-zinc-300 text-zinc-900" />
                     Compte actiu
                   </label>
@@ -684,18 +684,18 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             ) : (
               <div className="space-y-3 max-w-md">
                 <ProfileRow label="Email" value={user.email} mono />
-                <ProfileRow label="Nom" value={user.nombre || <span className="text-zinc-300">—</span>} />
-                <ProfileRow label="Telèfon" value={user.telefon || <span className="text-zinc-300">—</span>} />
-                <ProfileRow label="Idioma" value={{ ca: 'Català', es: 'Castellà', en: 'Anglès' }[user.idioma] || user.idioma} />
-                <ProfileRow label="Rol" value={user.rol} />
+                <ProfileRow label="Nom" value={user.name || <span className="text-zinc-300">—</span>} />
+                <ProfileRow label="Telèfon" value={user.phone || <span className="text-zinc-300">—</span>} />
+                <ProfileRow label="Idioma" value={{ ca: 'Català', es: 'Castellà', en: 'Anglès' }[user.language] || user.language} />
+                <ProfileRow label="Rol" value={user.role} />
                 <ProfileRow label="Alta" value={new Date(user.created_at).toLocaleDateString('ca', { day: '2-digit', month: '2-digit', year: 'numeric' })} />
                 {user.providers?.length > 0 && (
                   <ProfileRow label="Accés" value={user.providers.map(p => PROVIDER_LABELS[p] || p).join(', ')} />
                 )}
-                {user.notas_internes && (
+                {user.internal_notes && (
                   <div>
                     <div className="text-xs text-zinc-400 mb-1">Notes internes</div>
-                    <div className="text-sm text-zinc-700 bg-zinc-50 rounded-xl p-3 whitespace-pre-wrap">{user.notas_internes}</div>
+                    <div className="text-sm text-zinc-700 bg-zinc-50 rounded-xl p-3 whitespace-pre-wrap">{user.internal_notes}</div>
                   </div>
                 )}
                 <div className="pt-2">
@@ -776,13 +776,13 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-zinc-900 text-sm truncate">{v.artista} — {v.titulo}</div>
                   <div className="text-xs text-zinc-400">
-                    {fmt(v.fecha)} · {v.canal} ·
-                    <span className={`ml-1 ${v.metodo_pago === 'efectivo' ? 'text-green-600' : 'text-indigo-600'}`}>
-                      {v.metodo_pago}
+                    {fmt(v.date)} · {v.channel} ·
+                    <span className={`ml-1 ${v.payment_method === 'efectivo' ? 'text-green-600' : 'text-indigo-600'}`}>
+                      {v.payment_method}
                     </span>
                   </div>
                 </div>
-                <span className="font-semibold text-zinc-900 text-sm shrink-0">{v.precio_venta.toFixed(2)} €</span>
+                <span className="font-semibold text-zinc-900 text-sm shrink-0">{v.sale_price.toFixed(2)} €</span>
               </div>
             )}
           />

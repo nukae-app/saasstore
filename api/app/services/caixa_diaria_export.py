@@ -11,17 +11,17 @@ from openpyxl.utils import get_column_letter
 from ..schemas import CaixaDiariaMesOut
 
 COLUMNES = (
-    ("data", "DIA"),
-    ("targeta_21", "TARGETA 21%"),
-    ("targeta_4", "TARGETA 4%"),
-    ("efectiu_21", "EFECTIU 21%"),
-    ("efectiu_4", "EFECTIU 4%"),
+    ("date", "DIA"),
+    ("card_21", "TARGETA 21%"),
+    ("card_4", "TARGETA 4%"),
+    ("cash_21", "EFECTIU 21%"),
+    ("cash_4", "EFECTIU 4%"),
     ("bizum_21", "BIZUM 21%"),
     ("bizum_4", "BIZUM 4%"),
     ("paypal_21", "PAYPAL 21%"),
     ("paypal_4", "PAYPAL 4%"),
     ("transfer_21", "TRANSFER 21%"),
-    ("bono_cultural", "BONO CULTURAL"),
+    ("cultural_voucher", "BONO CULTURAL"),
     ("total_dia", "TOTAL DIA"),
 )
 
@@ -43,7 +43,7 @@ def generate_caixa_diaria_excel(mes: CaixaDiariaMesOut) -> bytes:
         cell.alignment = Alignment(horizontal="center")
 
     for i, dia in enumerate(mes.dies, start=2):
-        ws.cell(row=i, column=1, value=dia.data.strftime("%d-%m-%Y"))
+        ws.cell(row=i, column=1, value=dia.date.strftime("%d-%m-%Y"))
         for col, (camp, _) in enumerate(COLUMNES[1:], start=2):
             valor = float(dia.total_dia) if camp == "total_dia" else float(getattr(dia, camp))
             ws.cell(row=i, column=col, value=valor).number_format = "#,##0.00"
@@ -93,7 +93,7 @@ def generate_caixa_diaria_pdf(mes: CaixaDiariaMesOut) -> bytes:
     pdf.set_font("Helvetica", "", 7)
     pdf.set_text_color(0, 0, 0)
     for dia in mes.dies:
-        pdf.cell(dia_width, row_h, dia.data.strftime("%d-%m-%Y"), border=1, align="C")
+        pdf.cell(dia_width, row_h, dia.date.strftime("%d-%m-%Y"), border=1, align="C")
         for camp, _ in COLUMNES[1:-1]:
             pdf.cell(col_width, row_h, f"{getattr(dia, camp):.2f}", border=1, align="R")
         pdf.cell(col_width, row_h, f"{dia.total_dia:.2f}", border=1, align="R")

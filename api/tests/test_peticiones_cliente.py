@@ -24,7 +24,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -34,7 +34,7 @@ def _auth(token: str) -> dict:
 
 
 def _seed_release(db, artista="Artista", titulo="Àlbum") -> Release:
-    r = Release(artista=artista, titulo=titulo, formato="LP")
+    r = Release(artista=artista, title=titulo, formato="LP")
     db.add(r)
     db.commit()
     return r
@@ -47,14 +47,14 @@ def test_crear_peticion_release_sense_estoc(db, client):
     resp = client.post("/me/peticiones", json={"release_id": str(release.id)}, headers=_auth(token))
     assert resp.status_code == 201
     body = resp.json()
-    assert body["estado"] == "pendent"
+    assert body["status"] == "pendent"
     assert body["artista"] == "Artista"
 
 
 def test_crear_peticion_release_amb_estoc_falla(db, client):
     token = _login(client, "client@example.com")
     release = _seed_release(db)
-    db.add(Item(release_id=release.id, precio=25, condicion=CondicionItem.nou, status=ItemStatus.disponible))
+    db.add(Item(release_id=release.id, price=25, condition=CondicionItem.nou, status=ItemStatus.disponible))
     db.commit()
 
     resp = client.post("/me/peticiones", json={"release_id": str(release.id)}, headers=_auth(token))
@@ -65,7 +65,7 @@ def test_crear_peticion_text_lliure(db, client):
     token = _login(client, "client@example.com")
     resp = client.post(
         "/me/peticiones",
-        json={"artista_lliure": "Grup Desconegut", "titulo_lliure": "Disc Rar"},
+        json={"free_artist": "Grup Desconegut", "free_title": "Disc Rar"},
         headers=_auth(token),
     )
     assert resp.status_code == 201
@@ -93,11 +93,11 @@ def test_flux_complet_fins_en_tramit(db, client):
     # Admin fixa preu -> notifica -> pendent_acceptacio
     resp = client.patch(
         f"/admin/peticiones/{peticion_id}/precio",
-        json={"precio_estimado": "28.00"},
+        json={"estimated_price": "28.00"},
         headers=_auth(admin_token),
     )
     assert resp.status_code == 200
-    assert resp.json()["estado"] == "pendent_acceptacio"
+    assert resp.json()["status"] == "pendent_acceptacio"
 
     resp = client.post(
         f"/me/peticiones/{peticion_id}/aceptar",
@@ -105,8 +105,8 @@ def test_flux_complet_fins_en_tramit(db, client):
         headers=_auth(client_token),
     )
     assert resp.status_code == 200
-    assert resp.json()["estado"] == "acceptada"
-    assert resp.json()["metodo_entrega_triat"] == "recollida_paga_botiga"
+    assert resp.json()["status"] == "acceptada"
+    assert resp.json()["chosen_delivery_method"] == "recollida_paga_botiga"
 
     resp = client.post(
         f"/admin/peticiones/{peticion_id}/vincular-solicitud",
@@ -120,7 +120,7 @@ def test_flux_complet_fins_en_tramit(db, client):
 
     db.expire_all()
     peticion_db = db.get(PeticionCliente, uuid.UUID(peticion_id))
-    assert peticion_db.estado.value == "en_tramit"
+    assert peticion_db.status.value == "en_tramit"
     assert peticion_db.solicitud_compra_linea_id is not None
 
 
@@ -134,13 +134,13 @@ def test_rebutjar_peticion(db, client):
     ).json()
     client.patch(
         f"/admin/peticiones/{peticion['id']}/precio",
-        json={"precio_estimado": "28.00"},
+        json={"estimated_price": "28.00"},
         headers=_auth(admin_token),
     )
 
     resp = client.post(f"/me/peticiones/{peticion['id']}/rechazar", headers=_auth(client_token))
     assert resp.status_code == 200
-    assert resp.json()["estado"] == "rebutjada"
+    assert resp.json()["status"] == "rebutjada"
 
     resp2 = client.post(
         f"/me/peticiones/{peticion['id']}/aceptar",
@@ -174,7 +174,7 @@ def test_catalogar_peticion_text_lliure(db, client):
 
     peticion = client.post(
         "/me/peticiones",
-        json={"artista_lliure": "Nou Grup", "titulo_lliure": "Nou Disc"},
+        json={"free_artist": "Nou Grup", "free_title": "Nou Disc"},
         headers=_auth(client_token),
     ).json()
     assert peticion["release_id"] is None
@@ -196,7 +196,7 @@ def test_canviar_disc_amb_preu_ja_fixat_reseteja_a_pendent(db, client):
 
     peticion = client.post(
         "/me/peticiones",
-        json={"artista_lliure": "Grup Correcte", "titulo_lliure": "Disc Correcte"},
+        json={"free_artist": "Grup Correcte", "free_title": "Disc Correcte"},
         headers=_auth(client_token),
     ).json()
     client.patch(
@@ -206,10 +206,10 @@ def test_canviar_disc_amb_preu_ja_fixat_reseteja_a_pendent(db, client):
     )
     resp = client.patch(
         f"/admin/peticiones/{peticion['id']}/precio",
-        json={"precio_estimado": "28.00"},
+        json={"estimated_price": "28.00"},
         headers=_auth(admin_token),
     )
-    assert resp.json()["estado"] == "pendent_acceptacio"
+    assert resp.json()["status"] == "pendent_acceptacio"
 
     resp = client.patch(
         f"/admin/peticiones/{peticion['id']}/catalogar",
@@ -219,8 +219,8 @@ def test_canviar_disc_amb_preu_ja_fixat_reseteja_a_pendent(db, client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["release_id"] == str(release_bo.id)
-    assert body["estado"] == "pendent"
-    assert body["precio_estimado"] is None
+    assert body["status"] == "pendent"
+    assert body["estimated_price"] is None
 
 
 def test_canviar_disc_despres_acceptada_falla(db, client):
@@ -246,7 +246,7 @@ def test_no_es_aquest_torna_a_pendent_amb_comentari(db, client):
     ).json()
     client.patch(
         f"/admin/peticiones/{peticion['id']}/precio",
-        json={"precio_estimado": "28.00"},
+        json={"estimated_price": "28.00"},
         headers=_auth(admin_token),
     )
 
@@ -257,16 +257,16 @@ def test_no_es_aquest_torna_a_pendent_amb_comentari(db, client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["estado"] == "pendent"
-    assert body["precio_estimado"] is None
+    assert body["status"] == "pendent"
+    assert body["estimated_price"] is None
 
     db.expire_all()
     peticion_db = db.get(PeticionCliente, uuid.UUID(peticion["id"]))
-    assert "Era l'edició en directe" in peticion_db.notas_cliente
+    assert "Era l'edició en directe" in peticion_db.client_notes
 
     resp_admin = client.get("/admin/peticiones", headers=_auth(admin_token))
     p_out = next(p for p in resp_admin.json() if p["id"] == peticion["id"])
-    assert "Era l'edició en directe" in p_out["notas_cliente"]
+    assert "Era l'edició en directe" in p_out["client_notes"]
 
 
 def test_no_es_aquest_fora_de_pendent_acceptacio_falla(db, client):
@@ -295,7 +295,7 @@ def test_cancelar_peticion_propia(db, client):
     assert resp.status_code == 204
 
     db.expire_all()
-    assert db.get(PeticionCliente, uuid.UUID(peticion["id"])).estado.value == "cancelada"
+    assert db.get(PeticionCliente, uuid.UUID(peticion["id"])).status.value == "cancelada"
 
 
 def test_no_es_pot_veure_peticio_d_un_altre_client(db, client):
@@ -319,13 +319,13 @@ def test_admin_llista_i_filtra_per_estat(db, client):
 
     resp = client.get("/admin/peticiones?estado=pendent", headers=_auth(admin_token))
     assert resp.status_code == 200
-    assert all(p["estado"] == "pendent" for p in resp.json())
+    assert all(p["status"] == "pendent" for p in resp.json())
     assert len(resp.json()) == 1
 
 
 _ADRECA_TEST = {
-    "nombre_destinatario": "Client Test", "linea1": "Carrer Fals 1",
-    "cp": "08001", "ciudad": "Barcelona", "pais": "ES",
+    "recipient_name": "Client Test", "address_line1": "Carrer Fals 1",
+    "postal_code": "08001", "city": "Barcelona", "country": "ES",
 }
 
 
@@ -340,7 +340,7 @@ def _peticion_en_tramit(client, db, metodo_entrega: str) -> tuple[str, str, Rele
     ).json()
     client.patch(
         f"/admin/peticiones/{peticion['id']}/precio",
-        json={"precio_estimado": "28.00"},
+        json={"estimated_price": "28.00"},
         headers=_auth(admin_token),
     )
     aceptar_payload = {"metodo_entrega": metodo_entrega}
@@ -366,7 +366,7 @@ def test_vincular_item_recollida_paga_botiga_reserva_72h(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "recollida_paga_botiga")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.nou, cantidad=1)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.nou, quantity=1)
     db.add(item)
     db.commit()
 
@@ -376,11 +376,11 @@ def test_vincular_item_recollida_paga_botiga_reserva_72h(db, client):
         headers=_auth(admin_token),
     )
     assert resp.status_code == 200
-    assert resp.json()["estado"] == "reservada"
+    assert resp.json()["status"] == "reservada"
 
     db.expire_all()
     item_db = db.get(Item, item.id)
-    assert item_db.cantidad_reservada == 1
+    assert item_db.reserved_quantity == 1
     hold = db.scalar(select(StockHold).where(StockHold.item_id == item.id))
     assert hold is not None
     assert hold.peticion_id == uuid.UUID(str(peticion_id))
@@ -391,7 +391,7 @@ def test_vincular_item_envio_sense_caducitat(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "envio")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.nou, cantidad=1)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.nou, quantity=1)
     db.add(item)
     db.commit()
 
@@ -404,7 +404,7 @@ def test_vincular_item_envio_sense_caducitat(db, client):
 
     db.expire_all()
     item_db = db.get(Item, item.id)
-    assert item_db.cantidad_reservada == 1
+    assert item_db.reserved_quantity == 1
     hold = db.scalar(select(StockHold).where(StockHold.item_id == item.id))
     assert hold is not None
     assert hold.reserved_until is None
@@ -420,7 +420,7 @@ def test_vincular_item_tanca_linia_i_solicitud(db, client):
     peticion_db = db.get(PeticionCliente, uuid.UUID(str(peticion_id)))
     linea_id = peticion_db.solicitud_compra_linea_id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.nou, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.nou, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
 
@@ -445,7 +445,7 @@ def test_resoldre_estoc_reserva_per_peticio_i_tanca_solicitud(db, client):
     peticion_db = db.get(PeticionCliente, uuid.UUID(str(peticion_id)))
     linea_id = peticion_db.solicitud_compra_linea_id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
 
@@ -458,7 +458,7 @@ def test_resoldre_estoc_reserva_per_peticio_i_tanca_solicitud(db, client):
     assert resp.json()["estado"] == "resolta"
 
     db.expire_all()
-    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).estado.value == "reservada"
+    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).status.value == "reservada"
     item_db = db.get(Item, item.id)
     assert item_db.status.value == "reservado"
     assert item_db.reserved_until is not None  # recollida_paga_botiga: 72h
@@ -470,7 +470,7 @@ def _resolver_solicitud_en_comanda(client, db, admin_token, peticion_id) -> str:
     peticion_db = db.get(PeticionCliente, uuid.UUID(peticion_id))
     linea_id = peticion_db.solicitud_compra_linea_id
 
-    prov = Proveedor(nombre="Distri Test")
+    prov = Proveedor(name="Distri Test")
     db.add(prov)
     db.commit()
 
@@ -478,8 +478,8 @@ def _resolver_solicitud_en_comanda(client, db, admin_token, peticion_id) -> str:
         "/admin/solicitudes-compra/resolver",
         json={
             "proveedor_id": str(prov.id),
-            "fecha": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": str(linea_id), "precio_unitario_estimado": "20.00"}],
+            "date": "2026-06-01T10:00:00",
+            "lineas": [{"solicitud_linea_id": str(linea_id), "estimated_unit_price": "20.00"}],
         },
         headers=_auth(admin_token),
     )
@@ -506,22 +506,22 @@ def test_recepcio_reserva_automaticament_per_peticion_recollida_botiga(db, clien
 
     resp = client.post(
         f"/admin/comandas/{comanda_id}/recepcio",
-        json={"fecha": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "precio": "28.00"}]},
+        json={"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "28.00"}]},
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201
 
     db.expire_all()
     peticion_db = db.get(PeticionCliente, uuid.UUID(peticion_id))
-    assert peticion_db.estado.value == "reservada"
+    assert peticion_db.status.value == "reservada"
     assert peticion_db.item_id is not None
 
     # RecepcionItemIn.condicion por defecto es "nou": stock agregado, la
     # reserva de la petición es vía StockHold (no status/reserved_until en Item).
     item_db = db.get(Item, peticion_db.item_id)
-    assert item_db.condicion == CondicionItem.nou
-    assert item_db.cantidad == 1
-    assert item_db.cantidad_reservada == 1
+    assert item_db.condition == CondicionItem.nou
+    assert item_db.quantity == 1
+    assert item_db.reserved_quantity == 1
     hold = db.scalar(select(StockHold).where(StockHold.peticion_id == uuid.UUID(peticion_id)))
     assert hold is not None
     assert hold.reserved_until is not None
@@ -541,17 +541,17 @@ def test_recepcio_reserva_automaticament_per_peticion_envio_sense_caducitat(db, 
 
     resp = client.post(
         f"/admin/comandas/{comanda_id}/recepcio",
-        json={"fecha": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "precio": "28.00"}]},
+        json={"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "28.00"}]},
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201
 
     db.expire_all()
     peticion_db = db.get(PeticionCliente, uuid.UUID(peticion_id))
-    assert peticion_db.estado.value == "reservada"
+    assert peticion_db.status.value == "reservada"
 
     item_db = db.get(Item, peticion_db.item_id)
-    assert item_db.cantidad_reservada == 1
+    assert item_db.reserved_quantity == 1
     hold = db.scalar(select(StockHold).where(StockHold.peticion_id == uuid.UUID(peticion_id)))
     assert hold is not None
     assert hold.reserved_until is None
@@ -561,7 +561,7 @@ def test_comprar_via1_afegeix_al_carret(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "envio")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     client.post(
@@ -593,7 +593,7 @@ def test_via1_reserva_carret_caducada_marca_peticio_caducada(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "envio")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     client.post(
@@ -614,7 +614,7 @@ def test_via1_reserva_carret_caducada_marca_peticio_caducada(db, client):
 
     db.expire_all()
     assert db.get(Item, item.id).status.value == "disponible"
-    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).estado.value == "caducada"
+    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).status.value == "caducada"
 
 
 def test_checkout_start_no_bloqueja_exemplar_de_peticio_ja_al_carret(db, client):
@@ -626,7 +626,7 @@ def test_checkout_start_no_bloqueja_exemplar_de_peticio_ja_al_carret(db, client)
     client_token, admin_token, release = _peticion_en_tramit(client, db, "envio")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     client.post(
@@ -651,7 +651,7 @@ def test_comprar_via1_falla_si_recollida_paga_botiga(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "recollida_paga_botiga")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.nou, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.nou, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     client.post(
@@ -668,7 +668,7 @@ def test_tpv_tanca_peticion_via2(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "recollida_paga_botiga")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.nou, cantidad=1)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.nou, quantity=1)
     db.add(item)
     db.commit()
     client.post(
@@ -680,17 +680,17 @@ def test_tpv_tanca_peticion_via2(db, client):
     resp = client.post(
         "/admin/ventas-externas",
         json={
-            "item_id": str(item.id), "canal": "mostrador", "metodo_pago": "efectivo",
-            "precio_venta": "28.00", "fecha": "2026-07-15T10:00:00",
+            "item_id": str(item.id), "channel": "mostrador", "payment_method": "efectivo",
+            "sale_price": "28.00", "date": "2026-07-15T10:00:00",
         },
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201
 
     db.expire_all()
-    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).estado.value == "recollida"
-    assert db.get(Item, item.id).cantidad == 0
-    assert db.get(Item, item.id).cantidad_reservada == 0
+    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).status.value == "recollida"
+    assert db.get(Item, item.id).quantity == 0
+    assert db.get(Item, item.id).reserved_quantity == 0
     assert db.scalar(select(StockHold).where(StockHold.item_id == item.id)) is None
 
 
@@ -698,7 +698,7 @@ def test_reserves_recollida_llista_nomes_via2_reservades(db, client):
     # Via 2 (recollida_paga_botiga): ha d'aparèixer a la llista.
     client_token, admin_token, release = _peticion_en_tramit(client, db, "recollida_paga_botiga")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     client.post(
@@ -710,7 +710,7 @@ def test_reserves_recollida_llista_nomes_via2_reservades(db, client):
     # Via 1 (envio): NO ha d'aparèixer, encara que també estigui 'reservada'.
     client_token2, admin_token2, release2 = _peticion_en_tramit(client, db, "envio")
     peticion_id2 = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release2.id)).id
-    item2 = Item(release_id=release2.id, precio=15, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item2 = Item(release_id=release2.id, price=15, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item2)
     db.commit()
     client.post(
@@ -732,7 +732,7 @@ def test_via2_reservada_apareix_a_orders_no_a_peticiones(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "recollida_paga_botiga")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     client.post(
@@ -759,7 +759,7 @@ def test_via2_recollida_apareix_a_orders_com_venda_botiga(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "recollida_paga_botiga")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.nou, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.nou, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     client.post(
@@ -770,8 +770,8 @@ def test_via2_recollida_apareix_a_orders_com_venda_botiga(db, client):
     client.post(
         "/admin/ventas-externas",
         json={
-            "item_id": str(item.id), "canal": "mostrador", "metodo_pago": "efectivo",
-            "precio_venta": "28.00", "fecha": "2026-07-15T10:00:00",
+            "item_id": str(item.id), "channel": "mostrador", "payment_method": "efectivo",
+            "sale_price": "28.00", "date": "2026-07-15T10:00:00",
         },
         headers=_auth(admin_token),
     )
@@ -810,7 +810,7 @@ def test_vincular_item_sense_pagament_previ_cau_al_flux_antic(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "envio")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.nou, cantidad=1)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.nou, quantity=1)
     db.add(item)
     db.commit()
     client.post(
@@ -823,8 +823,8 @@ def test_vincular_item_sense_pagament_previ_cau_al_flux_antic(db, client):
     assert any(p["id"] == str(peticion_id) for p in resp_peticiones.json())
 
     db.expire_all()
-    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).estado.value == "reservada"
-    assert db.get(Item, item.id).cantidad_reservada == 1
+    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).status.value == "reservada"
+    assert db.get(Item, item.id).reserved_quantity == 1
     hold = db.scalar(select(StockHold).where(StockHold.item_id == item.id))
     assert hold is not None and hold.reserved_until is None
 
@@ -838,7 +838,7 @@ def test_aceptar_envio_sense_adreca_falla(db, client):
     ).json()
     client.patch(
         f"/admin/peticiones/{peticion['id']}/precio",
-        json={"precio_estimado": "28.00"},
+        json={"estimated_price": "28.00"},
         headers=_auth(admin_token),
     )
 
@@ -858,8 +858,8 @@ def test_aceptar_envio_amb_adreca_predeterminada(db, client):
     release = _seed_release(db)
     user = db.scalar(select(User).where(User.email == "client@example.com"))
     db.add(Address(
-        user_id=user.id, nombre_destinatario="Client Test", linea1="Carrer Fals 1",
-        cp="08001", ciudad="Barcelona", pais="ES", predeterminada=True,
+        user_id=user.id, recipient_name="Client Test", address_line1="Carrer Fals 1",
+        postal_code="08001", city="Barcelona", country="ES", is_default=True,
     ))
     db.commit()
 
@@ -868,7 +868,7 @@ def test_aceptar_envio_amb_adreca_predeterminada(db, client):
     ).json()
     client.patch(
         f"/admin/peticiones/{peticion['id']}/precio",
-        json={"precio_estimado": "28.00"},
+        json={"estimated_price": "28.00"},
         headers=_auth(admin_token),
     )
     resp = client.post(
@@ -897,7 +897,7 @@ def test_admin_marca_pagada_manualment_i_completa_flux(db, client):
     assert resp.status_code == 200
     assert resp.json()["status"] == "pagado"
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
     resp = client.post(
@@ -906,7 +906,7 @@ def test_admin_marca_pagada_manualment_i_completa_flux(db, client):
         headers=_auth(admin_token),
     )
     assert resp.status_code == 200
-    assert resp.json()["estado"] == "recollida"
+    assert resp.json()["status"] == "recollida"
 
     db.expire_all()
     assert db.get(Item, item.id).status.value == "vendido"
@@ -925,7 +925,7 @@ def test_vincular_item_amb_order_ja_pagada_completa_directament(db, client):
     order.status = OrderStatus.pagado
     db.commit()
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
     db.add(item)
     db.commit()
 
@@ -935,7 +935,7 @@ def test_vincular_item_amb_order_ja_pagada_completa_directament(db, client):
         headers=_auth(admin_token),
     )
     assert resp.status_code == 200
-    assert resp.json()["estado"] == "recollida"
+    assert resp.json()["status"] == "recollida"
 
     db.expire_all()
     item_db = db.get(Item, item.id)
@@ -981,24 +981,24 @@ def test_crear_peticion_tienda_i_saltar_acceptacio(db, client):
 
     resp = client.post(
         "/admin/peticiones/tienda",
-        json={"user_id": str(cliente.id), "release_id": str(release.id), "notas_cliente": "Ha trucat per telèfon"},
+        json={"user_id": str(cliente.id), "release_id": str(release.id), "client_notes": "Ha trucat per telèfon"},
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201
     body = resp.json()
-    assert body["canal"] == "tienda"
-    assert body["estado"] == "pendent"
+    assert body["channel"] == "tienda"
+    assert body["status"] == "pendent"
     assert body["user_email"] == "mostrador@example.com"
 
     resp = client.patch(
         f"/admin/peticiones/{body['id']}/precio",
-        json={"precio_estimado": "22.50"},
+        json={"estimated_price": "22.50"},
         headers=_auth(admin_token),
     )
     assert resp.status_code == 200
     body2 = resp.json()
-    assert body2["estado"] == "acceptada"
-    assert body2["metodo_entrega_triat"] == "recollida_paga_botiga"
+    assert body2["status"] == "acceptada"
+    assert body2["chosen_delivery_method"] == "recollida_paga_botiga"
 
     # Continua igual que qualsevol altra petició acceptada: es pot vincular a solicitud.
     resp = client.post(
@@ -1016,7 +1016,7 @@ def test_crear_peticion_tienda_text_lliure(db, client):
 
     resp = client.post(
         "/admin/peticiones/tienda",
-        json={"user_id": str(cliente.id), "artista_lliure": "Grup Rar", "titulo_lliure": "Disc Rar"},
+        json={"user_id": str(cliente.id), "free_artist": "Grup Rar", "free_title": "Disc Rar"},
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201
@@ -1055,7 +1055,7 @@ def test_release_expired_allibera_i_caduca_peticio(db, client):
     client_token, admin_token, release = _peticion_en_tramit(client, db, "recollida_paga_botiga")
     peticion_id = db.scalar(select(PeticionCliente).where(PeticionCliente.release_id == release.id)).id
 
-    item = Item(release_id=release.id, precio=28, condicion=CondicionItem.nou, cantidad=1)
+    item = Item(release_id=release.id, price=28, condition=CondicionItem.nou, quantity=1)
     db.add(item)
     db.commit()
     client.post(
@@ -1072,6 +1072,6 @@ def test_release_expired_allibera_i_caduca_peticio(db, client):
     release_expired(db)
 
     db.expire_all()
-    assert db.get(Item, item.id).cantidad_reservada == 0
+    assert db.get(Item, item.id).reserved_quantity == 0
     assert db.get(StockHold, hold.id) is None
-    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).estado.value == "caducada"
+    assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).status.value == "caducada"

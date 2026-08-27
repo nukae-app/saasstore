@@ -55,7 +55,7 @@ function AddressPicker({ addresses, addressId, setAddressId, novaAdreca, setNova
               <input type="radio" name="adreca" checked={mode === 'existing' && addressId === a.id}
                 onChange={() => { setMode('existing'); setAddressId(a.id); }} className="mt-1 accent-zinc-900" />
               <span className="text-zinc-700">
-                {a.nombre_destinatario} — {a.linea1}, {a.cp} {a.ciudad}
+                {a.recipient_name} — {a.address_line1}, {a.postal_code} {a.city}
               </span>
             </label>
           ))}
@@ -68,20 +68,20 @@ function AddressPicker({ addresses, addressId, setAddressId, novaAdreca, setNova
       )}
       {mode === 'nova' && (
         <div className="grid grid-cols-2 gap-2 pt-1">
-          <input placeholder={t('recipientName')} value={novaAdreca.nombre_destinatario}
-            onChange={e => setNovaAdreca(f => ({ ...f, nombre_destinatario: e.target.value }))}
+          <input placeholder={t('recipientName')} value={novaAdreca.recipient_name}
+            onChange={e => setNovaAdreca(f => ({ ...f, recipient_name: e.target.value }))}
             className="col-span-2 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <input placeholder={t('address')} value={novaAdreca.linea1}
-            onChange={e => setNovaAdreca(f => ({ ...f, linea1: e.target.value }))}
+          <input placeholder={t('address')} value={novaAdreca.address_line1}
+            onChange={e => setNovaAdreca(f => ({ ...f, address_line1: e.target.value }))}
             className="col-span-2 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <input placeholder={t('postalCode')} value={novaAdreca.cp}
-            onChange={e => setNovaAdreca(f => ({ ...f, cp: e.target.value }))}
+          <input placeholder={t('postalCode')} value={novaAdreca.postal_code}
+            onChange={e => setNovaAdreca(f => ({ ...f, postal_code: e.target.value }))}
             className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <input placeholder={t('city')} value={novaAdreca.ciudad}
-            onChange={e => setNovaAdreca(f => ({ ...f, ciudad: e.target.value }))}
+          <input placeholder={t('city')} value={novaAdreca.city}
+            onChange={e => setNovaAdreca(f => ({ ...f, city: e.target.value }))}
             className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <input placeholder={t('phoneOptional')} value={novaAdreca.telefono}
-            onChange={e => setNovaAdreca(f => ({ ...f, telefono: e.target.value }))}
+          <input placeholder={t('phoneOptional')} value={novaAdreca.phone}
+            onChange={e => setNovaAdreca(f => ({ ...f, phone: e.target.value }))}
             className="col-span-2 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
         </div>
       )}
@@ -94,14 +94,14 @@ function AcceptarModal({ peticion, onClose, onSaved }) {
   const [metode, setMetode] = useState('envio');
   const [addresses, setAddresses] = useState([]);
   const [addressId, setAddressId] = useState(null);
-  const [novaAdreca, setNovaAdreca] = useState({ nombre_destinatario: '', linea1: '', cp: '', ciudad: '', telefono: '' });
+  const [novaAdreca, setNovaAdreca] = useState({ recipient_name: '', address_line1: '', postal_code: '', city: '', phone: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     authFetch('/me/addresses').then(r => r.ok ? r.json() : []).then(list => {
       setAddresses(list);
-      const predet = list.find(a => a.predeterminada) || list[0];
+      const predet = list.find(a => a.is_default) || list[0];
       if (predet) setAddressId(predet.id);
     });
   }, []);
@@ -113,7 +113,7 @@ function AcceptarModal({ peticion, onClose, onSaved }) {
       const payload = { metodo_entrega: metode };
       if (metode === 'envio') {
         if (addressId) payload.address_id = addressId;
-        else payload.direccion_envio = { ...novaAdreca, pais: 'ES' };
+        else payload.direccion_envio = { ...novaAdreca, country: 'ES' };
       }
       const res = await authFetch(`/me/peticiones/${peticion.id}/aceptar`, {
         method: 'POST', body: JSON.stringify(payload),
@@ -150,7 +150,7 @@ function AcceptarModal({ peticion, onClose, onSaved }) {
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600"><X size={18} /></button>
         </div>
         <p className="text-sm text-zinc-500 mb-4">
-          {peticion.artista} — {peticion.titulo}: <span className="font-semibold text-zinc-800">{Number(peticion.precio_estimado).toFixed(2)} €</span>
+          {peticion.artista} — {peticion.titulo}: <span className="font-semibold text-zinc-800">{Number(peticion.estimated_price).toFixed(2)} €</span>
         </p>
         <div className="space-y-2 mb-4">
           {OPCIONS.map(({ value, icon: Icon, label, desc }) => (
@@ -246,8 +246,8 @@ function PeticioCard({ p, onRefresh }) {
   const [busy, setBusy] = useState(false);
   const [showAccept, setShowAccept] = useState(false);
   const [showNoEsAquest, setShowNoEsAquest] = useState(false);
-  const stColor = ESTAT_COLOR[p.estado] || 'text-zinc-500 bg-zinc-100 border-zinc-200';
-  const stLabel = t.has(`estat.${p.estado}`) ? t(`estat.${p.estado}`) : p.estado;
+  const stColor = ESTAT_COLOR[p.status] || 'text-zinc-500 bg-zinc-100 border-zinc-200';
+  const stLabel = t.has(`estat.${p.status}`) ? t(`estat.${p.status}`) : p.status;
 
   async function rebutjar() {
     setBusy(true);
@@ -303,11 +303,11 @@ function PeticioCard({ p, onRefresh }) {
         <span className={`text-xs font-medium px-2 py-0.5 rounded-full border shrink-0 ${stColor}`}>{stLabel}</span>
       </div>
 
-      {p.notas_cliente && <p className="text-xs text-zinc-400 mt-2">{p.notas_cliente}</p>}
+      {p.client_notes && <p className="text-xs text-zinc-400 mt-2">{p.client_notes}</p>}
 
-      {p.estado === 'pendent_acceptacio' && (
+      {p.status === 'pendent_acceptacio' && (
         <div className="flex items-center gap-2 mt-3">
-          <span className="text-sm font-semibold text-zinc-900 mr-auto">{Number(p.precio_estimado).toFixed(2)} €</span>
+          <span className="text-sm font-semibold text-zinc-900 mr-auto">{Number(p.estimated_price).toFixed(2)} €</span>
           <button onClick={() => setShowAccept(true)} disabled={busy}
             className="flex items-center gap-1.5 bg-primary hover:bg-zinc-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60">
             {t('accept')}
@@ -318,7 +318,7 @@ function PeticioCard({ p, onRefresh }) {
           </button>
         </div>
       )}
-      {p.estado === 'pendent_acceptacio' && (
+      {p.status === 'pendent_acceptacio' && (
         <button onClick={() => setShowNoEsAquest(true)} disabled={busy}
           className="text-xs text-zinc-400 hover:text-zinc-700 mt-2">
           {t('notTheRecordIWasLookingFor')}
@@ -326,7 +326,7 @@ function PeticioCard({ p, onRefresh }) {
       )}
 
       {/* recollida_paga_botiga reservada/recollida ja no arriba aquí: es veu a "Les meves comandes" */}
-      {p.estado === 'reservada' && (
+      {p.status === 'reservada' && (
         <div className="mt-3">
           <button onClick={comprar} disabled={busy}
             className="flex items-center gap-1.5 bg-primary hover:bg-zinc-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60">
@@ -347,7 +347,7 @@ function PeticioCard({ p, onRefresh }) {
         </div>
       )}
 
-      {(p.estado === 'pendent' || p.estado === 'pendent_acceptacio') && (
+      {(p.status === 'pendent' || p.status === 'pendent_acceptacio') && (
         <button onClick={cancelar} disabled={busy}
           className="text-xs text-zinc-400 hover:text-red-500 mt-3">
           {t('cancelRequest')}

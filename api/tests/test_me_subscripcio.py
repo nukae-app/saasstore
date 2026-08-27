@@ -39,15 +39,15 @@ def _seed_subscripcio(db, user_id, address_id) -> Subscripcio:
 def test_get_subscripcio_inclou_historic_de_discos_rebuts(db, client):
     access = _login(client, "fan@example.com")
     user = db.scalar(select(User).where(User.email == "fan@example.com"))
-    address = Address(user_id=user.id, nombre_destinatario="Fan", linea1="C", ciudad="BCN", cp="08001")
+    address = Address(user_id=user.id, recipient_name="Fan", address_line1="C", city="BCN", postal_code="08001")
     db.add(address)
     db.commit()
     sub = _seed_subscripcio(db, user.id, address.id)
 
-    release = Release(artista="A", titulo="B", formato="LP")
+    release = Release(artista="A", title="B", formato="LP")
     db.add(release)
     db.flush()
-    item = Item(release_id=release.id, precio=Decimal("20.00"), status=ItemStatus.vendido)
+    item = Item(release_id=release.id, price=Decimal("20.00"), status=ItemStatus.vendido)
     db.add(item)
     cobrament = CobramentSubscripcio(
         subscripcio_id=sub.id, periode=date.today(), import_=Decimal("25.00"),
@@ -75,7 +75,7 @@ def test_get_subscripcio_inclou_historic_de_discos_rebuts(db, client):
 def test_pausar_reprendre_i_cancelar(db, client):
     access = _login(client, "fan2@example.com")
     user = db.scalar(select(User).where(User.email == "fan2@example.com"))
-    address = Address(user_id=user.id, nombre_destinatario="Fan", linea1="C", ciudad="BCN", cp="08001")
+    address = Address(user_id=user.id, recipient_name="Fan", address_line1="C", city="BCN", postal_code="08001")
     db.add(address)
     db.commit()
     _seed_subscripcio(db, user.id, address.id)
@@ -98,15 +98,15 @@ def test_pausar_reprendre_i_cancelar(db, client):
 def test_no_es_pot_canviar_una_adreca_d_un_altre_usuari(db, client):
     access = _login(client, "fan3@example.com")
     user = db.scalar(select(User).where(User.email == "fan3@example.com"))
-    address = Address(user_id=user.id, nombre_destinatario="Fan", linea1="C", ciudad="BCN", cp="08001")
+    address = Address(user_id=user.id, recipient_name="Fan", address_line1="C", city="BCN", postal_code="08001")
     db.add(address)
     db.commit()
     _seed_subscripcio(db, user.id, address.id)
 
-    altre = User(email="altre@example.com", nombre="Altre")
+    altre = User(email="altre@example.com", name="Altre")
     db.add(altre)
     db.flush()
-    adreca_aliena = Address(user_id=altre.id, nombre_destinatario="Altre", linea1="C2", ciudad="BCN", cp="08002")
+    adreca_aliena = Address(user_id=altre.id, recipient_name="Altre", address_line1="C2", city="BCN", postal_code="08002")
     db.add(adreca_aliena)
     db.commit()
 

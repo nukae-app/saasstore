@@ -1,0 +1,30 @@
+# Caddyfile solo para pruebas locales (docker-compose.yml) — no lo usa
+# producción, que sigue con infra/Caddyfile (dominio real, HTTPS automático).
+# `:8080` (dirección que empieza por dos puntos) le dice a Caddy "cualquier
+# host, este puerto, solo HTTP, sin TLS automático" — evita pelearse con el
+# certificado local de Caddy y no choca con el 80/443 que ya ocupa el Caddy
+# de RecordShop en esta misma máquina. Sin bloque "www.": no tiene sentido
+# en local y "www.:8080" ni siquiera es sintaxis válida de Caddy.
+
+:8080 {
+	encode gzip
+
+	handle /api/metrics {
+		respond 404
+	}
+
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+
+	handle /uploads/* {
+		uri strip_prefix /uploads
+		root * /srv/uploads
+		file_server
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

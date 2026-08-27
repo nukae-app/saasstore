@@ -31,10 +31,10 @@ def main() -> None:
         canvis = 0
         for item in items:
             nova = derive_condicion(item.estado_disco)
-            if nova != item.condicion:
+            if nova != item.condition:
                 canvis += 1
                 if not args.dry_run:
-                    item.condicion = nova
+                    item.condition = nova
 
         print(f"Items revisats: {len(items)}. Canvis {'a aplicar' if args.dry_run else 'aplicats'}: {canvis}")
         if not args.dry_run:

@@ -22,7 +22,7 @@ export default async function sitemap() {
       for (const locale of routing.locales) {
         entries.push({
           url: `${SITE}/${locale}/blog/${post.slug}`,
-          lastModified: post.publicado_at || undefined,
+          lastModified: post.published_at || undefined,
         });
       }
     }

@@ -10,7 +10,7 @@ const DEFAULT_COLORS = [
   '#3b82f6', '#ec4899', '#06b6d4', '#84cc16',
 ];
 
-const EMPTY = { slug: '', nom_ca: '', nom_es: '', color: '#f59e0b', activa: true, posicio: 0 };
+const EMPTY = { slug: '', name_ca: '', name_es: '', color: '#f59e0b', active: true, position: 0 };
 
 export default function EtiquetesPage() {
   const [etiquetes, setEtiquetes] = useState([]);
@@ -30,13 +30,13 @@ export default function EtiquetesPage() {
   useEffect(() => { load(); }, []);
 
   function openNew() {
-    setForm({ ...EMPTY, posicio: (etiquetes.length + 1) });
+    setForm({ ...EMPTY, position: (etiquetes.length + 1) });
     setEditing('new');
     setError('');
   }
 
   function openEdit(et) {
-    setForm({ slug: et.slug, nom_ca: et.nom_ca, nom_es: et.nom_es || '', color: et.color || '#f59e0b', activa: et.activa, posicio: et.posicio });
+    setForm({ slug: et.slug, name_ca: et.name_ca, name_es: et.name_es || '', color: et.color || '#f59e0b', active: et.active, position: et.position });
     setEditing(et);
     setError('');
   }
@@ -47,7 +47,7 @@ export default function EtiquetesPage() {
   }
 
   async function save() {
-    if (!form.slug || !form.nom_ca) { setError('Slug i nom en català són obligatoris'); return; }
+    if (!form.slug || !form.name_ca) { setError('Slug i nom en català són obligatoris'); return; }
     setSaving(true); setError('');
     try {
       const isNew = editing === 'new';
@@ -67,7 +67,7 @@ export default function EtiquetesPage() {
   }
 
   async function del(et) {
-    if (!confirm(`Eliminar etiqueta "${et.nom_ca}"? Es traurà de tots els discos.`)) return;
+    if (!confirm(`Eliminar etiqueta "${et.name_ca}"? Es traurà de tots els discos.`)) return;
     await authFetch(`/admin/etiquetes/${et.id}`, { method: 'DELETE' });
     load();
   }
@@ -75,7 +75,7 @@ export default function EtiquetesPage() {
   async function toggleActiva(et) {
     await authFetch(`/admin/etiquetes/${et.id}`, {
       method: 'PUT',
-      body: JSON.stringify({ ...et, nom_es: et.nom_es || '', activa: !et.activa }),
+      body: JSON.stringify({ ...et, name_es: et.name_es || '', active: !et.active }),
     });
     load();
   }
@@ -130,17 +130,17 @@ export default function EtiquetesPage() {
                       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
                       style={{ backgroundColor: et.color || '#94a3b8' }}
                     >
-                      {et.nom_ca}
+                      {et.name_ca}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-zinc-500 text-xs">{et.slug}</td>
-                  <td className="px-4 py-3 text-zinc-500">{et.nom_es || '—'}</td>
+                  <td className="px-4 py-3 text-zinc-500">{et.name_es || '—'}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => toggleActiva(et)}
-                      className={`w-8 h-4 rounded-full transition-colors relative ${et.activa ? 'bg-green-500' : 'bg-zinc-300'}`}
+                      className={`w-8 h-4 rounded-full transition-colors relative ${et.active ? 'bg-green-500' : 'bg-zinc-300'}`}
                     >
-                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${et.activa ? 'left-4' : 'left-0.5'}`} />
+                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${et.active ? 'left-4' : 'left-0.5'}`} />
                     </button>
                   </td>
                   <td className="px-4 py-3">
@@ -190,15 +190,15 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
         <div>
           <label className="block text-xs font-medium text-zinc-500 mb-1">Posició</label>
           <input
-            type="number" value={form.posicio}
-            onChange={e => f('posicio', parseInt(e.target.value) || 0)}
+            type="number" value={form.position}
+            onChange={e => f('position', parseInt(e.target.value) || 0)}
             className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-zinc-500 mb-1">Nom català <span className="text-red-500">*</span></label>
           <input
-            value={form.nom_ca} onChange={e => f('nom_ca', e.target.value)}
+            value={form.name_ca} onChange={e => f('name_ca', e.target.value)}
             placeholder="Novetat"
             className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
@@ -206,7 +206,7 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
         <div>
           <label className="block text-xs font-medium text-zinc-500 mb-1">Nom castellà</label>
           <input
-            value={form.nom_es} onChange={e => f('nom_es', e.target.value)}
+            value={form.name_es} onChange={e => f('name_es', e.target.value)}
             placeholder="Novedad"
             className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
@@ -234,7 +234,7 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
             className="ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
             style={{ backgroundColor: form.color || '#94a3b8' }}
           >
-            {form.nom_ca || 'Previsualització'}
+            {form.name_ca || 'Previsualització'}
           </span>
         </div>
       </div>

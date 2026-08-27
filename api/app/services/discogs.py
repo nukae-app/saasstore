@@ -9,8 +9,6 @@ import time
 
 import httpx
 
-from ..config import get_settings
-
 BASE = "https://api.discogs.com"
 USER_AGENT = "UltraLocalRecords/1.0 +https://ultralocalrecords.example"
 _MIN_INTERVAL = 1.1  # segundos entre peticiones (~55/min)
@@ -61,9 +59,8 @@ def infer_formato(tokens: list[str]) -> str | None:
     return "Altre"
 
 
-def _client() -> httpx.Client:
+def _client(token: str | None) -> httpx.Client:
     headers = {"User-Agent": USER_AGENT}
-    token = get_settings().discogs_token
     if token:
         headers["Authorization"] = f"Discogs token={token}"
     return httpx.Client(base_url=BASE, headers=headers, timeout=20)
@@ -77,10 +74,10 @@ def _throttle() -> None:
     _last_call = time.monotonic()
 
 
-def search_releases(query: str, per_page: int = 10) -> list[dict]:
+def search_releases(token: str | None, query: str, per_page: int = 10) -> list[dict]:
     """Búsqueda para el formulario de alta del admin."""
     _throttle()
-    with _client() as c:
+    with _client(token) as c:
         r = c.get("/database/search", params={"q": query, "type": "release", "per_page": per_page})
         r.raise_for_status()
         results = []
@@ -104,9 +101,9 @@ def search_releases(query: str, per_page: int = 10) -> list[dict]:
         return results
 
 
-def get_release(release_id: int) -> dict:
+def get_release(token: str | None, release_id: int) -> dict:
     _throttle()
-    with _client() as c:
+    with _client(token) as c:
         r = c.get(f"/releases/{release_id}")
         r.raise_for_status()
         data = r.json()
@@ -168,10 +165,10 @@ def get_release(release_id: int) -> dict:
         }
 
 
-def get_release_image(release_id: int) -> str | None:
+def get_release_image(token: str | None, release_id: int) -> str | None:
     """Retorna la URL de la imatge principal d'un release (uri o uri150 com a fallback)."""
     _throttle()
-    with _client() as c:
+    with _client(token) as c:
         r = c.get(f"/releases/{release_id}")
         if r.status_code == 404:
             return None
@@ -184,10 +181,10 @@ def get_release_image(release_id: int) -> str | None:
     return None
 
 
-def get_listing(listing_id: int) -> dict | None:
+def get_listing(token: str | None, listing_id: int) -> dict | None:
     """Un listing del marketplace (la columna CODI del Excel) -> su release."""
     _throttle()
-    with _client() as c:
+    with _client(token) as c:
         r = c.get(f"/marketplace/listings/{listing_id}")
         if r.status_code == 404:
             return None  # listing ya borrado en Discogs

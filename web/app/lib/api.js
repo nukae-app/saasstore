@@ -6,9 +6,27 @@ const BASE =
     : "/api";
 
 export async function api(path, options = {}) {
+  // En SSR, `BASE` apunta directo al contenedor `api` (sin pasar por
+  // Caddy) — el Host que llegaría por defecto sería el del propio
+  // contenedor ("api:8000"), no el dominio del tenant que está pidiendo
+  // la página. El backend resuelve el tenant exactamente por ese header
+  // (get_db, por Host) así que sin reenviarlo a mano cualquier fetch SSR
+  // llegaba sin tenant válido — bug real, no solo de marca (ver plan).
+  // No se puede fijar `Host` a mano (undici/Node lo gestiona la propia
+  // conexión y lo ignora) — se manda en `X-Forwarded-Host` en su lugar,
+  // que `get_db` ya prefiere sobre `Host` (api/app/database.py). Seguro:
+  // el tráfico real de navegador pasa por Caddy, que sobreescribe este
+  // header con el Host real antes de reenviarlo — no es falsificable
+  // desde fuera, solo este contenedor lo controla de verdad.
+  let hostHeader = {};
+  if (typeof window === "undefined") {
+    const { headers } = await import("next/headers");
+    const incomingHost = (await headers()).get("host");
+    if (incomingHost) hostHeader = { "X-Forwarded-Host": incomingHost };
+  }
   const res = await fetch(`${BASE}${path}`, {
     ...options,
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers: { "Content-Type": "application/json", ...hostHeader, ...(options.headers || {}) },
     cache: "no-store",
   });
   if (!res.ok) {

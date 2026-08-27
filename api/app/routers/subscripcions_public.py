@@ -21,6 +21,8 @@ from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..database import get_db
+from ..tenancy import tenant_frontend_url
+from ..tenant_secrets import get_tenant_secrets
 from ..models import (
     Address, CobramentSubscripcio, ConfiguracioBotiga, ConfiguracioSubscripcio, EstatCobrament,
     EstatSubscripcio, Subscripcio, User,
@@ -34,7 +36,7 @@ router = APIRouter(prefix="/subscripcions", tags=["subscripcions"])
 
 
 def _subscripcions_actives(db: Session) -> bool:
-    config = db.get(ConfiguracioBotiga, 1)
+    config = db.scalar(select(ConfiguracioBotiga))
     return bool(config and config.subscripcions_actives)
 
 
@@ -49,7 +51,7 @@ def list_generes():
 def get_config_subscripcio(db: Session = Depends(get_db)):
     if not _subscripcions_actives(db):
         raise HTTPException(404, "El club del disc no està actiu")
-    config = db.get(ConfiguracioSubscripcio, 1)
+    config = db.scalar(select(ConfiguracioSubscripcio))
     if config is None:
         raise HTTPException(404, "El club del disc no està actiu")
     return config
@@ -58,13 +60,14 @@ def get_config_subscripcio(db: Session = Depends(get_db)):
 @router.post("/alta")
 def alta_subscripcio(
     payload: SubscripcioAltaIn,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     if not _subscripcions_actives(db):
         raise HTTPException(404, "El club del disc no està actiu")
 
-    config = db.get(ConfiguracioSubscripcio, 1)
+    config = db.scalar(select(ConfiguracioSubscripcio))
     if config is None:
         raise HTTPException(404, "El club del disc no està actiu")
     if payload.periodicitat_mesos not in config.periodicitats_mesos_disponibles:
@@ -116,15 +119,18 @@ def alta_subscripcio(
     db.add(cobrament)
     db.commit()
 
-    frontend_url = get_settings().frontend_url
+    frontend_url = tenant_frontend_url(request.state.tenant)
     form = redsys.build_payment_form(
         ds_order=ds_order, importe=preu_periode, order_id_for_url=str(subscripcio.id), identifier="REQUIRED",
+        tenant=request.state.tenant,
+        secrets=get_tenant_secrets(request.state.tenant.id),
+        environment=get_settings().redsys_environment,
         url_ok=f"{frontend_url}/subscripcio/alta-ok",
         url_ko=f"{frontend_url}/subscripcio/alta-ko",
         # Redsys ha de notificar aquest endpoint (que busca un
-        # CobramentSubscripcio), no el de checkout (settings.redsys_notify_url,
-        # que busca un Payment i no el trobaria mai per a una alta de
-        # subscripció — el cobrament es quedaria "pendent" per sempre).
+        # CobramentSubscripcio), no el de checkout (busca un Payment i no
+        # el trobaria mai per a una alta de subscripció — el cobrament es
+        # quedaria "pendent" per sempre).
         notify_url=f"{frontend_url}/api/subscripcions/pay/redsys/notify",
     )
     return {"subscripcio_id": str(subscripcio.id), **form}
@@ -134,14 +140,25 @@ def alta_subscripcio(
 async def redsys_notify_alta(request: Request, db: Session = Depends(get_db)):
     """Notificació server-to-server de Redsys per a l'alta d'una subscripció
     (captura del token COF). Les renovacions periòdiques NO passen per aquí:
-    són cobraments síncrons via `services/subscripcions.py::facturar_subscripcio`."""
+    són cobraments síncrons via `services/subscripcions.py::facturar_subscripcio`.
+
+    NOTA (Fase 2): el club de suscripción sigue fuera de alcance — igual que
+    `services/redsys.py::charge_recurring`, esto sigue leyendo
+    `Settings.redsys_secret_key` global en vez de por tenant. Además, a
+    diferencia del webhook de checkout, este usa `get_db` normal (resuelve
+    tenant por Host), que en la práctica ya rechaza esta notificación porque
+    el servidor de Redsys no manda un Host de ningún tenant — necesitaría el
+    mismo tratamiento de `get_db_unscoped` + resolución en dos fases que
+    checkout.py::redsys_notify, y CobramentSubscripcio/Subscripcio aún no
+    tienen tenant_id (Fase 1 tampoco las tocó). No se arregla aquí porque
+    reactivar el club de suscripción está fuera del alcance de esta fase."""
     form = await request.form()
     params_b64 = form.get("Ds_MerchantParameters")
     signature = form.get("Ds_Signature")
     if not params_b64 or not signature:
         raise HTTPException(400, "Notificació incompleta")
 
-    params = redsys.verify_notification(params_b64, signature)
+    params = redsys.verify_signature(params_b64, signature, get_settings().redsys_secret_key)
     if params is None:
         raise HTTPException(400, "Firma invàlida")
 

@@ -28,7 +28,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db, email="admin@example.com") -> str:
     access = _login(client, email)
     user = db.scalar(select(User).where(User.email == email))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -39,18 +39,18 @@ def _auth(token: str) -> dict:
 
 def _seed_trams_es(db):
     db.add_all([
-        TramEnviament(pais="ES", pes_maxim_g=500, preu=Decimal("3.50")),
-        TramEnviament(pais="ES", pes_maxim_g=1500, preu=Decimal("5.50")),
-        TramEnviament(pais="ES", pes_maxim_g=3000, preu=Decimal("8.00")),
+        TramEnviament(country="ES", max_weight_g=500, price=Decimal("3.50")),
+        TramEnviament(country="ES", max_weight_g=1500, price=Decimal("5.50")),
+        TramEnviament(country="ES", max_weight_g=3000, price=Decimal("8.00")),
     ])
     db.commit()
 
 
 def _seed_release_item(db, pes_g=None, precio="20.00"):
-    r = Release(artista="Los Ganglios", titulo="Peruguay", formato="LP", pes_g=pes_g)
+    r = Release(artista="Los Ganglios", title="Peruguay", formato="LP", weight_g=pes_g)
     db.add(r)
     db.flush()
-    item = Item(release_id=r.id, precio=Decimal(precio))
+    item = Item(release_id=r.id, price=Decimal(precio))
     db.add(item)
     db.commit()
     return r, item
@@ -82,7 +82,7 @@ def test_pes_per_sobre_de_tots_els_trams_usa_el_mes_car(db):
 
 
 def test_tram_inactiu_no_es_fa_servir(db):
-    db.add(TramEnviament(pais="ES", pes_maxim_g=500, preu=Decimal("3.50"), actiu=False))
+    db.add(TramEnviament(country="ES", max_weight_g=500, price=Decimal("3.50"), active=False))
     db.commit()
     with pytest.raises(PaisNoDisponible):
         compute_coste_enviament(300, "envio", "ES", db)
@@ -91,8 +91,8 @@ def test_tram_inactiu_no_es_fa_servir(db):
 def test_cada_pais_usa_els_seus_propis_trams(db):
     _seed_trams_es(db)
     db.add_all([
-        TramEnviament(pais="FR", pes_maxim_g=500, preu=Decimal("9.00")),
-        TramEnviament(pais="FR", pes_maxim_g=2000, preu=Decimal("14.00")),
+        TramEnviament(country="FR", max_weight_g=500, price=Decimal("9.00")),
+        TramEnviament(country="FR", max_weight_g=2000, price=Decimal("14.00")),
     ])
     db.commit()
     assert compute_coste_enviament(300, "envio", "FR", db) == Decimal("9.00")
@@ -117,8 +117,8 @@ def test_sense_cap_tram_configurat_enlloc_es_rebutja(db):
 def test_paisos_disponibles_reflecteix_els_trams_actius(db):
     assert paisos_disponibles(db) == []
     _seed_trams_es(db)
-    db.add(TramEnviament(pais="FR", pes_maxim_g=500, preu=Decimal("9.00")))
-    db.add(TramEnviament(pais="IT", pes_maxim_g=500, preu=Decimal("9.00"), actiu=False))
+    db.add(TramEnviament(country="FR", max_weight_g=500, price=Decimal("9.00")))
+    db.add(TramEnviament(country="IT", max_weight_g=500, price=Decimal("9.00"), active=False))
     db.commit()
     # IT no compta: el seu únic tram està inactiu
     assert paisos_disponibles(db) == ["ES", "FR"]
@@ -184,22 +184,22 @@ def test_crud_trams_enviament(db, client):
 
     resp = client.post(
         "/admin/trams-enviament",
-        json={"pes_maxim_g": 500, "preu": "3.50", "pais": "ES"},
+        json={"max_weight_g": 500, "price": "3.50", "country": "ES"},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
     tram_id = resp.json()["id"]
-    assert resp.json()["pais"] == "ES"
+    assert resp.json()["country"] == "ES"
 
     resp = client.get("/admin/trams-enviament", headers=_auth(admin))
     assert resp.status_code == 200
     assert any(t["id"] == tram_id for t in resp.json())
 
     resp = client.patch(
-        f"/admin/trams-enviament/{tram_id}", json={"preu": "4.00"}, headers=_auth(admin)
+        f"/admin/trams-enviament/{tram_id}", json={"price": "4.00"}, headers=_auth(admin)
     )
     assert resp.status_code == 200
-    assert resp.json()["preu"] == "4.00"
+    assert resp.json()["price"] == "4.00"
 
     resp = client.delete(f"/admin/trams-enviament/{tram_id}", headers=_auth(admin))
     assert resp.status_code == 204
@@ -210,17 +210,17 @@ def test_crear_tram_normalitza_pais_a_majuscules(db, client):
     admin = _admin_token(client, db)
     resp = client.post(
         "/admin/trams-enviament",
-        json={"pes_maxim_g": 500, "preu": "9.00", "pais": "fr"},
+        json={"max_weight_g": 500, "price": "9.00", "country": "fr"},
         headers=_auth(admin),
     )
     assert resp.status_code == 201
-    assert resp.json()["pais"] == "FR"
+    assert resp.json()["country"] == "FR"
 
 
 def test_crear_tram_sense_pais_es_rebutjat(db, client):
     admin = _admin_token(client, db)
     resp = client.post(
-        "/admin/trams-enviament", json={"pes_maxim_g": 500, "preu": "9.00"}, headers=_auth(admin)
+        "/admin/trams-enviament", json={"max_weight_g": 500, "price": "9.00"}, headers=_auth(admin)
     )
     assert resp.status_code == 422
 
@@ -228,11 +228,11 @@ def test_crear_tram_sense_pais_es_rebutjat(db, client):
 def test_list_trams_enviament_nomes_actius(db, client):
     admin = _admin_token(client, db)
     actiu = client.post(
-        "/admin/trams-enviament", json={"pes_maxim_g": 500, "preu": "3.50", "pais": "ES"}, headers=_auth(admin)
+        "/admin/trams-enviament", json={"max_weight_g": 500, "price": "3.50", "country": "ES"}, headers=_auth(admin)
     ).json()
     client.post(
         "/admin/trams-enviament",
-        json={"pes_maxim_g": 1000, "preu": "5.00", "pais": "ES", "actiu": False},
+        json={"max_weight_g": 1000, "price": "5.00", "country": "ES", "active": False},
         headers=_auth(admin),
     )
 
@@ -240,14 +240,14 @@ def test_list_trams_enviament_nomes_actius(db, client):
     assert resp.status_code == 200
     ids = [t["id"] for t in resp.json()]
     assert actiu["id"] in ids
-    assert all(t["actiu"] for t in resp.json())
+    assert all(t["active"] for t in resp.json())
 
 
 # --- integració amb el checkout ---
 
 def test_paisos_enviament_public(db, client):
     _seed_trams_es(db)
-    db.add(TramEnviament(pais="FR", pes_maxim_g=500, preu=Decimal("9.00")))
+    db.add(TramEnviament(country="FR", max_weight_g=500, price=Decimal("9.00")))
     db.commit()
     resp = client.get("/checkout/paisos-enviament")
     assert resp.status_code == 200
@@ -285,22 +285,22 @@ def test_confirm_amb_envio_suma_coste_envio_al_total(db, client):
     conf = client.post(
         "/checkout/confirm",
         json={
-            "email_contacto": "client@example.com",
-            "metodo_envio": "envio",
-            "direccion_envio": {
-                "nombre_destinatario": "Client Test",
-                "linea1": "Carrer Fals 1",
-                "ciudad": "Barcelona",
-                "cp": "08005",
+            "contact_email": "client@example.com",
+            "shipping_method": "envio",
+            "shipping_address": {
+                "recipient_name": "Client Test",
+                "address_line1": "Carrer Fals 1",
+                "city": "Barcelona",
+                "postal_code": "08005",
             },
         },
     )
     assert conf.status_code == 201
-    assert conf.json()["coste_envio"] == "3.50"
+    assert conf.json()["shipping_cost"] == "3.50"
     assert conf.json()["total"] == "23.50"
     db.expire_all()
     order = db.get(Order, uuid.UUID(conf.json()["id"]))
-    assert order.coste_envio == Decimal("3.50")
+    assert order.shipping_cost == Decimal("3.50")
     assert order.total == Decimal("23.50")
 
 
@@ -312,16 +312,16 @@ def test_confirm_amb_recogida_tienda_no_cobra_enviament(db, client):
 
     conf = client.post(
         "/checkout/confirm",
-        json={"email_contacto": "client@example.com", "metodo_envio": "recogida_tienda"},
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda"},
     )
     assert conf.status_code == 201
-    assert conf.json()["coste_envio"] == "0.00"
+    assert conf.json()["shipping_cost"] == "0.00"
     assert conf.json()["total"] == "20.00"
 
 
 def test_confirm_amb_envio_a_pais_amb_trams_permes(db, client):
     _seed_trams_es(db)
-    db.add(TramEnviament(pais="FR", pes_maxim_g=500, preu=Decimal("9.00")))
+    db.add(TramEnviament(country="FR", max_weight_g=500, price=Decimal("9.00")))
     db.commit()
     _, item = _seed_release_item(db, pes_g=300, precio="20.00")
     assert client.post("/cart/items", json={"item_id": str(item.id)}).status_code == 201
@@ -330,19 +330,19 @@ def test_confirm_amb_envio_a_pais_amb_trams_permes(db, client):
     conf = client.post(
         "/checkout/confirm",
         json={
-            "email_contacto": "client@example.com",
-            "metodo_envio": "envio",
-            "direccion_envio": {
-                "nombre_destinatario": "Client Test",
-                "linea1": "Rue Fictive 1",
-                "ciudad": "Paris",
-                "cp": "75001",
-                "pais": "FR",
+            "contact_email": "client@example.com",
+            "shipping_method": "envio",
+            "shipping_address": {
+                "recipient_name": "Client Test",
+                "address_line1": "Rue Fictive 1",
+                "city": "Paris",
+                "postal_code": "75001",
+                "country": "FR",
             },
         },
     )
     assert conf.status_code == 201
-    assert conf.json()["coste_envio"] == "9.00"
+    assert conf.json()["shipping_cost"] == "9.00"
 
 
 def test_confirm_rebutja_pais_sense_trams(db, client):
@@ -354,14 +354,14 @@ def test_confirm_rebutja_pais_sense_trams(db, client):
     conf = client.post(
         "/checkout/confirm",
         json={
-            "email_contacto": "client@example.com",
-            "metodo_envio": "envio",
-            "direccion_envio": {
-                "nombre_destinatario": "Client Test",
-                "linea1": "Main St 1",
-                "ciudad": "New York",
-                "cp": "10001",
-                "pais": "US",
+            "contact_email": "client@example.com",
+            "shipping_method": "envio",
+            "shipping_address": {
+                "recipient_name": "Client Test",
+                "address_line1": "Main St 1",
+                "city": "New York",
+                "postal_code": "10001",
+                "country": "US",
             },
         },
     )

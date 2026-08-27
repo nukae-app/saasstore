@@ -5,8 +5,8 @@ scripts/seed_translations.py, namespace `email.*`)."""
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..config import get_settings
-from ..models import Translation
+from ..models import Tenant, Translation
+from ..tenancy import tenant_frontend_url
 from .email_translations import EMAIL_TRANSLATIONS
 
 
@@ -24,5 +24,5 @@ def translate(db: Session, key: str, lang: str, **kwargs) -> str:
     return text.format(**kwargs) if kwargs else text
 
 
-def frontend_url(path: str, lang: str) -> str:
-    return f"{get_settings().frontend_url}/{lang}{path}"
+def frontend_url(path: str, lang: str, tenant: Tenant) -> str:
+    return f"{tenant_frontend_url(tenant)}/{lang}{path}"

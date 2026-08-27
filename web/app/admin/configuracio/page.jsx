@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth';
+import { useT } from '../../lib/i18n';
 import { Plus, Star, Trash2, Pencil } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 
 export default function ConfiguracioPage() {
-  const [tab, setTab] = useState('fiscals'); // fiscals | contacte | iva | marges | cubetes | enviaments
+  const t = useT();
+  const [tab, setTab] = useState('fiscals'); // fiscals | contacte | iva | marges | cubetes | enviaments | secrets
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,17 +23,18 @@ export default function ConfiguracioPage() {
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">Configuració</h2>
+        <h2 className="text-2xl font-bold text-zinc-900">{t('config.title', 'Configuració')}</h2>
       </div>
 
       <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
         {[
-          ['fiscals', 'Dades fiscals'],
-          ['contacte', 'Botiga'],
-          ['iva', "Tipus d'IVA"],
-          ['marges', 'Marges'],
-          ['cubetes', 'Cubetes'],
-          ['enviaments', 'Enviaments'],
+          ['fiscals', t('config.tab.fiscal', 'Dades fiscals')],
+          ['contacte', t('config.tab.shop', 'Botiga')],
+          ['iva', t('config.tab.vat', "Tipus d'IVA")],
+          ['marges', t('config.tab.margins', 'Marges')],
+          ['cubetes', t('config.tab.sections', 'Cubetes')],
+          ['enviaments', t('config.tab.shipping', 'Enviaments')],
+          ['secrets', t('config.tab.secrets', 'Secrets')],
         ].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === k ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'}`}>
@@ -41,7 +44,7 @@ export default function ConfiguracioPage() {
       </div>
 
       {loading || !config ? (
-        <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+        <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
       ) : tab === 'fiscals' ? (
         <DadesFiscalsPanel config={config} onSaved={loadConfig} />
       ) : tab === 'contacte' ? (
@@ -52,6 +55,8 @@ export default function ConfiguracioPage() {
         <MargesPanel />
       ) : tab === 'cubetes' ? (
         <SeccionsPanel />
+      ) : tab === 'secrets' ? (
+        <SecretsPanel />
       ) : (
         <div className="space-y-8">
           <PesFormatPanel />
@@ -63,9 +68,10 @@ export default function ConfiguracioPage() {
 }
 
 function DadesFiscalsPanel({ config, onSaved }) {
-  const [nomFiscal, setNomFiscal] = useState(config.nom_fiscal || '');
+  const t = useT();
+  const [nomFiscal, setNomFiscal] = useState(config.fiscal_name || '');
   const [nif, setNif] = useState(config.nif || '');
-  const [adreca, setAdreca] = useState(config.adreca || '');
+  const [adreca, setAdreca] = useState(config.address || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -77,54 +83,56 @@ function DadesFiscalsPanel({ config, onSaved }) {
     setSaved(false);
     const r = await authFetch('/admin/configuracio', {
       method: 'PATCH',
-      body: JSON.stringify({ nom_fiscal: nomFiscal, nif, adreca }),
+      body: JSON.stringify({ fiscal_name: nomFiscal, nif, address: adreca }),
     });
     setSaving(false);
     if (r.ok) {
       setSaved(true);
       onSaved();
     } else {
-      setError((await r.json()).detail || 'Error desant');
+      setError((await r.json()).detail || t('config.save_error', 'Error desant'));
     }
   }
 
   return (
     <form onSubmit={save} className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4 max-w-lg">
       <p className="text-sm text-zinc-500">
-        Dades fiscals de la botiga: apareixen a la capçalera dels PDF de comanda a proveïdor.
+        {t('config.fiscal.hint', 'Dades fiscals de la botiga: apareixen a la capçalera dels PDF de comanda a proveïdor.')}
       </p>
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">Nom / raó social *</label>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.fiscal.name', 'Nom / raó social *')}</label>
         <input value={nomFiscal} onChange={e => setNomFiscal(e.target.value)} required
           className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">NIF</label>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.col.nif', 'NIF')}</label>
         <input value={nif} onChange={e => setNif(e.target.value)}
           className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">Adreça fiscal *</label>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.fiscal.address', 'Adreça fiscal *')}</label>
         <textarea value={adreca} onChange={e => setAdreca(e.target.value)} required rows={3}
-          placeholder={'Carrer, número\nCodi postal, ciutat'}
+          placeholder={t('config.fiscal.address_ph', 'Carrer, número\nCodi postal, ciutat')}
           className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-        <p className="text-xs text-zinc-400 mt-1">Cada línia es mostra per separat al PDF.</p>
+        <p className="text-xs text-zinc-400 mt-1">{t('config.fiscal.address_hint', 'Cada línia es mostra per separat al PDF.')}</p>
       </div>
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={saving}>{saving ? 'Desant...' : 'Desar canvis'}</Button>
-        {saved && !saving && <span className="text-xs text-green-600">Desat</span>}
+        <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
+        {saved && !saving && <span className="text-xs text-green-600">{t('subscriptions.config.saved', 'Desat')}</span>}
       </div>
     </form>
   );
 }
 
 function BotigaPanel({ config, onSaved }) {
-  const [telefon, setTelefon] = useState(config.telefon || '');
-  const [email, setEmail] = useState(config.email_contacte || '');
+  const t = useT();
+  const [telefon, setTelefon] = useState(config.phone || '');
+  const [email, setEmail] = useState(config.contact_email || '');
+  const [emailFrom, setEmailFrom] = useState(config.email_from || '');
   const [instagram, setInstagram] = useState(config.instagram_url || '');
-  const [horari, setHorari] = useState(config.horari || '');
-  const [reservaMinuts, setReservaMinuts] = useState(config.reserva_minuts ?? 20);
+  const [horari, setHorari] = useState(config.hours || '');
+  const [reservaMinuts, setReservaMinuts] = useState(config.reservation_minutes ?? 20);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -137,11 +145,12 @@ function BotigaPanel({ config, onSaved }) {
     const r = await authFetch('/admin/configuracio', {
       method: 'PATCH',
       body: JSON.stringify({
-        telefon: telefon || null,
-        email_contacte: email || null,
+        phone: telefon || null,
+        contact_email: email || null,
+        email_from: emailFrom || null,
         instagram_url: instagram || null,
-        horari: horari || null,
-        reserva_minuts: Number(reservaMinuts),
+        hours: horari || null,
+        reservation_minutes: Number(reservaMinuts),
       }),
     });
     setSaving(false);
@@ -149,7 +158,7 @@ function BotigaPanel({ config, onSaved }) {
       setSaved(true);
       onSaved();
     } else {
-      setError((await r.json()).detail || 'Error desant');
+      setError((await r.json()).detail || t('config.save_error', 'Error desant'));
     }
   }
 
@@ -164,7 +173,15 @@ function BotigaPanel({ config, onSaved }) {
   async function toggleManteniment() {
     await authFetch('/admin/configuracio', {
       method: 'PATCH',
-      body: JSON.stringify({ manteniment_actiu: !config.manteniment_actiu }),
+      body: JSON.stringify({ maintenance_active: !config.maintenance_active }),
+    });
+    onSaved();
+  }
+
+  async function toggleDiscogs() {
+    await authFetch('/admin/configuracio', {
+      method: 'PATCH',
+      body: JSON.stringify({ discogs_habilitat: !config.discogs_habilitat }),
     });
     onSaved();
   }
@@ -173,41 +190,50 @@ function BotigaPanel({ config, onSaved }) {
     <form onSubmit={save} className="space-y-5 max-w-lg">
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
         <p className="text-sm text-zinc-500">
-          Contacte i xarxes que es mostren al peu de la web pública.
+          {t('config.shop.hint', 'Contacte i xarxes que es mostren al peu de la web pública.')}
         </p>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">Telèfon</label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.col.phone', 'Telèfon')}</label>
           <input value={telefon} onChange={e => setTelefon(e.target.value)}
             className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">Email de contacte</label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.contact_email', 'Email de contacte')}</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
             className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">Instagram (URL)</label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.email_from', 'Remitent dels emails ("From")')}</label>
+          <input type="email" value={emailFrom} onChange={e => setEmailFrom(e.target.value)}
+            placeholder={t('config.shop.email_from_placeholder', 'botiga@exemple.com')}
+            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          <p className="text-xs text-zinc-400 mt-1">
+            {t('config.shop.email_from_hint', "Adreça amb la qual s'envien els emails transaccionals (confirmació de comanda, magic link...).")}
+          </p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.instagram', 'Instagram (URL)')}</label>
           <input value={instagram} onChange={e => setInstagram(e.target.value)}
             placeholder="https://instagram.com/..."
             className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">Horari</label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.hours', 'Horari')}</label>
           <textarea value={horari} onChange={e => setHorari(e.target.value)} rows={3}
             placeholder={'Dl–Dv: 11h–20h\nDs: 11h–14h / 17h–20h\nDg: tancat'}
             className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <p className="text-xs text-zinc-400 mt-1">Cada línia es mostra per separat al footer.</p>
+          <p className="text-xs text-zinc-400 mt-1">{t('config.shop.hours_hint', 'Cada línia es mostra per separat al footer.')}</p>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
-        <p className="text-sm text-zinc-500">Paràmetres operatius del checkout.</p>
+        <p className="text-sm text-zinc-500">{t('config.shop.checkout_params', 'Paràmetres operatius del checkout.')}</p>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">Minuts de reserva de stock</label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.reserve_minutes', 'Minuts de reserva de stock')}</label>
           <input type="number" min="1" value={reservaMinuts} onChange={e => setReservaMinuts(e.target.value)}
             className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           <p className="text-xs text-zinc-400 mt-1">
-            Temps que es reserva un exemplar mentre un client fa el checkout abans d&apos;alliberar-se.
+            {t('config.shop.reserve_minutes_hint', "Temps que es reserva un exemplar mentre un client fa el checkout abans d'alliberar-se.")}
           </p>
         </div>
       </div>
@@ -215,10 +241,9 @@ function BotigaPanel({ config, onSaved }) {
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-700">Club del disc (subscripció)</p>
+            <p className="text-sm font-medium text-zinc-700">{t('config.shop.record_club', 'Club del disc (subscripció)')}</p>
             <p className="text-xs text-zinc-400 mt-1 max-w-md">
-              Activa o desactiva l&apos;opció de subscriure&apos;s al front públic. Els plans, els
-              subscriptors i el cicle mensual es gestionen a &quot;Club del disc&quot; al menú.
+              {t('config.shop.record_club_hint', 'Activa o desactiva l\'opció de subscriure\'s al front públic. Els plans, els subscriptors i el cicle mensual es gestionen a "Club del disc" al menú.')}
             </p>
           </div>
           <button type="button" onClick={toggleSubscripcions}
@@ -231,26 +256,127 @@ function BotigaPanel({ config, onSaved }) {
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-700">Mode manteniment (web en construcció)</p>
+            <p className="text-sm font-medium text-zinc-700">{t('config.shop.maintenance_mode', 'Mode manteniment (web en construcció)')}</p>
             <p className="text-xs text-zinc-400 mt-1 max-w-md">
-              Bloqueja el checkout a qualsevol client que no sigui admin i mostra un banner
-              &quot;en construcció&quot; a tota la web pública. Un admin loguejat pot seguir
-              comprant per provar el flux sencer.
+              {t('config.shop.maintenance_mode_hint', 'Bloqueja el checkout a qualsevol client que no sigui admin i mostra un banner "en construcció" a tota la web pública. Un admin loguejat pot seguir comprant per provar el flux sencer.')}
             </p>
           </div>
           <button type="button" onClick={toggleManteniment}
-            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.manteniment_actiu ? 'bg-amber-500' : 'bg-zinc-300'}`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${config.manteniment_actiu ? 'left-5' : 'left-0.5'}`} />
+            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.maintenance_active ? 'bg-amber-500' : 'bg-zinc-300'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${config.maintenance_active ? 'left-5' : 'left-0.5'}`} />
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-700">{t('config.shop.discogs_sync', 'Sincronització amb Discogs')}</p>
+            <p className="text-xs text-zinc-400 mt-1 max-w-md">
+              {t('config.shop.discogs_sync_hint', "Activa la cerca i sincronització d'estoc amb Discogs des del catàleg. Només té sentit si el negoci ven vinils via Discogs.")}
+            </p>
+          </div>
+          <button type="button" onClick={toggleDiscogs}
+            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.discogs_habilitat ? 'bg-green-500' : 'bg-zinc-300'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${config.discogs_habilitat ? 'left-5' : 'left-0.5'}`} />
           </button>
         </div>
       </div>
 
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={saving}>{saving ? 'Desant...' : 'Desar canvis'}</Button>
-        {saved && !saving && <span className="text-xs text-green-600">Desat</span>}
+        <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
+        {saved && !saving && <span className="text-xs text-green-600">{t('subscriptions.config.saved', 'Desat')}</span>}
       </div>
     </form>
+  );
+}
+
+const SECRET_FIELDS = [
+  { key: 'redsys_merchant_code', labelKey: 'config.secrets.redsys_merchant_code', label: 'Redsys — codi de comerç' },
+  { key: 'redsys_terminal', labelKey: 'config.secrets.redsys_terminal', label: 'Redsys — terminal' },
+  { key: 'redsys_secret_key', labelKey: 'config.secrets.redsys_secret_key', label: 'Redsys — clau secreta' },
+  { key: 'discogs_token', labelKey: 'config.secrets.discogs_token', label: 'Discogs — token' },
+  { key: 'spotify_client_id', labelKey: 'config.secrets.spotify_client_id', label: 'Spotify — client id' },
+  { key: 'spotify_client_secret', labelKey: 'config.secrets.spotify_client_secret', label: 'Spotify — client secret' },
+];
+
+function SecretsPanel() {
+  const t = useT();
+  const [status, setStatus] = useState(null);
+  const [drafts, setDrafts] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  async function load() {
+    const r = await authFetch('/admin/secrets');
+    if (r.ok) setStatus(await r.json());
+  }
+  useEffect(() => { load(); }, []);
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setMessage('');
+    // Solo se envían los campos que se han escrito de verdad — el backend
+    // nunca devuelve el valor real, solo si está configurado o no, así que
+    // nunca hay nada que precargar ni reenviar sin querer.
+    const payload = Object.fromEntries(
+      Object.entries(drafts).filter(([, v]) => v && v.trim() !== '')
+    );
+    if (Object.keys(payload).length === 0) {
+      setMessage(t('config.secrets.no_new_value', 'No has escrit cap valor nou.'));
+      return;
+    }
+    setSaving(true);
+    try {
+      const r = await authFetch('/admin/secrets', { method: 'POST', body: JSON.stringify(payload) });
+      if (r.ok) {
+        setStatus(await r.json());
+        setDrafts({});
+        setMessage(t('config.secrets.saved_period', 'Desat.'));
+      } else {
+        const body = await r.json().catch(() => ({}));
+        setMessage(body.detail || t('purchases.supplier_modal.save_error', 'No s\'ha pogut desar.'));
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (status === null) {
+    return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>;
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-5 max-w-lg">
+      <p className="text-sm text-zinc-500">
+        {t('config.secrets.hint', 'Els valors no es mostren mai, ni tan sols els que ja estan configurats — només si hi ha alguna cosa desada o no. Escriu un valor nou només al camp que vulguis canviar.')}
+      </p>
+      <form onSubmit={handleSave} className="space-y-4">
+        {SECRET_FIELDS.map(({ key, labelKey, label }) => (
+          <div key={key}>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-zinc-700">{t(labelKey, label)}</label>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${status[key] ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                {status[key] ? t('config.secrets.configured', 'Configurat') : t('config.secrets.not_configured', 'Sense configurar')}
+              </span>
+            </div>
+            <input
+              type="password"
+              placeholder={t('config.secrets.leave_blank_ph', 'Deixa en blanc per no canviar-lo')}
+              value={drafts[key] || ''}
+              onChange={e => setDrafts(d => ({ ...d, [key]: e.target.value }))}
+              autoComplete="off"
+              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            />
+          </div>
+        ))}
+        {message && <p className="text-sm text-zinc-600">{message}</p>}
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -260,6 +386,7 @@ const TIPUS_LABELS = {
 };
 
 function TipusIvaPanel() {
+  const t = useT();
   const [tipus, setTipus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -273,13 +400,13 @@ function TipusIvaPanel() {
   }
   useEffect(() => { load(); }, []);
 
-  async function toggleActiu(t) {
-    await authFetch(`/admin/tipus-iva/${t.id}`, { method: 'PATCH', body: JSON.stringify({ actiu: !t.actiu }) });
+  async function toggleActiu(row) {
+    await authFetch(`/admin/tipus-iva/${row.id}`, { method: 'PATCH', body: JSON.stringify({ active: !row.active }) });
     load();
   }
 
-  async function marcarDefecte(t, camp) {
-    await authFetch(`/admin/tipus-iva/${t.id}`, { method: 'PATCH', body: JSON.stringify({ [camp]: true }) });
+  async function marcarDefecte(row, camp) {
+    await authFetch(`/admin/tipus-iva/${row.id}`, { method: 'PATCH', body: JSON.stringify({ [camp]: true }) });
     load();
   }
 
@@ -287,64 +414,63 @@ function TipusIvaPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500 max-w-xl">
-          Configura els percentatges d'IVA. Marca quin tipus s'aplica per defecte a les vendes de
-          discos nous i quin a les de 2a mà (REBU) — a compra es tria sempre a mà.
+          {t('config.vat.hint', "Configura els percentatges d'IVA. Marca quin tipus s'aplica per defecte a les vendes de discos nous i quin a les de 2a mà (REBU) — a compra es tria sempre a mà.")}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> Nou tipus
+          <Plus size={16} /> {t('config.vat.new', 'Nou tipus')}
         </Button>
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
         ) : tipus.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Cap tipus d'IVA configurat</div>
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('tpv.no_iva_configured', "Cap tipus d'IVA configurat")}</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Nom</th>
+                <th className="px-4 py-3 text-left font-medium">{t('common.name')}</th>
                 <th className="px-4 py-3 text-right font-medium">%</th>
-                <th className="px-4 py-3 text-center font-medium">REBU</th>
-                <th className="px-4 py-3 text-center font-medium">Per defecte: nou</th>
-                <th className="px-4 py-3 text-center font-medium">Per defecte: 2a mà</th>
-                <th className="px-4 py-3 text-center font-medium">Actiu</th>
+                <th className="px-4 py-3 text-center font-medium">{t('config.vat.rebu', 'REBU')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('config.default_new', 'Per defecte: nou')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('config.default_used', 'Per defecte: 2a mà')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('purchases.col.status', 'Actiu')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {tipus.map(t => (
-                <tr key={t.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-3 font-medium text-zinc-900">{t.nom}</td>
-                  <td className="px-4 py-3 text-right">{parseFloat(t.percentatge).toFixed(2)}%</td>
-                  <td className="px-4 py-3 text-center">{t.es_rebu ? 'Sí' : '—'}</td>
+              {tipus.map(row => (
+                <tr key={row.id} className="hover:bg-zinc-50">
+                  <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
+                  <td className="px-4 py-3 text-right">{parseFloat(row.percentage).toFixed(2)}%</td>
+                  <td className="px-4 py-3 text-center">{row.is_rebu ? t('config.yes', 'Sí') : '—'}</td>
                   <td className="px-4 py-3 text-center">
-                    {t.per_defecte_nou ? (
+                    {row.default_new ? (
                       <Star size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
-                      <button onClick={() => marcarDefecte(t, 'per_defecte_nou')}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">Fer servir</button>
+                      <button onClick={() => marcarDefecte(row, 'default_new')}
+                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {t.per_defecte_segona_ma ? (
+                    {row.default_used ? (
                       <Star size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
-                      <button onClick={() => marcarDefecte(t, 'per_defecte_segona_ma')}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">Fer servir</button>
+                      <button onClick={() => marcarDefecte(row, 'default_used')}
+                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <button onClick={() => toggleActiu(t)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.actiu ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                      {t.actiu ? 'Actiu' : 'Inactiu'}
+                    <button onClick={() => toggleActiu(row)}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      {row.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => { setEdit(t); setShowForm(true); }}
+                    <button onClick={() => { setEdit(row); setShowForm(true); }}
                       className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100">
-                      Editar
+                      {t('catalog.edit')}
                     </button>
                   </td>
                 </tr>
@@ -362,10 +488,11 @@ function TipusIvaPanel() {
 }
 
 function TipusIvaForm({ tipus, onClose, onSaved }) {
+  const t = useT();
   const isEdit = !!tipus;
-  const [nom, setNom] = useState(tipus?.nom || '');
-  const [percentatge, setPercentatge] = useState(tipus?.percentatge || '21.00');
-  const [esRebu, setEsRebu] = useState(tipus?.es_rebu || false);
+  const [name, setName] = useState(tipus?.name || '');
+  const [percentage, setPercentage] = useState(tipus?.percentage || '21.00');
+  const [esRebu, setEsRebu] = useState(tipus?.is_rebu || false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -373,41 +500,41 @@ function TipusIvaForm({ tipus, onClose, onSaved }) {
     e.preventDefault();
     setSaving(true);
     setError('');
-    const payload = { nom, percentatge: parseFloat(percentatge), es_rebu: esRebu };
+    const payload = { name, percentage: parseFloat(percentage), is_rebu: esRebu };
     const url = isEdit ? `/admin/tipus-iva/${tipus.id}` : '/admin/tipus-iva';
     const method = isEdit ? 'PATCH' : 'POST';
     const r = await authFetch(url, { method, body: JSON.stringify(payload) });
     setSaving(false);
     if (r.ok) onSaved();
-    else setError((await r.json()).detail || 'Error desant');
+    else setError((await r.json()).detail || t('config.save_error', 'Error desant'));
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? 'Editar tipus d\'IVA' : 'Nou tipus d\'IVA'}</h3>
+          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.vat.edit_title', "Editar tipus d'IVA") : t('config.vat.new_title', "Nou tipus d'IVA")}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Nom *</label>
-            <input value={nom} onChange={e => setNom(e.target.value)} required
-              placeholder="General 21%, REBU 2a mà..."
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.name_required', 'Nom *')}</label>
+            <input value={name} onChange={e => setName(e.target.value)} required
+              placeholder={t('config.vat.name_ph', 'General 21%, REBU 2a mà...')}
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Percentatge *</label>
-            <input type="number" step="0.01" value={percentatge} onChange={e => setPercentatge(e.target.value)} required
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.percentage_required', 'Percentatge *')}</label>
+            <input type="number" step="0.01" value={percentage} onChange={e => setPercentage(e.target.value)} required
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
           <label className="flex items-center gap-2 text-sm text-zinc-700">
             <input type="checkbox" checked={esRebu} onChange={e => setEsRebu(e.target.checked)} />
-            Règim especial de béns usats (REBU) — l'IVA es calcula sobre el marge, no sobre el preu
+            {t('config.vat.rebu_checkbox', "Règim especial de béns usats (REBU) — l'IVA es calcula sobre el marge, no sobre el preu")}
           </label>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel·lar</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Desant...' : isEdit ? 'Desar canvis' : 'Crear'}</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={saving}>{saving ? t('common.saving') : isEdit ? t('config.save_changes', 'Desar canvis') : t('common.create')}</Button>
           </div>
         </form>
       </div>
@@ -416,6 +543,7 @@ function TipusIvaForm({ tipus, onClose, onSaved }) {
 }
 
 function MargesPanel() {
+  const t = useT();
   const [marges, setMarges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -430,7 +558,7 @@ function MargesPanel() {
   useEffect(() => { load(); }, []);
 
   async function toggleActiu(m) {
-    await authFetch(`/admin/marges/${m.id}`, { method: 'PATCH', body: JSON.stringify({ actiu: !m.actiu }) });
+    await authFetch(`/admin/marges/${m.id}`, { method: 'PATCH', body: JSON.stringify({ active: !m.active }) });
     load();
   }
 
@@ -443,62 +571,61 @@ function MargesPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500 max-w-xl">
-          Configura els marges de benefici. El de per defecte segons condició (nou / 2a mà)
-          es fa servir per suggerir el preu de venda a la recepció de compres — sempre editable a mà allà.
+          {t('config.margins.hint', 'Configura els marges de benefici. El de per defecte segons condició (nou / 2a mà) es fa servir per suggerir el preu de venda a la recepció de compres — sempre editable a mà allà.')}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> Nou marge
+          <Plus size={16} /> {t('config.margins.new', 'Nou marge')}
         </Button>
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
         ) : marges.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Cap marge configurat</div>
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('config.margins.no_margins', 'Cap marge configurat')}</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Nom</th>
+                <th className="px-4 py-3 text-left font-medium">{t('common.name')}</th>
                 <th className="px-4 py-3 text-right font-medium">%</th>
-                <th className="px-4 py-3 text-center font-medium">Per defecte: nou</th>
-                <th className="px-4 py-3 text-center font-medium">Per defecte: 2a mà</th>
-                <th className="px-4 py-3 text-center font-medium">Actiu</th>
+                <th className="px-4 py-3 text-center font-medium">{t('config.default_new', 'Per defecte: nou')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('config.default_used', 'Per defecte: 2a mà')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('purchases.col.status', 'Actiu')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {marges.map(m => (
                 <tr key={m.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-3 font-medium text-zinc-900">{m.nom}</td>
-                  <td className="px-4 py-3 text-right">{parseFloat(m.percentatge).toFixed(2)}%</td>
+                  <td className="px-4 py-3 font-medium text-zinc-900">{m.name}</td>
+                  <td className="px-4 py-3 text-right">{parseFloat(m.percentage).toFixed(2)}%</td>
                   <td className="px-4 py-3 text-center">
-                    {m.per_defecte_nou ? (
+                    {m.default_new ? (
                       <Star size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
-                      <button onClick={() => marcarDefecte(m, 'per_defecte_nou')}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">Fer servir</button>
+                      <button onClick={() => marcarDefecte(m, 'default_new')}
+                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {m.per_defecte_segona_ma ? (
+                    {m.default_used ? (
                       <Star size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
-                      <button onClick={() => marcarDefecte(m, 'per_defecte_segona_ma')}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">Fer servir</button>
+                      <button onClick={() => marcarDefecte(m, 'default_used')}
+                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiu(m)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.actiu ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                      {m.actiu ? 'Actiu' : 'Inactiu'}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      {m.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => { setEdit(m); setShowForm(true); }}
                       className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100">
-                      Editar
+                      {t('catalog.edit')}
                     </button>
                   </td>
                 </tr>
@@ -516,9 +643,10 @@ function MargesPanel() {
 }
 
 function MargeForm({ marge, onClose, onSaved }) {
+  const t = useT();
   const isEdit = !!marge;
-  const [nom, setNom] = useState(marge?.nom || '');
-  const [percentatge, setPercentatge] = useState(marge?.percentatge || '40.00');
+  const [name, setName] = useState(marge?.name || '');
+  const [percentage, setPercentage] = useState(marge?.percentage || '40.00');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -526,37 +654,37 @@ function MargeForm({ marge, onClose, onSaved }) {
     e.preventDefault();
     setSaving(true);
     setError('');
-    const payload = { nom, percentatge: parseFloat(percentatge) };
+    const payload = { name, percentage: parseFloat(percentage) };
     const url = isEdit ? `/admin/marges/${marge.id}` : '/admin/marges';
     const method = isEdit ? 'PATCH' : 'POST';
     const r = await authFetch(url, { method, body: JSON.stringify(payload) });
     setSaving(false);
     if (r.ok) onSaved();
-    else setError((await r.json()).detail || 'Error desant');
+    else setError((await r.json()).detail || t('config.save_error', 'Error desant'));
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? 'Editar marge' : 'Nou marge'}</h3>
+          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.margins.edit_title', 'Editar marge') : t('config.margins.new_title', 'Nou marge')}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Nom *</label>
-            <input value={nom} onChange={e => setNom(e.target.value)} required
-              placeholder="Marge estàndard nou, marge col·leccionista..."
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.name_required', 'Nom *')}</label>
+            <input value={name} onChange={e => setName(e.target.value)} required
+              placeholder={t('config.margins.name_ph', "Marge estàndard nou, marge col·leccionista...")}
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Percentatge *</label>
-            <input type="number" step="0.01" value={percentatge} onChange={e => setPercentatge(e.target.value)} required
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.percentage_required', 'Percentatge *')}</label>
+            <input type="number" step="0.01" value={percentage} onChange={e => setPercentage(e.target.value)} required
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel·lar</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Desant...' : isEdit ? 'Desar canvis' : 'Crear'}</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={saving}>{saving ? t('common.saving') : isEdit ? t('config.save_changes', 'Desar canvis') : t('common.create')}</Button>
           </div>
         </form>
       </div>
@@ -567,6 +695,7 @@ function MargeForm({ marge, onClose, onSaved }) {
 const FORMATS_DISPONIBLES = ['LP', 'EP', '7"', '12"', 'CD', 'Cassette', 'Altre'];
 
 function PesFormatPanel() {
+  const t = useT();
   const [pesos, setPesos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -581,7 +710,7 @@ function PesFormatPanel() {
   useEffect(() => { load(); }, []);
 
   async function eliminar(p) {
-    if (!confirm(`Eliminar el pes configurat per a "${p.formato}"?`)) return;
+    if (!confirm(t('config.weight.confirm_delete', 'Eliminar el pes configurat per a "{format}"?').replace('{format}', p.formato))) return;
     await authFetch(`/admin/pes-format/${p.id}`, { method: 'DELETE' });
     load();
   }
@@ -590,28 +719,26 @@ function PesFormatPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500 max-w-xl">
-          Pes per defecte segons el format del disc: s&apos;usa per calcular el pes total
-          d&apos;una comanda (i per tant el tram d&apos;enviament) quan una còpia no té un pes
-          propi indicat al catàleg. Un LP no pesa el mateix que un CD o un 7&quot;.
+          {t('config.weight.hint', "Pes per defecte segons el format del disc: s'usa per calcular el pes total d'una comanda (i per tant el tram d'enviament) quan una còpia no té un pes propi indicat al catàleg. Un LP no pesa el mateix que un CD o un 7\".")}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> Nou format
+          <Plus size={16} /> {t('config.weight.new', 'Nou format')}
         </Button>
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
         ) : pesos.length === 0 ? (
           <div className="p-12 text-center text-zinc-400 text-sm">
-            Cap format configurat — s&apos;usarà un pes genèric per defecte.
+            {t('config.weight.no_formats', "Cap format configurat — s'usarà un pes genèric per defecte.")}
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Format</th>
-                <th className="px-4 py-3 text-right font-medium">Pes</th>
+                <th className="px-4 py-3 text-left font-medium">{t('catalog.col.format')}</th>
+                <th className="px-4 py-3 text-right font-medium">{t('config.weight.col_weight', 'Pes')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -624,7 +751,7 @@ function PesFormatPanel() {
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setEdit(p); setShowForm(true); }}
                         className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100">
-                        Editar
+                        {t('catalog.edit')}
                       </button>
                       <button onClick={() => eliminar(p)}
                         className="text-zinc-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50">
@@ -647,6 +774,7 @@ function PesFormatPanel() {
 }
 
 function PesFormatForm({ pes, existents, onClose, onSaved }) {
+  const t = useT();
   const isEdit = !!pes;
   const disponibles = FORMATS_DISPONIBLES.filter(f => isEdit || !existents.some(e => e.formato === f));
   const [formato, setFormato] = useState(pes?.formato || disponibles[0] || '');
@@ -664,18 +792,18 @@ function PesFormatForm({ pes, existents, onClose, onSaved }) {
     const r = await authFetch(url, { method, body: JSON.stringify(payload) });
     setSaving(false);
     if (r.ok) onSaved();
-    else setError((await r.json()).detail || 'Error desant');
+    else setError((await r.json()).detail || t('config.save_error', 'Error desant'));
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? 'Editar pes' : 'Nou pes per format'}</h3>
+          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.weight.edit_title', 'Editar pes') : t('config.weight.new_title', 'Nou pes per format')}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Format *</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.format_required', 'Format *')}</label>
             {isEdit ? (
               <input value={formato} disabled
                 className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm bg-zinc-50 text-zinc-500" />
@@ -687,14 +815,14 @@ function PesFormatForm({ pes, existents, onClose, onSaved }) {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Pes (grams) *</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.modal.weight_required', 'Pes (grams) *')}</label>
             <input type="number" min="1" value={pesG} onChange={e => setPesG(e.target.value)} required
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel·lar</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Desant...' : isEdit ? 'Desar canvis' : 'Crear'}</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={saving}>{saving ? t('common.saving') : isEdit ? t('config.save_changes', 'Desar canvis') : t('common.create')}</Button>
           </div>
         </form>
       </div>
@@ -708,6 +836,7 @@ const SECCIO_COLORS = [
 ];
 
 function SeccionsPanel() {
+  const t = useT();
   const [seccions, setSeccions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -724,13 +853,13 @@ function SeccionsPanel() {
   async function toggleActiva(s) {
     await authFetch(`/admin/seccions/${s.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ ...s, nom_es: s.nom_es || '', activa: !s.activa }),
+      body: JSON.stringify({ ...s, name_es: s.name_es || '', active: !s.active }),
     });
     load();
   }
 
   async function eliminar(s) {
-    if (!confirm(`Eliminar la cubeta "${s.nom_ca}"? Els discos que hi eren assignats quedaran sense classificar.`)) return;
+    if (!confirm(t('config.sections.confirm_delete', 'Eliminar la cubeta "{nom}"? Els discos que hi eren assignats quedaran sense classificar.').replace('{nom}', s.name_ca))) return;
     await authFetch(`/admin/seccions/${s.id}`, { method: 'DELETE' });
     load();
   }
@@ -739,31 +868,29 @@ function SeccionsPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500 max-w-xl">
-          Cubetes físiques de la botiga (Nacional, Internacional, Alternatiu...). Cada disc pot
-          viure en una sola cubeta — s&apos;assigna des de la fitxa del disc — i determinen les
-          files del mode &quot;Remena&quot; del catàleg públic.
+          {t('config.sections.hint', 'Cubetes físiques de la botiga (Nacional, Internacional, Alternatiu...). Cada disc pot viure en una sola cubeta — s\'assigna des de la fitxa del disc — i determinen les files del mode "Remena" del catàleg públic.')}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> Nova cubeta
+          <Plus size={16} /> {t('config.sections.new', 'Nova cubeta')}
         </Button>
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
         ) : seccions.length === 0 ? (
           <div className="p-12 text-center text-zinc-400 text-sm">
-            Encara no hi ha cap cubeta configurada. Crea&apos;n una!
+            {t('config.sections.no_sections', "Encara no hi ha cap cubeta configurada. Crea'n una!")}
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Cubeta</th>
-                <th className="px-4 py-3 text-left font-medium">Slug</th>
-                <th className="px-4 py-3 text-left font-medium">Castellà</th>
-                <th className="px-4 py-3 text-center font-medium">Posició</th>
-                <th className="px-4 py-3 text-center font-medium">Activa</th>
+                <th className="px-4 py-3 text-left font-medium">{t('config.sections.col.section', 'Cubeta')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('config.sections.col.slug', 'Slug')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('config.sections.col.spanish', 'Castellà')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('config.sections.col.position', 'Posició')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('config.sections.col.active', 'Activa')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -775,16 +902,16 @@ function SeccionsPanel() {
                       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
                       style={{ backgroundColor: s.color || '#94a3b8' }}
                     >
-                      {s.nom_ca}
+                      {s.name_ca}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-zinc-500 text-xs">{s.slug}</td>
-                  <td className="px-4 py-3 text-zinc-500">{s.nom_es || '—'}</td>
-                  <td className="px-4 py-3 text-center text-zinc-500">{s.posicio}</td>
+                  <td className="px-4 py-3 text-zinc-500">{s.name_es || '—'}</td>
+                  <td className="px-4 py-3 text-center text-zinc-500">{s.position}</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiva(s)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.activa ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                      {s.activa ? 'Activa' : 'Inactiva'}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      {s.active ? t('config.sections.active_fem', 'Activa') : t('config.sections.inactive_fem', 'Inactiva')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -814,61 +941,62 @@ function SeccionsPanel() {
 }
 
 function SeccioForm({ seccio, onClose, onSaved }) {
+  const t = useT();
   const isEdit = !!seccio;
   const [slug, setSlug] = useState(seccio?.slug || '');
-  const [nomCa, setNomCa] = useState(seccio?.nom_ca || '');
-  const [nomEs, setNomEs] = useState(seccio?.nom_es || '');
+  const [nomCa, setNomCa] = useState(seccio?.name_ca || '');
+  const [nomEs, setNomEs] = useState(seccio?.name_es || '');
   const [color, setColor] = useState(seccio?.color || '#f59e0b');
-  const [posicio, setPosicio] = useState(seccio?.posicio ?? 0);
+  const [position, setPosition] = useState(seccio?.position ?? 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   async function save(e) {
     e.preventDefault();
-    if (!slug || !nomCa) { setError('Slug i nom en català són obligatoris'); return; }
+    if (!slug || !nomCa) { setError(t('config.sections.required_fields', 'Slug i nom en català són obligatoris')); return; }
     setSaving(true);
     setError('');
-    const payload = { slug, nom_ca: nomCa, nom_es: nomEs || null, color, activa: seccio?.activa ?? true, posicio: Number(posicio) };
+    const payload = { slug, name_ca: nomCa, name_es: nomEs || null, color, active: seccio?.active ?? true, position: Number(position) };
     const url = isEdit ? `/admin/seccions/${seccio.id}` : '/admin/seccions';
     const method = isEdit ? 'PATCH' : 'POST';
     const r = await authFetch(url, { method, body: JSON.stringify(payload) });
     setSaving(false);
     if (r.ok) onSaved();
-    else setError((await r.json()).detail || 'Error desant');
+    else setError((await r.json()).detail || t('config.save_error', 'Error desant'));
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? 'Editar cubeta' : 'Nova cubeta'}</h3>
+          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.sections.edit_title', 'Editar cubeta') : t('config.sections.new_title', 'Nova cubeta')}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Slug *</label>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.sections.slug_required', 'Slug *')}</label>
               <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'))}
                 placeholder="nacional" required
                 className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Posició</label>
-              <input type="number" value={posicio} onChange={e => setPosicio(e.target.value)}
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.sections.col.position', 'Posició')}</label>
+              <input type="number" value={position} onChange={e => setPosition(e.target.value)}
                 className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Nom català *</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.sections.name_ca_required', 'Nom català *')}</label>
             <input value={nomCa} onChange={e => setNomCa(e.target.value)} placeholder="Nacional" required
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Nom castellà</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.sections.name_es', 'Nom castellà')}</label>
             <input value={nomEs} onChange={e => setNomEs(e.target.value)} placeholder="Nacional"
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">Color</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-2">{t('catalog.modal.color', 'Color')}</label>
             <div className="flex items-center gap-2 flex-wrap">
               {SECCIO_COLORS.map(c => (
                 <button type="button" key={c} onClick={() => setColor(c)}
@@ -876,17 +1004,17 @@ function SeccioForm({ seccio, onClose, onSaved }) {
                   style={{ backgroundColor: c }} />
               ))}
               <input type="color" value={color} onChange={e => setColor(e.target.value)}
-                className="w-7 h-7 rounded-full border border-zinc-200 cursor-pointer" title="Color personalitzat" />
+                className="w-7 h-7 rounded-full border border-zinc-200 cursor-pointer" title={t('config.sections.custom_color', 'Color personalitzat')} />
               <span className="ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
                 style={{ backgroundColor: color }}>
-                {nomCa || 'Previsualització'}
+                {nomCa || t('config.sections.preview', 'Previsualització')}
               </span>
             </div>
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel·lar</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Desant...' : isEdit ? 'Desar canvis' : 'Crear'}</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={saving}>{saving ? t('common.saving') : isEdit ? t('config.save_changes', 'Desar canvis') : t('common.create')}</Button>
           </div>
         </form>
       </div>
@@ -895,6 +1023,7 @@ function SeccioForm({ seccio, onClose, onSaved }) {
 }
 
 function TramsEnviamentPanel() {
+  const t = useT();
   const [trams, setTrams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -908,14 +1037,14 @@ function TramsEnviamentPanel() {
   }
   useEffect(() => { load(); }, []);
 
-  async function toggleActiu(t) {
-    await authFetch(`/admin/trams-enviament/${t.id}`, { method: 'PATCH', body: JSON.stringify({ actiu: !t.actiu }) });
+  async function toggleActiu(tram) {
+    await authFetch(`/admin/trams-enviament/${tram.id}`, { method: 'PATCH', body: JSON.stringify({ active: !tram.active }) });
     load();
   }
 
-  async function eliminar(t) {
-    if (!confirm(`Eliminar el tram fins a ${t.pes_maxim_g} g?`)) return;
-    await authFetch(`/admin/trams-enviament/${t.id}`, { method: 'DELETE' });
+  async function eliminar(tram) {
+    if (!confirm(t('config.shipping.confirm_delete', 'Eliminar el tram fins a {pes} g?').replace('{pes}', tram.max_weight_g))) return;
+    await authFetch(`/admin/trams-enviament/${tram.id}`, { method: 'DELETE' });
     load();
   }
 
@@ -923,60 +1052,56 @@ function TramsEnviamentPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500 max-w-xl">
-          Tarifa pròpia d&apos;enviament per país i tram de pes: cada comanda es cobra
-          amb el tram actiu més barat del país de destí que cobreixi el pes total dels
-          discos. Es fa servir quan el client tria &quot;Enviament&quot; al checkout;
-          la recollida a botiga sempre és gratuïta. Un país només és venedor si té
-          algun tram actiu — per vendre a un país nou, només cal afegir-hi un tram aquí.
+          {t('config.shipping.hint', 'Tarifa pròpia d\'enviament per país i tram de pes: cada comanda es cobra amb el tram actiu més barat del país de destí que cobreixi el pes total dels discos. Es fa servir quan el client tria "Enviament" al checkout; la recollida a botiga sempre és gratuïta. Un país només és venedor si té algun tram actiu — per vendre a un país nou, només cal afegir-hi un tram aquí.')}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> Nou tram
+          <Plus size={16} /> {t('config.shipping.new', 'Nou tram')}
         </Button>
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
         ) : trams.length === 0 ? (
           <div className="p-12 text-center text-zinc-400 text-sm">
-            Cap tram configurat — sense trams no es pot triar &quot;Enviament&quot; a cap país al checkout.
+            {t('config.shipping.no_tiers', 'Cap tram configurat — sense trams no es pot triar "Enviament" a cap país al checkout.')}
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">País</th>
-                <th className="px-4 py-3 text-left font-medium">Fins a (pes)</th>
-                <th className="px-4 py-3 text-right font-medium">Preu</th>
-                <th className="px-4 py-3 text-center font-medium">Actiu</th>
+                <th className="px-4 py-3 text-left font-medium">{t('config.shipping.col.country', 'País')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('config.shipping.col.up_to_weight', 'Fins a (pes)')}</th>
+                <th className="px-4 py-3 text-right font-medium">{t('common.price', 'Preu')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('purchases.col.status', 'Actiu')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {trams.map(t => (
-                <tr key={t.id} className="hover:bg-zinc-50">
+              {trams.map(tram => (
+                <tr key={tram.id} className="hover:bg-zinc-50">
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
-                      {t.pais}
+                      {tram.country}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-medium text-zinc-900">
-                    {t.pes_maxim_g >= 1000 ? `${(t.pes_maxim_g / 1000).toFixed(2).replace(/\.?0+$/, '')} kg` : `${t.pes_maxim_g} g`}
+                    {tram.max_weight_g >= 1000 ? `${(tram.max_weight_g / 1000).toFixed(2).replace(/\.?0+$/, '')} kg` : `${tram.max_weight_g} g`}
                   </td>
-                  <td className="px-4 py-3 text-right">{parseFloat(t.preu).toFixed(2)} €</td>
+                  <td className="px-4 py-3 text-right">{parseFloat(tram.price).toFixed(2)} €</td>
                   <td className="px-4 py-3 text-center">
-                    <button onClick={() => toggleActiu(t)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.actiu ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                      {t.actiu ? 'Actiu' : 'Inactiu'}
+                    <button onClick={() => toggleActiu(tram)}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${tram.active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      {tram.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => { setEdit(t); setShowForm(true); }}
+                      <button onClick={() => { setEdit(tram); setShowForm(true); }}
                         className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100">
-                        Editar
+                        {t('catalog.edit')}
                       </button>
-                      <button onClick={() => eliminar(t)}
+                      <button onClick={() => eliminar(tram)}
                         className="text-zinc-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50">
                         <Trash2 size={14} />
                       </button>
@@ -997,10 +1122,11 @@ function TramsEnviamentPanel() {
 }
 
 function TramEnviamentForm({ tram, onClose, onSaved }) {
+  const t = useT();
   const isEdit = !!tram;
-  const [pesMaxim, setPesMaxim] = useState(tram?.pes_maxim_g ?? '');
-  const [preu, setPreu] = useState(tram?.preu || '');
-  const [pais, setPais] = useState(tram?.pais || '');
+  const [pesMaxim, setPesMaxim] = useState(tram?.max_weight_g ?? '');
+  const [price, setPrice] = useState(tram?.price || '');
+  const [country, setCountry] = useState(tram?.country || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -1008,50 +1134,49 @@ function TramEnviamentForm({ tram, onClose, onSaved }) {
     e.preventDefault();
     setSaving(true);
     setError('');
-    const payload = { pes_maxim_g: Number(pesMaxim), preu: parseFloat(preu), pais: pais.trim().toUpperCase() };
+    const payload = { max_weight_g: Number(pesMaxim), price: parseFloat(price), country: country.trim().toUpperCase() };
     const url = isEdit ? `/admin/trams-enviament/${tram.id}` : '/admin/trams-enviament';
     const method = isEdit ? 'PATCH' : 'POST';
     const r = await authFetch(url, { method, body: JSON.stringify(payload) });
     setSaving(false);
     if (r.ok) onSaved();
-    else setError((await r.json()).detail || 'Error desant');
+    else setError((await r.json()).detail || t('config.save_error', 'Error desant'));
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? 'Editar tram' : 'Nou tram'}</h3>
+          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.shipping.edit_title', 'Editar tram') : t('config.shipping.new_title', 'Nou tram')}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Pes màxim (grams) *</label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shipping.max_weight_required', 'Pes màxim (grams) *')}</label>
             <input type="number" min="1" value={pesMaxim} onChange={e => setPesMaxim(e.target.value)} required
               placeholder="500"
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             <p className="text-xs text-zinc-400 mt-1">
-              Aquest tram s&apos;aplica a comandes de fins a aquest pes (inclusiu).
+              {t('config.shipping.max_weight_hint', "Aquest tram s'aplica a comandes de fins a aquest pes (inclusiu).")}
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Preu *</label>
-            <input type="number" step="0.01" min="0" value={preu} onChange={e => setPreu(e.target.value)} required
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shipping.price_required', 'Preu *')}</label>
+            <input type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">País *</label>
-            <input type="text" maxLength={2} value={pais} onChange={e => setPais(e.target.value.toUpperCase())} required
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shipping.country_required', 'País *')}</label>
+            <input type="text" maxLength={2} value={country} onChange={e => setCountry(e.target.value.toUpperCase())} required
               placeholder="ES, FR, IT…"
               className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             <p className="text-xs text-zinc-400 mt-1">
-              Codi de 2 lletres (ISO 3166-1). Un país només és venedor si té algun tram actiu:
-              per afegir-hi un de nou, crea aquí el primer tram amb el seu codi.
+              {t('config.shipping.country_hint', 'Codi de 2 lletres (ISO 3166-1). Un país només és venedor si té algun tram actiu: per afegir-hi un de nou, crea aquí el primer tram amb el seu codi.')}
             </p>
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel·lar</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Desant...' : isEdit ? 'Desar canvis' : 'Crear'}</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={saving}>{saving ? t('common.saving') : isEdit ? t('config.save_changes', 'Desar canvis') : t('common.create')}</Button>
           </div>
         </form>
       </div>

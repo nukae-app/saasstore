@@ -28,7 +28,7 @@ def _login(client, email: str) -> str:
 def _admin_token(client, db) -> str:
     access = _login(client, "admin@example.com")
     user = db.scalar(select(User).where(User.email == "admin@example.com"))
-    user.rol = "admin"
+    user.role = "admin"
     db.commit()
     return access
 
@@ -38,7 +38,7 @@ def _auth(token: str) -> dict:
 
 
 def _seed_proveedor(db, nombre="DistroX") -> Proveedor:
-    p = Proveedor(nombre=nombre)
+    p = Proveedor(name=nombre)
     db.add(p)
     db.commit()
     return p
@@ -46,12 +46,12 @@ def _seed_proveedor(db, nombre="DistroX") -> Proveedor:
 
 def _seed_comanda(db, proveedor, release, status, fecha=None, cantidad=2) -> Comanda:
     c = Comanda(
-        proveedor_id=proveedor.id, fecha=fecha or datetime(2026, 6, 1),
-        status=status, num_comanda=f"2026-{uuid.uuid4().hex[:8]}",
+        proveedor_id=proveedor.id, date=fecha or datetime(2026, 6, 1),
+        status=status, order_number=f"2026-{uuid.uuid4().hex[:8]}",
     )
     db.add(c)
     db.flush()
-    db.add(ComandaLinea(comanda_id=c.id, release_id=release.id, cantidad=cantidad))
+    db.add(ComandaLinea(comanda_id=c.id, release_id=release.id, quantity=cantidad))
     db.commit()
     return c
 
@@ -59,7 +59,7 @@ def _seed_comanda(db, proveedor, release, status, fecha=None, cantidad=2) -> Com
 def test_buscador_troba_comandes_reals_enviades(db, client):
     admin = _admin_token(client, db)
     prov = _seed_proveedor(db)
-    release = Release(artista="Los Ganglios", titulo="Peruguay", formato="LP")
+    release = Release(artista="Los Ganglios", title="Peruguay", formato="LP")
     db.add(release)
     db.commit()
     _seed_comanda(db, prov, release, EstadoComanda.enviada)
@@ -69,14 +69,14 @@ def test_buscador_troba_comandes_reals_enviades(db, client):
     body = resp.json()
     assert len(body) == 1
     assert body[0]["proveedor_nombre"] == "DistroX"
-    assert body[0]["artista"] == "Los Ganglios"
-    assert body[0]["cantidad"] == 2
+    assert body[0]["artist"] == "Los Ganglios"
+    assert body[0]["quantity"] == 2
 
 
 def test_buscador_ignora_esborrany_i_cancelada(db, client):
     admin = _admin_token(client, db)
     prov = _seed_proveedor(db)
-    release = Release(artista="Second Hand", titulo="Rarity", formato="LP")
+    release = Release(artista="Second Hand", title="Rarity", formato="LP")
     db.add(release)
     db.commit()
     _seed_comanda(db, prov, release, EstadoComanda.esborrany)
@@ -90,13 +90,13 @@ def test_buscador_ignora_esborrany_i_cancelada(db, client):
 def test_buscador_combina_historial_importat_i_comandes_reals(db, client):
     admin = _admin_token(client, db)
     prov = _seed_proveedor(db)
-    release = Release(artista="Mixed Source", titulo="Album", formato="LP")
+    release = Release(artista="Mixed Source", title="Album", formato="LP")
     db.add(release)
     db.commit()
 
     db.add(HistorialCompra(
-        proveedor_id=prov.id, fecha=date(2020, 1, 1), artista="Mixed Source",
-        titulo="Album (import antic)", cantidad=1,
+        proveedor_id=prov.id, date=date(2020, 1, 1), artist="Mixed Source",
+        title="Album (import antic)", quantity=1,
     ))
     db.commit()
     _seed_comanda(db, prov, release, EstadoComanda.rebuda, fecha=datetime(2026, 6, 1))
@@ -106,19 +106,19 @@ def test_buscador_combina_historial_importat_i_comandes_reals(db, client):
     body = resp.json()
     assert len(body) == 2
     # La comanda real (2026) és més recent que la de l'històric importat (2020).
-    assert body[0]["fecha"] == "2026-06-01"
-    assert body[1]["fecha"] == "2020-01-01"
+    assert body[0]["date"] == "2026-06-01"
+    assert body[1]["date"] == "2020-01-01"
 
 
 def test_resum_suma_comptadors_de_les_dues_fonts(db, client):
     admin = _admin_token(client, db)
     prov = _seed_proveedor(db)
-    release = Release(artista="Resum Test", titulo="Album", formato="LP")
+    release = Release(artista="Resum Test", title="Album", formato="LP")
     db.add(release)
     db.commit()
 
     db.add(HistorialCompra(
-        proveedor_id=prov.id, fecha=date(2020, 1, 1), artista="Resum Test", titulo="Album", cantidad=1,
+        proveedor_id=prov.id, date=date(2020, 1, 1), artist="Resum Test", title="Album", quantity=1,
     ))
     db.commit()
     _seed_comanda(db, prov, release, EstadoComanda.enviada, fecha=datetime(2026, 6, 1))

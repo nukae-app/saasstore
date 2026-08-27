@@ -5,7 +5,7 @@ d'estar escampat a `.env` (`Settings`) o barrejat amb els informes de
 `comptabilitat.py`.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
@@ -16,23 +16,28 @@ from ..schemas import (
     MargeConfigIn, MargeConfigOut, MargeConfigUpdate,
     PesFormatIn, PesFormatOut, PesFormatUpdate,
     SeccioIn, SeccioOut,
+    TenantSecretsStatusOut, TenantSecretsUpdateIn,
     TipusIvaIn, TipusIvaOut, TipusIvaUpdate,
     TramEnviamentIn, TramEnviamentOut, TramEnviamentUpdate,
 )
 from ..services.security import require_admin
+from ..tenant_secrets import TenantSecrets, get_tenant_secrets, set_tenant_secret
 
 router = APIRouter(prefix="/admin", tags=["configuracio"], dependencies=[Depends(require_admin)])
 public_router = APIRouter(prefix="/config", tags=["configuracio"])
 
 
 # ---------------------------------------------------------------------------
-# Configuració general (fila singleton id=1)
+# Configuració general (una fila per tenant, ver models.py::ConfiguracioBotiga)
 # ---------------------------------------------------------------------------
 
 def _get_or_create_config(db: Session) -> ConfiguracioBotiga:
-    config = db.get(ConfiguracioBotiga, 1)
+    # select() en vez de db.get(): la fila ya no tiene un id fijo (era id=1
+    # antes de ser multi-tenant), el filtro automático de tenant (ver
+    # app/tenancy.py) la resuelve por tenant_id.
+    config = db.scalar(select(ConfiguracioBotiga))
     if config is None:
-        config = ConfiguracioBotiga(id=1, nom_fiscal="", adreca="")
+        config = ConfiguracioBotiga(fiscal_name="", address="")
         db.add(config)
         db.commit()
         db.refresh(config)
@@ -55,11 +60,22 @@ def update_configuracio(payload: ConfiguracioBotigaUpdate, db: Session = Depends
 
 
 @public_router.get("/public", response_model=ConfiguracioBotigaPublic)
-def get_configuracio_publica(db: Session = Depends(get_db)):
-    config = db.get(ConfiguracioBotiga, 1)
+def get_configuracio_publica(request: Request, db: Session = Depends(get_db)):
+    config = db.scalar(select(ConfiguracioBotiga))
     if config is None:
         raise HTTPException(404, "Configuració no trobada")
-    return config
+    # `vertical`/`nombre` viven en Tenant, no en ConfiguracioBotiga — ya
+    # disponibles en request.state.tenant (get_db lo resuelve por Host),
+    # sin consulta extra. No se puede hacer
+    # model_validate(config).model_copy(update=...): el primer paso ya
+    # falla, porque esos son campos obligatorios del schema que `config`
+    # (fila de ConfiguracioBotiga) no tiene.
+    tenant_fields = {"vertical", "nombre", "slug"}
+    data = {f: getattr(config, f) for f in ConfiguracioBotigaPublic.model_fields if f not in tenant_fields}
+    data["vertical"] = request.state.tenant.vertical_id
+    data["nombre"] = request.state.tenant.nombre
+    data["slug"] = request.state.tenant.slug
+    return ConfiguracioBotigaPublic(**data)
 
 
 # ---------------------------------------------------------------------------
@@ -68,13 +84,13 @@ def get_configuracio_publica(db: Session = Depends(get_db)):
 
 def _aplicar_defectes_exclusius(tipus: TipusIva, db: Session, payload: dict) -> None:
     """Només un tipus actiu pot ser el per defecte de nou / de segona mà a la vegada."""
-    if payload.get("per_defecte_nou"):
+    if payload.get("default_new"):
         db.execute(
-            update(TipusIva).where(TipusIva.id != tipus.id).values(per_defecte_nou=False)
+            update(TipusIva).where(TipusIva.id != tipus.id).values(default_new=False)
         )
-    if payload.get("per_defecte_segona_ma"):
+    if payload.get("default_used"):
         db.execute(
-            update(TipusIva).where(TipusIva.id != tipus.id).values(per_defecte_segona_ma=False)
+            update(TipusIva).where(TipusIva.id != tipus.id).values(default_used=False)
         )
 
 
@@ -91,9 +107,9 @@ def create_tipus_iva(payload: TipusIvaIn, db: Session = Depends(get_db)):
 
 @router.get("/tipus-iva", response_model=list[TipusIvaOut])
 def list_tipus_iva(nomes_actius: bool = False, db: Session = Depends(get_db)):
-    stmt = select(TipusIva).order_by(TipusIva.actiu.desc(), TipusIva.percentatge.desc())
+    stmt = select(TipusIva).order_by(TipusIva.active.desc(), TipusIva.percentage.desc())
     if nomes_actius:
-        stmt = stmt.where(TipusIva.actiu == True)
+        stmt = stmt.where(TipusIva.active == True)
     return db.scalars(stmt).all()
 
 
@@ -117,13 +133,13 @@ def update_tipus_iva(tipus_id: int, payload: TipusIvaUpdate, db: Session = Depen
 
 def _aplicar_defectes_exclusius_marge(marge: MargeConfig, db: Session, payload: dict) -> None:
     """Només un marge actiu pot ser el per defecte de nou / de segona mà a la vegada."""
-    if payload.get("per_defecte_nou"):
+    if payload.get("default_new"):
         db.execute(
-            update(MargeConfig).where(MargeConfig.id != marge.id).values(per_defecte_nou=False)
+            update(MargeConfig).where(MargeConfig.id != marge.id).values(default_new=False)
         )
-    if payload.get("per_defecte_segona_ma"):
+    if payload.get("default_used"):
         db.execute(
-            update(MargeConfig).where(MargeConfig.id != marge.id).values(per_defecte_segona_ma=False)
+            update(MargeConfig).where(MargeConfig.id != marge.id).values(default_used=False)
         )
 
 
@@ -140,9 +156,9 @@ def create_marge(payload: MargeConfigIn, db: Session = Depends(get_db)):
 
 @router.get("/marges", response_model=list[MargeConfigOut])
 def list_marges(nomes_actius: bool = False, db: Session = Depends(get_db)):
-    stmt = select(MargeConfig).order_by(MargeConfig.actiu.desc(), MargeConfig.percentatge.desc())
+    stmt = select(MargeConfig).order_by(MargeConfig.active.desc(), MargeConfig.percentage.desc())
     if nomes_actius:
-        stmt = stmt.where(MargeConfig.actiu == True)
+        stmt = stmt.where(MargeConfig.active == True)
     return db.scalars(stmt).all()
 
 
@@ -176,9 +192,9 @@ def create_tram_enviament(payload: TramEnviamentIn, db: Session = Depends(get_db
 
 @router.get("/trams-enviament", response_model=list[TramEnviamentOut])
 def list_trams_enviament(nomes_actius: bool = False, db: Session = Depends(get_db)):
-    stmt = select(TramEnviament).order_by(TramEnviament.pais.asc(), TramEnviament.pes_maxim_g.asc())
+    stmt = select(TramEnviament).order_by(TramEnviament.country.asc(), TramEnviament.max_weight_g.asc())
     if nomes_actius:
-        stmt = stmt.where(TramEnviament.actiu == True)
+        stmt = stmt.where(TramEnviament.active == True)
     return db.scalars(stmt).all()
 
 
@@ -246,7 +262,7 @@ def delete_pes_format(pes_id: int, db: Session = Depends(get_db)):
 
 # ---------------------------------------------------------------------------
 # Seccions (cubetes físiques de la botiga: Nacional, Internacional,
-# Alternatiu... — veure Release.seccio_id / mode "remena" del catàleg)
+# Alternatiu... — veure Release.section_id / mode "remena" del catàleg)
 # ---------------------------------------------------------------------------
 
 @router.post("/seccions", status_code=201, response_model=SeccioOut)
@@ -262,7 +278,7 @@ def create_seccio(payload: SeccioIn, db: Session = Depends(get_db)):
 
 @router.get("/seccions", response_model=list[SeccioOut])
 def list_seccions(db: Session = Depends(get_db)):
-    return db.scalars(select(Seccio).order_by(Seccio.posicio, Seccio.id)).all()
+    return db.scalars(select(Seccio).order_by(Seccio.position, Seccio.id)).all()
 
 
 @router.patch("/seccions/{seccio_id}", response_model=SeccioOut)
@@ -287,3 +303,25 @@ def delete_seccio(seccio_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "Secció no trobada")
     db.delete(seccio)
     db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Secretos del tenant (Redsys/Discogs/Spotify) — Fase 5: el propio tenant
+# los gestiona, el superadmin ya solo tiene lectura de estado (ver
+# routers/superadmin.py::get_tenant_secrets_status). Igual que allí, nunca
+# se devuelve el valor en sí, solo si está configurado o no.
+# ---------------------------------------------------------------------------
+
+@router.get("/secrets", response_model=TenantSecretsStatusOut)
+def get_secrets_status(request: Request):
+    secrets_: TenantSecrets = get_tenant_secrets(request.state.tenant.id)
+    return TenantSecretsStatusOut(**{k: bool(v) for k, v in secrets_.model_dump().items()})
+
+
+@router.post("/secrets", response_model=TenantSecretsStatusOut)
+def update_secrets(payload: TenantSecretsUpdateIn, request: Request):
+    fields = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not fields:
+        raise HTTPException(422, "No s'ha indicat cap camp a desar")
+    secrets_ = set_tenant_secret(request.state.tenant.id, **fields)
+    return TenantSecretsStatusOut(**{k: bool(v) for k, v in secrets_.model_dump().items()})

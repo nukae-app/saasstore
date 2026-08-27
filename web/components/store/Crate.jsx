@@ -187,7 +187,7 @@ export default function Crate({ seccio, onBack }) {
           <ChevronLeft size={16} /> {t('crates')}
         </button>
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: seccio.color || '#94a3b8' }} />
-        <h2 className="text-sm font-mono uppercase tracking-[0.25em] text-zinc-700">{seccio.nom_ca}</h2>
+        <h2 className="text-sm font-mono uppercase tracking-[0.25em] text-zinc-700">{seccio.name_ca}</h2>
         {total !== null && <span className="text-xs text-zinc-300">· {total}</span>}
       </div>
 
@@ -235,11 +235,11 @@ function CrateCard({ release: r }) {
   const td = useTranslations('disc');
   // Para nou (stock agregado), status se mantiene 'disponible' aunque no
   // quede ninguna unidad libre: hay que comprobar cantidad aparte.
-  const disponibles = r.items.filter(i => i.condicion === 'nou'
-    ? i.status === 'disponible' && (i.cantidad - i.cantidad_reservada) > 0
+  const disponibles = r.items.filter(i => i.condition === 'nou'
+    ? i.status === 'disponible' && (i.quantity - i.reserved_quantity) > 0
     : i.status === 'disponible');
-  const disponiblesNou = disponibles.filter(i => i.condicion === 'nou');
-  const disponiblesSegonaMa = disponibles.filter(i => i.condicion !== 'nou');
+  const disponiblesNou = disponibles.filter(i => i.condition === 'nou');
+  const disponiblesSegonaMa = disponibles.filter(i => i.condition !== 'nou');
 
   return (
     <div
@@ -248,11 +248,11 @@ function CrateCard({ release: r }) {
       className="snap-center flex flex-col items-center justify-center h-full w-full gap-3 px-6 py-6"
     >
       <Link href={`/disc/${r.id}`} className="relative block w-full max-w-md aspect-square rounded-2xl overflow-hidden shadow-2xl bg-zinc-300 shrink-0">
-        {r.imagen_url ? (
-          <Image src={r.imagen_url} alt={`${r.artista} — ${r.titulo}`} fill sizes="448px" className="object-cover" />
+        {r.image_url ? (
+          <Image src={r.image_url} alt={`${r.artista} — ${r.title}`} fill sizes="448px" className="object-cover" />
         ) : null}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-5 pt-20">
-          <p className="text-white font-serif italic text-lg leading-snug truncate">{r.titulo}</p>
+          <p className="text-white font-serif italic text-lg leading-snug truncate">{r.title}</p>
           <p className="text-white/80 text-sm font-medium truncate">{r.artista}</p>
         </div>
         {disponibles.length === 0 && (
@@ -278,7 +278,7 @@ function CrateCard({ release: r }) {
                     {td('newBadge')}
                   </span>
                   <span className="text-sm font-semibold text-zinc-900 shrink-0">
-                    {parseFloat(item.precio).toFixed(2)} €
+                    {parseFloat(item.price).toFixed(2)} €
                   </span>
                 </div>
                 <AddToCartButton itemId={item.id} className="px-3 py-1.5 text-xs shrink-0" />
@@ -287,9 +287,9 @@ function CrateCard({ release: r }) {
             {disponiblesSegonaMa.map(item => (
               <div key={item.id} className="flex items-center justify-between gap-3 bg-white rounded-xl border border-zinc-200 px-3 py-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <ConditionBadge value={item.condicion} />
+                  <ConditionBadge value={item.condition} />
                   <span className="text-sm font-semibold text-zinc-900 shrink-0">
-                    {parseFloat(item.precio).toFixed(2)} €
+                    {parseFloat(item.price).toFixed(2)} €
                   </span>
                 </div>
                 <AddToCartButton itemId={item.id} className="px-3 py-1.5 text-xs shrink-0" />

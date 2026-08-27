@@ -20,7 +20,7 @@ def main(dry_run: bool = False) -> None:
     db = SessionLocal()
     try:
         items = db.scalars(
-            select(Item).where(Item.coste_adquisicion.is_(None))
+            select(Item).where(Item.acquisition_cost.is_(None))
         ).all()
 
         if not items:
@@ -30,11 +30,11 @@ def main(dry_run: bool = False) -> None:
         print(f"Ítems sense cost: {len(items)}")
         updated = 0
         for item in items:
-            cost = max(item.precio - Decimal("2.00"), Decimal("0.01"))
+            cost = max(item.price - Decimal("2.00"), Decimal("0.01"))
             if dry_run:
-                print(f"  {item.id}: precio={item.precio} → coste={cost}")
+                print(f"  {item.id}: precio={item.price} → coste={cost}")
             else:
-                item.coste_adquisicion = cost
+                item.acquisition_cost = cost
             updated += 1
 
         if dry_run:

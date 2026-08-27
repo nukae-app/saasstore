@@ -26,6 +26,7 @@ export default async function HomePage() {
   let catalog = [];
   let recomanats = [];
   let sonant = [];
+  let config = null;
   try {
     catalog = await fetchAllByEtiqueta('novetat');
   } catch {}
@@ -35,7 +36,11 @@ export default async function HomePage() {
   try {
     sonant = (await api('/catalog?esta_sonant=true&page_size=1')).results;
   } catch {}
+  try {
+    config = await api('/config/public');
+  } catch {}
 
+  const isVinils = !config || config.vertical === 'records';
   const featured = sonant[0] || recomanats[0] || catalog[0] || null;
   // Evitem mostrar el mateix disc a "Ara sona" i a "Selecció del curador"
   // si per casualitat el disc marcat com a sonant també és "recomanat".
@@ -46,7 +51,7 @@ export default async function HomePage() {
       <StorefrontNav />
 
       <main className="flex-1">
-        <HomeHero featured={featured} />
+        <HomeHero featured={isVinils ? featured : null} config={config} isVinils={isVinils} />
 
         {/* New arrivals */}
         {catalog.length > 0 && (
@@ -69,33 +74,36 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* Spotify recommendations — client-side, only for logged-in users */}
-        <SpotifyRecommendations />
+        {/* Spotify recommendations — client-side, només per a usuaris logats.
+            Inherentment musical, sense sentit fora del vertical vinils. */}
+        {isVinils && <SpotifyRecommendations />}
 
         <CuratorSelection releases={curatorReleases} />
 
-        <GenreGrid />
+        {isVinils && <GenreGrid />}
 
         {/* About strip */}
         <section className="py-24 px-5 md:px-16 bg-zinc-50">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="font-serif italic text-2xl md:text-3xl mb-4 text-zinc-900">
-              Carrer de les Pujades&nbsp;113
+              {config?.nombre || ''}
             </h2>
             <p className="text-zinc-500 leading-relaxed mb-6">
-              {t('aboutText')}
+              {config?.address ? config.address.split('\n').join(', ') : t('aboutText')}
             </p>
-            <p className="text-sm text-zinc-500">
-              {t('alsoOn')}{' '}
-              <a
-                href="https://www.discogs.com"
-                target="_blank"
-                rel="noopener"
-                className="text-zinc-900 hover:underline"
-              >
-                Discogs
-              </a>
-            </p>
+            {isVinils && config?.discogs_habilitat && (
+              <p className="text-sm text-zinc-500">
+                {t('alsoOn')}{' '}
+                <a
+                  href="https://www.discogs.com"
+                  target="_blank"
+                  rel="noopener"
+                  className="text-zinc-900 hover:underline"
+                >
+                  Discogs
+                </a>
+              </p>
+            )}
           </div>
         </section>
       </main>
