@@ -80,19 +80,12 @@ class TenantCreateIn(BaseModel):
     address: str
     vertical_id: str = "records"
 
-    @field_validator("slug")
-    @classmethod
-    def _valid_slug(cls, v: str) -> str:
-        # El slug se usa tal cual como etiqueta DNS cuando no se da domain
-        # (ver arriba) — minúsculas/dígitos/guión, sin guión al principio o
-        # final, para que "<slug>.platform_domain" sea siempre un hostname
-        # válido (RFC 1035), no solo un identificador interno.
-        if not TENANT_SLUG_RE.match(v):
-            raise ValueError(
-                "El slug ha de ser minúscules/dígits/guions (sense guió al principi o final), "
-                "p. ex. 'florqa' — s'utilitza tal qual com a subdomini"
-            )
-        return v
+    # Sin @field_validator a propósito: un ValueError de Pydantic devuelve
+    # `detail` como lista de objetos (formato 422 estándar de FastAPI), no
+    # el string simple que espera el resto de este router y el frontend
+    # (`body.detail || '...'`, ver superadmin/page.jsx) — se comprueba a
+    # mano en create_tenant(), mismo patrón que las comprobaciones de
+    # unicidad de ahí abajo, para que el mensaje llegue legible al admin.
 
 
 class TenantOut(BaseModel):
@@ -431,6 +424,16 @@ def create_tenant(
     payload: TenantCreateIn, db=Depends(get_db_unscoped),
     admin: PlatformAdmin = Depends(require_superadmin_role(PlatformAdminRole.owner)),
 ):
+    # El slug se usa tal cual como etiqueta DNS cuando no se da domain (ver
+    # abajo) — minúsculas/dígitos/guión, sin guión al principio o final,
+    # para que "<slug>.platform_domain" sea siempre un hostname válido
+    # (RFC 1035), no solo un identificador interno.
+    if not TENANT_SLUG_RE.match(payload.slug):
+        raise HTTPException(
+            422,
+            "El slug ha de ser minúscules/dígits/guions (sense guió al principi o final), "
+            "p. ex. 'florqa' — s'utilitza tal qual com a subdomini",
+        )
     if db.scalar(select(Tenant).where(Tenant.slug == payload.slug)):
         raise HTTPException(409, f"Ya existe un tenant con slug '{payload.slug}'")
     # Sin domain explícito, el tenant nace en su propio subdominio de la
