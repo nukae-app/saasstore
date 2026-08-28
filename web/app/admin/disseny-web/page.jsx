@@ -17,6 +17,7 @@ import CarouselPropsForm from '../../../components/store/blocks/CarouselPropsFor
 import CuratorSelectionPropsForm from '../../../components/store/blocks/CuratorSelectionPropsForm';
 import TextPropsForm from '../../../components/store/blocks/TextPropsForm';
 import TestimonialsPropsForm from '../../../components/store/blocks/TestimonialsPropsForm';
+import FontPickerDialog from '../../../components/store/blocks/FontPickerDialog';
 
 const PROPS_FORMS = {
   hero: HeroPropsForm,
@@ -469,6 +470,17 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [pickerRole, setPickerRole] = useState(null); // null | 'headline' | 'body'
+
+  function onFontDownloaded(newConfig) {
+    setFontHeadline(newConfig.theme?.font_headline || '');
+    setFontBody(newConfig.theme?.font_body || '');
+    onSaved();
+    // La tipografia autoallotjada és una regla @font-face nova que l'iframe
+    // encara no té — un simple canvi de --font-headline no n'hi ha prou,
+    // cal recarregar perquè web/app/layout.jsx la torni a injectar.
+    sendPreview({ type: 'reload' });
+  }
 
   function setColor(key, value) {
     setValues((v) => {
@@ -554,21 +566,40 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
         <p className="text-sm text-zinc-500">
-          {t('config.design.font_hint', 'Nom de família tipogràfica de Google Fonts. Si el nom no existeix, es fa servir la tipografia per defecte sense trencar la pàgina.')}
+          {t('config.design.font_hint', "Cerca i tria una tipografia gratuïta (es descarrega i queda allotjada al teu servidor), o escriu-la a mà si ja saps que existeix (p. ex. una del sistema).")}
         </p>
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.design.font_headline', 'Tipografia de títols')}</label>
-          <input value={fontHeadline} onChange={(e) => setFont('headline', e.target.value)}
-            placeholder="Bodoni Moda, Georgia, serif"
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          <div className="flex gap-2">
+            <input value={fontHeadline} onChange={(e) => setFont('headline', e.target.value)}
+              placeholder="Bodoni Moda, Georgia, serif"
+              className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            <button type="button" onClick={() => setPickerRole('headline')}
+              className="shrink-0 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg px-3 py-2 hover:bg-zinc-50 transition-colors">
+              Cercar…
+            </button>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.design.font_body', 'Tipografia de text')}</label>
-          <input value={fontBody} onChange={(e) => setFont('body', e.target.value)}
-            placeholder="Hanken Grotesk, system-ui, sans-serif"
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          <div className="flex gap-2">
+            <input value={fontBody} onChange={(e) => setFont('body', e.target.value)}
+              placeholder="Hanken Grotesk, system-ui, sans-serif"
+              className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            <button type="button" onClick={() => setPickerRole('body')}
+              className="shrink-0 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg px-3 py-2 hover:bg-zinc-50 transition-colors">
+              Cercar…
+            </button>
+          </div>
         </div>
       </div>
+
+      <FontPickerDialog
+        open={!!pickerRole}
+        onOpenChange={(open) => { if (!open) setPickerRole(null); }}
+        role={pickerRole || 'headline'}
+        onSelected={onFontDownloaded}
+      />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center gap-3">

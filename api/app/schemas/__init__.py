@@ -173,6 +173,8 @@ from .configuracio import (
     HEX_COLOR_RE,
     THEME_COLOR_FIELDS,
     CustomCssUpdateIn,
+    FontSearchOut,
+    FontSelectIn,
     TenantSecretsStatusOut,
     TenantSecretsUpdateIn,
 )

@@ -17,6 +17,7 @@ from ..models import ConfiguracioBotiga, MargeConfig, PesFormat, Seccio, TipusIv
 from ..schemas import (
     ConfiguracioBotigaOut, ConfiguracioBotigaPublic, ConfiguracioBotigaUpdate,
     CustomCssUpdateIn, ThemeTokens, HEX_COLOR_RE, THEME_COLOR_FIELDS,
+    FontSearchOut, FontSelectIn,
     MargeConfigIn, MargeConfigOut, MargeConfigUpdate,
     PesFormatIn, PesFormatOut, PesFormatUpdate,
     SeccioIn, SeccioOut,
@@ -24,6 +25,7 @@ from ..schemas import (
     TipusIvaIn, TipusIvaOut, TipusIvaUpdate,
     TramEnviamentIn, TramEnviamentOut, TramEnviamentUpdate,
 )
+from ..services import fontsource as fontsource_svc
 from ..services.sanitize import sanitize_custom_css
 from ..services.security import require_admin
 from ..tenant_secrets import TenantSecrets, get_tenant_secrets, set_tenant_secret
@@ -139,6 +141,40 @@ def update_theme(payload: ThemeTokens, db: Session = Depends(get_db)):
             raise HTTPException(422, f"'{key}' ha de ser un color hex (#rrggbb)")
     config = _get_or_create_config(db)
     config.theme = {**config.theme, **changes}
+    db.commit()
+    db.refresh(config)
+    return config
+
+
+@router.get("/configuracio/fonts/cerca", response_model=list[FontSearchOut])
+async def cercar_fonts(q: str | None = None):
+    return await fontsource_svc.search_fonts(q)
+
+
+@router.post("/configuracio/fonts/{rol}", response_model=ConfiguracioBotigaOut)
+async def triar_font(rol: str, payload: FontSelectIn, db: Session = Depends(get_db)):
+    if rol not in ("headline", "body"):
+        raise HTTPException(404, "Rol de tipografia desconegut")
+    try:
+        result = await fontsource_svc.download_font(payload.font_id)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+    config = _get_or_create_config(db)
+    custom_fonts = dict(config.theme.get("custom_fonts") or {})
+    # Neteja els fitxers de l'anterior tipografia autoallotjada d'aquest rol
+    # (si n'hi havia una) — mateix mecanisme que favicon/logo.
+    old = custom_fonts.get(rol) or {}
+    for face in old.get("faces", []):
+        _delete_upload_file(face.get("url"))
+
+    custom_fonts[rol] = result
+    fallback = "Georgia, serif" if rol == "headline" else "system-ui, sans-serif"
+    config.theme = {
+        **config.theme,
+        "custom_fonts": custom_fonts,
+        f"font_{rol}": f"'{result['family']}', {fallback}",
+    }
     db.commit()
     db.refresh(config)
     return config

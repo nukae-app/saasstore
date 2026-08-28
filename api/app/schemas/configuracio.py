@@ -170,6 +170,17 @@ class CustomCssUpdateIn(BaseModel):
     custom_css: str | None = None
 
 
+class FontSearchOut(BaseModel):
+    id: str
+    family: str
+    category: str
+    variable: bool
+
+
+class FontSelectIn(BaseModel):
+    font_id: str
+
+
 class ConfiguracioBotigaPublic(BaseModel):
     """Subconjunt públic (footer): mai el NIF ni email_from (operatiu, no de cara al client)."""
     address: str

@@ -41,10 +41,25 @@ export default async function RootLayout({ children }) {
     config = await api('/config/public');
   } catch {}
 
+  // `custom_fonts` és estructurat (family + faces), no un valor CSS — es
+  // filtra abans de convertir la resta de `theme` en variables --clau: valor.
   const themeVars = config?.theme
     ? Object.entries(config.theme)
-        .filter(([, value]) => value)
+        .filter(([key, value]) => key !== 'custom_fonts' && value)
         .map(([key, value]) => `--${key.replace(/_/g, '-')}: ${value};`)
+        .join('')
+    : '';
+
+  // Tipografies autoallotjades triades des de Colors i tipografia → Cercar
+  // a Fontsource (ver services/fontsource.py) — els fitxers reals ja viuen
+  // a /uploads, aquí només es declara la regla @font-face.
+  const customFontFaces = config?.theme?.custom_fonts
+    ? Object.values(config.theme.custom_fonts)
+        .map(({ family, faces }) =>
+          (faces || [])
+            .map(({ weight, url }) => `@font-face{font-family:'${family}';src:url('${url}') format('woff2');font-weight:${weight};font-style:normal;font-display:swap;}`)
+            .join('')
+        )
         .join('')
     : '';
 
@@ -56,6 +71,7 @@ export default async function RootLayout({ children }) {
             los tokens si hace falta. dangerouslySetInnerHTML es lo correcto
             aquí para un <style>; la defensa real es el saneado al guardar
             (ver services/sanitize.py::sanitize_custom_css), no esta línea. */}
+        {customFontFaces && <style dangerouslySetInnerHTML={{ __html: customFontFaces }} />}
         {themeVars && <style dangerouslySetInnerHTML={{ __html: `:root{${themeVars}}` }} />}
         {config?.custom_css && <style dangerouslySetInnerHTML={{ __html: config.custom_css }} />}
       </head>
