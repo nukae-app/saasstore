@@ -334,7 +334,7 @@ export default function CheckoutPage() {
                   ) : (
                     items.map(item => (
                       <div key={item.item_id} className="flex items-center gap-3 px-4 py-3">
-                        <div className="relative w-10 h-10 rounded bg-zinc-100 shrink-0 overflow-hidden">
+                        <div style={{ borderRadius: 'var(--radius-card, 4px)' }} className="relative w-10 h-10 bg-zinc-100 shrink-0 overflow-hidden">
                           {item.image_url && (
                             <Image src={item.image_url} alt="" fill sizes="40px" className="object-cover" />
                           )}

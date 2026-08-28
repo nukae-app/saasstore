@@ -27,7 +27,10 @@ export default function ReleaseCard({ release }) {
 
   return (
     <Link href={`/disc/${release.id}`} className="group block">
-      <div className="aspect-square overflow-hidden rounded-3xl bg-zinc-100 mb-4 flex items-center justify-center relative shadow-[0_2px_20px_-6px_rgba(15,23,42,0.06)] group-hover:shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)] transition-shadow">
+      <div
+        style={{ borderRadius: 'var(--radius-card, 24px)' }}
+        className="aspect-square overflow-hidden bg-zinc-100 mb-4 flex items-center justify-center relative shadow-[0_2px_20px_-6px_rgba(15,23,42,0.06)] group-hover:shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)] transition-shadow"
+      >
         {release.image_url ? (
           <Image
             src={release.image_url}

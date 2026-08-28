@@ -105,7 +105,8 @@ function CubetaTile({ seccio, onPick }) {
   return (
     <button
       onClick={() => onPick(seccio.slug)}
-      className="group relative block w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow bg-zinc-200"
+      style={{ borderRadius: 'var(--radius-card, 24px)' }}
+      className="group relative block w-full aspect-[4/3] overflow-hidden shadow-sm hover:shadow-xl transition-shadow bg-zinc-200"
     >
       <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5">
         {[0, 1, 2, 3].map(i => (

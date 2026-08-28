@@ -94,7 +94,10 @@ export default async function DiscPage({ params }) {
         <div className="container py-8">
           <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-start">
             {/* Cover */}
-            <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center sticky top-24">
+            <div
+              style={{ borderRadius: 'var(--radius-card, 12px)' }}
+              className="relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center sticky top-24"
+            >
               {release.image_url ? (
                 <Image
                   src={release.image_url}

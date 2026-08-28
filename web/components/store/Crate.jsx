@@ -194,8 +194,8 @@ export default function Crate({ seccio, onBack }) {
       <div
         ref={trackRef}
         onScroll={onScroll}
-        style={{ perspective: '1000px' }}
-        className="flex-1 min-h-0 overflow-y-auto snap-y snap-mandatory rounded-3xl bg-zinc-100 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+        style={{ perspective: '1000px', borderRadius: 'var(--radius-card, 24px)' }}
+        className="flex-1 min-h-0 overflow-y-auto snap-y snap-mandatory bg-zinc-100 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
       >
         {releases.map(r => <CrateCard key={r.id} release={r} />)}
 
@@ -247,7 +247,11 @@ function CrateCard({ release: r }) {
       style={{ transformStyle: 'preserve-3d', transition: 'transform 120ms ease-out' }}
       className="snap-center flex flex-col items-center justify-center h-full w-full gap-3 px-6 py-6"
     >
-      <Link href={`/disc/${r.id}`} className="relative block w-full max-w-md aspect-square rounded-2xl overflow-hidden shadow-2xl bg-zinc-300 shrink-0">
+      <Link
+        href={`/disc/${r.id}`}
+        style={{ borderRadius: 'var(--radius-card, 16px)' }}
+        className="relative block w-full max-w-md aspect-square overflow-hidden shadow-2xl bg-zinc-300 shrink-0"
+      >
         {r.image_url ? (
           <Image src={r.image_url} alt={`${r.artista} — ${r.title}`} fill sizes="448px" className="object-cover" />
         ) : null}
