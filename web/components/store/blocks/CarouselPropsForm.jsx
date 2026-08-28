@@ -3,6 +3,18 @@
 import { useEffect, useState } from 'react';
 import { authFetch } from '../../../app/lib/auth';
 
+// Mateixes claus que api/app/blocks/registry.py::CAROUSEL_LAYOUTS.
+const LAYOUT_OPTIONS = [
+  { value: 'classic', label: 'Targetes clàssiques' },
+  { value: 'overlay', label: 'Targetes amb text sobre la imatge' },
+  { value: 'featured_large', label: 'Un disc gran + petits al costat' },
+  { value: 'list_rows', label: 'Llista vertical (una fila per disc)' },
+  { value: 'minimal', label: 'Minimal, sense preu' },
+  { value: 'grid', label: 'Graella fixa, sense scroll' },
+  { value: 'autoplay', label: 'Desplaçament automàtic' },
+  { value: 'oferta', label: 'Amb el preu destacat' },
+];
+
 // Formulari de props del bloc "carousel" — camps 1:1 amb
 // api/app/blocks/registry.py::CarouselProps. `etiqueta_slug` es tria d'un
 // select amb les etiquetes reals del tenant (GET /admin/etiquetes) perquè un
@@ -27,6 +39,18 @@ export default function CarouselPropsForm({ props, onChange, onFieldChange }) {
 
   return (
     <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-medium text-zinc-600 mb-1">Disposició</label>
+        <select
+          value={props.layout || 'classic'}
+          onChange={(e) => set('layout', e.target.value)}
+          className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+        >
+          {LAYOUT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
       <div>
         <label className="block text-xs font-medium text-zinc-600 mb-1">Títol</label>
         <input

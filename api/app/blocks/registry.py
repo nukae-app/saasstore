@@ -48,7 +48,16 @@ class HeroProps(BackgroundProps):
     background_video_url: str | None = None
 
 
+# Variants de disposició del bloc "carousel" — ver
+# web/components/store/blocks/CarouselBlock.jsx per al render de cadascuna.
+CAROUSEL_LAYOUTS = (
+    "classic", "overlay", "featured_large", "list_rows",
+    "minimal", "grid", "autoplay", "oferta",
+)
+
+
 class CarouselProps(BaseModel):
+    layout: str = "classic"
     heading: str = ""
     subtitle: str | None = None
     cta_label: str | None = None
