@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..tenant_secrets import get_tenant_secrets
 from ..models import CondicionItem, Etiqueta, Item, ItemStatus, RecordProduct, Release, ReleaseEtiqueta, Seccio
-from ..schemas import CatalogPage, EtiquetaOut, ReleaseOut, SeccioOut
+from ..schemas import CatalogPage, EtiquetaOut, GeneroFacetOut, ReleaseOut, SeccioOut
 from ..services import spotify as spotify_svc
 
 log = logging.getLogger(__name__)
@@ -43,6 +43,30 @@ def list_public_seccions(db: Session = Depends(get_db)):
     """Seccions (cubetes) actives, per al mode 'remena' del catàleg."""
     stmt = select(Seccio).where(Seccio.active.is_(True)).order_by(Seccio.position, Seccio.name_ca)
     return db.scalars(stmt).all()
+
+
+@router.get("/generes", response_model=list[GeneroFacetOut])
+def list_public_generes(db: Session = Depends(get_db), limit: int = Query(6, ge=1, le=24)):
+    """Gèneres reals amb almenys una còpia disponible, ordenats per
+    freqüència — alimenta el bloc "genre_grid" del home (ver
+    blocks/registry.py) perquè mai enllaci a un gènere buit."""
+    item_disponible = and_(
+        Item.status == ItemStatus.disponible,
+        or_(Item.condition != CondicionItem.nou, Item.quantity > Item.reserved_quantity),
+    )
+    n_releases = func.count(func.distinct(Release.id))
+    stmt = (
+        select(RecordProduct.genero, n_releases.label("n"))
+        .join(Release, Release.id == RecordProduct.release_id)
+        .where(RecordProduct.genero.isnot(None), RecordProduct.genero != "")
+        .where(
+            select(Item.id).where(Item.release_id == Release.id).where(item_disponible).exists()
+        )
+        .group_by(RecordProduct.genero)
+        .order_by(n_releases.desc())
+        .limit(limit)
+    )
+    return [{"genero": genero, "count": n} for genero, n in db.execute(stmt).all()]
 
 
 @router.get("", response_model=CatalogPage)

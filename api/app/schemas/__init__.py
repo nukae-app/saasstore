@@ -9,6 +9,7 @@ from .catalog import (
     ItemOut,
     EtiquetaOut,
     EtiquetaIn,
+    GeneroFacetOut,
     SeccioOut,
     SeccioIn,
     ReleaseImageOut,

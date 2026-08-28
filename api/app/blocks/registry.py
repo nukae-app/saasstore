@@ -33,6 +33,13 @@ class EmptyProps(BaseModel):
     és si estan presents/actius a la llista de HomeBlock del tenant."""
 
 
+class CuratorSelectionProps(BaseModel):
+    # Quina etiqueta alimenta la selecció (mateix mecanisme que
+    # CarouselProps.etiqueta_slug) — "recomanat" per defecte, el mateix
+    # criteri que la secció tenia en dur abans.
+    etiqueta_slug: str = "recomanat"
+
+
 class TextProps(BaseModel):
     heading: str | None = None
     body: str = ""
@@ -53,7 +60,7 @@ class TestimonialsProps(BaseModel):
 BLOCK_REGISTRY: dict[str, type[BaseModel]] = {
     "hero": HeroProps,
     "carousel": CarouselProps,
-    "curator_selection": EmptyProps,
+    "curator_selection": CuratorSelectionProps,
     "genre_grid": EmptyProps,
     "spotify_recommendations": EmptyProps,
     "about_strip": EmptyProps,

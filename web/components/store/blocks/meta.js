@@ -15,12 +15,12 @@ export const BLOCK_META = {
   },
   curator_selection: {
     label: 'Selecció del curador',
-    description: 'Els discos marcats com a "recomanats".',
-    editable: false,
+    description: 'Discos filtrats per una etiqueta (p. ex. "Recomanats").',
+    editable: true,
   },
   genre_grid: {
     label: 'Explora per gènere',
-    description: 'Graella d’accessos ràpids per gènere musical.',
+    description: 'Graella amb els gèneres reals del teu catàleg (automàtic, sense configuració).',
     editable: false,
   },
   spotify_recommendations: {

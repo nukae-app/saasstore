@@ -20,14 +20,19 @@ async function fetchAllByEtiqueta(slug) {
 // catàleg en viu — regla d'or del constructor de blocs (ver
 // api/app/blocks/registry.py): els props d'un bloc mai porten dades de
 // catàleg, sempre les resol aquesta pàgina a cada request, igual que abans.
-function resolveBlockProps(block, { featured, curatorReleases, config, releasesByEtiqueta }) {
+function resolveBlockProps(block, { featured, config, releasesByEtiqueta }) {
   switch (block.block_type) {
     case 'hero':
       return { ...block.props, featured };
     case 'carousel':
       return { ...block.props, releases: releasesByEtiqueta[block.props.etiqueta_slug] || [] };
-    case 'curator_selection':
-      return { releases: curatorReleases };
+    case 'curator_selection': {
+      // Evitem mostrar el mateix disc a "Ara sona" i a la selecció del
+      // curador si per casualitat el disc destacat també té l'etiqueta
+      // que alimenta aquest bloc.
+      const releases = releasesByEtiqueta[block.props.etiqueta_slug] || [];
+      return { releases: featured ? releases.filter((r) => r.id !== featured.id) : releases };
+    }
     case 'about_strip':
       return { config };
     default:
@@ -54,16 +59,18 @@ export default async function HomePage() {
   } catch {}
 
   const featured = sonant[0] || recomanats[0] || null;
-  // Evitem mostrar el mateix disc a "Ara sona" i a "Selecció del curador"
-  // si per casualitat el disc marcat com a sonant també és "recomanat".
-  const curatorReleases = featured ? recomanats.filter((r) => r.id !== featured.id) : recomanats;
 
   // Un fetch per cada etiqueta diferent que faci servir algun bloc
-  // "carousel" del tenant (normalment només "novetat", però res impedeix
-  // tenir-ne dos amb etiquetes diferents).
-  const carouselSlugs = [...new Set(blocks.filter((b) => b.block_type === 'carousel').map((b) => b.props.etiqueta_slug).filter(Boolean))];
+  // "carousel" o "curator_selection" del tenant (normalment "novetat"/
+  // "recomanat", però res impedeix tenir-ne més amb etiquetes diferents).
+  const etiquetaSlugs = [...new Set(
+    blocks
+      .filter((b) => b.block_type === 'carousel' || b.block_type === 'curator_selection')
+      .map((b) => b.props.etiqueta_slug)
+      .filter(Boolean)
+  )];
   const releasesByEtiqueta = {};
-  for (const slug of carouselSlugs) {
+  for (const slug of etiquetaSlugs) {
     try {
       releasesByEtiqueta[slug] = await fetchAllByEtiqueta(slug);
     } catch {
@@ -88,7 +95,7 @@ export default async function HomePage() {
           blocks.map((block) => {
             const Block = BLOCK_COMPONENTS[block.block_type];
             if (!Block) return null;
-            return <Block key={block.id} id={block.id} {...resolveBlockProps(block, { featured, curatorReleases, config, releasesByEtiqueta })} />;
+            return <Block key={block.id} id={block.id} {...resolveBlockProps(block, { featured, config, releasesByEtiqueta })} />;
           })
         )}
       </main>

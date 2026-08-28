@@ -1,18 +1,27 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '../../i18n/navigation';
 import { Music2, LayoutGrid, Zap, Mic2, Waves, Disc } from 'lucide-react';
+import { api } from '../../app/lib/api';
 
-const GENRES = [
-  { key: 'jazz', genre: 'Jazz', icon: Music2 },
-  { key: 'electronic', genre: 'Electronic', icon: LayoutGrid },
-  { key: 'rock', genre: 'Rock', icon: Zap },
-  { key: 'hiphop', genre: 'Hip-Hop', icon: Mic2 },
-  { key: 'ambient', genre: 'Ambient', icon: Waves },
-  { key: 'classical', genre: 'Classical', icon: Disc },
-];
+// Icones purament decoratives, es reparteixen en cicle per gènere — ja no hi
+// ha una relació fixa "Jazz→Music2" perquè el gènere ja no és una llista
+// tancada (ver sota).
+const ICONS = [Music2, LayoutGrid, Zap, Mic2, Waves, Disc];
 
+// Bloc "genre_grid" — sense props configurables (EmptyProps), es resol
+// sencer aquí mateix contra GET /catalog/generes: els gèneres reals amb
+// estoc disponible del tenant, no una llista fixa al codi. Abans hi havia 6
+// gèneres en dur (Jazz, Electronic, Rock...) que podien no existir al
+// catàleg real d'un tenant concret i enllaçar a una pàgina buida.
 export default async function GenreGrid({ id }) {
   const t = await getTranslations('genres');
+  let generes = [];
+  try {
+    generes = await api('/catalog/generes?limit=6');
+  } catch {}
+
+  if (generes.length === 0) return null;
+
   return (
     <section data-block-id={id} className="py-24 md:py-32 px-5 md:px-16 bg-white">
       <div className="max-w-[1280px] mx-auto">
@@ -20,16 +29,19 @@ export default async function GenreGrid({ id }) {
           {t('exploreByGenre')}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8">
-          {GENRES.map(({ key, genre, icon: Icon }) => (
-            <Link
-              key={genre}
-              href={`/cataleg?genre=${encodeURIComponent(genre)}`}
-              className="rounded-3xl border border-zinc-200 bg-white py-12 text-center group hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
-            >
-              <Icon size={32} className="mx-auto mb-6 text-zinc-500 group-hover:text-zinc-900 transition-colors" />
-              <p className="text-xs uppercase tracking-widest text-zinc-900 font-medium">{t(key)}</p>
-            </Link>
-          ))}
+          {generes.map(({ genero }, i) => {
+            const Icon = ICONS[i % ICONS.length];
+            return (
+              <Link
+                key={genero}
+                href={`/cataleg?genre=${encodeURIComponent(genero)}`}
+                className="rounded-3xl border border-zinc-200 bg-white py-12 text-center group hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
+              >
+                <Icon size={32} className="mx-auto mb-6 text-zinc-500 group-hover:text-zinc-900 transition-colors" />
+                <p className="text-xs uppercase tracking-widest text-zinc-900 font-medium">{genero}</p>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

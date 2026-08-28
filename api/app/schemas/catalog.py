@@ -42,6 +42,14 @@ class EtiquetaIn(BaseModel):
     position: int = 0
 
 
+class GeneroFacetOut(BaseModel):
+    """Gènere real amb almenys una còpia disponible — alimenta el bloc
+    "genre_grid" del home (ver blocks/registry.py), en lloc de la llista
+    fixa que hi havia abans."""
+    genero: str
+    count: int
+
+
 class SeccioOut(BaseModel):
     id: int
     slug: str

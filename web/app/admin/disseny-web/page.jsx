@@ -14,12 +14,14 @@ import {
 import { BLOCK_META, BLOCK_TYPES } from '../../../components/store/blocks/meta';
 import HeroPropsForm from '../../../components/store/blocks/HeroPropsForm';
 import CarouselPropsForm from '../../../components/store/blocks/CarouselPropsForm';
+import CuratorSelectionPropsForm from '../../../components/store/blocks/CuratorSelectionPropsForm';
 import TextPropsForm from '../../../components/store/blocks/TextPropsForm';
 import TestimonialsPropsForm from '../../../components/store/blocks/TestimonialsPropsForm';
 
 const PROPS_FORMS = {
   hero: HeroPropsForm,
   carousel: CarouselPropsForm,
+  curator_selection: CuratorSelectionPropsForm,
   text: TextPropsForm,
   testimonials: TestimonialsPropsForm,
 };
@@ -145,6 +147,7 @@ function blockSummary(block) {
   if (block.block_type === 'carousel') return `${block.props?.heading || '(sense títol)'} · #${block.props?.etiqueta_slug || '—'}`;
   if (block.block_type === 'text') return block.props?.heading || block.props?.body || '(buit)';
   if (block.block_type === 'testimonials') return `${block.props?.items?.length || 0} testimoni(s)`;
+  if (block.block_type === 'curator_selection') return `#${block.props?.etiqueta_slug || '—'}`;
   return meta?.description || '';
 }
 

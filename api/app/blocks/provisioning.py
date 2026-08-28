@@ -23,6 +23,7 @@ CAROUSEL_PROPS = {
     "cta_label": "Veure tot el catàleg",
     "etiqueta_slug": "novetat",
 }
+CURATOR_SELECTION_PROPS = {"etiqueta_slug": "recomanat"}
 
 
 def _hero_props(es_records: bool, nombre: str, address: str) -> dict:
@@ -44,7 +45,7 @@ def provision_default_home_blocks(db: Session, es_records: bool, nombre: str, ad
     blocks = [("hero", _hero_props(es_records, nombre, address)), ("carousel", CAROUSEL_PROPS)]
     if es_records:
         blocks.append(("spotify_recommendations", {}))
-    blocks.append(("curator_selection", {}))
+    blocks.append(("curator_selection", CURATOR_SELECTION_PROPS))
     if es_records:
         blocks.append(("genre_grid", {}))
     blocks.append(("about_strip", {}))
