@@ -43,20 +43,6 @@ export default function PreviewBridge() {
       else el.textContent = value || '';
     }
 
-    function applyBlockToggle({ blockId, enabled }) {
-      const el = document.querySelector(`[data-block-id="${blockId}"]`);
-      if (el) el.style.display = enabled ? '' : 'none';
-    }
-
-    function applyReorder(order) {
-      const container = document.getElementById('__blocks_root');
-      if (!container || !order) return;
-      for (const id of order) {
-        const el = container.querySelector(`:scope > [data-block-id="${id}"]`);
-        if (el) container.appendChild(el);
-      }
-    }
-
     function handleMessage(e) {
       if (e.origin !== window.location.origin || e.source !== window.parent) return;
       const msg = e.data;
@@ -64,9 +50,11 @@ export default function PreviewBridge() {
       switch (msg.type) {
         case 'theme-vars': applyThemeVars(msg.vars); break;
         case 'custom-css': applyCustomCss(msg.css); break;
+        // Un bloc nou o buit encara no existeix al DOM (el seu component
+        // torna null sense contingut), així que aquest camp és una millora
+        // de cortesia quan el bloc ja es renderitza — mai la font de veritat:
+        // el botó "Guardar canvis" de l'admin sempre acaba enviant 'reload'.
         case 'block-field': applyBlockField(msg); break;
-        case 'block-toggle': applyBlockToggle(msg); break;
-        case 'block-reorder': applyReorder(msg.order); break;
         case 'reload': window.location.reload(); break;
         default: break;
       }

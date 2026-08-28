@@ -83,7 +83,7 @@ export default async function HomePage() {
       <PreviewBridge />
       <StorefrontNav />
 
-      <main id="__blocks_root" className="flex-1">
+      <main className="flex-1">
         {blocks.length === 0 ? (
           // Xarxa de seguretat: si per algun motiu el tenant no té cap bloc
           // configurat (migració pendent, esborrat per error...), un home

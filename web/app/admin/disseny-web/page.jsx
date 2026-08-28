@@ -151,15 +151,30 @@ function blockSummary(block) {
   return meta?.description || '';
 }
 
+// Bloc afegit al esborrany però encara no creat al servidor: se li assigna
+// un id temporal (string) perquè React el pugui fer servir de key i perquè
+// el sheet d'edició el pugui referenciar, però mai es manda a cap PATCH —
+// només es POSTeja de veritat des de saveAll().
+function tempBlockId() {
+  return `nou-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function BlocksPanel({ sendPreview }) {
-  const [blocks, setBlocks] = useState([]);
+  // `saved` és l'última fotografia coneguda del servidor (per calcular què
+  // ha canviat en desar); `draft` és la còpia editable — cap acció d'aquest
+  // panell (afegir, esborrar, arrossegar, activar/desactivar, editar props)
+  // toca el servidor fins que es prem "Guardar canvis". Això evita dependre
+  // de la previsualització en directe per a res crític: un bloc nou o buit
+  // encara no existeix al DOM de l'iframe (el seu propi component retorna
+  // null sense contingut), així que no hi ha res a "pedaçar" en directe —
+  // l'única manera fiable de veure'l és desar de veritat i recarregar.
+  const [saved, setSaved] = useState([]);
+  const [draft, setDraft] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [editingBlock, setEditingBlock] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [editingProps, setEditingProps] = useState({});
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
   const [err, setErr] = useState('');
   const dragIdRef = useRef(null);
 
@@ -167,7 +182,9 @@ function BlocksPanel({ sendPreview }) {
     setLoading(true);
     try {
       const r = await authFetch('/admin/home-blocks');
-      setBlocks(await r.json());
+      const data = await r.json();
+      setSaved(data);
+      setDraft(data.map((b) => ({ ...b })));
     } finally {
       setLoading(false);
     }
@@ -175,122 +192,127 @@ function BlocksPanel({ sendPreview }) {
 
   useEffect(() => { load(); }, [load]);
 
-  async function addBlock(type) {
-    setAdding(true);
-    setErr('');
-    try {
-      const r = await authFetch('/admin/home-blocks', {
-        method: 'POST',
-        body: JSON.stringify({ block_type: type, props: {} }),
-      });
-      if (!r.ok) { const b = await r.json(); setErr(typeof b.detail === 'string' ? b.detail : 'Error en afegir el bloc'); return; }
-      const created = await r.json();
-      await load();
-      setAddOpen(false);
-      sendPreview({ type: 'reload' });
-      if (BLOCK_META[type]?.editable) {
-        setEditingBlock(created);
-        setEditingProps(created.props || {});
-      }
-    } finally {
-      setAdding(false);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
+
+  function addBlock(type) {
+    const block = { id: tempBlockId(), block_type: type, enabled: true, props: {}, _new: true };
+    setDraft((prev) => [...prev, block]);
+    setAddOpen(false);
+    if (BLOCK_META[type]?.editable) {
+      setEditingId(block.id);
+      setEditingProps({});
+      setErr('');
     }
   }
 
   function openEdit(block) {
-    setEditingBlock(block);
+    setEditingId(block.id);
     setEditingProps(block.props || {});
     setErr('');
   }
 
-  // Si l'usuari edita en directe i després cancel·la, el DOM de l'iframe ha
-  // quedat mutat amb valors provisionals que mai s'han desat — l'única
-  // manera fiable de tornar-lo a l'estat real és recarregar-lo.
-  function cancelEdit() {
-    setEditingBlock(null);
-    sendPreview({ type: 'reload' });
+  function applyEdit() {
+    setDraft((prev) => prev.map((b) => (b.id === editingId ? { ...b, props: editingProps } : b)));
+    setEditingId(null);
   }
 
-  async function saveEdit() {
-    if (!editingBlock) return;
-    setSaving(true);
+  function toggleEnabled(block) {
+    setDraft((prev) => prev.map((b) => (b.id === block.id ? { ...b, enabled: !b.enabled } : b)));
+  }
+
+  function deleteBlock(block) {
+    setDraft((prev) => prev.filter((b) => b.id !== block.id));
+  }
+
+  function discardChanges() {
+    setDraft(saved.map((b) => ({ ...b })));
+    setEditingId(null);
     setErr('');
-    try {
-      const r = await authFetch(`/admin/home-blocks/${editingBlock.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ props: editingProps }),
-      });
-      if (!r.ok) { const b = await r.json(); setErr(typeof b.detail === 'string' ? b.detail : 'Error en guardar'); return; }
-      await load();
-      setEditingBlock(null);
-      // Alguns blocs (p. ex. testimonis) no tenen previsualització lletra a
-      // lletra per a cada camp — un recarregat en desar garanteix que
-      // l'iframe sempre acaba mostrant l'estat real, l'hagi pogut seguir en
-      // directe o no.
-      sendPreview({ type: 'reload' });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function toggleEnabled(block) {
-    sendPreview({ type: 'block-toggle', blockId: block.id, enabled: !block.enabled });
-    await authFetch(`/admin/home-blocks/${block.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ enabled: !block.enabled }),
-    });
-    await load();
-  }
-
-  async function deleteBlock(block) {
-    if (!confirm(`Eliminar el bloc "${BLOCK_META[block.block_type]?.label || block.block_type}"?`)) return;
-    setDeletingId(block.id);
-    try {
-      await authFetch(`/admin/home-blocks/${block.id}`, { method: 'DELETE' });
-      await load();
-      sendPreview({ type: 'reload' });
-    } finally {
-      setDeletingId(null);
-    }
   }
 
   function onDragStart(id) { dragIdRef.current = id; }
   function onDragOver(e) { e.preventDefault(); }
 
-  async function persistReorder(list) {
-    await authFetch('/admin/home-blocks/reorder', {
-      method: 'PATCH',
-      body: JSON.stringify({ order: list.map((b, i) => ({ id: b.id, position: i + 1 })) }),
-    });
-  }
-
   function onDrop(targetId) {
     const dragId = dragIdRef.current;
     dragIdRef.current = null;
     if (dragId == null || dragId === targetId) return;
-    setBlocks((prev) => {
+    setDraft((prev) => {
       const list = [...prev];
       const fromIdx = list.findIndex((b) => b.id === dragId);
       const toIdx = list.findIndex((b) => b.id === targetId);
       if (fromIdx === -1 || toIdx === -1) return prev;
       const [moved] = list.splice(fromIdx, 1);
       list.splice(toIdx, 0, moved);
-      sendPreview({ type: 'block-reorder', order: list.map((b) => b.id) });
-      persistReorder(list);
       return list;
     });
   }
 
-  const availableToAdd = BLOCK_TYPES.filter((type) => type === 'carousel' || !blocks.some((b) => b.block_type === type));
+  // Persisteix tot l'esborrany d'un cop: esborra el que s'ha tret,
+  // crea el que és nou, actualitza props/enabled del que ha canviat i
+  // finalment envia l'ordre complet — en aquest ordre perquè el reorder
+  // final ja pugui fer servir els ids reals dels blocs acabats de crear.
+  async function saveAll() {
+    setSaving(true);
+    setErr('');
+    try {
+      const draftIds = new Set(draft.map((b) => b.id));
+      for (const b of saved) {
+        if (!draftIds.has(b.id)) {
+          await authFetch(`/admin/home-blocks/${b.id}`, { method: 'DELETE' });
+        }
+      }
+
+      const idMap = {};
+      for (const b of draft) {
+        if (!b._new) continue;
+        const r = await authFetch('/admin/home-blocks', {
+          method: 'POST',
+          body: JSON.stringify({ block_type: b.block_type, props: b.props || {} }),
+        });
+        if (!r.ok) { const body = await r.json(); throw new Error(typeof body.detail === 'string' ? body.detail : 'Error en crear un bloc'); }
+        const created = await r.json();
+        idMap[b.id] = created.id;
+      }
+
+      const savedById = Object.fromEntries(saved.map((b) => [b.id, b]));
+      for (const b of draft) {
+        if (b._new) continue;
+        const before = savedById[b.id];
+        if (!before) continue;
+        const propsChanged = JSON.stringify(before.props) !== JSON.stringify(b.props);
+        const enabledChanged = before.enabled !== b.enabled;
+        if (!propsChanged && !enabledChanged) continue;
+        const body = {};
+        if (propsChanged) body.props = b.props;
+        if (enabledChanged) body.enabled = b.enabled;
+        const r = await authFetch(`/admin/home-blocks/${b.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+        if (!r.ok) { const respBody = await r.json(); throw new Error(typeof respBody.detail === 'string' ? respBody.detail : 'Error en desar un bloc'); }
+      }
+
+      const order = draft.map((b, i) => ({ id: idMap[b.id] || b.id, position: i + 1 }));
+      await authFetch('/admin/home-blocks/reorder', { method: 'PATCH', body: JSON.stringify({ order }) });
+
+      await load();
+      sendPreview({ type: 'reload' });
+    } catch (e) {
+      setErr(e.message || 'Error desant els canvis');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const availableToAdd = BLOCK_TYPES.filter((type) => type === 'carousel' || !draft.some((b) => b.block_type === type));
+  const editingBlock = draft.find((b) => b.id === editingId) || null;
   const EditForm = editingBlock ? PROPS_FORMS[editingBlock.block_type] : null;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-zinc-500">Arrossega per reordenar els blocs del home.</p>
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <p className="text-sm text-zinc-500">Arrossega per reordenar els blocs del home. La previsualització s&apos;actualitza en prémer &quot;Guardar canvis&quot;.</p>
         <button
           onClick={() => { setErr(''); setAddOpen(true); }}
-          className="flex items-center gap-1.5 bg-zinc-900 text-white text-sm px-4 py-2 rounded-xl hover:bg-zinc-700 transition-colors"
+          className="flex items-center gap-1.5 bg-white border border-zinc-200 text-zinc-700 text-sm px-4 py-2 rounded-xl hover:bg-zinc-50 transition-colors shrink-0"
         >
           <Plus size={15} /> Afegir bloc
         </button>
@@ -300,7 +322,7 @@ function BlocksPanel({ sendPreview }) {
         <p className="text-zinc-400 text-sm">Carregant…</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {blocks.map((block) => {
+          {draft.map((block) => {
             const meta = BLOCK_META[block.block_type];
             return (
               <div
@@ -317,6 +339,7 @@ function BlocksPanel({ sendPreview }) {
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-zinc-900 text-sm">{meta?.label || block.block_type}</span>
                     <span className="text-[10px] bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-full">{block.block_type}</span>
+                    {block._new && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">nou</span>}
                   </div>
                   <p className="text-xs text-zinc-400 mt-0.5 truncate">{blockSummary(block)}</p>
                 </div>
@@ -337,7 +360,6 @@ function BlocksPanel({ sendPreview }) {
                   )}
                   <button
                     onClick={() => deleteBlock(block)}
-                    disabled={deletingId === block.id}
                     className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
                   >
                     <Trash2 size={14} />
@@ -346,20 +368,39 @@ function BlocksPanel({ sendPreview }) {
               </div>
             );
           })}
-          {blocks.length === 0 && (
+          {draft.length === 0 && (
             <p className="text-zinc-400 text-sm py-8 text-center">Cap bloc configurat. La pàgina d&apos;inici es mostrarà buida — afegeix-ne un!</p>
           )}
         </div>
       )}
+
+      {err && <p className="text-red-500 text-xs mt-3">{err}</p>}
+
+      <div className="flex items-center gap-3 mt-5 pt-5 border-t border-zinc-200">
+        <button
+          onClick={saveAll}
+          disabled={!dirty || saving}
+          className="bg-zinc-900 text-white text-sm px-5 py-2 rounded-xl hover:bg-zinc-700 disabled:opacity-40 disabled:hover:bg-zinc-900 transition-colors"
+        >
+          {saving ? 'Desant…' : 'Guardar canvis'}
+        </button>
+        {dirty && !saving && (
+          <>
+            <span className="text-xs text-amber-600">Tens canvis sense desar</span>
+            <button onClick={discardChanges} className="text-xs text-zinc-400 hover:text-zinc-700">
+              Descartar
+            </button>
+          </>
+        )}
+      </div>
 
       {/* Afegir bloc */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Afegir bloc</DialogTitle>
-            <DialogDescription>Tria un tipus de bloc per afegir-lo al final del home.</DialogDescription>
+            <DialogDescription>Tria un tipus de bloc per afegir-lo al final del home. No es desa fins que premis &quot;Guardar canvis&quot;.</DialogDescription>
           </DialogHeader>
-          {err && <p className="text-red-500 text-xs">{err}</p>}
           <div className="grid grid-cols-1 gap-2">
             {availableToAdd.map((type) => {
               const meta = BLOCK_META[type];
@@ -367,8 +408,7 @@ function BlocksPanel({ sendPreview }) {
                 <button
                   key={type}
                   onClick={() => addBlock(type)}
-                  disabled={adding}
-                  className="flex flex-col items-start gap-0.5 p-3 rounded-xl border border-zinc-200 hover:border-zinc-900 text-left transition-colors disabled:opacity-50"
+                  className="flex flex-col items-start gap-0.5 p-3 rounded-xl border border-zinc-200 hover:border-zinc-900 text-left transition-colors"
                 >
                   <span className="text-sm font-semibold text-zinc-900">{meta.label}</span>
                   <span className="text-xs text-zinc-400">{meta.description}</span>
@@ -382,8 +422,8 @@ function BlocksPanel({ sendPreview }) {
         </DialogContent>
       </Dialog>
 
-      {/* Editar props */}
-      <Sheet open={!!editingBlock} onOpenChange={(open) => { if (!open) cancelEdit(); }}>
+      {/* Editar props (encara dins l'esborrany, no desa al servidor) */}
+      <Sheet open={!!editingBlock} onOpenChange={(open) => { if (!open) setEditingId(null); }}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>{editingBlock ? BLOCK_META[editingBlock.block_type]?.label : ''}</SheetTitle>
@@ -397,20 +437,18 @@ function BlocksPanel({ sendPreview }) {
               />
             )}
           </div>
-          {err && <p className="text-red-500 text-xs mt-3">{err}</p>}
           <SheetFooter className="mt-6">
             <button
-              onClick={cancelEdit}
+              onClick={() => setEditingId(null)}
               className="text-sm px-4 py-2 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-colors"
             >
               Cancel·lar
             </button>
             <button
-              onClick={saveEdit}
-              disabled={saving}
-              className="bg-zinc-900 text-white text-sm px-5 py-2 rounded-xl hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+              onClick={applyEdit}
+              className="bg-zinc-900 text-white text-sm px-5 py-2 rounded-xl hover:bg-zinc-700 transition-colors"
             >
-              {saving ? 'Guardant…' : 'Guardar canvis'}
+              Aplicar
             </button>
           </SheetFooter>
         </SheetContent>
