@@ -21,7 +21,15 @@ export default function CuratorSelection({ id, releases }) {
   }
 
   return (
-    <section data-block-id={id} className="py-24 md:py-32 px-5 md:px-16 bg-background">
+    <section
+      data-block-id={id}
+      style={{
+        paddingTop: 'var(--spacing-density)',
+        paddingBottom: 'var(--spacing-density)',
+        borderTop: 'var(--section-divider, none)',
+      }}
+      className="px-5 md:px-16 bg-background"
+    >
       <div className="max-w-[var(--content-width,1280px)] mx-auto">
         <div className="flex items-end justify-between mb-10 md:mb-12">
           <h2 className="font-serif italic text-3xl md:text-4xl">{t('curatorSelection')}</h2>
@@ -66,11 +74,15 @@ export default function CuratorSelection({ id, releases }) {
                   alt=""
                   fill
                   sizes="(max-width: 768px) 70vw, 30vw"
+                  style={{ filter: 'var(--image-treatment, none)' }}
                   className="object-cover group-hover:scale-110 transition-transform duration-1000"
                 />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent p-6 md:p-8 flex flex-col justify-end">
-                <span className="font-mono text-[10px] text-white/70 uppercase tracking-widest mb-2">
+                <span
+                  style={{ textTransform: 'var(--eyebrow-style, uppercase)' }}
+                  className="font-mono text-[10px] text-white/70 uppercase tracking-widest mb-2"
+                >
                   {[r.formato, r.sello].filter(Boolean).join(' · ')}
                 </span>
                 <h3 className="font-serif italic text-xl md:text-2xl text-white leading-snug mb-1 line-clamp-2">

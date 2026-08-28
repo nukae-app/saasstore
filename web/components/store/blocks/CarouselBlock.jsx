@@ -9,7 +9,15 @@ import ReleaseCarousel from '../ReleaseCarousel';
 export default function CarouselBlock({ id, heading, subtitle, cta_label, releases = [] }) {
   if (releases.length === 0) return null;
   return (
-    <section data-block-id={id} className="py-24 md:py-32 px-5 md:px-16 bg-white">
+    <section
+      data-block-id={id}
+      style={{
+        paddingTop: 'var(--spacing-density)',
+        paddingBottom: 'var(--spacing-density)',
+        borderTop: 'var(--section-divider, none)',
+      }}
+      className="px-5 md:px-16 bg-white"
+    >
       <div className="max-w-[var(--content-width,1280px)] mx-auto">
         <div className="flex justify-between items-baseline mb-12 md:mb-16">
           <div>
@@ -19,6 +27,7 @@ export default function CarouselBlock({ id, heading, subtitle, cta_label, releas
           {cta_label && (
             <Link
               href="/cataleg"
+              style={{ textTransform: 'var(--eyebrow-style, uppercase)' }}
               className="hidden sm:block text-xs font-medium text-zinc-900 uppercase tracking-widest hover:tracking-[0.15em] transition-all"
             >
               <span data-field="cta_label">{cta_label}</span>

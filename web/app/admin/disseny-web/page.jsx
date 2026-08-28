@@ -68,6 +68,23 @@ const CONTENT_WIDTH_OPTIONS = [
   { label: 'Completa', value: '1600px' },
 ];
 const BORDER_CARD_ON = '1px solid var(--border)';
+const IMAGE_TREATMENT_OPTIONS = [
+  { label: 'Color', value: 'none' },
+  { label: 'Blanc i negre', value: 'grayscale(100%)' },
+];
+const EYEBROW_STYLE_OPTIONS = [
+  { label: 'MAJÚSCULES', value: 'uppercase' },
+  { label: 'Normal', value: 'none' },
+];
+const SPACING_DENSITY_OPTIONS = [
+  { label: 'Compacte', value: '48px' },
+  { label: 'Normal', value: '96px' },
+  { label: 'Espaiós', value: '128px' },
+];
+const SECTION_DIVIDER_OPTIONS = [
+  { label: 'Cap', value: 'none' },
+  { label: 'Línia', value: '1px solid var(--border)' },
+];
 
 function PresetField({ label, options, value, onChange }) {
   return (
@@ -521,6 +538,10 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
     shadow_card: config.theme?.shadow_card || '',
     border_card: config.theme?.border_card || '',
     content_width: config.theme?.content_width || '',
+    image_treatment: config.theme?.image_treatment || '',
+    eyebrow_style: config.theme?.eyebrow_style || '',
+    spacing_density: config.theme?.spacing_density || '',
+    section_divider: config.theme?.section_divider || '',
   }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -577,6 +598,10 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
         shadow_card: extra.shadow_card || null,
         border_card: extra.border_card || null,
         content_width: extra.content_width || null,
+        image_treatment: extra.image_treatment || null,
+        eyebrow_style: extra.eyebrow_style || null,
+        spacing_density: extra.spacing_density || null,
+        section_divider: extra.section_divider || null,
       }),
     });
     setSaving(false);
@@ -591,7 +616,10 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
   function resetDefaults() {
     const v = {};
     for (const f of THEME_FIELDS) v[f.key] = f.default;
-    const emptyExtra = { radius_card: '', radius_button: '', shadow_card: '', border_card: '', content_width: '' };
+    const emptyExtra = {
+      radius_card: '', radius_button: '', shadow_card: '', border_card: '', content_width: '',
+      image_treatment: '', eyebrow_style: '', spacing_density: '', section_divider: '',
+    };
     setValues(v);
     setFontHeadline('');
     setFontBody('');
@@ -685,6 +713,10 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${extra.border_card === BORDER_CARD_ON ? 'left-5' : 'left-0.5'}`} />
           </button>
         </div>
+        <PresetField label="Tractament de les fotos" options={IMAGE_TREATMENT_OPTIONS} value={extra.image_treatment} onChange={(v) => setExtraField('image_treatment', v)} />
+        <PresetField label="Estil de les etiquetes petites" options={EYEBROW_STYLE_OPTIONS} value={extra.eyebrow_style} onChange={(v) => setExtraField('eyebrow_style', v)} />
+        <PresetField label="Densitat de l'espaiat entre seccions" options={SPACING_DENSITY_OPTIONS} value={extra.spacing_density} onChange={(v) => setExtraField('spacing_density', v)} />
+        <PresetField label="Separador entre seccions" options={SECTION_DIVIDER_OPTIONS} value={extra.section_divider} onChange={(v) => setExtraField('section_divider', v)} />
       </div>
 
       <FontPickerDialog

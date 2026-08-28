@@ -143,6 +143,26 @@
     --font-headline: 'Bodoni Moda', Georgia, serif;
     --font-body: 'Hanken Grotesk', system-ui, sans-serif;
     --font-label-mono: 'Space Mono', ui-monospace, monospace;
+
+    /* Espaiat vertical per defecte de les seccions del home (equivalent a
+       l'antic py-24 md:py-32) — un tenant que trii una densitat des de
+       l'admin sobreescriu aquesta variable amb un valor pla, no responsive,
+       via el <style> injectat a layout.jsx, que guanya per ordre en el
+       cascade (ve després d'aquest globals.css). */
+    --spacing-density: 6rem;
+  }
+
+  @media (width >= 48rem) {
+    :root {
+      --spacing-density: 8rem;
+    }
+  }
+
+  .hero-featured-image {
+    filter: var(--image-treatment, grayscale(15%));
+  }
+  .group:hover .hero-featured-image {
+    filter: var(--image-treatment, none);
   }
 
   *, *::before, *::after {

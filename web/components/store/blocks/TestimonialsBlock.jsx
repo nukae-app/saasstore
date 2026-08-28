@@ -10,8 +10,13 @@ export default function TestimonialsBlock({ id, heading, items = [], background_
   return (
     <section
       data-block-id={id}
-      style={backgroundStyle(background_color, background_image_url)}
-      className="py-24 md:py-32 px-5 md:px-16 bg-zinc-50"
+      style={{
+        ...backgroundStyle(background_color, background_image_url),
+        paddingTop: 'var(--spacing-density)',
+        paddingBottom: 'var(--spacing-density)',
+        borderTop: 'var(--section-divider, none)',
+      }}
+      className="px-5 md:px-16 bg-zinc-50"
     >
       <div className="max-w-[var(--content-width,1280px)] mx-auto">
         {heading && (

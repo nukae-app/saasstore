@@ -21,7 +21,11 @@ export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label
         <div className="space-y-10">
           <div className="space-y-4">
             {eyebrow && (
-              <span data-field="eyebrow" className="font-mono text-xs text-zinc-500 uppercase tracking-[0.3em] block">
+              <span
+                data-field="eyebrow"
+                style={{ textTransform: 'var(--eyebrow-style, uppercase)' }}
+                className="font-mono text-xs text-zinc-500 uppercase tracking-[0.3em] block"
+              >
                 {eyebrow}
               </span>
             )}
@@ -71,7 +75,7 @@ export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label
                     fill
                     sizes="420px"
                     priority
-                    className="object-cover grayscale-[15%] group-hover:grayscale-0 transition-all duration-700"
+                    className="object-cover hero-featured-image transition-all duration-700"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">

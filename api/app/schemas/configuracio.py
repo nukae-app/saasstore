@@ -175,6 +175,16 @@ class ThemeTokens(BaseModel):
     shadow_card: str | None = Field(default=None, max_length=200)
     border_card: str | None = Field(default=None, max_length=100)
     content_width: str | None = Field(default=None, max_length=50)
+    # Aplicats amb var(--x, revert) en lloc de valor literal: "revert" a una
+    # propietat inline fa que, si la variable no està definida, es respecti
+    # la classe de Tailwind del component en lloc de forçar-hi cap valor —
+    # és el "no facis res" real per a propietats que ja tenien una classe
+    # (filter/text-transform/padding), a diferència dels tokens de dalt on
+    # el component no tenia cap valor previ i calia un fallback literal.
+    image_treatment: str | None = Field(default=None, max_length=100)
+    eyebrow_style: str | None = Field(default=None, max_length=50)
+    spacing_density: str | None = Field(default=None, max_length=20)
+    section_divider: str | None = Field(default=None, max_length=100)
 
 
 class CustomCssUpdateIn(BaseModel):

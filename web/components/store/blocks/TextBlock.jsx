@@ -9,8 +9,13 @@ export default function TextBlock({ id, heading, body, cta_label, cta_href, back
   return (
     <section
       data-block-id={id}
-      style={backgroundStyle(background_color, background_image_url)}
-      className="py-24 px-5 md:px-16 bg-white"
+      style={{
+        ...backgroundStyle(background_color, background_image_url),
+        paddingTop: 'var(--spacing-density)',
+        paddingBottom: 'var(--spacing-density)',
+        borderTop: 'var(--section-divider, none)',
+      }}
+      className="px-5 md:px-16 bg-white"
     >
       <div className="max-w-2xl mx-auto text-center">
         {heading && (
@@ -28,6 +33,7 @@ export default function TextBlock({ id, heading, body, cta_label, cta_href, back
             href={cta_href}
             data-field="cta_href"
             data-attr="href"
+            style={{ textTransform: 'var(--eyebrow-style, uppercase)' }}
             className="inline-block mt-8 text-xs font-medium text-zinc-900 uppercase tracking-widest hover:tracking-[0.15em] transition-all"
           >
             <span data-field="cta_label">{cta_label}</span>

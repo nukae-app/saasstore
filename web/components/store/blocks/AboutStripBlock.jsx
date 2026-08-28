@@ -8,7 +8,15 @@ export default async function AboutStripBlock({ id, config }) {
   const t = await getTranslations('home');
   const isVinils = !config || config.vertical === 'records';
   return (
-    <section data-block-id={id} className="py-24 px-5 md:px-16 bg-zinc-50">
+    <section
+      data-block-id={id}
+      style={{
+        paddingTop: 'var(--spacing-density)',
+        paddingBottom: 'var(--spacing-density)',
+        borderTop: 'var(--section-divider, none)',
+      }}
+      className="px-5 md:px-16 bg-zinc-50"
+    >
       <div className="max-w-2xl mx-auto text-center">
         <h2 className="font-serif italic text-2xl md:text-3xl mb-4 text-zinc-900">
           {config?.nombre || ''}
