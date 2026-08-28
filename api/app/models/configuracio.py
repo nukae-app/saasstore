@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     Integer,
@@ -116,6 +117,18 @@ class ConfiguracioBotiga(TenantScoped, Base):
     # tiquet imprès del TPV és un asset a part (aspect ratio diferent, per
     # impressora tèrmica), no es toca aquí.
     logo_url: Mapped[str | None] = mapped_column(String(300))
+    # Tokens de tema (colors hex + tipografies) que sobreescriuen les
+    # variables CSS de web/app/globals.css per aquest tenant — injectats a
+    # web/app/layout.jsx. `JSON`, no `JSONB`: és l'únic tipus JSON que fa
+    # servir tot aquest codebase (Release.tracklist, Order.shipping_address...)
+    # i aquí mai cal filtrar/indexar pel contingut, només carregar el blob
+    # sencer per tenant_id. Validat amb un schema fix (ThemeTokens) al
+    # router — mai un dict obert de noms de variable arbitraris.
+    theme: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    # CSS lliure del tenant, sanejat a l'escriure (ver
+    # services/sanitize.py::sanitize_custom_css) i injectat tal qual en un
+    # <style> després dels tokens de dalt, així pot sobreescriure'ls.
+    custom_css: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -178,3 +191,36 @@ class ConfiguracioBotiga(TenantScoped, Base):
     @discogs_habilitat.setter
     def discogs_habilitat(self, value: bool) -> None:
         self._set_feature("discogs_sync", value)
+
+    # Tres interruptors nous: fins ara `isVinils` (derivat de Tenant.vertical_id,
+    # no configurable) era l'únic que decidia si un tenant veia el mode
+    # "Remena" i els filtres de format/gènere a /cataleg (ver
+    # web/app/[locale]/cataleg/page.jsx i CatalogFilters.jsx). El vertical
+    # segueix sent el sostre (una floristeria mai els veu), però dins de
+    # "records" cada tenant ara pot apagar-los individualment.
+    @property
+    def catalog_browse_mode(self) -> bool:
+        feature = self._feature("catalog_browse_mode")
+        return bool(feature and feature.enabled)
+
+    @catalog_browse_mode.setter
+    def catalog_browse_mode(self, value: bool) -> None:
+        self._set_feature("catalog_browse_mode", value)
+
+    @property
+    def catalog_format_filter(self) -> bool:
+        feature = self._feature("catalog_format_filter")
+        return bool(feature and feature.enabled)
+
+    @catalog_format_filter.setter
+    def catalog_format_filter(self, value: bool) -> None:
+        self._set_feature("catalog_format_filter", value)
+
+    @property
+    def catalog_genre_filter(self) -> bool:
+        feature = self._feature("catalog_genre_filter")
+        return bool(feature and feature.enabled)
+
+    @catalog_genre_filter.setter
+    def catalog_genre_filter(self, value: bool) -> None:
+        self._set_feature("catalog_genre_filter", value)

@@ -8,7 +8,7 @@ import { Button } from '../../../components/ui/button';
 
 export default function ConfiguracioPage() {
   const t = useT();
-  const [tab, setTab] = useState('fiscals'); // fiscals | contacte | iva | marges | cubetes | enviaments | secrets
+  const [tab, setTab] = useState('fiscals'); // fiscals | contacte | disseny | css | iva | marges | cubetes | enviaments | secrets
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +30,8 @@ export default function ConfiguracioPage() {
         {[
           ['fiscals', t('config.tab.fiscal', 'Dades fiscals')],
           ['contacte', t('config.tab.shop', 'Botiga')],
+          ['disseny', t('config.tab.design', 'Disseny')],
+          ['css', t('config.tab.css', 'CSS')],
           ['iva', t('config.tab.vat', "Tipus d'IVA")],
           ['marges', t('config.tab.margins', 'Marges')],
           ['cubetes', t('config.tab.sections', 'Cubetes')],
@@ -49,6 +51,10 @@ export default function ConfiguracioPage() {
         <DadesFiscalsPanel config={config} onSaved={loadConfig} />
       ) : tab === 'contacte' ? (
         <BotigaPanel config={config} onSaved={loadConfig} />
+      ) : tab === 'disseny' ? (
+        <DissenyPanel config={config} onSaved={loadConfig} />
+      ) : tab === 'css' ? (
+        <CustomCssPanel config={config} onSaved={loadConfig} />
       ) : tab === 'iva' ? (
         <TipusIvaPanel />
       ) : tab === 'marges' ? (
@@ -186,6 +192,14 @@ function BotigaPanel({ config, onSaved }) {
     await authFetch('/admin/configuracio', {
       method: 'PATCH',
       body: JSON.stringify({ discogs_habilitat: !config.discogs_habilitat }),
+    });
+    onSaved();
+  }
+
+  async function toggleCatalogFeature(key) {
+    await authFetch('/admin/configuracio', {
+      method: 'PATCH',
+      body: JSON.stringify({ [key]: !config[key] }),
     });
     onSaved();
   }
@@ -393,7 +407,208 @@ function BotigaPanel({ config, onSaved }) {
         </div>
       </div>
 
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
+        <p className="text-sm text-zinc-500">
+          {t('config.shop.catalog_features_hint', 'Funcions del catàleg públic que només tenen sentit per a vinils — es poden apagar individualment encara que el teu vertical les tingui disponibles.')}
+        </p>
+        {[
+          { key: 'catalog_browse_mode', label: t('config.shop.catalog_browse_mode', 'Mode "Remena" (cubetes)'), hint: t('config.shop.catalog_browse_mode_hint', 'Navegar el catàleg com si regires les cubetes físiques de la botiga.') },
+          { key: 'catalog_format_filter', label: t('config.shop.catalog_format_filter', 'Filtre de format'), hint: t('config.shop.catalog_format_filter_hint', 'LP, 12", CD, Cassette... al catàleg.') },
+          { key: 'catalog_genre_filter', label: t('config.shop.catalog_genre_filter', 'Filtre de gènere'), hint: t('config.shop.catalog_genre_filter_hint', 'Cercar per gènere musical al catàleg.') },
+        ].map(({ key, label, hint }) => (
+          <div key={key} className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-700">{label}</p>
+              <p className="text-xs text-zinc-400 mt-1 max-w-md">{hint}</p>
+            </div>
+            <button type="button" onClick={() => toggleCatalogFeature(key)}
+              className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config[key] ? 'bg-green-500' : 'bg-zinc-300'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${config[key] ? 'left-5' : 'left-0.5'}`} />
+            </button>
+          </div>
+        ))}
+      </div>
+
       {error && <p className="text-red-500 text-xs">{error}</p>}
+      <div className="flex items-center gap-3">
+        <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
+        {saved && !saving && <span className="text-xs text-green-600">{t('subscriptions.config.saved', 'Desat')}</span>}
+      </div>
+    </form>
+  );
+}
+
+// Claus 1:1 amb THEME_COLOR_FIELDS del backend (api/app/schemas/configuracio.py)
+// i amb les variables CSS de web/app/globals.css — els valors per defecte
+// d'aquí són literalment els mateixos que hi ha allà, perquè un tenant que
+// no ha tocat res vegi els pickers ja carregats amb el look actual, no en blanc.
+const THEME_FIELDS = [
+  { key: 'background', label: 'Fons', default: '#faf9f6' },
+  { key: 'foreground', label: 'Text', default: '#1a1a1a' },
+  { key: 'primary', label: 'Principal', default: '#171717' },
+  { key: 'primary_foreground', label: 'Text sobre principal', default: '#ffffff' },
+  { key: 'secondary', label: 'Secundari', default: '#f5f5f5' },
+  { key: 'secondary_foreground', label: 'Text sobre secundari', default: '#1a1a1a' },
+  { key: 'accent', label: 'Accent', default: '#f2f2f2' },
+  { key: 'accent_foreground', label: 'Text sobre accent', default: '#262626' },
+  { key: 'muted', label: 'Apagat', default: '#f2f2f2' },
+  { key: 'muted_foreground', label: 'Text apagat', default: '#757575' },
+  { key: 'border', label: 'Vores', default: '#cccccc' },
+];
+
+function DissenyPanel({ config, onSaved }) {
+  const t = useT();
+  const [values, setValues] = useState(() => {
+    const v = {};
+    for (const f of THEME_FIELDS) v[f.key] = config.theme?.[f.key] || f.default;
+    return v;
+  });
+  const [fontHeadline, setFontHeadline] = useState(config.theme?.font_headline || '');
+  const [fontBody, setFontBody] = useState(config.theme?.font_body || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  function setColor(key, value) {
+    setValues((v) => ({ ...v, [key]: value }));
+  }
+
+  async function save(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    setSaved(false);
+    const r = await authFetch('/admin/configuracio/theme', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        ...values,
+        font_headline: fontHeadline || null,
+        font_body: fontBody || null,
+      }),
+    });
+    setSaving(false);
+    if (r.ok) {
+      setSaved(true);
+      onSaved();
+    } else {
+      setError((await r.json()).detail || t('config.save_error', 'Error desant'));
+    }
+  }
+
+  function resetDefaults() {
+    const v = {};
+    for (const f of THEME_FIELDS) v[f.key] = f.default;
+    setValues(v);
+    setFontHeadline('');
+    setFontBody('');
+  }
+
+  return (
+    <form onSubmit={save} className="space-y-5 max-w-2xl">
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
+        <p className="text-sm text-zinc-500">
+          {t('config.design.hint', "Colors i tipografia propis de la teva botiga. Si has encarregat un disseny, pots copiar aquí els valors exactes (hex, nom de la font) que et doni el/la dissenyador/a.")}
+        </p>
+
+        <div className="flex h-10 rounded-lg overflow-hidden border border-zinc-200">
+          {THEME_FIELDS.map((f) => (
+            <div key={f.key} className="flex-1" style={{ backgroundColor: values[f.key] }} title={f.label} />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {THEME_FIELDS.map((f) => (
+            <div key={f.key} className="flex items-center gap-2">
+              <input
+                type="color"
+                value={values[f.key]}
+                onChange={(e) => setColor(f.key, e.target.value)}
+                className="w-9 h-9 rounded border border-zinc-300 shrink-0 cursor-pointer"
+              />
+              <div className="min-w-0 flex-1">
+                <label className="block text-xs font-medium text-zinc-700">{f.label}</label>
+                <input
+                  value={values[f.key]}
+                  onChange={(e) => setColor(f.key, e.target.value)}
+                  className="w-full border border-zinc-300 rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
+        <p className="text-sm text-zinc-500">
+          {t('config.design.font_hint', 'Nom de família tipogràfica de Google Fonts. Si el nom no existeix, es fa servir la tipografia per defecte sense trencar la pàgina.')}
+        </p>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.design.font_headline', 'Tipografia de títols')}</label>
+          <input value={fontHeadline} onChange={(e) => setFontHeadline(e.target.value)}
+            placeholder="Bodoni Moda, Georgia, serif"
+            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.design.font_body', 'Tipografia de text')}</label>
+          <input value={fontBody} onChange={(e) => setFontBody(e.target.value)}
+            placeholder="Hanken Grotesk, system-ui, sans-serif"
+            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="flex items-center gap-3">
+        <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
+        <button type="button" onClick={resetDefaults} className="text-xs text-zinc-500 hover:text-zinc-700">
+          {t('config.design.reset', 'Restaurar valors per defecte')}
+        </button>
+        {saved && !saving && <span className="text-xs text-green-600">{t('subscriptions.config.saved', 'Desat')}</span>}
+      </div>
+    </form>
+  );
+}
+
+function CustomCssPanel({ config, onSaved }) {
+  const t = useT();
+  const [css, setCss] = useState(config.custom_css || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  async function save(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    setSaved(false);
+    const r = await authFetch('/admin/configuracio/custom-css', {
+      method: 'PATCH',
+      body: JSON.stringify({ custom_css: css || null }),
+    });
+    setSaving(false);
+    if (r.ok) {
+      setSaved(true);
+      onSaved();
+    } else {
+      setError((await r.json()).detail || t('config.save_error', 'Error desant'));
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="space-y-5 max-w-2xl">
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+        <p className="text-sm text-zinc-500">
+          {t('config.css.hint', "Per a retocs que els colors/tipografia de \"Disseny\" no cobreixin. Pensat per a qui sap CSS o per al/la dissenyador/a que hagis contractat — no s'accepten @import ni @media en aquesta primera versió.")}
+        </p>
+        <textarea
+          value={css}
+          onChange={(e) => setCss(e.target.value)}
+          rows={16}
+          placeholder=".hero { letter-spacing: 0.02em; }"
+          spellCheck={false}
+          className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+        />
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
         {saved && !saving && <span className="text-xs text-green-600">{t('subscriptions.config.saved', 'Desat')}</span>}

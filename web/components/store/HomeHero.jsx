@@ -2,35 +2,39 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '../../i18n/navigation';
 import Image from 'next/image';
 
-export default async function HomeHero({ featured, config, isVinils = true }) {
+// Bloc "hero" del constructor de home (ver api/app/blocks/registry.py::HeroProps)
+// — eyebrow/title/subtitle/cta_label són copy que decideix el tenant des de
+// l'admin, ja no una branca isVinils dins del component (aquesta lògica va
+// passar a ser el valor per defecte que es sembra en crear el tenant, ver
+// blocks/provisioning.py). `featured` segueix sent dada de catàleg en viu,
+// la resol [locale]/page.jsx a cada request.
+export default async function HomeHero({ eyebrow, title, subtitle, cta_label, cta_href = '/cataleg', featured }) {
   const t = await getTranslations('home');
   return (
     <section className="relative min-h-[70vh] flex items-center px-5 md:px-16 mb-16 md:mb-24">
       <div className="max-w-[1280px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 items-center gap-16 lg:gap-20 py-12">
         <div className="space-y-10">
           <div className="space-y-4">
-            {isVinils && (
+            {eyebrow && (
               <span className="font-mono text-xs text-zinc-500 uppercase tracking-[0.3em] block">
-                Poblenou · Barcelona
+                {eyebrow}
               </span>
             )}
             <h1 className="font-serif text-5xl md:text-7xl leading-[1.1] text-zinc-900 max-w-xl">
-              {isVinils ? (
-                t.rich('heroTitle', { i: (chunks) => <span className="italic font-light">{chunks}</span> })
-              ) : (
-                config?.nombre || ''
-              )}
+              {title}
             </h1>
-            <p className="text-lg text-zinc-500 max-w-md leading-relaxed">
-              {isVinils ? t('heroSubtitle') : (config?.address ? config.address.split('\n').join(', ') : '')}
-            </p>
+            {subtitle && (
+              <p className="text-lg text-zinc-500 max-w-md leading-relaxed">
+                {subtitle}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-5">
             <Link
-              href="/cataleg"
+              href={cta_href}
               className="bg-primary text-white px-12 py-5 rounded-full font-medium uppercase tracking-widest text-sm hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-black/5"
             >
-              {t('explore')}
+              {cta_label || t('explore')}
             </Link>
             <Link
               href="/carret"

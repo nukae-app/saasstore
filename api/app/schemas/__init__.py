@@ -168,6 +168,10 @@ from .configuracio import (
     ConfiguracioBotigaOut,
     ConfiguracioBotigaUpdate,
     ConfiguracioBotigaPublic,
+    ThemeTokens,
+    HEX_COLOR_RE,
+    THEME_COLOR_FIELDS,
+    CustomCssUpdateIn,
     TenantSecretsStatusOut,
     TenantSecretsUpdateIn,
 )
@@ -181,4 +185,12 @@ from .subscripcions import (
     SubscripcioMePatch,
     SubscripcioCatalogItemOut,
     InformeSubscripcioMensualOut,
+)
+
+from .storefront import (
+    HomeBlockOut,
+    HomeBlockPublicOut,
+    HomeBlockCreateIn,
+    HomeBlockUpdateIn,
+    HomeBlockReorderIn,
 )

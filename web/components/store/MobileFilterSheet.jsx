@@ -7,7 +7,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle } from '../ui/sheet';
 import CatalogFilters from '../../app/[locale]/cataleg/CatalogFilters';
 
-export default function MobileFilterSheet({ isVinils = true }) {
+export default function MobileFilterSheet({ showFormatFilter = true, showGenreFilter = true }) {
   const t = useTranslations('cataleg');
   const [open, setOpen] = useState(false);
   const searchParams = useSearchParams();
@@ -35,7 +35,7 @@ export default function MobileFilterSheet({ isVinils = true }) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
           <SheetTitle className="mb-2">{t('filters')}</SheetTitle>
-          <CatalogFilters isVinils={isVinils} />
+          <CatalogFilters showFormatFilter={showFormatFilter} showGenreFilter={showGenreFilter} />
         </SheetContent>
       </Sheet>
     </div>

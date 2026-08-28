@@ -137,3 +137,7 @@ from .subscripcions import (
     EstatAssignacio,
     Assignacio,
 )
+
+from .storefront import (
+    HomeBlock,
+)

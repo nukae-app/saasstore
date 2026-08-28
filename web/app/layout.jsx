@@ -31,8 +31,34 @@ export default async function RootLayout({ children }) {
   // defaultLocale ("ca"), igual que el <html lang="ca"> fijo de antes.
   const locale = await getLocale();
 
+  // Fetch propio de generateMetadata() de arriba — Next.js no permite
+  // compartir su resultado con el componente, y api.js fuerza `no-store`,
+  // así que ya había esta duplicación de /config/public antes de este
+  // cambio (generateMetadata + page.jsx). No se arregla aquí a propósito,
+  // es una refactorización aparte.
+  let config = null;
+  try {
+    config = await api('/config/public');
+  } catch {}
+
+  const themeVars = config?.theme
+    ? Object.entries(config.theme)
+        .filter(([, value]) => value)
+        .map(([key, value]) => `--${key.replace(/_/g, '-')}: ${value};`)
+        .join('')
+    : '';
+
   return (
     <html lang={locale}>
+      <head>
+        {/* Tokens de tema del tenant, sobreescriben las variables de
+            globals.css — luego custom_css, para que pueda sobreescribir
+            los tokens si hace falta. dangerouslySetInnerHTML es lo correcto
+            aquí para un <style>; la defensa real es el saneado al guardar
+            (ver services/sanitize.py::sanitize_custom_css), no esta línea. */}
+        {themeVars && <style dangerouslySetInnerHTML={{ __html: `:root{${themeVars}}` }} />}
+        {config?.custom_css && <style dangerouslySetInnerHTML={{ __html: config.custom_css }} />}
+      </head>
       <body className="flex flex-col min-h-screen">
         <FaroInit collectorUrl={process.env.NEXT_PUBLIC_FARO_COLLECTOR_URL} />
         <AuthProvider>

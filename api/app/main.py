@@ -8,7 +8,7 @@ from .config import get_settings
 from .rate_limit import limiter
 from .routers import (
     admin, admin_newsletter, admin_subscripcions, admin_users, auth, billing_webhooks, blog, cart, catalog,
-    checkout, comptabilitat, configuracio, erp, health, i18n, internal, me, newsletter_public, spotify,
+    checkout, comptabilitat, configuracio, erp, health, home_blocks, i18n, internal, me, newsletter_public, spotify,
     subscripcions_public, superadmin,
 )
 
@@ -36,6 +36,8 @@ app.include_router(erp.router)
 app.include_router(comptabilitat.router)
 app.include_router(configuracio.router)
 app.include_router(configuracio.public_router)
+app.include_router(home_blocks.router)
+app.include_router(home_blocks.public_router)
 app.include_router(admin_users.router)
 app.include_router(admin_newsletter.router)
 app.include_router(admin_subscripcions.router)

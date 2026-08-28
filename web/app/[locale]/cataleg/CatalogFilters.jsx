@@ -9,7 +9,7 @@ import { api } from '../../lib/api';
 
 const FORMATS = ['LP', '12"', '10"', '7"', 'CD', 'Cassette', 'EP'];
 
-export default function CatalogFilters({ className = '', isVinils = true }) {
+export default function CatalogFilters({ className = '', showFormatFilter = true, showGenreFilter = true }) {
   const t = useTranslations('cataleg');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,7 +66,7 @@ export default function CatalogFilters({ className = '', isVinils = true }) {
       </div>
 
       {/* Format — vocabulari de format musical, només per a vinils */}
-      {isVinils && (
+      {showFormatFilter && (
         <div>
           <p className="font-medium text-zinc-700 mb-2">{t('format')}</p>
           <div className="flex flex-wrap gap-1.5">
@@ -115,7 +115,7 @@ export default function CatalogFilters({ className = '', isVinils = true }) {
       )}
 
       {/* Genre — vocabulari musical, només per a vinils */}
-      {isVinils && (
+      {showGenreFilter && (
         <div>
           <p className="font-medium text-zinc-700 mb-2">{t('genre')}</p>
           <input

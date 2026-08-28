@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from decimal import Decimal
 
@@ -99,8 +100,13 @@ class ConfiguracioBotigaOut(BaseModel):
     subscripcions_actives: bool
     maintenance_active: bool
     discogs_habilitat: bool
+    catalog_browse_mode: bool
+    catalog_format_filter: bool
+    catalog_genre_filter: bool
     favicon_url: str | None
     logo_url: str | None
+    theme: dict
+    custom_css: str | None
     updated_at: datetime
 
     model_config = {"from_attributes": True}
@@ -117,8 +123,51 @@ class ConfiguracioBotigaUpdate(BaseModel):
     hours: str | None = None
     reservation_minutes: int | None = None
     subscripcions_actives: bool | None = None
+    catalog_browse_mode: bool | None = None
+    catalog_format_filter: bool | None = None
+    catalog_genre_filter: bool | None = None
     maintenance_active: bool | None = None
     discogs_habilitat: bool | None = None
+
+
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+THEME_COLOR_FIELDS = (
+    "background", "foreground", "primary", "primary_foreground",
+    "secondary", "secondary_foreground", "accent", "accent_foreground",
+    "muted", "muted_foreground", "border",
+)
+THEME_FONT_FIELDS = ("font_headline", "font_body")
+
+
+class ThemeTokens(BaseModel):
+    """Body del PATCH de tema — claus 1:1 amb les variables CSS de
+    web/app/globals.css (injecció = bucle tonto al front, sense taula de
+    mapeig). Un dict obert de noms de variable arbitraris NO s'accepta a
+    propòsit: reobriria la porta d'injecció CSS lliure que es reserva a
+    `custom_css`, sanejat a part.
+
+    Sense @field_validator/Field(pattern=...) a propòsit: un error de
+    validació de Pydantic torna `detail` com a llista d'objectes, no
+    l'string simple que espera el frontend — es valida a mà a
+    update_theme(), mateix criteri que ja es va aplicar a
+    superadmin.py::create_tenant() per al mateix motiu."""
+    background: str | None = None
+    foreground: str | None = None
+    primary: str | None = None
+    primary_foreground: str | None = None
+    secondary: str | None = None
+    secondary_foreground: str | None = None
+    accent: str | None = None
+    accent_foreground: str | None = None
+    muted: str | None = None
+    muted_foreground: str | None = None
+    border: str | None = None
+    font_headline: str | None = Field(default=None, max_length=200)
+    font_body: str | None = Field(default=None, max_length=200)
+
+
+class CustomCssUpdateIn(BaseModel):
+    custom_css: str | None = None
 
 
 class ConfiguracioBotigaPublic(BaseModel):
@@ -131,8 +180,13 @@ class ConfiguracioBotigaPublic(BaseModel):
     subscripcions_actives: bool
     maintenance_active: bool
     discogs_habilitat: bool
+    catalog_browse_mode: bool
+    catalog_format_filter: bool
+    catalog_genre_filter: bool
     favicon_url: str | None
     logo_url: str | None
+    theme: dict
+    custom_css: str | None
     # `vertical`/`nombre` no viven en ConfiguracioBotiga (son de Tenant) —
     # se mezclan a mano en routers/configuracio.py::get_configuracio_publica,
     # no hay columna equivalente en este modelo. `nombre` es el nombre

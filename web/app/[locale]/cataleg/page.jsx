@@ -145,8 +145,14 @@ export default async function CatalogPage({ searchParams }) {
   const isVinils = !config || config.vertical === 'records';
   // El mode "remena" (regirar cubetes) és un concepte de botiga física de
   // discos — sense Seccio sembrades per a cap altre vertical (Fase 4), i
-  // sense sentit per a res que no sigui vinil.
-  const mode = isVinils && p.mode === 'remena' ? 'remena' : 'graella';
+  // sense sentit per a res que no sigui vinil. El vertical és el sostre
+  // (isVinils), però dins de "records" cada tenant pot apagar-lo individualment
+  // (catalog_browse_mode, ver ConfiguracioBotiga) — igual fail-open que
+  // isVinils si `config` no s'ha pogut resoldre.
+  const browseModeEnabled = isVinils && (!config || config.catalog_browse_mode);
+  const formatFilterEnabled = isVinils && (!config || config.catalog_format_filter);
+  const genreFilterEnabled = isVinils && (!config || config.catalog_genre_filter);
+  const mode = browseModeEnabled && p.mode === 'remena' ? 'remena' : 'graella';
 
   return (
     <>
@@ -155,7 +161,7 @@ export default async function CatalogPage({ searchParams }) {
       <main className="flex-1 container py-8">
         <h1 className="font-serif italic text-3xl md:text-4xl mb-4">{t('title')}</h1>
 
-        {isVinils && (
+        {browseModeEnabled && (
           <Suspense>
             <ModeToggle searchParams={searchParams} />
           </Suspense>
@@ -166,14 +172,14 @@ export default async function CatalogPage({ searchParams }) {
         ) : (
           <>
             <Suspense>
-              <MobileFilterSheet isVinils={isVinils} />
+              <MobileFilterSheet showFormatFilter={formatFilterEnabled} showGenreFilter={genreFilterEnabled} />
             </Suspense>
 
             <div className="flex gap-10">
               {/* Sidebar filters (desktop) */}
               <aside className="hidden md:block w-48 shrink-0 pt-0.5">
                 <Suspense>
-                  <CatalogFilters isVinils={isVinils} />
+                  <CatalogFilters showFormatFilter={formatFilterEnabled} showGenreFilter={genreFilterEnabled} />
                 </Suspense>
               </aside>
 

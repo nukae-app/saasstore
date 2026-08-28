@@ -7,6 +7,7 @@ indexadas."""
 from urllib.parse import urlparse
 
 import bleach
+import tinycss2
 from bleach.css_sanitizer import CSSSanitizer
 
 _ALLOWED_TAGS = [
@@ -56,3 +57,38 @@ def sanitize_rich_html(html: str | None) -> str | None:
     if not html:
         return html
     return _cleaner.clean(html)
+
+
+# CSS propio del tenant (ConfiguracioBotiga.custom_css, ver
+# routers/configuracio.py) — inyectado tal cual en un <style> en
+# web/app/layout.jsx. Lo escribe el admin del propio tenant sobre su propia
+# tienda (mismo nivel de confianza que subir su logo), así que el riesgo no
+# es "un desconocido inyecta HTML" sino "una cuenta de admin comprometida
+# usa este campo para algo más que retocar colores". Dos capas:
+MAX_CUSTOM_CSS_BYTES = 32_000
+
+
+def sanitize_custom_css(css: str | None) -> str | None:
+    if not css:
+        return css
+    if len(css.encode()) > MAX_CUSTOM_CSS_BYTES:
+        raise ValueError("El CSS és massa gran (màxim 32 KB)")
+    # <style> és un "raw text element" HTML: el navegador el parseja de
+    # forma literal fins que veu el tancament, i React no escapa el
+    # contingut d'un dangerouslySetInnerHTML dins d'un <style> (no pot,
+    # trencaria CSS vàlid). Un "</style>" literal dins d'aquest text seria
+    # una fuga real de l'etiqueta cap a HTML/script arbitrari — aquesta
+    # comprovació és la que protegeix de veritat, independent del que
+    # detecti el parser de CSS de sota.
+    if "</style" in css.lower():
+        raise ValueError("El CSS conté una seqüència no permesa")
+    rules = tinycss2.parse_stylesheet(css, skip_comments=True, skip_whitespace=True)
+    for rule in rules:
+        if rule.type == "at-rule":
+            # @import/@media/@font-face... tots fora en v1 — més senzill
+            # que intentar validar quins @media són "segurs" ara mateix;
+            # s'afegeix suport concret si algun tenant el demana de debò.
+            raise ValueError(f"La regla '@{rule.lower_at_keyword}' no està permesa en aquest camp")
+        if rule.type == "error":
+            raise ValueError("El CSS no és vàlid")
+    return css

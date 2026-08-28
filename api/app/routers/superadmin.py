@@ -41,6 +41,7 @@ from ..services.superadmin_security import (
     create_superadmin_token, record_audit, require_superadmin, require_superadmin_role,
 )
 from ..tenancy import scoped_to
+from ..blocks.provisioning import provision_default_home_blocks
 from ..tenant_secrets import TenantSecrets, get_tenant_secrets, provision_tenant_secret
 from scripts.seed_legal_pages import seed as seed_legal_pages
 from scripts.seed_translations import seed as seed_translations
@@ -184,13 +185,16 @@ class PlatformAdminUpdateIn(BaseModel):
 
 
 # Único vocabulario de feature_key que existe hoy en el código (ver
-# models/configuracio.py::ConfiguracioBotiga.discogs_habilitat/.subscripcions_actives)
-# — no hay tabla de registro para esto (a diferencia de `Vertical`), sería
-# sobre-ingeniería para 2 valores. Si esto crece, se revisita con el mismo
-# criterio que ya se aplicó al registro de verticals en su momento.
+# models/configuracio.py::ConfiguracioBotiga.discogs_habilitat/etc.) — no hay
+# tabla de registro para esto (a diferencia de `Vertical`); si esto sigue
+# creciendo se revisita con el mismo criterio que ya se aplicó al registro
+# de verticals en su momento.
 KNOWN_FEATURES: list[tuple[str, str]] = [
     ("discogs_sync", "Discogs sync"),
     ("subscriptions", "Club de subscripció"),
+    ("catalog_browse_mode", "Catàleg — mode Remena (cubetes)"),
+    ("catalog_format_filter", "Catàleg — filtre de format"),
+    ("catalog_genre_filter", "Catàleg — filtre de gènere"),
 ]
 
 
@@ -463,10 +467,16 @@ def create_tenant(
         # y config adjunto a la sesión — ninguna de las dos cosas existe
         # todavía como kwarg del constructor de arriba.
         db.flush()
-        # Deriva del vertical elegido — Discogs solo tiene sentido para
-        # "records". subscripcions_actives se queda en su default (False)
-        # sea cual sea el vertical, igual que ya pasa hoy para recordstore.
-        config.discogs_habilitat = payload.vertical_id == "records"
+        # Deriva del vertical elegido — Discogs y los tres interruptores de
+        # catálogo (modo Remena, filtro de formato, filtro de género) solo
+        # tienen sentido para "records". subscripcions_actives se queda en
+        # su default (False) sea cual sea el vertical, igual que ya pasa
+        # hoy para recordstore.
+        es_records = payload.vertical_id == "records"
+        config.discogs_habilitat = es_records
+        config.catalog_browse_mode = es_records
+        config.catalog_format_filter = es_records
+        config.catalog_genre_filter = es_records
         # Sin un tipo de IVA por defecto, el checkout no tendría ninguno que
         # aplicar — valor genérico razonable, editable después desde el
         # admin del tenant (ver routers/configuracio.py).
@@ -487,6 +497,10 @@ def create_tenant(
         # traducir) ni sin páginas de privacidad/términos.
         seed_translations(db, tenant.id)
         seed_legal_pages(db, tenant.id)
+        # Secuencia inicial de bloques del home — ver blocks/provisioning.py.
+        # Sin esto, un tenant nuevo nacería con la home en blanco hasta que
+        # alguien la editara a mano desde el constructor.
+        provision_default_home_blocks(db, es_records, payload.nombre, payload.address)
         db.commit()
 
     provision_tenant_secret(tenant.id)

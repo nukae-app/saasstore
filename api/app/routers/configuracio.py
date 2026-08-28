@@ -16,6 +16,7 @@ from ..database import get_db
 from ..models import ConfiguracioBotiga, MargeConfig, PesFormat, Seccio, TipusIva, TramEnviament
 from ..schemas import (
     ConfiguracioBotigaOut, ConfiguracioBotigaPublic, ConfiguracioBotigaUpdate,
+    CustomCssUpdateIn, ThemeTokens, HEX_COLOR_RE, THEME_COLOR_FIELDS,
     MargeConfigIn, MargeConfigOut, MargeConfigUpdate,
     PesFormatIn, PesFormatOut, PesFormatUpdate,
     SeccioIn, SeccioOut,
@@ -23,6 +24,7 @@ from ..schemas import (
     TipusIvaIn, TipusIvaOut, TipusIvaUpdate,
     TramEnviamentIn, TramEnviamentOut, TramEnviamentUpdate,
 )
+from ..services.sanitize import sanitize_custom_css
 from ..services.security import require_admin
 from ..tenant_secrets import TenantSecrets, get_tenant_secrets, set_tenant_secret
 
@@ -124,6 +126,35 @@ async def upload_logo(file: UploadFile = File(...), db: Session = Depends(get_db
 @router.delete("/configuracio/logo", response_model=ConfiguracioBotigaOut)
 def delete_logo(db: Session = Depends(get_db)):
     return _delete_config_image("logo_url", db)
+
+
+@router.patch("/configuracio/theme", response_model=ConfiguracioBotigaOut)
+def update_theme(payload: ThemeTokens, db: Session = Depends(get_db)):
+    # Endpoint aparte de PATCH /configuracio general (igual que favicon/logo):
+    # un valor de tema mal formado no debe bloquear guardar datos fiscales
+    # de un formulario distinto.
+    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
+    for key in THEME_COLOR_FIELDS:
+        if key in changes and not HEX_COLOR_RE.match(changes[key]):
+            raise HTTPException(422, f"'{key}' ha de ser un color hex (#rrggbb)")
+    config = _get_or_create_config(db)
+    config.theme = {**config.theme, **changes}
+    db.commit()
+    db.refresh(config)
+    return config
+
+
+@router.patch("/configuracio/custom-css", response_model=ConfiguracioBotigaOut)
+def update_custom_css(payload: CustomCssUpdateIn, db: Session = Depends(get_db)):
+    try:
+        clean = sanitize_custom_css(payload.custom_css)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    config = _get_or_create_config(db)
+    config.custom_css = clean
+    db.commit()
+    db.refresh(config)
+    return config
 
 
 @public_router.get("/public", response_model=ConfiguracioBotigaPublic)

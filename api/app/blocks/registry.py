@@ -1,0 +1,43 @@
+"""Registre de tipus de bloc del home constructible (ver models/storefront.py
+::HomeBlock) — font única de veritat de quins `block_type` existeixen i
+quins `props` accepta cadascun. Afegir un bloc nou és afegir una entrada
+aquí (i el seu component a web/components/store/blocks/registry.js) — no
+cal tocar cap altre codi.
+
+Regla d'or: `props` només configura copy/comportament (títol, quina
+etiqueta alimenta un carrusel...), mai dades de catàleg en viu — això ho
+segueix resolent [locale]/page.jsx a cada request, igual que avui."""
+
+from pydantic import BaseModel
+
+
+class HeroProps(BaseModel):
+    eyebrow: str | None = None
+    title: str = ""
+    subtitle: str | None = None
+    cta_label: str | None = None
+    cta_href: str = "/cataleg"
+
+
+class CarouselProps(BaseModel):
+    heading: str = ""
+    subtitle: str | None = None
+    cta_label: str | None = None
+    # Quina etiqueta alimenta el carrusel (ver Etiqueta) — "novetat" per
+    # defecte, mateix criteri que el carrusel de "New arrivals" d'avui.
+    etiqueta_slug: str = "novetat"
+
+
+class EmptyProps(BaseModel):
+    """Blocs sense props configurables en v1 — la seva única configuració
+    és si estan presents/actius a la llista de HomeBlock del tenant."""
+
+
+BLOCK_REGISTRY: dict[str, type[BaseModel]] = {
+    "hero": HeroProps,
+    "carousel": CarouselProps,
+    "curator_selection": EmptyProps,
+    "genre_grid": EmptyProps,
+    "spotify_recommendations": EmptyProps,
+    "about_strip": EmptyProps,
+}
