@@ -19,12 +19,33 @@ class BackgroundProps(BaseModel):
     background_image_url: str | None = None
 
 
+# Variants de disposició del bloc "hero" — ver
+# web/components/store/HomeHero.jsx per al render de cadascuna i
+# web/components/store/blocks/HeroPropsForm.jsx per al selector d'admin.
+# String lliure (no Literal), mateix criteri que la resta de camps triats
+# per preset en aquest fitxer (etiqueta_slug, icon...): l'admin només manda
+# valors que ja surten d'aquest registre, mai text escrit a mà.
+HERO_LAYOUTS = (
+    "image_right", "image_left", "dual_featured", "mosaic",
+    "background_center", "background_left", "background_video",
+    "solid_color", "no_image", "logo_tagline",
+)
+
+
 class HeroProps(BackgroundProps):
+    layout: str = "image_right"
     eyebrow: str | None = None
     title: str = ""
     subtitle: str | None = None
     cta_label: str | None = None
     cta_href: str = "/cataleg"
+    # Text de la targeta flotant a image_right/image_left/dual_featured —
+    # per defecte cap (el component fa servir la traducció "Ara sona"), però
+    # un tenant d'un altre vertical (no discos) pot voler-lo genèric, p. ex.
+    # "Producte destacat".
+    featured_label: str | None = None
+    # Només rellevant amb layout="background_video".
+    background_video_url: str | None = None
 
 
 class CarouselProps(BaseModel):

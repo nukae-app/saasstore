@@ -20,10 +20,18 @@ async function fetchAllByEtiqueta(slug) {
 // catàleg en viu — regla d'or del constructor de blocs (ver
 // api/app/blocks/registry.py): els props d'un bloc mai porten dades de
 // catàleg, sempre les resol aquesta pàgina a cada request, igual que abans.
-function resolveBlockProps(block, { featured, config, releasesByEtiqueta }) {
+function resolveBlockProps(block, { featured, config, recomanats, releasesByEtiqueta }) {
   switch (block.block_type) {
-    case 'hero':
-      return { ...block.props, featured };
+    case 'hero': {
+      // Dades en viu que necessiten algunes disposicions (ver
+      // HERO_LAYOUTS a api/app/blocks/registry.py): "dual_featured" vol un
+      // segon disc destacat diferent del primer, "mosaic" vol una graella
+      // de portades — cap dels dos és una selecció que triï l'admin, surten
+      // sempre de "recomanat" igual que `featured`.
+      const featured2 = recomanats.find((r) => r.id !== featured?.id) || null;
+      const mosaicReleases = recomanats.filter((r) => r.image_url).slice(0, 6);
+      return { ...block.props, featured, featured2, mosaicReleases, config };
+    }
     case 'carousel':
       return { ...block.props, releases: releasesByEtiqueta[block.props.etiqueta_slug] || [] };
     case 'curator_selection': {
@@ -95,7 +103,7 @@ export default async function HomePage() {
           blocks.map((block) => {
             const Block = BLOCK_COMPONENTS[block.block_type];
             if (!Block) return null;
-            return <Block key={block.id} id={block.id} {...resolveBlockProps(block, { featured, config, releasesByEtiqueta })} />;
+            return <Block key={block.id} id={block.id} {...resolveBlockProps(block, { featured, config, recomanats, releasesByEtiqueta })} />;
           })
         )}
       </main>
