@@ -20,7 +20,7 @@ const GENERIC_BACKGROUND_LAYOUTS = new Set(['image_right', 'image_left', 'dual_f
 export default async function HomeHero({
   id, layout = 'image_right', eyebrow, title, subtitle, cta_label, cta_href = '/cataleg',
   featured, featured2, mosaicReleases = [], config,
-  featured_label, background_color, background_image_url, background_video_url,
+  featured_label, background_color, background_image_url, background_video_url, text_align,
 }) {
   const t = await getTranslations('home');
   const dark = layout === 'background_center' || layout === 'background_left' || layout === 'background_video';
@@ -31,7 +31,18 @@ export default async function HomeHero({
     <TextContent eyebrow={eyebrow} title={title} subtitle={subtitle} align={align} dark={dark} />
   );
   const ctaButtons = (
-    <CtaButtons cta_href={cta_href} cta_label={cta_label} t={t} dark={dark} center={align === 'center'} />
+    <CtaButtons cta_href={cta_href} cta_label={cta_label} t={t} dark={dark} align={align} />
+  );
+
+  // background_video és l'únic layout amb alineació triable per l'admin
+  // (centre/esquerra/dreta, ver HeroPropsForm.jsx) — la resta de layouts ja
+  // porten la seva alineació fixada pel propi disseny.
+  const videoAlign = text_align === 'left' || text_align === 'right' ? text_align : 'center';
+  const videoTextContent = (
+    <TextContent eyebrow={eyebrow} title={title} subtitle={subtitle} align={videoAlign} dark />
+  );
+  const videoCtaButtons = (
+    <CtaButtons cta_href={cta_href} cta_label={cta_label} t={t} dark align={videoAlign} />
   );
 
   let body;
@@ -117,10 +128,14 @@ export default async function HomeHero({
             </video>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/35 to-black/45" />
-          <div className="relative z-10 max-w-[var(--content-width,1280px)] mx-auto w-full py-12 text-center">
-            <div className="space-y-10 mx-auto max-w-2xl flex flex-col items-center">
-              {textContent}
-              {ctaButtons}
+          <div className="relative z-10 max-w-[var(--content-width,1280px)] mx-auto w-full py-12">
+            <div
+              className={`space-y-10 max-w-2xl flex flex-col ${
+                videoAlign === 'left' ? 'items-start' : videoAlign === 'right' ? 'items-end ml-auto' : 'items-center mx-auto'
+              }`}
+            >
+              {videoTextContent}
+              {videoCtaButtons}
             </div>
           </div>
         </>
@@ -199,8 +214,11 @@ export default async function HomeHero({
 }
 
 function TextContent({ eyebrow, title, subtitle, align, dark }) {
+  const textAlignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : '';
+  const boxAlignClass = align === 'center' ? 'mx-auto' : align === 'right' ? 'ml-auto max-w-xl' : 'max-w-xl';
+  const subtitleAlignClass = align === 'center' ? 'mx-auto max-w-md' : align === 'right' ? 'ml-auto max-w-md' : 'max-w-md';
   return (
-    <div className={`space-y-4 ${align === 'center' ? 'text-center' : ''}`}>
+    <div className={`space-y-4 ${textAlignClass}`}>
       {eyebrow && (
         <span
           data-field="eyebrow"
@@ -212,14 +230,14 @@ function TextContent({ eyebrow, title, subtitle, align, dark }) {
       )}
       <h1
         data-field="title"
-        className={`font-serif text-5xl md:text-7xl leading-[1.1] ${align === 'center' ? 'mx-auto' : 'max-w-xl'} ${dark ? 'text-white' : 'text-zinc-900'}`}
+        className={`font-serif text-5xl md:text-7xl leading-[1.1] ${boxAlignClass} ${dark ? 'text-white' : 'text-zinc-900'}`}
       >
         {title}
       </h1>
       {subtitle && (
         <p
           data-field="subtitle"
-          className={`text-lg leading-relaxed ${align === 'center' ? 'mx-auto max-w-md' : 'max-w-md'} ${dark ? 'text-white/80' : 'text-zinc-500'}`}
+          className={`text-lg leading-relaxed ${subtitleAlignClass} ${dark ? 'text-white/80' : 'text-zinc-500'}`}
         >
           {subtitle}
         </p>
@@ -228,9 +246,10 @@ function TextContent({ eyebrow, title, subtitle, align, dark }) {
   );
 }
 
-function CtaButtons({ cta_href, cta_label, t, dark, center }) {
+function CtaButtons({ cta_href, cta_label, t, dark, align }) {
+  const justifyClass = align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : '';
   return (
-    <div className={`flex flex-wrap gap-5 ${center ? 'justify-center' : ''}`}>
+    <div className={`flex flex-wrap gap-5 ${justifyClass}`}>
       <Link
         href={cta_href}
         data-field="cta_href"

@@ -17,6 +17,12 @@ const LAYOUT_OPTIONS = [
   { value: 'logo_tagline', label: 'Logo gran + eslògan' },
 ];
 
+const TEXT_ALIGN_OPTIONS = [
+  { value: 'center', label: 'Centrat' },
+  { value: 'left', label: 'Esquerra' },
+  { value: 'right', label: 'Dreta' },
+];
+
 const USES_FEATURED_LABEL = new Set(['image_right', 'image_left', 'dual_featured']);
 const USES_BACKGROUND_FIELDSET = new Set(['background_center', 'background_left', 'solid_color']);
 
@@ -108,13 +114,27 @@ export default function HeroPropsForm({ props, onChange, onFieldChange }) {
       )}
 
       {layout === 'background_video' && (
-        <div>
-          <label className="block text-xs font-medium text-zinc-600 mb-1">Vídeo de fons</label>
-          <VideoPicker
-            value={props.background_video_url}
-            onChange={(url) => set('background_video_url', url)}
-          />
-        </div>
+        <>
+          <div>
+            <label className="block text-xs font-medium text-zinc-600 mb-1">Vídeo de fons</label>
+            <VideoPicker
+              value={props.background_video_url}
+              onChange={(url) => set('background_video_url', url)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-600 mb-1">Alineació del text</label>
+            <select
+              value={props.text_align || 'center'}
+              onChange={(e) => set('text_align', e.target.value)}
+              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+            >
+              {TEXT_ALIGN_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </>
       )}
 
       {layout === 'logo_tagline' && (

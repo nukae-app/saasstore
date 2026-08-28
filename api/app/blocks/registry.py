@@ -46,6 +46,9 @@ class HeroProps(BackgroundProps):
     featured_label: str | None = None
     # Només rellevant amb layout="background_video".
     background_video_url: str | None = None
+    # Només rellevant amb layout="background_video" — als altres layouts
+    # l'alineació ja ve fixada pel propi layout (image_right/image_left...).
+    text_align: str = "center"
 
 
 # Variants de disposició del bloc "carousel" — ver
