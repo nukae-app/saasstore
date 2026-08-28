@@ -43,6 +43,21 @@ export const BLOCK_META = {
     description: 'Cites de clients amb el seu nom.',
     editable: true,
   },
+  gallery: {
+    label: 'Galeria',
+    description: 'Graella d’imatges lliures, amb peu de foto i enllaç opcionals.',
+    editable: true,
+  },
+  faq: {
+    label: 'Preguntes freqüents',
+    description: 'Llista de preguntes i respostes en acordió.',
+    editable: true,
+  },
+  banner: {
+    label: 'Franja d’avís',
+    description: 'Un avís curt (horari especial, enviaments...) amb un enllaç opcional.',
+    editable: true,
+  },
 };
 
 export const BLOCK_TYPES = Object.keys(BLOCK_META);

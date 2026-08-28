@@ -10,6 +10,9 @@ import SpotifyRecommendations from '../SpotifyRecommendations';
 import AboutStripBlock from './AboutStripBlock';
 import TextBlock from './TextBlock';
 import TestimonialsBlock from './TestimonialsBlock';
+import GalleryBlock from './GalleryBlock';
+import FaqBlock from './FaqBlock';
+import BannerBlock from './BannerBlock';
 
 export const BLOCK_COMPONENTS = {
   hero: HomeHero,
@@ -20,4 +23,7 @@ export const BLOCK_COMPONENTS = {
   about_strip: AboutStripBlock,
   text: TextBlock,
   testimonials: TestimonialsBlock,
+  gallery: GalleryBlock,
+  faq: FaqBlock,
+  banner: BannerBlock,
 };

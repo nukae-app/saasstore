@@ -65,6 +65,33 @@ class TestimonialsProps(BackgroundProps):
     items: list[TestimonialItem] = []
 
 
+class GalleryItem(BaseModel):
+    image_url: str = ""
+    caption: str | None = None
+    href: str | None = None
+
+
+class GalleryProps(BaseModel):
+    heading: str | None = None
+    items: list[GalleryItem] = []
+
+
+class FaqItem(BaseModel):
+    question: str = ""
+    answer: str = ""
+
+
+class FaqProps(BaseModel):
+    heading: str | None = None
+    items: list[FaqItem] = []
+
+
+class BannerProps(BackgroundProps):
+    text: str = ""
+    cta_label: str | None = None
+    cta_href: str | None = None
+
+
 BLOCK_REGISTRY: dict[str, type[BaseModel]] = {
     "hero": HeroProps,
     "carousel": CarouselProps,
@@ -74,4 +101,7 @@ BLOCK_REGISTRY: dict[str, type[BaseModel]] = {
     "about_strip": EmptyProps,
     "text": TextProps,
     "testimonials": TestimonialsProps,
+    "gallery": GalleryProps,
+    "faq": FaqProps,
+    "banner": BannerProps,
 }

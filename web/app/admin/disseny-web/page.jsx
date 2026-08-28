@@ -17,6 +17,9 @@ import CarouselPropsForm from '../../../components/store/blocks/CarouselPropsFor
 import CuratorSelectionPropsForm from '../../../components/store/blocks/CuratorSelectionPropsForm';
 import TextPropsForm from '../../../components/store/blocks/TextPropsForm';
 import TestimonialsPropsForm from '../../../components/store/blocks/TestimonialsPropsForm';
+import GalleryPropsForm from '../../../components/store/blocks/GalleryPropsForm';
+import FaqPropsForm from '../../../components/store/blocks/FaqPropsForm';
+import BannerPropsForm from '../../../components/store/blocks/BannerPropsForm';
 import FontPickerDialog from '../../../components/store/blocks/FontPickerDialog';
 
 const PROPS_FORMS = {
@@ -25,6 +28,9 @@ const PROPS_FORMS = {
   curator_selection: CuratorSelectionPropsForm,
   text: TextPropsForm,
   testimonials: TestimonialsPropsForm,
+  gallery: GalleryPropsForm,
+  faq: FaqPropsForm,
+  banner: BannerPropsForm,
 };
 
 // Mateixos valors per defecte que web/app/globals.css, perquè un tenant que
@@ -214,6 +220,9 @@ function blockSummary(block) {
   if (block.block_type === 'text') return block.props?.heading || block.props?.body || '(buit)';
   if (block.block_type === 'testimonials') return `${block.props?.items?.length || 0} testimoni(s)`;
   if (block.block_type === 'curator_selection') return `#${block.props?.etiqueta_slug || '—'}`;
+  if (block.block_type === 'gallery') return `${block.props?.items?.length || 0} imatge(s)`;
+  if (block.block_type === 'faq') return `${block.props?.items?.length || 0} pregunta(es)`;
+  if (block.block_type === 'banner') return block.props?.text || '(buit)';
   return meta?.description || '';
 }
 
