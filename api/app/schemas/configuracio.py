@@ -164,6 +164,17 @@ class ThemeTokens(BaseModel):
     border: str | None = None
     font_headline: str | None = Field(default=None, max_length=200)
     font_body: str | None = Field(default=None, max_length=200)
+    # Aparença: valors CSS ja resolts (no enums), mateix criteri que la resta
+    # d'aquest esquema — la UI només ofereix uns quants preajustos, però el
+    # backend els accepta com a text lliure curt. Cada component del
+    # storefront que els fa servir declara el seu propi valor de fallback
+    # CSS (var(--radius-card, 24px)), així que mentre aquest camp és buit
+    # (tots els tenants existents avui) l'aspecte no canvia gens.
+    radius_card: str | None = Field(default=None, max_length=50)
+    radius_button: str | None = Field(default=None, max_length=50)
+    shadow_card: str | None = Field(default=None, max_length=200)
+    border_card: str | None = Field(default=None, max_length=100)
+    content_width: str | None = Field(default=None, max_length=50)
 
 
 class CustomCssUpdateIn(BaseModel):

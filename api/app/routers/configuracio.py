@@ -135,12 +135,24 @@ def update_theme(payload: ThemeTokens, db: Session = Depends(get_db)):
     # Endpoint aparte de PATCH /configuracio general (igual que favicon/logo):
     # un valor de tema mal formado no debe bloquear guardar datos fiscales
     # de un formulario distinto.
-    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
+    #
+    # exclude_unset (no exclude_none): un camp absent del body es deixa
+    # intacte, però un camp enviat explícitament com a null (p. ex. "Restaurar
+    # valors per defecte" a la tipografia/aparença) ha de poder esborrar la
+    # clau del tema — amb exclude_none=True mai s'hi arribava, un null
+    # explícit es descartava igual que un camp no enviat.
+    changes = payload.model_dump(exclude_unset=True)
     for key in THEME_COLOR_FIELDS:
-        if key in changes and not HEX_COLOR_RE.match(changes[key]):
+        if key in changes and changes[key] is not None and not HEX_COLOR_RE.match(changes[key]):
             raise HTTPException(422, f"'{key}' ha de ser un color hex (#rrggbb)")
     config = _get_or_create_config(db)
-    config.theme = {**config.theme, **changes}
+    theme = dict(config.theme)
+    for key, value in changes.items():
+        if value is None:
+            theme.pop(key, None)
+        else:
+            theme[key] = value
+    config.theme = theme
     db.commit()
     db.refresh(config)
     return config

@@ -22,7 +22,7 @@ export default function CuratorSelection({ id, releases }) {
 
   return (
     <section data-block-id={id} className="py-24 md:py-32 px-5 md:px-16 bg-background">
-      <div className="max-w-[1280px] mx-auto">
+      <div className="max-w-[var(--content-width,1280px)] mx-auto">
         <div className="flex items-end justify-between mb-10 md:mb-12">
           <h2 className="font-serif italic text-3xl md:text-4xl">{t('curatorSelection')}</h2>
           <div className="hidden md:flex gap-2">
@@ -53,7 +53,12 @@ export default function CuratorSelection({ id, releases }) {
             <Link
               key={r.id}
               href={`/disc/${r.id}`}
-              className={`group relative shrink-0 snap-start rounded-3xl overflow-hidden bg-zinc-100 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.12)] ${CARD_SIZE}`}
+              style={{
+                borderRadius: 'var(--radius-card, 24px)',
+                boxShadow: 'var(--shadow-card, 0 10px 40px -10px rgba(0,0,0,0.12))',
+                border: 'var(--border-card, none)',
+              }}
+              className={`group relative shrink-0 snap-start overflow-hidden bg-zinc-100 ${CARD_SIZE}`}
             >
               {r.image_url && (
                 <Image

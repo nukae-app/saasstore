@@ -43,6 +43,54 @@ const THEME_FIELDS = [
   { key: 'border', label: 'Vores', default: '#cccccc' },
 ];
 
+// Preajustos d'aparença — valors CSS ja resolts (ver api/app/schemas/configuracio.py::
+// ThemeTokens): cada component del storefront declara el seu propi fallback,
+// així que mentre l'admin no en triï cap, l'aspecte no canvia.
+const RADIUS_CARD_OPTIONS = [
+  { label: 'Cap', value: '4px' },
+  { label: 'Suau', value: '12px' },
+  { label: 'Rodó', value: '24px' },
+  { label: 'Molt rodó', value: '40px' },
+];
+const RADIUS_BUTTON_OPTIONS = [
+  { label: 'Rectangular', value: '4px' },
+  { label: 'Arrodonit', value: '16px' },
+  { label: 'Píndola', value: '9999px' },
+];
+const SHADOW_OPTIONS = [
+  { label: 'Cap', value: 'none' },
+  { label: 'Suau', value: '0 2px 24px -6px rgba(15,23,42,0.08)' },
+  { label: 'Marcada', value: '0 20px 40px -8px rgba(15,23,42,0.25)' },
+];
+const CONTENT_WIDTH_OPTIONS = [
+  { label: 'Estreta', value: '960px' },
+  { label: 'Normal', value: '1280px' },
+  { label: 'Completa', value: '1600px' },
+];
+const BORDER_CARD_ON = '1px solid var(--border)';
+
+function PresetField({ label, options, value, onChange }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-zinc-700 mb-2">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+              value === opt.value ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DissenyWebPage() {
   const t = useT();
   const [tab, setTab] = useState('blocs'); // blocs | disseny | css
@@ -467,6 +515,13 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
   });
   const [fontHeadline, setFontHeadline] = useState(config.theme?.font_headline || '');
   const [fontBody, setFontBody] = useState(config.theme?.font_body || '');
+  const [extra, setExtra] = useState(() => ({
+    radius_card: config.theme?.radius_card || '',
+    radius_button: config.theme?.radius_button || '',
+    shadow_card: config.theme?.shadow_card || '',
+    border_card: config.theme?.border_card || '',
+    content_width: config.theme?.content_width || '',
+  }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -485,7 +540,7 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
   function setColor(key, value) {
     setValues((v) => {
       const next = { ...v, [key]: value };
-      sendPreview({ type: 'theme-vars', vars: { ...next, font_headline: fontHeadline, font_body: fontBody } });
+      sendPreview({ type: 'theme-vars', vars: { ...next, font_headline: fontHeadline, font_body: fontBody, ...extra } });
       return next;
     });
   }
@@ -494,7 +549,15 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
     if (which === 'headline') setFontHeadline(value); else setFontBody(value);
     sendPreview({
       type: 'theme-vars',
-      vars: { ...values, font_headline: which === 'headline' ? value : fontHeadline, font_body: which === 'body' ? value : fontBody },
+      vars: { ...values, font_headline: which === 'headline' ? value : fontHeadline, font_body: which === 'body' ? value : fontBody, ...extra },
+    });
+  }
+
+  function setExtraField(key, value) {
+    setExtra((v) => {
+      const next = { ...v, [key]: value };
+      sendPreview({ type: 'theme-vars', vars: { ...values, font_headline: fontHeadline, font_body: fontBody, ...next } });
+      return next;
     });
   }
 
@@ -509,6 +572,11 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
         ...values,
         font_headline: fontHeadline || null,
         font_body: fontBody || null,
+        radius_card: extra.radius_card || null,
+        radius_button: extra.radius_button || null,
+        shadow_card: extra.shadow_card || null,
+        border_card: extra.border_card || null,
+        content_width: extra.content_width || null,
       }),
     });
     setSaving(false);
@@ -523,10 +591,12 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
   function resetDefaults() {
     const v = {};
     for (const f of THEME_FIELDS) v[f.key] = f.default;
+    const emptyExtra = { radius_card: '', radius_button: '', shadow_card: '', border_card: '', content_width: '' };
     setValues(v);
     setFontHeadline('');
     setFontBody('');
-    sendPreview({ type: 'theme-vars', vars: { ...v, font_headline: '', font_body: '' } });
+    setExtra(emptyExtra);
+    sendPreview({ type: 'theme-vars', vars: { ...v, font_headline: '', font_body: '', ...emptyExtra } });
   }
 
   return (
@@ -591,6 +661,29 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
               Cercar…
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-5">
+        <p className="text-sm text-zinc-500">
+          Forma i textura dels blocs: targetes, botons i amplada del contingut. Si no tries res, es manté l&apos;aspecte actual.
+        </p>
+        <PresetField label="Radi de les targetes i imatges" options={RADIUS_CARD_OPTIONS} value={extra.radius_card} onChange={(v) => setExtraField('radius_card', v)} />
+        <PresetField label="Radi dels botons" options={RADIUS_BUTTON_OPTIONS} value={extra.radius_button} onChange={(v) => setExtraField('radius_button', v)} />
+        <PresetField label="Ombra de les targetes" options={SHADOW_OPTIONS} value={extra.shadow_card} onChange={(v) => setExtraField('shadow_card', v)} />
+        <PresetField label="Amplada del contingut" options={CONTENT_WIDTH_OPTIONS} value={extra.content_width} onChange={(v) => setExtraField('content_width', v)} />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-700">Vores a les targetes</p>
+            <p className="text-xs text-zinc-400 mt-1 max-w-sm">Afegeix una vora fina (color &quot;Vores&quot; de la paleta) a les targetes que avui no en tenen.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setExtraField('border_card', extra.border_card === BORDER_CARD_ON ? 'none' : BORDER_CARD_ON)}
+            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${extra.border_card === BORDER_CARD_ON ? 'bg-green-500' : 'bg-zinc-300'}`}
+          >
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${extra.border_card === BORDER_CARD_ON ? 'left-5' : 'left-0.5'}`} />
+          </button>
         </div>
       </div>
 

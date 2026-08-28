@@ -17,7 +17,13 @@ export default function PreviewBridge() {
     function applyThemeVars(vars) {
       const root = document.documentElement;
       for (const [key, value] of Object.entries(vars || {})) {
-        if (value) root.style.setProperty(`--${key.replace(/_/g, '-')}`, value);
+        const cssVar = `--${key.replace(/_/g, '-')}`;
+        // Un valor buit (p. ex. "Restaurar valors per defecte") ha de
+        // treure la propietat perquè el fallback CSS de cada component
+        // (var(--radius-card, 24px)) torni a aplicar-se — deixar-la posada
+        // amb setProperty('', ...) no la buida.
+        if (value) root.style.setProperty(cssVar, value);
+        else root.style.removeProperty(cssVar);
       }
     }
 

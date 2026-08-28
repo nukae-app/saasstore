@@ -10,7 +10,7 @@ export default function CarouselBlock({ id, heading, subtitle, cta_label, releas
   if (releases.length === 0) return null;
   return (
     <section data-block-id={id} className="py-24 md:py-32 px-5 md:px-16 bg-white">
-      <div className="max-w-[1280px] mx-auto">
+      <div className="max-w-[var(--content-width,1280px)] mx-auto">
         <div className="flex justify-between items-baseline mb-12 md:mb-16">
           <div>
             {heading && <h2 data-field="heading" className="font-serif italic text-3xl md:text-4xl">{heading}</h2>}

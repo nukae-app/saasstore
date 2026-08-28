@@ -17,7 +17,7 @@ export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label
       style={backgroundStyle(background_color, background_image_url)}
       className="relative min-h-[70vh] flex items-center px-5 md:px-16 mb-16 md:mb-24"
     >
-      <div className="max-w-[1280px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 items-center gap-16 lg:gap-20 py-12">
+      <div className="max-w-[var(--content-width,1280px)] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 items-center gap-16 lg:gap-20 py-12">
         <div className="space-y-10">
           <div className="space-y-4">
             {eyebrow && (
@@ -39,13 +39,15 @@ export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label
               href={cta_href}
               data-field="cta_href"
               data-attr="href"
-              className="bg-primary text-white px-12 py-5 rounded-full font-medium uppercase tracking-widest text-sm hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-black/5"
+              style={{ borderRadius: 'var(--radius-button, 9999px)' }}
+              className="bg-primary text-white px-12 py-5 font-medium uppercase tracking-widest text-sm hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-black/5"
             >
               <span data-field="cta_label">{cta_label || t('explore')}</span>
             </Link>
             <Link
               href="/carret"
-              className="bg-white border border-zinc-200 text-zinc-900 px-12 py-5 rounded-full font-medium uppercase tracking-widest text-sm hover:bg-zinc-50 transition-all active:scale-95"
+              style={{ borderRadius: 'var(--radius-button, 9999px)' }}
+              className="bg-white border border-zinc-200 text-zinc-900 px-12 py-5 font-medium uppercase tracking-widest text-sm hover:bg-zinc-50 transition-all active:scale-95"
             >
               {t('myCart')}
             </Link>
@@ -55,7 +57,13 @@ export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label
         {featured && (
           <div className="hidden lg:flex justify-end relative">
             <div className="relative group">
-              <div className="rounded-[32px] overflow-hidden shadow-2xl shadow-black/10 relative z-10 w-[420px] h-[500px] bg-zinc-100">
+              <div
+                style={{
+                  borderRadius: 'var(--radius-card, 32px)',
+                  boxShadow: 'var(--shadow-card, 0 25px 50px -12px rgba(0,0,0,0.25))',
+                }}
+                className="overflow-hidden relative z-10 w-[420px] h-[500px] bg-zinc-100"
+              >
                 {featured.image_url ? (
                   <Image
                     src={featured.image_url}
@@ -78,7 +86,14 @@ export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label
               </div>
 
               {/* Floating "Now Spinning" card */}
-              <div className="absolute -bottom-10 -left-16 z-20 bg-white rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] p-8 border border-zinc-100 max-w-xs">
+              <div
+                style={{
+                  borderRadius: 'var(--radius-card, 24px)',
+                  boxShadow: 'var(--shadow-card, 0 10px 40px -10px rgba(0,0,0,0.15))',
+                  border: 'var(--border-card, 1px solid #f4f4f5)',
+                }}
+                className="absolute -bottom-10 -left-16 z-20 bg-white p-8 max-w-xs"
+              >
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center border-4 border-zinc-100 shrink-0 animate-spin-slow">
                     <div className="w-2 h-2 rounded-full bg-white" />

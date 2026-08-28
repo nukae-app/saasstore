@@ -24,7 +24,7 @@ export default async function GenreGrid({ id }) {
 
   return (
     <section data-block-id={id} className="py-24 md:py-32 px-5 md:px-16 bg-white">
-      <div className="max-w-[1280px] mx-auto">
+      <div className="max-w-[var(--content-width,1280px)] mx-auto">
         <h2 className="font-mono text-xs text-zinc-500 text-center uppercase tracking-[0.4em] mb-16 md:mb-20">
           {t('exploreByGenre')}
         </h2>
@@ -35,7 +35,11 @@ export default async function GenreGrid({ id }) {
               <Link
                 key={genero}
                 href={`/cataleg?genre=${encodeURIComponent(genero)}`}
-                className="rounded-3xl border border-zinc-200 bg-white py-12 text-center group hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
+                style={{
+                  borderRadius: 'var(--radius-card, 24px)',
+                  border: 'var(--border-card, 1px solid #e4e4e7)',
+                }}
+                className="bg-white py-12 text-center group hover:bg-zinc-50 transition-colors"
               >
                 <Icon size={32} className="mx-auto mb-6 text-zinc-500 group-hover:text-zinc-900 transition-colors" />
                 <p className="text-xs uppercase tracking-widest text-zinc-900 font-medium">{genero}</p>
