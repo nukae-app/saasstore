@@ -1,12 +1,17 @@
 import { Link } from '../../../i18n/navigation';
+import { backgroundStyle } from './backgroundStyle';
 
 // Bloc "text" (ver api/app/blocks/registry.py::TextProps) — franja de
 // contingut lliure però estructurada: títol + cos + CTA opcional, tot copy
 // del tenant, sense dades de catàleg.
-export default function TextBlock({ id, heading, body, cta_label, cta_href }) {
+export default function TextBlock({ id, heading, body, cta_label, cta_href, background_color, background_image_url }) {
   if (!heading && !body) return null;
   return (
-    <section data-block-id={id} className="py-24 px-5 md:px-16 bg-white">
+    <section
+      data-block-id={id}
+      style={backgroundStyle(background_color, background_image_url)}
+      className="py-24 px-5 md:px-16 bg-white"
+    >
       <div className="max-w-2xl mx-auto text-center">
         {heading && (
           <h2 data-field="heading" className="font-serif italic text-3xl md:text-4xl mb-6 text-zinc-900">

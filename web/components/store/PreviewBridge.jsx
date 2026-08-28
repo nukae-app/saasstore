@@ -32,6 +32,21 @@ export default function PreviewBridge() {
     }
 
     function applyBlockField({ blockId, field, value }) {
+      // El fons (color/imatge) s'aplica com a estil inline sobre el propi
+      // element [data-block-id], no sobre un fill amb data-field — és
+      // comú a hero/text/testimonials (ver BackgroundFieldset.jsx).
+      if (field === 'background_color' || field === 'background_image_url') {
+        const root = document.querySelector(`[data-block-id="${blockId}"]`);
+        if (!root) return;
+        if (field === 'background_image_url') {
+          root.style.backgroundImage = value ? `linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55)), url(${value})` : '';
+          root.style.backgroundSize = value ? 'cover' : '';
+          root.style.backgroundPosition = value ? 'center' : '';
+        } else {
+          root.style.backgroundColor = value || '';
+        }
+        return;
+      }
       const el = document.querySelector(`[data-block-id="${blockId}"] [data-field="${field}"]`);
       if (!el) return;
       // Un camp de text es reflecteix mutant textContent; un camp que és en

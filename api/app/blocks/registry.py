@@ -11,7 +11,15 @@ segueix resolent [locale]/page.jsx a cada request, igual que avui."""
 from pydantic import BaseModel
 
 
-class HeroProps(BaseModel):
+class BackgroundProps(BaseModel):
+    """Fons personalitzable — comú a hero/text/testimonials. Si hi ha
+    `background_image_url`, mana sobre `background_color` (ver components
+    de bloc a web/components/store/*)."""
+    background_color: str | None = None
+    background_image_url: str | None = None
+
+
+class HeroProps(BackgroundProps):
     eyebrow: str | None = None
     title: str = ""
     subtitle: str | None = None
@@ -40,7 +48,7 @@ class CuratorSelectionProps(BaseModel):
     etiqueta_slug: str = "recomanat"
 
 
-class TextProps(BaseModel):
+class TextProps(BackgroundProps):
     heading: str | None = None
     body: str = ""
     cta_label: str | None = None
@@ -52,7 +60,7 @@ class TestimonialItem(BaseModel):
     author: str = ""
 
 
-class TestimonialsProps(BaseModel):
+class TestimonialsProps(BackgroundProps):
     heading: str | None = None
     items: list[TestimonialItem] = []
 

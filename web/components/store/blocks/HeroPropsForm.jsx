@@ -1,7 +1,9 @@
 'use client';
 
+import BackgroundFieldset from './BackgroundFieldset';
+
 // Formulari de props del bloc "hero" dins del Sheet d'edició de
-// web/app/admin/pagina-inici — camps 1:1 amb api/app/blocks/registry.py::HeroProps.
+// web/app/admin/disseny-web — camps 1:1 amb api/app/blocks/registry.py::HeroProps.
 export default function HeroPropsForm({ props, onChange, onFieldChange }) {
   function set(field, value) {
     onChange({ ...props, [field]: value });
@@ -58,6 +60,7 @@ export default function HeroPropsForm({ props, onChange, onFieldChange }) {
           />
         </div>
       </div>
+      <BackgroundFieldset props={props} onChange={onChange} onFieldChange={onFieldChange} />
     </div>
   );
 }

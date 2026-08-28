@@ -3,7 +3,10 @@ i blocks/registry.py). El listado admin devuelve todo (activos e inactivos);
 el público solo lo `enabled=True`, sin autenticación, para que
 [locale]/page.jsx lo pueda pedir en cada request igual que /config/public."""
 
-from fastapi import APIRouter, Depends, HTTPException
+import os
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -15,6 +18,28 @@ from ..services.security import require_admin
 
 router = APIRouter(prefix="/admin/home-blocks", tags=["home-blocks"], dependencies=[Depends(require_admin)])
 public_router = APIRouter(prefix="/config/public/home-blocks", tags=["home-blocks"])
+
+# Mateix volum compartit amb Caddy que favicon/logo (ver routers/configuracio.py)
+UPLOADS_DIR = "/app/uploads"
+ALLOWED_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
+
+
+@router.post("/upload-background")
+async def upload_background_image(file: UploadFile = File(...)):
+    # Sense lligar a cap block_id: un bloc nou encara no existeix al
+    # servidor mentre és a l'esborrany de l'admin (ver disseny-web/page.jsx),
+    # així que aquest endpoint només desa el fitxer i retorna la URL — és
+    # l'admin qui la desa dins de `props.background_image_url` en prémer
+    # "Guardar canvis", igual que qualsevol altre camp del formulari.
+    ext = os.path.splitext(file.filename or "")[-1].lower()
+    if ext not in ALLOWED_IMAGE_EXTS:
+        raise HTTPException(422, "Només s'accepten imatges PNG, JPG o WebP")
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    filename = f"{uuid.uuid4()}{ext}"
+    content = await file.read()
+    with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
+        f.write(content)
+    return {"url": f"/uploads/{filename}"}
 
 
 def _validate_props(block_type: str, props: dict) -> dict:

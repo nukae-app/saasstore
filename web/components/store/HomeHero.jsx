@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '../../i18n/navigation';
 import Image from 'next/image';
+import { backgroundStyle } from './blocks/backgroundStyle';
 
 // Bloc "hero" del constructor de home (ver api/app/blocks/registry.py::HeroProps)
 // — eyebrow/title/subtitle/cta_label són copy que decideix el tenant des de
@@ -8,10 +9,14 @@ import Image from 'next/image';
 // passar a ser el valor per defecte que es sembra en crear el tenant, ver
 // blocks/provisioning.py). `featured` segueix sent dada de catàleg en viu,
 // la resol [locale]/page.jsx a cada request.
-export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label, cta_href = '/cataleg', featured }) {
+export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label, cta_href = '/cataleg', featured, background_color, background_image_url }) {
   const t = await getTranslations('home');
   return (
-    <section data-block-id={id} className="relative min-h-[70vh] flex items-center px-5 md:px-16 mb-16 md:mb-24">
+    <section
+      data-block-id={id}
+      style={backgroundStyle(background_color, background_image_url)}
+      className="relative min-h-[70vh] flex items-center px-5 md:px-16 mb-16 md:mb-24"
+    >
       <div className="max-w-[1280px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 items-center gap-16 lg:gap-20 py-12">
         <div className="space-y-10">
           <div className="space-y-4">

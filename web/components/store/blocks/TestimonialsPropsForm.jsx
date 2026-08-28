@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus, Trash2 } from 'lucide-react';
+import BackgroundFieldset from './BackgroundFieldset';
 
 // Formulari de props del bloc "testimonials" — camps 1:1 amb
 // api/app/blocks/registry.py::TestimonialsProps. Els ítems no tenen
@@ -79,6 +80,7 @@ export default function TestimonialsPropsForm({ props, onChange, onFieldChange }
       >
         <Plus size={14} /> Afegir testimoni
       </button>
+      <BackgroundFieldset props={props} onChange={onChange} onFieldChange={onFieldChange} />
     </div>
   );
 }

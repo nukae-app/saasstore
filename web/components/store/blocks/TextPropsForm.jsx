@@ -1,5 +1,7 @@
 'use client';
 
+import BackgroundFieldset from './BackgroundFieldset';
+
 // Formulari de props del bloc "text" — camps 1:1 amb
 // api/app/blocks/registry.py::TextProps.
 export default function TextPropsForm({ props, onChange, onFieldChange }) {
@@ -50,6 +52,7 @@ export default function TextPropsForm({ props, onChange, onFieldChange }) {
         </div>
       </div>
       <p className="text-xs text-zinc-400">El botó només es mostra si omples text i enllaç.</p>
+      <BackgroundFieldset props={props} onChange={onChange} onFieldChange={onFieldChange} />
     </div>
   );
 }
