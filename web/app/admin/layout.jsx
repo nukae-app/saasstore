@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Disc3, ShoppingCart, PackagePlus, Store, Users,
   LogOut, Menu, X, Globe, FileText, CalendarDays, Layers,
   Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
-  Settings, Repeat,
+  Settings, Repeat, LayoutTemplate,
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
@@ -67,6 +67,7 @@ function getNavGroups(config) {
     {
       label: 'CMS',
       items: [
+        { href: '/admin/pagina-inici', key: 'nav.pagina_inici', label: 'Pàgina d\'inici', icon: LayoutTemplate },
         { href: '/admin/pagines',    key: 'nav.pagines',    label: 'Pàgines',    icon: Layers },
         { href: '/admin/blog',       key: 'nav.blog',       label: 'Blog',       icon: FileText },
         { href: '/admin/agenda',     key: 'nav.agenda',     label: 'Agenda',     icon: CalendarDays },
