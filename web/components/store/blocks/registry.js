@@ -13,6 +13,9 @@ import TestimonialsBlock from './TestimonialsBlock';
 import GalleryBlock from './GalleryBlock';
 import FaqBlock from './FaqBlock';
 import BannerBlock from './BannerBlock';
+import BrandStripBlock from './BrandStripBlock';
+import FeatureGridBlock from './FeatureGridBlock';
+import VideoBlock from './VideoBlock';
 
 export const BLOCK_COMPONENTS = {
   hero: HomeHero,
@@ -26,4 +29,7 @@ export const BLOCK_COMPONENTS = {
   gallery: GalleryBlock,
   faq: FaqBlock,
   banner: BannerBlock,
+  brand_strip: BrandStripBlock,
+  feature_grid: FeatureGridBlock,
+  video: VideoBlock,
 };

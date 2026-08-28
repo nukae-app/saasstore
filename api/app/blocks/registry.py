@@ -92,6 +92,45 @@ class BannerProps(BackgroundProps):
     cta_href: str | None = None
 
 
+class BrandItem(BaseModel):
+    image_url: str = ""
+    href: str | None = None
+
+
+class BrandStripProps(BaseModel):
+    heading: str | None = None
+    items: list[BrandItem] = []
+
+
+# Icones disponibles per al bloc "feature_grid" — subconjunt curat de
+# lucide-react (ver web/components/store/blocks/FeatureGridBlock.jsx per al
+# mapa icona->component). Llista tancada perquè l'admin tria d'una paleta
+# coherent, no escriu el nom d'una icona a mà.
+FEATURE_GRID_ICONS = (
+    "music", "disc", "truck", "gift", "tag", "percent",
+    "map-pin", "phone", "mail", "heart", "star", "sparkles",
+)
+
+
+class FeatureGridItem(BaseModel):
+    icon: str = "music"
+    label: str = ""
+    href: str | None = None
+
+
+class FeatureGridProps(BaseModel):
+    heading: str | None = None
+    items: list[FeatureGridItem] = []
+
+
+class VideoProps(BaseModel):
+    heading: str | None = None
+    subtitle: str | None = None
+    # URL normal de YouTube/Vimeo (no cal que sigui ja d'embed) — ver
+    # web/components/store/blocks/videoEmbedUrl.js per a la conversió.
+    video_url: str = ""
+
+
 BLOCK_REGISTRY: dict[str, type[BaseModel]] = {
     "hero": HeroProps,
     "carousel": CarouselProps,
@@ -104,4 +143,7 @@ BLOCK_REGISTRY: dict[str, type[BaseModel]] = {
     "gallery": GalleryProps,
     "faq": FaqProps,
     "banner": BannerProps,
+    "brand_strip": BrandStripProps,
+    "feature_grid": FeatureGridProps,
+    "video": VideoProps,
 }

@@ -20,6 +20,9 @@ import TestimonialsPropsForm from '../../../components/store/blocks/Testimonials
 import GalleryPropsForm from '../../../components/store/blocks/GalleryPropsForm';
 import FaqPropsForm from '../../../components/store/blocks/FaqPropsForm';
 import BannerPropsForm from '../../../components/store/blocks/BannerPropsForm';
+import BrandStripPropsForm from '../../../components/store/blocks/BrandStripPropsForm';
+import FeatureGridPropsForm from '../../../components/store/blocks/FeatureGridPropsForm';
+import VideoPropsForm from '../../../components/store/blocks/VideoPropsForm';
 import FontPickerDialog from '../../../components/store/blocks/FontPickerDialog';
 
 const PROPS_FORMS = {
@@ -31,6 +34,9 @@ const PROPS_FORMS = {
   gallery: GalleryPropsForm,
   faq: FaqPropsForm,
   banner: BannerPropsForm,
+  brand_strip: BrandStripPropsForm,
+  feature_grid: FeatureGridPropsForm,
+  video: VideoPropsForm,
 };
 
 // Mateixos valors per defecte que web/app/globals.css, perquè un tenant que
@@ -223,6 +229,9 @@ function blockSummary(block) {
   if (block.block_type === 'gallery') return `${block.props?.items?.length || 0} imatge(s)`;
   if (block.block_type === 'faq') return `${block.props?.items?.length || 0} pregunta(es)`;
   if (block.block_type === 'banner') return block.props?.text || '(buit)';
+  if (block.block_type === 'brand_strip') return `${block.props?.items?.length || 0} logo(s)`;
+  if (block.block_type === 'feature_grid') return `${block.props?.items?.length || 0} element(s)`;
+  if (block.block_type === 'video') return block.props?.heading || block.props?.video_url || '(sense enllaç)';
   return meta?.description || '';
 }
 

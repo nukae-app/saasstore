@@ -58,6 +58,21 @@ export const BLOCK_META = {
     description: 'Un avís curt (horari especial, enviaments...) amb un enllaç opcional.',
     editable: true,
   },
+  brand_strip: {
+    label: 'Franja de marques',
+    description: 'Fila de logos (segells, col·laboradors...) amb enllaç opcional.',
+    editable: true,
+  },
+  feature_grid: {
+    label: 'Graella de destacats',
+    description: 'Icona + text + enllaç lliures (categories, avantatges, serveis...).',
+    editable: true,
+  },
+  video: {
+    label: 'Vídeo',
+    description: 'Un vídeo destacat de YouTube o Vimeo.',
+    editable: true,
+  },
 };
 
 export const BLOCK_TYPES = Object.keys(BLOCK_META);
