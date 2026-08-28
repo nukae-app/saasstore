@@ -67,7 +67,7 @@ function getNavGroups(config) {
     {
       label: 'CMS',
       items: [
-        { href: '/admin/pagina-inici', key: 'nav.pagina_inici', label: 'Pàgina d\'inici', icon: LayoutTemplate },
+        { href: '/admin/disseny-web', key: 'nav.disseny_web', label: 'Disseny web', icon: LayoutTemplate },
         { href: '/admin/pagines',    key: 'nav.pagines',    label: 'Pàgines',    icon: Layers },
         { href: '/admin/blog',       key: 'nav.blog',       label: 'Blog',       icon: FileText },
         { href: '/admin/agenda',     key: 'nav.agenda',     label: 'Agenda',     icon: CalendarDays },

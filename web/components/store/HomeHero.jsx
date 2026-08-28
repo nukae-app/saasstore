@@ -8,23 +8,23 @@ import Image from 'next/image';
 // passar a ser el valor per defecte que es sembra en crear el tenant, ver
 // blocks/provisioning.py). `featured` segueix sent dada de catàleg en viu,
 // la resol [locale]/page.jsx a cada request.
-export default async function HomeHero({ eyebrow, title, subtitle, cta_label, cta_href = '/cataleg', featured }) {
+export default async function HomeHero({ id, eyebrow, title, subtitle, cta_label, cta_href = '/cataleg', featured }) {
   const t = await getTranslations('home');
   return (
-    <section className="relative min-h-[70vh] flex items-center px-5 md:px-16 mb-16 md:mb-24">
+    <section data-block-id={id} className="relative min-h-[70vh] flex items-center px-5 md:px-16 mb-16 md:mb-24">
       <div className="max-w-[1280px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 items-center gap-16 lg:gap-20 py-12">
         <div className="space-y-10">
           <div className="space-y-4">
             {eyebrow && (
-              <span className="font-mono text-xs text-zinc-500 uppercase tracking-[0.3em] block">
+              <span data-field="eyebrow" className="font-mono text-xs text-zinc-500 uppercase tracking-[0.3em] block">
                 {eyebrow}
               </span>
             )}
-            <h1 className="font-serif text-5xl md:text-7xl leading-[1.1] text-zinc-900 max-w-xl">
+            <h1 data-field="title" className="font-serif text-5xl md:text-7xl leading-[1.1] text-zinc-900 max-w-xl">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-lg text-zinc-500 max-w-md leading-relaxed">
+              <p data-field="subtitle" className="text-lg text-zinc-500 max-w-md leading-relaxed">
                 {subtitle}
               </p>
             )}
@@ -32,9 +32,11 @@ export default async function HomeHero({ eyebrow, title, subtitle, cta_label, ct
           <div className="flex flex-wrap gap-5">
             <Link
               href={cta_href}
+              data-field="cta_href"
+              data-attr="href"
               className="bg-primary text-white px-12 py-5 rounded-full font-medium uppercase tracking-widest text-sm hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-black/5"
             >
-              {cta_label || t('explore')}
+              <span data-field="cta_label">{cta_label || t('explore')}</span>
             </Link>
             <Link
               href="/carret"

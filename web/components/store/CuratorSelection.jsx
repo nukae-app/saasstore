@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const CARD_SIZE = 'w-[70%] sm:w-[42%] lg:w-[30%] h-[420px] md:h-[520px]';
 
-export default function CuratorSelection({ releases }) {
+export default function CuratorSelection({ id, releases }) {
   const t = useTranslations('home');
   const trackRef = useRef(null);
 
@@ -21,7 +21,7 @@ export default function CuratorSelection({ releases }) {
   }
 
   return (
-    <section className="py-24 md:py-32 px-5 md:px-16 bg-background">
+    <section data-block-id={id} className="py-24 md:py-32 px-5 md:px-16 bg-background">
       <div className="max-w-[1280px] mx-auto">
         <div className="flex items-end justify-between mb-10 md:mb-12">
           <h2 className="font-serif italic text-3xl md:text-4xl">{t('curatorSelection')}</h2>

@@ -2,9 +2,10 @@
 
 // Formulari de props del bloc "hero" dins del Sheet d'edició de
 // web/app/admin/pagina-inici — camps 1:1 amb api/app/blocks/registry.py::HeroProps.
-export default function HeroPropsForm({ props, onChange }) {
+export default function HeroPropsForm({ props, onChange, onFieldChange }) {
   function set(field, value) {
     onChange({ ...props, [field]: value });
+    onFieldChange?.(field, value);
   }
 
   return (

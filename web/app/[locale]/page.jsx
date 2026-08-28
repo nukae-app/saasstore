@@ -1,6 +1,7 @@
 import { api } from '../lib/api';
 import StorefrontNav from '../../components/store/StorefrontNav';
 import StorefrontFooter from '../../components/store/StorefrontFooter';
+import PreviewBridge from '../../components/store/PreviewBridge';
 import { BLOCK_COMPONENTS } from '../../components/store/blocks/registry';
 
 async function fetchAllByEtiqueta(slug) {
@@ -72,9 +73,10 @@ export default async function HomePage() {
 
   return (
     <>
+      <PreviewBridge />
       <StorefrontNav />
 
-      <main className="flex-1">
+      <main id="__blocks_root" className="flex-1">
         {blocks.length === 0 ? (
           // Xarxa de seguretat: si per algun motiu el tenant no té cap bloc
           // configurat (migració pendent, esborrat per error...), un home
@@ -86,7 +88,7 @@ export default async function HomePage() {
           blocks.map((block) => {
             const Block = BLOCK_COMPONENTS[block.block_type];
             if (!Block) return null;
-            return <Block key={block.id} {...resolveBlockProps(block, { featured, curatorReleases, config, releasesByEtiqueta })} />;
+            return <Block key={block.id} id={block.id} {...resolveBlockProps(block, { featured, curatorReleases, config, releasesByEtiqueta })} />;
           })
         )}
       </main>

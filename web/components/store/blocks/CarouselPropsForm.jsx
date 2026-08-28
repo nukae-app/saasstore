@@ -8,7 +8,7 @@ import { authFetch } from '../../../app/lib/auth';
 // select amb les etiquetes reals del tenant (GET /admin/etiquetes) perquè un
 // slug inexistent produiria un carrusel sempre buit; si la crida falla es
 // cau a un input de text lliure per no bloquejar l'edició.
-export default function CarouselPropsForm({ props, onChange }) {
+export default function CarouselPropsForm({ props, onChange, onFieldChange }) {
   const [etiquetes, setEtiquetes] = useState(null);
 
   useEffect(() => {
@@ -22,6 +22,7 @@ export default function CarouselPropsForm({ props, onChange }) {
 
   function set(field, value) {
     onChange({ ...props, [field]: value });
+    onFieldChange?.(field, value);
   }
 
   return (

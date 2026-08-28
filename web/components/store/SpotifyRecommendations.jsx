@@ -9,7 +9,7 @@ import { authFetch } from './AuthProvider';
 import { useSpotifyEnabled } from './useSpotifyEnabled';
 import ReleaseCard from './ReleaseCard';
 
-export default function SpotifyRecommendations() {
+export default function SpotifyRecommendations({ id }) {
   const t = useTranslations('spotify');
   const { user } = useAuth();
   const enabled = useSpotifyEnabled();
@@ -35,7 +35,7 @@ export default function SpotifyRecommendations() {
 
   if (state === 'loading') {
     return (
-      <section className="container py-12">
+      <section data-block-id={id} className="container py-12">
         <div className="flex items-center gap-2 text-zinc-400 text-sm">
           <Loader2 size={14} className="animate-spin" />
           {t('searching')}
@@ -46,7 +46,7 @@ export default function SpotifyRecommendations() {
 
   if (state === 'not-connected') {
     return (
-      <section className="container py-12">
+      <section data-block-id={id} className="container py-12">
         <div className="bg-zinc-50 text-zinc-900 rounded-3xl p-8 flex flex-col sm:flex-row items-center gap-6 shadow-[0_2px_24px_-6px_rgba(15,23,42,0.08)]">
           <div className="w-12 h-12 rounded-full bg-[#1DB954] flex items-center justify-center shrink-0">
             <Music2 size={22} className="text-black" />
@@ -71,7 +71,7 @@ export default function SpotifyRecommendations() {
   if (state === 'error' || !data) return null;
 
   return (
-    <section className="container py-16">
+    <section data-block-id={id} className="container py-16">
       <div className="flex items-baseline justify-between mb-8">
         <div>
           <div className="flex items-center gap-2 mb-1">

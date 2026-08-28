@@ -11,10 +11,10 @@ const GENRES = [
   { key: 'classical', genre: 'Classical', icon: Disc },
 ];
 
-export default async function GenreGrid() {
+export default async function GenreGrid({ id }) {
   const t = await getTranslations('genres');
   return (
-    <section className="py-24 md:py-32 px-5 md:px-16 bg-white">
+    <section data-block-id={id} className="py-24 md:py-32 px-5 md:px-16 bg-white">
       <div className="max-w-[1280px] mx-auto">
         <h2 className="font-mono text-xs text-zinc-500 text-center uppercase tracking-[0.4em] mb-16 md:mb-20">
           {t('exploreByGenre')}
