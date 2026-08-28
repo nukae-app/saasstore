@@ -12,8 +12,15 @@ from sqlalchemy.orm import Session
 
 from ..blocks.registry import BLOCK_REGISTRY
 from ..database import get_db
-from ..models import HomeBlock
-from ..schemas import HomeBlockCreateIn, HomeBlockOut, HomeBlockPublicOut, HomeBlockReorderIn, HomeBlockUpdateIn
+from ..models import HomeBlock, UploadedVideo
+from ..schemas import (
+    HomeBlockCreateIn,
+    HomeBlockOut,
+    HomeBlockPublicOut,
+    HomeBlockReorderIn,
+    HomeBlockUpdateIn,
+    UploadedVideoOut,
+)
 from ..services.security import require_admin
 
 router = APIRouter(prefix="/admin/home-blocks", tags=["home-blocks"], dependencies=[Depends(require_admin)])
@@ -22,6 +29,8 @@ public_router = APIRouter(prefix="/config/public/home-blocks", tags=["home-block
 # Mateix volum compartit amb Caddy que favicon/logo (ver routers/configuracio.py)
 UPLOADS_DIR = "/app/uploads"
 ALLOWED_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
+ALLOWED_VIDEO_EXTS = (".mp4", ".webm")
+MAX_VIDEO_SIZE_BYTES = 80 * 1024 * 1024  # 80MB — de sobres per a un vídeo de fons curt i mut
 
 
 @router.post("/upload-background")
@@ -40,6 +49,50 @@ async def upload_background_image(file: UploadFile = File(...)):
     with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
         f.write(content)
     return {"url": f"/uploads/{filename}"}
+
+
+@router.post("/upload-video", response_model=UploadedVideoOut, status_code=201)
+async def upload_video(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    # A diferència de "upload-background", aquest SÍ queda registrat (taula
+    # `uploaded_videos`, ver models/storefront.py) perquè l'admin el pugui
+    # tornar a triar més tard des de la mini biblioteca (GET /videos) sense
+    # haver-lo de tornar a pujar — un vídeo de fons pesa massa per repetir
+    # la pujada cada cop que es reutilitza en un altre bloc/tenant.
+    original_name = file.filename or "video"
+    ext = os.path.splitext(original_name)[-1].lower()
+    if ext not in ALLOWED_VIDEO_EXTS:
+        raise HTTPException(422, "Només s'accepten vídeos MP4 o WebM")
+    content = await file.read()
+    if len(content) > MAX_VIDEO_SIZE_BYTES:
+        raise HTTPException(422, "El vídeo pesa massa (màxim 80MB)")
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    filename = f"{uuid.uuid4()}{ext}"
+    with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
+        f.write(content)
+    video = UploadedVideo(url=f"/uploads/{filename}", filename=original_name, size_bytes=len(content))
+    db.add(video)
+    db.commit()
+    db.refresh(video)
+    return video
+
+
+@router.get("/videos", response_model=list[UploadedVideoOut])
+def list_uploaded_videos(db: Session = Depends(get_db)):
+    return db.scalars(select(UploadedVideo).order_by(UploadedVideo.created_at.desc())).all()
+
+
+@router.delete("/videos/{video_id}", status_code=204)
+def delete_uploaded_video(video_id: int, db: Session = Depends(get_db)):
+    video = db.get(UploadedVideo, video_id)
+    if video is None:
+        raise HTTPException(404, "Vídeo no trobat")
+    path = os.path.join(UPLOADS_DIR, os.path.basename(video.url))
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+    db.delete(video)
+    db.commit()
 
 
 def _validate_props(block_type: str, props: dict) -> dict:

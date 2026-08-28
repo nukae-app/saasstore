@@ -54,3 +54,13 @@ class HomeBlockPositionIn(BaseModel):
 
 class HomeBlockReorderIn(BaseModel):
     order: list[HomeBlockPositionIn]
+
+
+class UploadedVideoOut(BaseModel):
+    id: int
+    url: str
+    filename: str
+    size_bytes: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

@@ -34,3 +34,20 @@ class HomeBlock(TenantScoped, Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class UploadedVideo(TenantScoped, Base):
+    """Vídeo pujat per l'admin per fer-lo servir en blocs (avui només
+    Hero/background_video, ver blocks/registry.py::HeroProps). Registre
+    petit i genèric — no lligat a cap block_id — perquè el mateix vídeo es
+    pugui reutilitzar en blocs diferents i l'admin el pugui triar d'una
+    petita galeria en lloc de tornar-lo a pujar cada cop (ver
+    routers/home_blocks.py: upload-video / videos)."""
+
+    __tablename__ = "uploaded_videos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    url: Mapped[str] = mapped_column(String(500))
+    filename: Mapped[str] = mapped_column(String(255))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

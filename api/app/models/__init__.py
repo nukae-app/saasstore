@@ -140,4 +140,5 @@ from .subscripcions import (
 
 from .storefront import (
     HomeBlock,
+    UploadedVideo,
 )

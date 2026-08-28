@@ -1,6 +1,7 @@
 'use client';
 
 import BackgroundFieldset from './BackgroundFieldset';
+import VideoPicker from './VideoPicker';
 
 // Mateixes claus que api/app/blocks/registry.py::HERO_LAYOUTS.
 const LAYOUT_OPTIONS = [
@@ -108,14 +109,11 @@ export default function HeroPropsForm({ props, onChange, onFieldChange }) {
 
       {layout === 'background_video' && (
         <div>
-          <label className="block text-xs font-medium text-zinc-600 mb-1">Enllaç del vídeo (MP4)</label>
-          <input
-            value={props.background_video_url || ''}
-            onChange={(e) => set('background_video_url', e.target.value)}
-            placeholder="https://.../video.mp4"
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Vídeo de fons</label>
+          <VideoPicker
+            value={props.background_video_url}
+            onChange={(url) => set('background_video_url', url)}
           />
-          <p className="text-xs text-zinc-400 mt-1">Ha de ser un enllaç directe a un fitxer .mp4, no un enllaç de YouTube o Vimeo.</p>
         </div>
       )}
 

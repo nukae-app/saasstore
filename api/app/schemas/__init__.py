@@ -196,4 +196,5 @@ from .storefront import (
     HomeBlockCreateIn,
     HomeBlockUpdateIn,
     HomeBlockReorderIn,
+    UploadedVideoOut,
 )
