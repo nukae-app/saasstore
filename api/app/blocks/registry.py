@@ -78,11 +78,30 @@ class CuratorSelectionProps(BaseModel):
     etiqueta_slug: str = "recomanat"
 
 
+# Variants de disposició del bloc "text" — ver
+# web/components/store/blocks/TextBlock.jsx per al render de cadascuna.
+TEXT_LAYOUTS = (
+    "centered", "full_width", "two_columns_image", "two_columns_video",
+    "background_image", "stats", "pull_quote", "checklist",
+    "cta_banner", "editorial_dropcap",
+)
+
+
+class TextStatItem(BaseModel):
+    value: str = ""
+    label: str = ""
+
+
 class TextProps(BackgroundProps):
+    layout: str = "centered"
     heading: str | None = None
     body: str = ""
     cta_label: str | None = None
     cta_href: str | None = None
+    # Només rellevant amb layout="two_columns_video".
+    video_url: str | None = None
+    # Només rellevant amb layout="stats" — 3 xifres destacades.
+    stats: list[TextStatItem] = []
 
 
 class TestimonialItem(BaseModel):
