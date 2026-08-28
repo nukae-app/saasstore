@@ -33,6 +33,23 @@ class EmptyProps(BaseModel):
     és si estan presents/actius a la llista de HomeBlock del tenant."""
 
 
+class TextProps(BaseModel):
+    heading: str | None = None
+    body: str = ""
+    cta_label: str | None = None
+    cta_href: str | None = None
+
+
+class TestimonialItem(BaseModel):
+    quote: str = ""
+    author: str = ""
+
+
+class TestimonialsProps(BaseModel):
+    heading: str | None = None
+    items: list[TestimonialItem] = []
+
+
 BLOCK_REGISTRY: dict[str, type[BaseModel]] = {
     "hero": HeroProps,
     "carousel": CarouselProps,
@@ -40,4 +57,6 @@ BLOCK_REGISTRY: dict[str, type[BaseModel]] = {
     "genre_grid": EmptyProps,
     "spotify_recommendations": EmptyProps,
     "about_strip": EmptyProps,
+    "text": TextProps,
+    "testimonials": TestimonialsProps,
 }

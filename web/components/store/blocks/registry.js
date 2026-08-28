@@ -8,6 +8,8 @@ import CuratorSelection from '../CuratorSelection';
 import GenreGrid from '../GenreGrid';
 import SpotifyRecommendations from '../SpotifyRecommendations';
 import AboutStripBlock from './AboutStripBlock';
+import TextBlock from './TextBlock';
+import TestimonialsBlock from './TestimonialsBlock';
 
 export const BLOCK_COMPONENTS = {
   hero: HomeHero,
@@ -16,4 +18,6 @@ export const BLOCK_COMPONENTS = {
   genre_grid: GenreGrid,
   spotify_recommendations: SpotifyRecommendations,
   about_strip: AboutStripBlock,
+  text: TextBlock,
+  testimonials: TestimonialsBlock,
 };

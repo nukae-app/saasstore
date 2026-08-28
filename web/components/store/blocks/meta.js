@@ -33,6 +33,16 @@ export const BLOCK_META = {
     description: 'Nom, adreça i enllaç a Discogs de la botiga.',
     editable: false,
   },
+  text: {
+    label: 'Text',
+    description: 'Franja de contingut lliure: títol, text i un botó opcional.',
+    editable: true,
+  },
+  testimonials: {
+    label: 'Testimonis',
+    description: 'Cites de clients amb el seu nom.',
+    editable: true,
+  },
 };
 
 export const BLOCK_TYPES = Object.keys(BLOCK_META);

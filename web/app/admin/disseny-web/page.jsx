@@ -14,8 +14,15 @@ import {
 import { BLOCK_META, BLOCK_TYPES } from '../../../components/store/blocks/meta';
 import HeroPropsForm from '../../../components/store/blocks/HeroPropsForm';
 import CarouselPropsForm from '../../../components/store/blocks/CarouselPropsForm';
+import TextPropsForm from '../../../components/store/blocks/TextPropsForm';
+import TestimonialsPropsForm from '../../../components/store/blocks/TestimonialsPropsForm';
 
-const PROPS_FORMS = { hero: HeroPropsForm, carousel: CarouselPropsForm };
+const PROPS_FORMS = {
+  hero: HeroPropsForm,
+  carousel: CarouselPropsForm,
+  text: TextPropsForm,
+  testimonials: TestimonialsPropsForm,
+};
 
 // Mateixos valors per defecte que web/app/globals.css, perquè un tenant que
 // no ha tocat res vegi els pickers ja carregats amb el look actual.
@@ -136,6 +143,8 @@ function blockSummary(block) {
   const meta = BLOCK_META[block.block_type];
   if (block.block_type === 'hero') return block.props?.title || '(sense títol)';
   if (block.block_type === 'carousel') return `${block.props?.heading || '(sense títol)'} · #${block.props?.etiqueta_slug || '—'}`;
+  if (block.block_type === 'text') return block.props?.heading || block.props?.body || '(buit)';
+  if (block.block_type === 'testimonials') return `${block.props?.items?.length || 0} testimoni(s)`;
   return meta?.description || '';
 }
 
@@ -211,6 +220,11 @@ function BlocksPanel({ sendPreview }) {
       if (!r.ok) { const b = await r.json(); setErr(typeof b.detail === 'string' ? b.detail : 'Error en guardar'); return; }
       await load();
       setEditingBlock(null);
+      // Alguns blocs (p. ex. testimonis) no tenen previsualització lletra a
+      // lletra per a cada camp — un recarregat en desar garanteix que
+      // l'iframe sempre acaba mostrant l'estat real, l'hagi pogut seguir en
+      // directe o no.
+      sendPreview({ type: 'reload' });
     } finally {
       setSaving(false);
     }
