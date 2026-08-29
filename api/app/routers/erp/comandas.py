@@ -330,7 +330,7 @@ def recibir_comanda(comanda_id: uuid.UUID, payload: RecepcionIn, request: Reques
         if cantidad > disponible:
             raise HTTPException(
                 422,
-                f"La línia de '{linea.release.artista} - {linea.release.title}' només té "
+                f"La línia de '{linea.release.title}' només té "
                 f"{disponible} unitats pendents de rebre (s'han enviat {cantidad})",
             )
 

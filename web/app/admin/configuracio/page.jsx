@@ -5,9 +5,11 @@ import { authFetch } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { Plus, Star, Trash2, Pencil } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { useTenantVertical } from '../../../components/store/useTenantVertical';
 
 export default function ConfiguracioPage() {
   const t = useT();
+  const vertical = useTenantVertical();
   const [tab, setTab] = useState('fiscals'); // fiscals | contacte | iva | marges | cubetes | enviaments | secrets
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ export default function ConfiguracioPage() {
         <SecretsPanel />
       ) : (
         <div className="space-y-8">
-          <PesFormatPanel />
+          {vertical === 'records' && <PesFormatPanel />}
           <TramsEnviamentPanel />
         </div>
       )}
@@ -127,6 +129,7 @@ function DadesFiscalsPanel({ config, onSaved }) {
 
 function BotigaPanel({ config, onSaved }) {
   const t = useT();
+  const vertical = useTenantVertical();
   const [telefon, setTelefon] = useState(config.phone || '');
   const [email, setEmail] = useState(config.contact_email || '');
   const [emailFrom, setEmailFrom] = useState(config.email_from || '');
@@ -356,6 +359,7 @@ function BotigaPanel({ config, onSaved }) {
         </div>
       </div>
 
+      {vertical === 'records' && (
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -370,6 +374,7 @@ function BotigaPanel({ config, onSaved }) {
           </button>
         </div>
       </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
@@ -554,7 +559,7 @@ function TipusIvaPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500 max-w-xl">
-          {t('config.vat.hint', "Configura els percentatges d'IVA. Marca quin tipus s'aplica per defecte a les vendes de discos nous i quin a les de 2a mà (REBU) — a compra es tria sempre a mà.")}
+          {t('config.vat.hint', "Configura els percentatges d'IVA. Marca quin tipus s'aplica per defecte a les vendes de productes nous i quin a les de 2a mà (REBU) — a compra es tria sempre a mà.")}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
           <Plus size={16} /> {t('config.vat.new', 'Nou tipus')}

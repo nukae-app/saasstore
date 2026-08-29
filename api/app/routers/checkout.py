@@ -39,7 +39,9 @@ from ..tenant_secrets import get_tenant_secrets
 from ..services.metrics import redsys_payment_result_total
 from ..services.orders import finalize_payment
 from ..services.iva import compute_iva_venda
-from ..services.enviament import PaisNoDisponible, compute_coste_enviament, paisos_disponibles, pes_total_g
+from ..services.enviament import (
+    PaisNoDisponible, PesNoConfigurat, compute_coste_enviament, paisos_disponibles, pes_total_g,
+)
 from ..services.reservations import (
     release_expired, release_items, release_stock_hold, reservation_minutes, reserve_items,
     reserve_stock_bulk,
@@ -126,10 +128,10 @@ def get_coste_envio(
     al resum abans de confirmar (el valor que realment es cobra es recalcula
     igual a `/confirm`, no es rep del client)."""
     rows = _cart_items(db, cart)
-    pes_g = pes_total_g([r.item for r in rows for _ in range(r.quantity)], db)
     try:
+        pes_g = pes_total_g([r.item for r in rows for _ in range(r.quantity)], db)
         coste_envio = compute_coste_enviament(pes_g, metodo_envio, pais, db)
-    except PaisNoDisponible as exc:
+    except (PaisNoDisponible, PesNoConfigurat) as exc:
         raise HTTPException(422, str(exc))
     return {"coste_envio": str(coste_envio)}
 
@@ -181,11 +183,11 @@ def confirm_checkout(
         user = db.scalar(select(User).where(func.lower(User.email) == email))
 
     subtotal = sum((r.item.price * r.quantity for r in rows), Decimal("0"))
-    pes_g = pes_total_g([r.item for r in rows for _ in range(r.quantity)], db)
     pais = payload.shipping_address.country if payload.shipping_address else None
     try:
+        pes_g = pes_total_g([r.item for r in rows for _ in range(r.quantity)], db)
         coste_envio = compute_coste_enviament(pes_g, payload.shipping_method, pais, db)
-    except PaisNoDisponible as exc:
+    except (PaisNoDisponible, PesNoConfigurat) as exc:
         raise HTTPException(422, str(exc))
     total = subtotal + coste_envio
     order = Order(

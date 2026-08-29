@@ -70,9 +70,11 @@ export default function StorefrontFooter() {
             <Link href="/cataleg" className="hover:text-zinc-900 transition-colors">{tNav('catalog')}</Link>
             <Link href="/blog" className="hover:text-zinc-900 transition-colors">{tNav('blog')}</Link>
             <Link href="/agenda" className="hover:text-zinc-900 transition-colors">{tNav('agenda')}</Link>
-            <a href="https://www.discogs.com" target="_blank" rel="noopener" className="hover:text-zinc-900 transition-colors">
-              Discogs
-            </a>
+            {config.vertical === 'records' && (
+              <a href="https://www.discogs.com" target="_blank" rel="noopener" className="hover:text-zinc-900 transition-colors">
+                Discogs
+              </a>
+            )}
           </nav>
         </div>
       </div>

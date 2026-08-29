@@ -11,7 +11,8 @@ from sqlalchemy import select
 
 from app.models import Item, Order, PesFormat, Release, TramEnviament, User
 from app.services.enviament import (
-    DEFAULT_PES_G, PaisNoDisponible, compute_coste_enviament, paisos_disponibles, pes_total_g,
+    DEFAULT_PES_G, PaisNoDisponible, PesNoConfigurat, compute_coste_enviament, paisos_disponibles,
+    pes_total_g,
 )
 
 
@@ -48,6 +49,19 @@ def _seed_trams_es(db):
 
 def _seed_release_item(db, pes_g=None, precio="20.00"):
     r = Release(artista="Los Ganglios", title="Peruguay", formato="LP", weight_g=pes_g)
+    db.add(r)
+    db.flush()
+    item = Item(release_id=r.id, price=Decimal(precio))
+    db.add(item)
+    db.commit()
+    return r, item
+
+
+def _seed_release_item_sense_vertical_discos(db, pes_g=None, precio="20.00"):
+    """Un release sense `formato` (mai s'assigna `RecordProduct`): equivalent
+    a qualsevol altre vertical (floristeria, cafè...), a diferència de
+    `_seed_release_item` que sempre és 'de discos' (formato='LP')."""
+    r = Release(title="Ram de proves", weight_g=pes_g)
     db.add(r)
     db.flush()
     item = Item(release_id=r.id, price=Decimal(precio))
@@ -146,6 +160,22 @@ def test_pes_propi_del_release_té_prioritat_sobre_el_del_format(db):
     _, item = _seed_release_item(db, pes_g=500)
     db.refresh(item)
     assert pes_total_g([item], db) == 500
+
+
+def test_pes_total_llança_pesnoconfigurat_per_a_vertical_sense_format_i_sense_pes(db):
+    """§17 del pla Core/Vertical: un release que no és de discos (sense
+    `formato`, com floristeria) mai ha de caure silenciosament al pes d'un
+    vinil (`DEFAULT_PES_G`) — ha de rebutjar-se explícitament."""
+    _, item = _seed_release_item_sense_vertical_discos(db, pes_g=None)
+    db.refresh(item)
+    with pytest.raises(PesNoConfigurat):
+        pes_total_g([item], db)
+
+
+def test_pes_total_respecta_pes_propi_encara_que_no_hi_hagi_format(db):
+    _, item = _seed_release_item_sense_vertical_discos(db, pes_g=250)
+    db.refresh(item)
+    assert pes_total_g([item], db) == 250
 
 
 # --- CRUD /admin/pes-format ---
@@ -265,6 +295,15 @@ def test_coste_envio_preview_abans_de_confirmar(db, client):
 
     resp = client.get("/checkout/coste-envio", params={"metodo_envio": "recogida_tienda"})
     assert resp.json()["coste_envio"] == "0"
+
+
+def test_coste_envio_preview_rebutja_producte_sense_pes_ni_vertical_discos(db, client):
+    _seed_trams_es(db)
+    _, item = _seed_release_item_sense_vertical_discos(db, pes_g=None)
+    assert client.post("/cart/items", json={"item_id": str(item.id)}).status_code == 201
+
+    resp = client.get("/checkout/coste-envio", params={"metodo_envio": "envio", "pais": "ES"})
+    assert resp.status_code == 422
 
 
 def test_coste_envio_preview_pais_no_disponible(db, client):

@@ -20,10 +20,20 @@ from ..tenant_secrets import get_tenant_secrets
 
 log = logging.getLogger(__name__)
 
-def require_spotify_enabled() -> None:
-    """Kill switch global: amb spotify_enabled=False totes les rutes del
-    router protegit responen 404, com si el mòdul no existís."""
-    if not get_settings().spotify_enabled:
+def require_spotify_enabled(request: Request, db: Session = Depends(get_db)) -> None:
+    """Kill switch global (`spotify_enabled=False`) + restricció de vertical:
+    Spotify només té sentit per a discos (compara artistes/àlbums escoltats
+    contra el catàleg musical) — cap altre vertical hi té accés, encara que
+    el flag global estigui actiu. Amb qualsevol de les dues condicions,
+    totes les rutes del router protegit responen 404, com si el mòdul no
+    existís (docs/ARQUITECTURA_CORE_VERTICAL.md §19).
+
+    Necessita el seu propi `Depends(get_db)`: és una dependència de router
+    (`dependencies=[...]` a l'`APIRouter`), que s'executa abans que els
+    paràmetres de l'endpoint — sense això, `request.state.tenant` (que
+    `get_db` resol per Host) encara no existiria quan es fes aquesta
+    comprovació."""
+    if not get_settings().spotify_enabled or request.state.tenant.vertical_id != "records":
         raise HTTPException(404)
 
 
@@ -38,8 +48,8 @@ _SESSION_KEY = "spotify_link"
 
 
 @public_router.get("/enabled")
-def spotify_enabled():
-    return {"enabled": get_settings().spotify_enabled}
+def spotify_enabled(request: Request, db: Session = Depends(get_db)):
+    return {"enabled": get_settings().spotify_enabled and request.state.tenant.vertical_id == "records"}
 
 
 def _redirect_uri(tenant: Tenant) -> str:

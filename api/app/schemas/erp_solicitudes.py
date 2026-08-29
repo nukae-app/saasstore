@@ -17,9 +17,13 @@ class SolicitudCompraLineaIn(BaseModel):
     notes: str | None = None
 
     @model_validator(mode="after")
-    def check_disco(self) -> "SolicitudCompraLineaIn":
-        if not self.release_id and not (self.artist and self.title):
-            raise ValueError("Cal indicar release_id, o bé artist i title (disc encara no catalogat)")
+    def check_producte(self) -> "SolicitudCompraLineaIn":
+        # `artist`/`label`/`format` són detall opcional (només té sentit per
+        # a discos, veure docs/ARQUITECTURA_CORE_VERTICAL.md §17.1) — el
+        # mínim per descriure una línia sense catàleg encara és `title`,
+        # genèric a qualsevol vertical.
+        if not self.release_id and not self.title:
+            raise ValueError("Cal indicar release_id, o bé title (producte encara no catalogat)")
         return self
 
 

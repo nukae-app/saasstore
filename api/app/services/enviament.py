@@ -28,6 +28,14 @@ class PaisNoDisponible(Exception):
     """El país de l'adreça d'enviament no té cap tram d'enviament actiu configurat."""
 
 
+class PesNoConfigurat(Exception):
+    """Un producte sense `weight_g` i sense `Release.formato` (és a dir, de
+    qualsevol vertical que no sigui discos) no té cap manera vàlida de
+    calcular el seu pes: `PesFormat`/`DEFAULT_PES_G` són específics del
+    vertical discos (pes per format de vinil), no un valor genèric raonable
+    per a cap altre producte."""
+
+
 def normalitza_pais(pais: str | None) -> str:
     return (pais or "").strip().upper()
 
@@ -42,15 +50,34 @@ def paisos_disponibles(db: Session) -> list[str]:
 
 
 def pes_total_g(items: list[Item], db: Session) -> int:
-    """Suma el pes de totes les còpies. Per cada còpia: `Item.release.weight_g`
-    si s'ha informat a mà (excepcions: box sets, vinil de 180g...), si no el
-    pes per defecte del seu format (`PesFormat`, editable des de l'admin), i
-    si tampoc hi ha res configurat per aquest format, `DEFAULT_PES_G`."""
+    """Suma el pes de totes les còpies.
+
+    Per a releases amb `formato` informat (vertical discos, via l'extensió
+    `RecordProduct` — vegeu docs/ARQUITECTURA_CORE_VERTICAL.md §17.1): mateix
+    comportament que abans, sense cap canvi — `weight_g` si s'ha informat a mà
+    (excepcions: box sets, vinil de 180g...), si no el pes per defecte del seu
+    format (`PesFormat`, editable des de l'admin), i si tampoc hi ha res
+    configurat per aquest format, `DEFAULT_PES_G`.
+
+    Per a qualsevol altre vertical (`formato` és `None`): cal `weight_g`
+    informat explícitament. Abans d'aquest fix requeia silenciosament en
+    `DEFAULT_PES_G` (el pes d'un LP) per a qualsevol producte sense pes propi
+    — bug real, confirmat en dev amb el release de floristeria `florqa`, que
+    no té `weight_g`. Ara es llança `PesNoConfigurat` en comptes de cobrar un
+    enviament incorrecte en silenci."""
     pes_per_format = {p.formato: p.pes_g for p in db.scalars(select(PesFormat))}
-    return sum(
-        (item.release.weight_g or pes_per_format.get(item.release.formato) or DEFAULT_PES_G)
-        for item in items
-    )
+    total = 0
+    for item in items:
+        release = item.release
+        if release.weight_g is not None:
+            total += release.weight_g
+        elif release.formato is not None:
+            total += pes_per_format.get(release.formato) or DEFAULT_PES_G
+        else:
+            raise PesNoConfigurat(
+                f'El producte "{release.title}" no té el pes configurat.'
+            )
+    return total
 
 
 def compute_coste_enviament(pes_g: int, metodo_envio: str, pais: str | None, db: Session) -> Decimal:

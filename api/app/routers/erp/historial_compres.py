@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -19,7 +19,16 @@ _ESTATS_COMANDA_REALS = [EstadoComanda.enviada, EstadoComanda.rebuda_parcial, Es
 
 
 @router.get("/historial-compres/resum", response_model=list[HistorialResumProveedorOut])
-def resum_historial_compres(q: str | None = None, db: Session = Depends(get_db)):
+def resum_historial_compres(request: Request, q: str | None = None, db: Session = Depends(get_db)):
+    # Fase C (docs/ARQUITECTURA_CORE_VERTICAL.md §17.1): el buscador de
+    # proveïdor per artista/segell és un heurístic propi de discos (fa JOIN
+    # directe contra RecordProduct.artista/.sello més avall) — per a
+    # qualsevol altre vertical no té sentit el criteri, no és que estigui
+    # "trencat". S'exclou en comptes de forçar-lo a funcionar amb un criteri
+    # que no li pertoca; buscar-lo per vertical, no per feature de tenant,
+    # perquè depèn de l'existència de RecordProduct, no d'una preferència.
+    if request.state.tenant.vertical_id != "records":
+        return []
     """Llistat de proveïdors amb quantes línies de l'històric hi ha i quan
     va ser l'última, per mostrar-ho com a llista desplegable per defecte
     (sense necessitat de cercar). Si es passa `q`, filtra igual que la cerca.
@@ -87,7 +96,7 @@ def resum_historial_compres(q: str | None = None, db: Session = Depends(get_db))
 
 @router.get("/historial-compres", response_model=list[HistorialCompraOut])
 def buscar_historial_compres(
-    q: str | None = None, release_id: uuid.UUID | None = None,
+    request: Request, q: str | None = None, release_id: uuid.UUID | None = None,
     proveedor_id: uuid.UUID | None = None, db: Session = Depends(get_db),
 ):
     """Llistat/cerca de l'històric de compres per saber a quins proveïdors
@@ -98,12 +107,18 @@ def buscar_historial_compres(
     les línies d'un proveïdor concret. `q`: text lliure per artista/títol/
     segell/notes (mínim 2 caràcters). Combinables entre si.
 
+    Exclòs fora del vertical discos (§17.1): tota la cerca depèn de
+    `RecordProduct`/`HistorialCompra.artist`, un heurístic específic de
+    discos, no un feature togglejable per tenant.
+
     Combina dues fonts: `HistorialCompra` (fulls de càlcul d'abans del
     sistema de Comanda/Compra, importació única i congelada) i les línies de
     `Comanda` reals fetes des d'aquí (enviada/rebuda_parcial/rebuda). Sense
     això, el buscador es quedaria congelat a la importació inicial i mai
     "aprendria" de les comandes noves — que és precisament el que ha de fer
     de motor de recomanació de proveïdor."""
+    if request.state.tenant.vertical_id != "records":
+        return []
     limit = 1000 if proveedor_id is not None else 200
 
     conditions = []

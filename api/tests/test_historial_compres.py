@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from app.models import Comanda, ComandaLinea, EstadoComanda, HistorialCompra, Proveedor, Release, User
+from app.models import Comanda, ComandaLinea, EstadoComanda, HistorialCompra, Proveedor, Release, Tenant, User
 
 
 def _login(client, email: str) -> str:
@@ -71,6 +71,27 @@ def test_buscador_troba_comandes_reals_enviades(db, client):
     assert body[0]["proveedor_nombre"] == "DistroX"
     assert body[0]["artist"] == "Los Ganglios"
     assert body[0]["quantity"] == 2
+
+
+def test_buscador_exclos_fora_del_vertical_discos(db, client):
+    """§17.1: el buscador de proveïdor per artista/segell és un heurístic
+    de discos (JOIN directe contra RecordProduct) — per a qualsevol altre
+    vertical no ha de calcular res, no intentar-ho i fallar en silenci."""
+    tenant = db.get(Tenant, db.info["tenant_id"])
+    tenant.vertical_id = "floristry"
+    db.commit()
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = Release(title="Ram de proves")
+    db.add(release)
+    db.commit()
+    _seed_comanda(db, prov, release, EstadoComanda.enviada)
+    db.add(HistorialCompra(proveedor_id=prov.id, date=date(2026, 1, 1), release_id=release.id))
+    db.commit()
+
+    assert client.get("/admin/historial-compres", headers=_auth(admin)).json() == []
+    assert client.get("/admin/historial-compres/resum", headers=_auth(admin)).json() == []
 
 
 def test_buscador_ignora_esborrany_i_cancelada(db, client):

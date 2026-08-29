@@ -80,6 +80,20 @@ def test_crear_solicitud_con_disco_no_catalogado(db, client):
     assert body["lineas"][0]["artist"] == "Nou Grup"
 
 
+def test_crear_solicitud_con_solo_title_sin_artista(db, client):
+    """§17.1: `artist` es detalle opcional (solo tiene sentido para discos);
+    el mínimo para describir una línea sin catálogo es `title`, genérico a
+    cualquier vertical (p. ej. una vertical de café sin campo 'artista')."""
+    admin = _admin_token(client, db)
+    payload = {"lineas": [{"title": "Cafè de Kenya", "quantity": 1}]}
+    resp = client.post("/admin/solicitudes-compra", json=payload, headers=_auth(admin))
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["lineas"][0]["release_id"] is None
+    assert body["lineas"][0]["title"] == "Cafè de Kenya"
+    assert body["lineas"][0]["artist"] is None
+
+
 def test_crear_solicitud_sin_release_ni_artista_falla(db, client):
     admin = _admin_token(client, db)
     payload = {"lineas": [{"quantity": 1}]}

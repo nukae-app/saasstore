@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { authFetch } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { useDiscogsEnabled } from '../../../components/store/useDiscogsEnabled';
+import { useTenantVertical } from '../../../components/store/useTenantVertical';
 import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
@@ -327,6 +328,7 @@ export default function ComprasPage() {
 function CompraParticularModal({ onClose, onSaved }) {
   const t = useT();
   const discogsEnabled = useDiscogsEnabled();
+  const vertical = useTenantVertical();
   const [nombreParticular, setNombreParticular] = useState('');
   const [linkedUser, setLinkedUser] = useState(null);
   const [userQ, setUserQ] = useState('');
@@ -426,7 +428,7 @@ function CompraParticularModal({ onClose, onSaved }) {
   }
 
   async function addManual() {
-    if (!manualForm.artista.trim() || !manualForm.titulo.trim()) return;
+    if (!manualForm.titulo.trim()) return;
     setResolving(true);
     try {
       const rel = await resolveRelease(manualForm);
@@ -580,7 +582,7 @@ function CompraParticularModal({ onClose, onSaved }) {
                     className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
                 </div>
                 <Button type="button" size="sm" onClick={addManual}
-                  disabled={resolving || !manualForm.artista.trim() || !manualForm.titulo.trim()}>
+                  disabled={resolving || !manualForm.titulo.trim()}>
                   {resolving ? t('common.creating') : t('common.add', 'Afegir')}
                 </Button>
               </div>
@@ -626,7 +628,7 @@ function CompraParticularModal({ onClose, onSaved }) {
                       <input type="number" step="0.01" min="0" value={it.precio} onChange={e => upd(idx, 'precio', e.target.value)} required
                         className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
                     </div>
-                    {it.condicion === 'segona_ma' && <>
+                    {it.condicion === 'segona_ma' && vertical === 'records' && <>
                       <div>
                         <label className="block text-xs text-zinc-500 mb-1">{t('purchases.grading.disc', 'Grading disc')}</label>
                         <select value={it.estado_disco} onChange={e => upd(idx, 'estado_disco', e.target.value)}
@@ -1619,7 +1621,7 @@ function NovaSolicitudModal({ proveedores, onClose, onSaved }) {
   }
 
   async function addManual() {
-    if (!manualForm.artista.trim() || !manualForm.titulo.trim()) return;
+    if (!manualForm.titulo.trim()) return;
     setResolving(true);
     try {
       const rel = await resolveRelease(manualForm);
@@ -1757,7 +1759,7 @@ function NovaSolicitudModal({ proveedores, onClose, onSaved }) {
                     className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
                 </div>
                 <Button type="button" size="sm" onClick={addManual}
-                  disabled={resolving || !manualForm.artista.trim() || !manualForm.titulo.trim()}>
+                  disabled={resolving || !manualForm.titulo.trim()}>
                   {resolving ? t('common.creating') : t('common.add', 'Afegir')}
                 </Button>
               </div>
@@ -2590,6 +2592,7 @@ function DespesaMensualChart({ serie }) {
 function NovaComandaModal({ proveedores, onClose, onSaved }) {
   const t = useT();
   const discogsEnabled = useDiscogsEnabled();
+  const vertical = useTenantVertical();
   const [proveedorId, setProveedorId] = useState('');
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [notas, setNotas] = useState('');
@@ -2706,7 +2709,7 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
   }
 
   async function addManual() {
-    if (!manualForm.artista.trim() || !manualForm.titulo.trim()) return;
+    if (!manualForm.titulo.trim()) return;
     setResolving(true);
     try {
       const rel = await resolveRelease(manualForm);
@@ -2850,7 +2853,7 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
                     className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
                 </div>
                 <Button type="button" size="sm" onClick={addManual}
-                  disabled={resolving || !manualForm.artista.trim() || !manualForm.titulo.trim()}>
+                  disabled={resolving || !manualForm.titulo.trim()}>
                   {resolving ? t('common.creating') : t('common.add', 'Afegir')}
                 </Button>
               </div>
@@ -3101,7 +3104,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                           );
                         })()}
                       </div>
-                      {c.condicion === 'segona_ma' && <>
+                      {c.condicion === 'segona_ma' && vertical === 'records' && <>
                         <div>
                           <label className="block text-xs text-zinc-500 mb-1">{t('purchases.grading.disc', 'Grading disc')}</label>
                           <select value={c.estado_disco} onChange={e => updCopia(linea.id, idx, 'estado_disco', e.target.value)}
