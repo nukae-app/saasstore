@@ -73,6 +73,7 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
           networkState: videoRef.current?.networkState,
         });
         setErrorReason('timeout');
+        setEnd((prev) => prev || MAX_DURATION);
       }
     }, 20000);
     return () => clearTimeout(timeout);
@@ -97,12 +98,17 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
     // (ver erroredAfterLoadRef); no cal tirar a perdre tot l'editor.
     if (!duration) {
       setErrorReason('decode');
+      setEnd((prev) => prev || MAX_DURATION);
     } else {
       erroredAfterLoadRef.current = true;
     }
   }
 
   function onLoadedMetadata() {
+    // Si les metadades arriben tard (després del timeout de 20s, ver més
+    // amunt) es recupera l'editor normal en lloc de quedar-se encallat al
+    // formulari manual de sota.
+    setErrorReason(null);
     const d = videoRef.current.duration;
     setDuration(d);
     setEnd(Math.min(d, MAX_DURATION));
@@ -195,13 +201,46 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
         className="w-full aspect-video rounded-xl bg-black object-contain"
       />
 
-      {errorReason === 'decode' ? (
-        <p className="text-xs text-red-600">Aquest format de vídeo no es pot llegir al navegador. Prova amb un MP4.</p>
-      ) : errorReason === 'timeout' ? (
-        <p className="text-xs text-red-600">El vídeo triga massa a carregar-se en aquest dispositiu. Prova amb un fitxer més lleuger.</p>
-      ) : !thumbnails ? (
-        <p className="text-xs text-zinc-400">Carregant miniatures…</p>
+      {duration ? null : errorReason ? (
+        <div className="space-y-2">
+          <p className="text-xs text-amber-600">
+            {errorReason === 'decode'
+              ? "Aquest navegador no pot previsualitzar aquest vídeo."
+              : 'El vídeo triga massa a carregar-se en aquest dispositiu.'}{' '}
+            Pots triar el tram a ull (en segons) i pujar-lo igual — el tall es fa al servidor.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Inici (s)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                value={start}
+                onChange={(e) => setStart(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-full border border-zinc-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Final (s)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                value={end}
+                onChange={(e) => setEnd(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-full border border-zinc-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              />
+            </div>
+          </div>
+        </div>
       ) : (
+        <p className="text-xs text-zinc-400">Carregant vídeo…</p>
+      )}
+
+      {duration && !thumbnails ? (
+        <p className="text-xs text-zinc-400">Carregant miniatures…</p>
+      ) : duration ? (
         <div ref={stripRef} className="relative h-16 rounded-lg overflow-hidden flex select-none touch-none">
           {thumbnails.map((src, i) =>
             src ? (
@@ -224,7 +263,7 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
             style={{ left: `calc(${endPct}% - 6px)` }}
           />
         </div>
-      )}
+      ) : null}
 
       <p className="text-xs text-zinc-500">
         {formatTime(start)} – {formatTime(end)} · {(end - start).toFixed(1)}s (màxim {MAX_DURATION}s)
@@ -243,7 +282,7 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
         <button
           type="button"
           onClick={() => onConfirm(start, end)}
-          disabled={uploading || !duration}
+          disabled={uploading || !(end > start)}
           className="flex-1 text-xs font-medium text-white bg-zinc-900 rounded-xl px-3 py-2 hover:bg-zinc-700 transition-colors disabled:opacity-50"
         >
           {uploading ? 'Comprimint…' : 'Pujar aquest tram'}

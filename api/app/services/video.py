@@ -51,7 +51,11 @@ def transcode_for_web(
     `start`/`end` (segons, ver VideoTrimmer.jsx) tallen el vídeo abans de
     recomprimir — l'admin pot triar quin tram d'un vídeo més llarg vol fer
     servir, en lloc de rebutjar-lo directament si passa de MAX_DURATION_SECONDS.
-    Sense `start`/`end` es fa servir el vídeo sencer.
+    Sense `start`/`end` es fa servir el vídeo sencer. `end` s'escapça a la
+    durada real si la passa: quan el navegador no ha pogut previsualitzar
+    el vídeo (ver VideoTrimmer.jsx, formulari manual de segons), l'admin
+    tria els segons "a ull" sense saber la durada exacta — rebutjar-ho per
+    passar-se uns segons seria més fràgil que útil.
 
     Llança ValueError si l'interval no és vàlid, VideoTooLongError si el
     tram (o el vídeo sencer, sense tall) supera MAX_DURATION_SECONDS —
@@ -60,8 +64,11 @@ def transcode_for_web(
     full_duration = _probe_duration_seconds(input_path)
 
     if start is not None and end is not None:
-        if start < 0 or end <= start or end > full_duration + 0.5:
+        if start < 0 or end <= start:
             raise ValueError("Interval de tall no vàlid.")
+        if start >= full_duration:
+            raise ValueError("El punt d'inici és més enllà de la durada del vídeo.")
+        end = min(end, full_duration)
         duration = end - start
     else:
         duration = full_duration
