@@ -42,26 +42,65 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
   const [url] = useState(() => URL.createObjectURL(file));
   const [duration, setDuration] = useState(0);
   const [thumbnails, setThumbnails] = useState(null);
-  const [thumbError, setThumbError] = useState(false);
+  // null | 'timeout' (les metadades no arriben mai) | 'decode' (el
+  // navegador diu explícitament que no pot llegir el fitxer, ver onError)
+  // — es distingeixen perquè són problemes diferents i ajuda a diagnosticar
+  // quin dels dos és si es torna a reproduir.
+  const [errorReason, setErrorReason] = useState(null);
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
   const [dragging, setDragging] = useState(null); // 'start' | 'end' | null
 
   const videoRef = useRef(null);
   const stripRef = useRef(null);
+  const erroredAfterLoadRef = useRef(false);
 
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
 
   // Si el navegador no pot ni carregar els metadades (còdec/contenidor no
-  // suportat, fitxer corrupte...) `onLoadedMetadata` no arriba mai — sense
-  // aquest avís es quedaria penjat a "Carregant miniatures…" per sempre.
+  // suportat, fitxer corrupte, o simplement un fitxer pesat en un mòbil
+  // lent...) `onLoadedMetadata` no arriba mai — sense aquest avís es
+  // quedaria penjat a "Carregant miniatures…" per sempre.
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (!duration) setThumbError(true);
-    }, 10000);
+      if (!duration) {
+        // eslint-disable-next-line no-console
+        console.error('[VideoTrimmer] loadedmetadata no ha arribat en 20s', {
+          file: file.name,
+          size: file.size,
+          type: file.type,
+          readyState: videoRef.current?.readyState,
+          networkState: videoRef.current?.networkState,
+        });
+        setErrorReason('timeout');
+      }
+    }, 20000);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function onVideoError() {
+    const mediaError = videoRef.current?.error;
+    // eslint-disable-next-line no-console
+    console.error('[VideoTrimmer] error de vídeo', {
+      file: file.name,
+      size: file.size,
+      type: file.type,
+      code: mediaError?.code,
+      message: mediaError?.message,
+      hadDuration: !!duration,
+    });
+    // Si les metadades ja havien carregat bé, un error aquí sol venir d'un
+    // "seek" fallit durant la generació de miniatures (alguns còdecs/
+    // dispositius fallen buscant certs fotogrames concrets) — no és que el
+    // fitxer sencer sigui il·legible. `generateThumbnails` ja ho gestiona
+    // (ver erroredAfterLoadRef); no cal tirar a perdre tot l'editor.
+    if (!duration) {
+      setErrorReason('decode');
+    } else {
+      erroredAfterLoadRef.current = true;
+    }
+  }
 
   function onLoadedMetadata() {
     const d = videoRef.current.duration;
@@ -82,6 +121,15 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
     const ctx = canvas.getContext('2d');
     const thumbs = [];
     for (let i = 0; i < THUMB_COUNT; i++) {
+      // Un cop el navegador ha donat un error de vídeo després de carregar
+      // (ver onVideoError), és probable que la resta de "seeks" també
+      // fallin — millor deixar la resta com a placeholder d'un cop que
+      // esperar el timeout sencer 12 vegades seguides.
+      if (erroredAfterLoadRef.current) {
+        thumbs.push(null);
+        // eslint-disable-next-line no-continue
+        continue;
+      }
       try {
         // eslint-disable-next-line no-await-in-loop
         await seekTo(video, (d * i) / THUMB_COUNT);
@@ -95,7 +143,7 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
       }
     }
     setThumbnails(thumbs);
-    video.currentTime = 0;
+    if (!erroredAfterLoadRef.current) video.currentTime = 0;
   }
 
   function pointerToTime(clientX) {
@@ -141,14 +189,16 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
         ref={videoRef}
         src={url}
         onLoadedMetadata={onLoadedMetadata}
-        onError={() => setThumbError(true)}
+        onError={onVideoError}
         muted
         playsInline
         className="w-full aspect-video rounded-xl bg-black object-contain"
       />
 
-      {thumbError ? (
-        <p className="text-xs text-red-600">No s&apos;ha pogut previsualitzar aquest vídeo al navegador. Prova amb un altre fitxer (MP4 recomanat).</p>
+      {errorReason === 'decode' ? (
+        <p className="text-xs text-red-600">Aquest format de vídeo no es pot llegir al navegador. Prova amb un MP4.</p>
+      ) : errorReason === 'timeout' ? (
+        <p className="text-xs text-red-600">El vídeo triga massa a carregar-se en aquest dispositiu. Prova amb un fitxer més lleuger.</p>
       ) : !thumbnails ? (
         <p className="text-xs text-zinc-400">Carregant miniatures…</p>
       ) : (
