@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -65,12 +65,21 @@ async def upload_background_image(file: UploadFile = File(...)):
 
 
 @router.post("/upload-video", response_model=UploadedVideoOut, status_code=201)
-async def upload_video(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_video(
+    file: UploadFile = File(...),
+    start: float | None = Form(None),
+    end: float | None = Form(None),
+    db: Session = Depends(get_db),
+):
     # A diferència de "upload-background", aquest SÍ queda registrat (taula
     # `uploaded_videos`, ver models/storefront.py) perquè l'admin el pugui
     # tornar a triar més tard des de la mini biblioteca (GET /videos) sense
     # haver-lo de tornar a pujar — un vídeo de fons pesa massa per repetir
     # la pujada cada cop que es reutilitza en un altre bloc/tenant.
+    #
+    # `start`/`end` (segons, opcionals): el tram triat a l'editor de tall
+    # de l'admin (ver VideoTrimmer.jsx) — permet triar quina part d'un
+    # vídeo més llarg fer servir, en lloc de rebutjar-lo directament.
     #
     # L'original NO es guarda mai: es recomprimeix sempre (ver
     # services/video.py) perquè el pes final sigui petit i constant
@@ -93,8 +102,8 @@ async def upload_video(file: UploadFile = File(...), db: Session = Depends(get_d
     filename = f"{uuid.uuid4()}.mp4"
     out_path = os.path.join(UPLOADS_DIR, filename)
     try:
-        transcode_for_web(tmp_in_path, out_path)
-    except VideoTooLongError as exc:
+        transcode_for_web(tmp_in_path, out_path, start=start, end=end)
+    except (VideoTooLongError, ValueError) as exc:
         _remove_if_exists(out_path)
         raise HTTPException(422, str(exc)) from exc
     except subprocess.CalledProcessError as exc:

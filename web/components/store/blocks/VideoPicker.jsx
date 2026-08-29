@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../ui/dialog';
+import VideoTrimmer from './VideoTrimmer';
 
 function formatSize(bytes) {
   if (!bytes) return '';
@@ -27,15 +28,29 @@ export default function VideoPicker({ value, onChange }) {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [videos, setVideos] = useState(null);
   const [videosError, setVideosError] = useState('');
+  const [pendingFile, setPendingFile] = useState(null);
 
-  async function uploadVideo(e) {
+  function pickFile(e) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    setError('');
+    setPendingFile(file);
+  }
+
+  function cancelTrim() {
+    setPendingFile(null);
+    setError('');
+  }
+
+  async function uploadTrimmed(start, end) {
     setUploading(true);
     setError('');
     try {
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', pendingFile);
+      fd.append('start', String(start));
+      fd.append('end', String(end));
       const r = await authFetch('/admin/home-blocks/upload-video', { method: 'POST', body: fd });
       if (!r.ok) {
         const body = await r.json().catch(() => ({}));
@@ -45,9 +60,9 @@ export default function VideoPicker({ value, onChange }) {
       const video = await r.json();
       onChange(video.url);
       setVideos((prev) => (prev ? [video, ...prev] : prev));
+      setPendingFile(null);
     } finally {
       setUploading(false);
-      e.target.value = '';
     }
   }
 
@@ -79,6 +94,18 @@ export default function VideoPicker({ value, onChange }) {
     }
   }
 
+  if (pendingFile) {
+    return (
+      <VideoTrimmer
+        file={pendingFile}
+        onCancel={cancelTrim}
+        onConfirm={uploadTrimmed}
+        uploading={uploading}
+        error={error}
+      />
+    );
+  }
+
   return (
     <div className="space-y-2">
       {value && (
@@ -88,8 +115,8 @@ export default function VideoPicker({ value, onChange }) {
       <div className="flex items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 border border-zinc-200 rounded-xl px-3 py-2 cursor-pointer hover:bg-zinc-50 transition-colors">
           <Upload size={14} />
-          {uploading ? 'Comprimint…' : value ? 'Pujar un altre' : 'Pujar vídeo'}
-          <input type="file" accept=".mp4,.webm,.mov,.mkv,.avi" className="hidden" disabled={uploading} onChange={uploadVideo} />
+          {value ? 'Pujar un altre' : 'Pujar vídeo'}
+          <input type="file" accept=".mp4,.webm,.mov,.mkv,.avi" className="hidden" onChange={pickFile} />
         </label>
         {value && (
           <button
@@ -109,8 +136,7 @@ export default function VideoPicker({ value, onChange }) {
           Biblioteca de vídeos
         </button>
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      <p className="text-xs text-zinc-400">Es comprimeix automàticament en pujar-lo (sense so, pes final ~3MB). Màxim 50 segons de durada.</p>
+      <p className="text-xs text-zinc-400">En pujar-lo podràs triar quin tram (fins a 50s) es comprimeix (sense so, pes final ~3MB).</p>
 
       <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

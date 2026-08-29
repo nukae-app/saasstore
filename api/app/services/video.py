@@ -38,34 +38,51 @@ def _probe_duration_seconds(path: str) -> float:
     return float(json.loads(result.stdout)["format"]["duration"])
 
 
-def transcode_for_web(input_path: str, output_path: str) -> None:
+def transcode_for_web(
+    input_path: str,
+    output_path: str,
+    start: float | None = None,
+    end: float | None = None,
+) -> None:
     """Recomprimeix `input_path` a `output_path` (sempre .mp4, sense àudio,
     amplada màxima MAX_WIDTH) amb un bitrate calculat perquè el resultat
     pesi ~TARGET_SIZE_BYTES sigui quina sigui la durada.
 
-    Llança VideoTooLongError si supera MAX_DURATION_SECONDS (abans de
-    gastar temps recomprimint-lo) i subprocess.CalledProcessError si
+    `start`/`end` (segons, ver VideoTrimmer.jsx) tallen el vídeo abans de
+    recomprimir — l'admin pot triar quin tram d'un vídeo més llarg vol fer
+    servir, en lloc de rebutjar-lo directament si passa de MAX_DURATION_SECONDS.
+    Sense `start`/`end` es fa servir el vídeo sencer.
+
+    Llança ValueError si l'interval no és vàlid, VideoTooLongError si el
+    tram (o el vídeo sencer, sense tall) supera MAX_DURATION_SECONDS —
+    abans de gastar temps recomprimint — i subprocess.CalledProcessError si
     ffprobe/ffmpeg no poden llegir el fitxer (format no vàlid/corrupte)."""
-    duration = _probe_duration_seconds(input_path)
+    full_duration = _probe_duration_seconds(input_path)
+
+    if start is not None and end is not None:
+        if start < 0 or end <= start or end > full_duration + 0.5:
+            raise ValueError("Interval de tall no vàlid.")
+        duration = end - start
+    else:
+        duration = full_duration
+
     if duration > MAX_DURATION_SECONDS:
-        raise VideoTooLongError(f"El vídeo dura {duration:.0f}s — el màxim és {MAX_DURATION_SECONDS}s.")
+        raise VideoTooLongError(f"El tram dura {duration:.0f}s — el màxim és {MAX_DURATION_SECONDS}s.")
 
     target_bitrate_kbps = max(MIN_BITRATE_KBPS, int((TARGET_SIZE_BYTES * 8) / duration / 1000))
 
-    subprocess.run(
-        [
-            "ffmpeg", "-y", "-i", input_path,
-            "-an",
-            "-vf", f"scale='min({MAX_WIDTH},iw)':-2",
-            "-c:v", "libx264",
-            "-preset", "veryfast",
-            "-b:v", f"{target_bitrate_kbps}k",
-            "-maxrate", f"{int(target_bitrate_kbps * 1.2)}k",
-            "-bufsize", f"{target_bitrate_kbps * 2}k",
-            "-movflags", "+faststart",
-            output_path,
-        ],
-        capture_output=True,
-        timeout=120,
-        check=True,
-    )
+    cmd = ["ffmpeg", "-y", "-i", input_path]
+    if start is not None and end is not None:
+        cmd += ["-ss", f"{start}", "-t", f"{duration}"]
+    cmd += [
+        "-an",
+        "-vf", f"scale='min({MAX_WIDTH},iw)':-2",
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-b:v", f"{target_bitrate_kbps}k",
+        "-maxrate", f"{int(target_bitrate_kbps * 1.2)}k",
+        "-bufsize", f"{target_bitrate_kbps * 2}k",
+        "-movflags", "+faststart",
+        output_path,
+    ]
+    subprocess.run(cmd, capture_output=True, timeout=120, check=True)
