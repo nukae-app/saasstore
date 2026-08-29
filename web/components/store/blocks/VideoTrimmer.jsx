@@ -21,7 +21,7 @@ function seekTo(video, t) {
     const timeout = setTimeout(() => {
       video.removeEventListener('seeked', onSeeked);
       reject(new Error('timeout'));
-    }, 5000);
+    }, 8000);
     function onSeeked() {
       clearTimeout(timeout);
       video.removeEventListener('seeked', onSeeked);
@@ -71,12 +71,18 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
   }
 
   async function generateThumbnails(d) {
+    // Cada miniatura es captura per separat: si UNA sola tarda massa a
+    // buscar (habitual en vídeos reals/mòbils, no en els curts sintètics
+    // de prova) no s'ha de tirar a perdre tot l'editor — es deixa un forat
+    // (placeholder gris) en aquella posició i es continua amb la resta.
+    // El tall en si (arrossegar els tiradors, pujar) no depèn de les
+    // miniatures, només de `duration`.
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const thumbs = [];
-    try {
-      for (let i = 0; i < THUMB_COUNT; i++) {
+    for (let i = 0; i < THUMB_COUNT; i++) {
+      try {
         // eslint-disable-next-line no-await-in-loop
         await seekTo(video, (d * i) / THUMB_COUNT);
         const w = Math.round((video.videoWidth / video.videoHeight) * THUMB_HEIGHT) || THUMB_HEIGHT;
@@ -84,12 +90,12 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
         canvas.height = THUMB_HEIGHT;
         ctx.drawImage(video, 0, 0, w, THUMB_HEIGHT);
         thumbs.push(canvas.toDataURL('image/jpeg', 0.6));
+      } catch {
+        thumbs.push(null);
       }
-      setThumbnails(thumbs);
-      video.currentTime = 0;
-    } catch {
-      setThumbError(true);
     }
+    setThumbnails(thumbs);
+    video.currentTime = 0;
   }
 
   function pointerToTime(clientX) {
@@ -147,10 +153,14 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
         <p className="text-xs text-zinc-400">Carregant miniatures…</p>
       ) : (
         <div ref={stripRef} className="relative h-16 rounded-lg overflow-hidden flex select-none touch-none">
-          {thumbnails.map((src, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={src} alt="" className="flex-1 h-full object-cover pointer-events-none" />
-          ))}
+          {thumbnails.map((src, i) =>
+            src ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={src} alt="" className="flex-1 h-full object-cover pointer-events-none" />
+            ) : (
+              <div key={i} className="flex-1 h-full bg-zinc-300 pointer-events-none" />
+            ),
+          )}
           <div className="absolute inset-y-0 left-0 bg-black/60" style={{ width: `${startPct}%` }} />
           <div className="absolute inset-y-0 right-0 bg-black/60" style={{ width: `${100 - endPct}%` }} />
           <div
@@ -183,7 +193,7 @@ export default function VideoTrimmer({ file, onCancel, onConfirm, uploading, err
         <button
           type="button"
           onClick={() => onConfirm(start, end)}
-          disabled={uploading || !thumbnails}
+          disabled={uploading || !duration}
           className="flex-1 text-xs font-medium text-white bg-zinc-900 rounded-xl px-3 py-2 hover:bg-zinc-700 transition-colors disabled:opacity-50"
         >
           {uploading ? 'Comprimint…' : 'Pujar aquest tram'}
