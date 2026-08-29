@@ -88,8 +88,8 @@ export default function VideoPicker({ value, onChange }) {
       <div className="flex items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 border border-zinc-200 rounded-xl px-3 py-2 cursor-pointer hover:bg-zinc-50 transition-colors">
           <Upload size={14} />
-          {uploading ? 'Pujant…' : value ? 'Pujar un altre' : 'Pujar vídeo'}
-          <input type="file" accept=".mp4,.webm" className="hidden" disabled={uploading} onChange={uploadVideo} />
+          {uploading ? 'Comprimint…' : value ? 'Pujar un altre' : 'Pujar vídeo'}
+          <input type="file" accept=".mp4,.webm,.mov,.mkv,.avi" className="hidden" disabled={uploading} onChange={uploadVideo} />
         </label>
         {value && (
           <button
@@ -110,7 +110,7 @@ export default function VideoPicker({ value, onChange }) {
         </button>
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
-      <p className="text-xs text-zinc-400">MP4 o WebM, màxim 80MB.</p>
+      <p className="text-xs text-zinc-400">Es comprimeix automàticament en pujar-lo (sense so, pes final ~3MB). Màxim 50 segons de durada.</p>
 
       <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

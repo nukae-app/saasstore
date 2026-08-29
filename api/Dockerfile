@@ -1,5 +1,9 @@
 FROM python:3.12-slim
 WORKDIR /srv
+# ffmpeg: recompressió dels vídeos de fons pujats a l'admin (ver
+# services/video.py) — es fa sempre en pujar, mai es guarda l'original.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .

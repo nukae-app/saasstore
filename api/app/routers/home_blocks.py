@@ -4,6 +4,8 @@ el público solo lo `enabled=True`, sin autenticación, para que
 [locale]/page.jsx lo pueda pedir en cada request igual que /config/public."""
 
 import os
+import subprocess
+import tempfile
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -22,6 +24,7 @@ from ..schemas import (
     UploadedVideoOut,
 )
 from ..services.security import require_admin
+from ..services.video import VideoTooLongError, transcode_for_web
 
 router = APIRouter(prefix="/admin/home-blocks", tags=["home-blocks"], dependencies=[Depends(require_admin)])
 public_router = APIRouter(prefix="/config/public/home-blocks", tags=["home-blocks"])
@@ -29,8 +32,18 @@ public_router = APIRouter(prefix="/config/public/home-blocks", tags=["home-block
 # Mateix volum compartit amb Caddy que favicon/logo (ver routers/configuracio.py)
 UPLOADS_DIR = "/app/uploads"
 ALLOWED_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
-ALLOWED_VIDEO_EXTS = (".mp4", ".webm")
-MAX_VIDEO_SIZE_BYTES = 80 * 1024 * 1024  # 80MB — de sobres per a un vídeo de fons curt i mut
+ALLOWED_VIDEO_EXTS = (".mp4", ".webm", ".mov", ".mkv", ".avi")
+# Cap del fitxer ORIGINAL abans de recomprimir (ver services/video.py) — el
+# resultat final sempre pesa ~3MB independentment d'això, aquest límit
+# només evita perdre temps de CPU recomprimint un fitxer descomunal.
+MAX_UPLOAD_SIZE_BYTES = 300 * 1024 * 1024
+
+
+def _remove_if_exists(path: str) -> None:
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
 
 
 @router.post("/upload-background")
@@ -58,18 +71,39 @@ async def upload_video(file: UploadFile = File(...), db: Session = Depends(get_d
     # tornar a triar més tard des de la mini biblioteca (GET /videos) sense
     # haver-lo de tornar a pujar — un vídeo de fons pesa massa per repetir
     # la pujada cada cop que es reutilitza en un altre bloc/tenant.
+    #
+    # L'original NO es guarda mai: es recomprimeix sempre (ver
+    # services/video.py) perquè el pes final sigui petit i constant
+    # independentment del que pugi l'admin — no hi ha CDN al davant
+    # d'aquest servidor i cada tenant pot tenir el seu propi domini, així
+    # que la mida del fitxer és l'única palanca de cost real disponible.
     original_name = file.filename or "video"
     ext = os.path.splitext(original_name)[-1].lower()
     if ext not in ALLOWED_VIDEO_EXTS:
-        raise HTTPException(422, "Només s'accepten vídeos MP4 o WebM")
+        raise HTTPException(422, "Format de vídeo no reconegut")
     content = await file.read()
-    if len(content) > MAX_VIDEO_SIZE_BYTES:
-        raise HTTPException(422, "El vídeo pesa massa (màxim 80MB)")
+    if len(content) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(422, "El vídeo original pesa massa")
+
     os.makedirs(UPLOADS_DIR, exist_ok=True)
-    filename = f"{uuid.uuid4()}{ext}"
-    with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
-        f.write(content)
-    video = UploadedVideo(url=f"/uploads/{filename}", filename=original_name, size_bytes=len(content))
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp_in:
+        tmp_in.write(content)
+        tmp_in_path = tmp_in.name
+
+    filename = f"{uuid.uuid4()}.mp4"
+    out_path = os.path.join(UPLOADS_DIR, filename)
+    try:
+        transcode_for_web(tmp_in_path, out_path)
+    except VideoTooLongError as exc:
+        _remove_if_exists(out_path)
+        raise HTTPException(422, str(exc)) from exc
+    except subprocess.CalledProcessError as exc:
+        _remove_if_exists(out_path)
+        raise HTTPException(422, "No s'ha pogut processar el vídeo") from exc
+    finally:
+        os.remove(tmp_in_path)
+
+    video = UploadedVideo(url=f"/uploads/{filename}", filename=original_name, size_bytes=os.path.getsize(out_path))
     db.add(video)
     db.commit()
     db.refresh(video)
@@ -86,11 +120,7 @@ def delete_uploaded_video(video_id: int, db: Session = Depends(get_db)):
     video = db.get(UploadedVideo, video_id)
     if video is None:
         raise HTTPException(404, "Vídeo no trobat")
-    path = os.path.join(UPLOADS_DIR, os.path.basename(video.url))
-    try:
-        os.remove(path)
-    except FileNotFoundError:
-        pass
+    _remove_if_exists(os.path.join(UPLOADS_DIR, os.path.basename(video.url)))
     db.delete(video)
     db.commit()
 
