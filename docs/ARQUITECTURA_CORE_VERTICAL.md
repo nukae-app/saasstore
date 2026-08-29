@@ -306,3 +306,146 @@ Entre el piloto y los dos batches: **~220 columnas renombradas en 37 tablas Core
 **Deliberadamente fuera de esta fase**: tablas de extensión de vertical (`release_records`, `release_floristeria`, `record_stock_details`, `spotify_connections`, `pes_format`, toda la familia `configuracio_subscripcio`/`subscripcions`/`cobraments_subscripcio`/`subscripcio_assignacions`) — Etapa A es solo Core, per §4.1 vs §4.2/§4.3; nombres de tabla (`__tablename__`) — solo columnas, ver piloto; nombres de tipo Enum de Postgres (`condicion_item`, `order_status`, etc.) — se quedan en catalán/castellano, cosmético, no forma parte del contrato JSON; valores de enum (`disponible`/`reservado`/`vendido`, `discogs`/`subscripcio` en `OrderOrigen`) — eso es Fase 5, aparcada (§14).
 
 **Pendiente**: aplicar las tres migraciones en producción cuando toque desplegar (no se ha tocado ninguna base de datos de producción). El siguiente paso natural es Fase 4 Etapa B (rename de atributos Python/Pydantic/frontend) — ver §14, requiere confirmación explícita del orden de dominios antes de empezar.
+
+---
+
+## 17. Auditoría de acoplamiento oculto en Core (2026-08-29)
+
+**Estado: hallazgos verificados por grep/lectura directa de código, nada aplicado todavía.** Antes de planificar arquetipos de vertical para ~12-15 negocios distintos (§18), se auditó si quedaba acoplamiento a "discos" en zonas que el diagnóstico de §1 (2026-08-09) daba por genéricas, más allá de los campos de catálogo ya extraídos en Fase 2.
+
+**Nota de estructura**: desde que se escribió §1, `models.py`/`routers/`/`schemas.py` pasaron a ser paquetes (`api/app/models/catalog.py`, `models/compras.py`, `models/stock.py`, `routers/erp/comandas.py`, etc.). Las rutas citadas a partir de aquí usan la estructura nueva; las de secciones anteriores pueden estar desactualizadas.
+
+### 17.1 Flujo de compras/ERP
+
+- **Bug real, no solo de nomenclatura — arreglado (Fase A, 2026-08-29)**: `api/app/services/enviament.py` (`pes_total_g`, cálculo de peso para tarifa de envío, usado en CUALQUIER checkout) caía a `PesFormat` (peso por formato de vinilo) y, si no había match, a `DEFAULT_PES_G = 350` con el comentario `"LP senzill amb funda"`. Confirmado en dev (no hipotético): el release `florqa` (floristry) tiene `weight_g` vacío y estaba usando en silencio el peso de un vinilo. Fix aplicado de forma aditiva: si `Release.formato` está informado (vertical records), comportamiento idéntico a antes (cero riesgo para discos); si no (cualquier otro vertical), se exige `weight_g` explícito y se lanza `PesNoConfigurat` → 422 en el checkout en vez de cobrar un envío incorrecto en silencio. Tests nuevos en `test_enviament.py`. 454 tests passed (1 fallo preexistente en `test_superadmin_tenant_features.py`, no relacionado, verificado con `git stash`).
+- **Fase C — resuelto de forma distinta a lo planeado (2026-08-29)**: al investigar `HistorialCompra`/`SolicitudCompraLinea` para el fix aditivo previsto (§20 no aplica aquí), se encontró que el problema real no eran las columnas sueltas sino que `routers/erp/historial_compres.py` (el buscador "¿qué proveedor me trajo esto antes?") hace JOIN **a nivel de clase** contra `RecordProduct.artista`/`.sello`/`.formato` — un heurístico de recomendación por artista/sello que es inherentemente de discos (para café el criterio sería productor/origen, no "artista"), no una cuestión de nomenclatura. Decisión (con el usuario): **excluir la función para cualquier vertical que no sea `records`** en vez de generalizarla — `resum_historial_compres`/`buscar_historial_compres` devuelven `[]` si `request.state.tenant.vertical_id != "records"`, gateado por vertical (no por `tenant_features`, porque depende de si existe `RecordProduct`, no de una preferencia de tenant). El matching por `release_id` exacto (genérico, señal fuerte) se sacrifica también para no-records con este approach — aceptado como coste de la simplicidad. De paso, se relajó `SolicitudCompraLineaIn.check_producte` (antes `check_disco`): ya no exige `artist` además de `release_id`/`title` para una línea sin catálogo — `title` (Core, genérico) basta; `artist`/`label`/`format` quedan como detalle opcional. Sin migración: todas las columnas ya eran nullable. Tests nuevos en `test_historial_compres.py`/`test_solicitudes_compra.py`. 456 tests passed (mismo fallo preexistente y no relacionado en `test_superadmin_tenant_features.py`).
+- **Corregido (Fase B, 2026-08-29)**: `api/app/routers/erp/comandas.py::recibir_comanda` (línea ~333) construía un mensaje de error 422 con `linea.release.artista` — para un vertical sin discos habría mostrado "None - <título>". Cambiado a usar solo `.title` (Core genérico). Nota de precisión sobre el hallazgo original: las otras referencias a `.artista`/`.titulo` en este archivo (`_resolve_release_by_discogs_id` y `resolver_comanda_csv`, ambas explícitamente del flujo de importación CSV de Discogs) son legítimamente específicas de vertical records, no un leak — se dejan tal cual.
+
+### 17.2 Copys de admin — más profundo de lo que decía el diagnóstico original
+
+Fase 6 (2026-08-25) tradujo el **idioma** de 8 pantallas, no eliminó el **vocabulario de vertical** — son problemas distintos:
+
+- `web/app/admin/compras/page.jsx` está construido literalmente como pantalla de compra de discos: la búsqueda de Discogs (`discogsEnabled`, `pickDiscogs`, `resolveRelease`) está cableada dentro del flujo genérico de compra, no detrás de un submódulo de catálogo; los campos de grading (`estado_disco`/`estado_funda`) son estado de primera clase de la línea de compra. `seed_translations.py` tiene ~20 claves con texto literal "disc/discos/record" (`purchases.grading.disc`, `purchases.request.pending_records`, `purchases.modal.records`...).
+- `admin/tpv/page.jsx`: mismo patrón — `estado_disco` se renderiza directo en las líneas de venta, el canal `discogs` está hardcodeado.
+- `admin/configuracio/page.jsx`: `config.vat.hint` habla de "discos nous"/"2a mà REBU" como si fuera universal; `config.shop.record_club` como etiqueta genérica de configuración de tienda.
+- `admin/resultat/page.jsx`: `resultat.channel.discogs`/`resultat.cogs_extern` ("Cost vendes TPV / Discogs") integrados en la pantalla de resultado contable genérica.
+
+### 17.3 Resto de Core
+
+Grep global de `discogs`/`spotify`/`vinil`/`Release`/`RecordProduct` fuera de los módulos ya reconocidos como vertical (`services/discogs.py`, `discogs_sync.py`, `services/spotify.py`, club de suscripción): sin hallazgos nuevos, coincide con el diagnóstico existente.
+
+### 17.4 Consecuencia para el plan de arquetipos
+
+Construir un vertical nuevo (café, flores...) hoy heredaría estos bugs/acoplamientos, porque compras/TPV/envío/configuración/resultado — que se asumían Core puro — tienen ramas de comportamiento y copy pensadas solo para discos. Antes de escalar a 10-15 verticales hace falta una fase de saneamiento de estas pantallas (mismo patrón que Fase 3 aplicó al catálogo: feature-gate por `tenant_features`/vertical en vez de mostrar siempre los campos de discos, y sustituir el fallback de peso por un valor genérico o un campo obligatorio).
+
+---
+
+## 18. Plan de arquetipos de vertical para catálogo (propuesta, 2026-08-29)
+
+**Estado: propuesta, no aplicada.** Verticales previstas: discos, café, flores, vino, queso, cerveza artesana, ropa, libros, juguetes, cosmética, plantas, alimentación (~12). Construir una tabla de extensión 1:1 por vertical (patrón `RecordProduct`/`FloristryProduct`) daría 12 tablas y 12 formularios de admin casi todos redundantes entre sí. Agrupando por qué campos comparten de verdad, salen 4-5 arquetipos:
+
+| Arquetipo | Verticales | Campos compartidos propuestos | Qué varía dentro del arquetipo |
+|---|---|---|---|
+| **Media/catálogo** | Discos, Libros | autor/creador, editorial/sello, género, formato, id de catálogo externo, sinopsis | Discos necesita además `discogs_release_id`/`spotify_album_id` (libros no) — tablas separadas generadas de la misma plantilla, no compartidas físicamente (el matching externo de cada una es distinto) |
+| **Consumible / alimentación-bebida** | Café, Vino, Queso, Cerveza artesana, Alimentación | productor/origen/denominación, peso o volumen, fecha de caducidad/consumo preferente, alérgenos/ingredientes | Un único campo `specs JSONB` acotado para el resto (grado alcohólico en vino/cerveza, tueste en café, curación en queso) — válvula de escape puntual, no sistema dinámico general |
+| **Botánico / cuidado** | Flores, Plantas | color, necesidades de luz/riego, durabilidad, interior/exterior | Prácticamente idéntico entre las dos — tabla compartida real, no solo plantilla |
+| **Retail simple** | Juguetes, Cosmética (si es solo accesorio sin control de ingredientes) | marca, rango de edad/target, dimensiones — mayormente ya cubierto por `Product` Core | Puede que no necesite tabla de extensión propia |
+| **Variante talla/color** | Ropa | — | Extiende `StockItem`, no `Product` (una fila de stock por combinación talla×color, análogo a `RecordStockDetail`) — pendiente de confirmar el modelo de venta |
+
+Puntos abiertos antes de escribir modelos/migraciones:
+
+1. **Ropa**: ¿stock agregado por combinación talla/color (como discos "nou") o prenda individual con trazabilidad (como segona_ma)? Determina si `ClothingStockDetail` extiende `StockItem` con `cantidad` o necesita algo más parecido al modelo de ejemplar único.
+2. **Cosmética**: ¿se controlan ingredientes/PAO de verdad, o es "producto con precio y stock"? Decide si cae en Consumible o en Retail simple.
+3. **Orden recomendado**: primero el saneamiento de §17 (bug de peso de envío, feature-gating de compras/TPV/configuración/resultado por vertical) — construir arquetipos nuevos sobre un Core que todavía asume discos multiplicaría el problema en vez de resolverlo. Después, arquetipos de menor a mayor riesgo: Botánico y Retail simple primero (más simples, sirven de piloto), luego Consumible (el más grande, 5 verticales), luego Media/catálogo (ya tiene precedente exacto en discos) y Variante (el único que toca `StockItem`, más delicado por la reserva atómica de stock).
+
+---
+
+## 19. Saneamiento de compras/TPV/configuració — diseño refinado (propuesta, 2026-08-29)
+
+Sustituye el planteamiento inicial de §17.4 ("feature-gate con condicionales sobre las pantallas existentes") por un mecanismo genérico, más barato de mantener a medida que se añadan verticales. También aplica el criterio de §17.1-17.2 de arreglar de forma **aditiva** lo que es Core compartido (peso de envío, `recibir_comanda`, `HistorialCompra`/`SolicitudCompraLinea`) sin tocar el comportamiento actual de `records`.
+
+**Fase D — implementada con alcance acotado (2026-08-29).** Al investigar el frontend antes de tocar nada, dos hallazgos del diagnóstico original resultaron ser ya falsos (verificado por lectura de código, no asumido): el buscador de Discogs en `admin/compras` ya estaba correctamente gateado por `useDiscogsEnabled()` (lee `tenant_features`), y el filtro de canal `discogs` en `admin/tpv` ya estaba gateado por `shopConfig?.discogs_habilitat` — ninguno de los dos necesitó cambios. Lo que sí era un bloqueo real: el picker de ítems del modal "Compra particular" (`CompraParticularModal`, `NovaComandaModal`) exigía `artista` **y** `título` para poder añadir cualquier línea manual, incluso con Discogs desactivado — para una vertical sin discos esto bloqueaba completamente la compra a particulares. Decisión (con el usuario, alcance mínimo): desbloquear sin rehacer el picker completo (la opción de reconstruirlo como buscador genérico de §19.1 se descartó por ahora, es un proyecto de frontend mayor).
+
+- `web/app/admin/compras/page.jsx`: las 3 funciones `addManual`/botones "Afegir" que exigían `artista.trim() && titulo.trim()` ahora solo exigen `titulo.trim()` (ya validado como seguro en el backend: `POST /admin/releases/check-duplicate` con `artista` vacío simplemente omite esa condición de búsqueda, no falla). Los selects de grading (`estado_disco`/`estado_funda`) se ocultan tras `vertical === 'records'` (hook `useTenantVertical`) en los dos sitios donde se renderizan.
+- `web/app/admin/tpv/page.jsx`: sin cambios — ya seguro (grading solo se muestra si tiene valor, canal Discogs ya gateado).
+- `web/app/admin/configuracio/page.jsx`: el panel `PesFormatPanel` (pesos por formato de vinilo, pestaña "Enviaments") y el toggle "Club del disc (subscripció)" (pestaña "Botiga") ahora solo se renderizan si `vertical === 'records'` — ambos dependen de mecanismos (`PesFormat`, el club de discos concreto) que hoy son 100% de discos, mostrarlos a otra vertical sería activar un interruptor que no hace nada. El hint de IVA (`config.vat.hint`) se generalizó de "vendes de discos nous" a "vendes de productes nous" (JSX + `seed_translations.py`, reseedado en los 6 tenants reales).
+- **Verificado en el navegador contra el tenant real `florqa` (floristry)**, no solo leído: login vía magic link, promovido a admin por SQL. Confirmado que "Compra particular" acepta añadir una línea con solo título (sin grading mostrado), que "Nova sol·licitud" ya aceptaba título-solo de antes (round-trip completo probado: creada una solicitud real "Ram de proves" en `florqa`, queda en dev como dato de prueba), que la pestaña "Cerca proveïdor" muestra "Cap coincidència" en vez de intentar nada (confirma la exclusión de Fase C en producción, no solo en tests), y que en `configuracio` ya no aparecen ni el panel de pesos por formato ni el toggle de club del disc.
+- Requirió reconstruir el contenedor `web` (no usa hot-reload, `next start` sobre imagen construida) — confirmado con el usuario antes de hacerlo, sin tocar la base de datos ni migraciones.
+- `pytest`: 456 passed (mismo fallo preexistente y no relacionado).
+
+**Hallazgo del storefront público — corregido (2026-08-29)**: durante la verificación de Fase D se observó que `/ca/compte` y su footer mostraban "Connecta Spotify" y un enlace "Discogs" para `florqa` (floristry). Causa: `Settings.spotify_enabled` (ver §13) es un kill switch **global** de plataforma, sin ningún check de vertical — a diferencia de Discogs, que ya usa `tenant_features` (por tenant). Fix:
+
+- `routers/spotify.py`: `require_spotify_enabled` (gate del router protegido: `/init`, `/status`, `/library`...) y el endpoint público `GET /auth/spotify/enabled` ahora exigen además `tenant.vertical_id == "records"` — Spotify compara artistas escuchados contra el catálogo musical, no tiene sentido fuera de discos pase lo que pase con el flag global. Detalle no obvio: `require_spotify_enabled` necesita su propio `Depends(get_db)` (no basta con que otro parámetro del endpoint ya lo traiga) — es una dependencia de router, se ejecuta antes que los parámetros propios del endpoint, y `request.state.tenant` solo lo resuelve `get_db` como efecto secundario.
+- Frontend: cero cambios adicionales — `useSpotifyEnabled`/`CompteLayoutClient` (ítem "Artistes" del menú) ya leían ese mismo endpoint, así que se ocultan solos. `StorefrontFooter.jsx`: el enlace a Discogs ahora depende de `config.vertical === 'records'` (ya disponible en la respuesta de `/config/public`).
+- `AboutStripBlock.jsx` ya gateaba esto correctamente (`isVinils && config?.discogs_habilitat`) — no tocado.
+- Tests nuevos en `test_spotify.py`. Verificado también en el navegador contra `florqa`: sin sección Spotify, sin "Artistes" en el menú de cuenta, sin enlace Discogs en el footer.
+- `pytest`: 458 passed (mismo fallo preexistente sin relación).
+
+**Nota**: se interpretó "solo para recordstore" como "solo para la vertical `records`", no como el tenant `recordstore` en concreto — consistente con el resto de esta fase (gate por vertical, no por tenant) y con que las otras 4 tiendas reales (`tienda-a`, `tienda-b`, `tienda-b-verif`, `escaparate`) también son vertical `records`.
+
+**Deliberadamente fuera de esta fase**: el rediseño completo del picker de ítems como buscador genérico por proveedor (§19.1 original) — la opción de "rehacer el picker ahora" se ofreció y se descartó explícitamente a favor del fix mínimo. §19.2 (formulario de condición declarado por vertical) tampoco se construyó como mecanismo genérico — con una sola vertical (`records`) usando grading hoy, un gate directo por vertical es más simple y no hay nada que generalizar todavía; se revisita si aparece una segunda vertical con venta de segunda mano.
+
+### 19.1 Buscador de referencias por proveedor (compras)
+
+En vez de que `admin/compras` tenga el buscador de Discogs cableado a mano, cada vertical declara un `catalog_provider` opcional (ver §20): `discogs` para discos, potencialmente `openlibrary`/ISBN para libros, `null` para el resto. Backend: una interfaz común
+
+```
+class CatalogSearchProvider:
+    def search(query: str) -> list[CatalogSearchResult]
+    def enrich(external_id: str) -> dict  # campos ya mapeados a la extensión del vertical
+```
+
+con una implementación por proveedor (`DiscogsProvider` envuelve `services/discogs.py` existente, sin reescribirlo). Un único endpoint genérico `GET /admin/catalog-providers/search?q=...` resuelve internamente qué proveedor usar según el vertical del tenant (campo oculto si no hay ninguno). Frontend: un único componente de búsqueda en `admin/compras`, visible solo si el vertical tiene proveedor asignado; si no, solo queda el alta manual — ya es requisito existente de CLAUDE.md, no una excepción nueva.
+
+### 19.2 Campos de condición/grading declarados por vertical (compras + TPV)
+
+El grading (`estado_disco`/`estado_funda`) no se ata a "vertical == records" sino a si la extensión de `StockItem` de ese vertical declara campos de condición. Se generaliza el mismo mecanismo que ya usa `RecordStockDetail`: cualquier vertical con venta de segunda mano tiene su propia extensión de `StockItem` con sus propios campos de condición (discos: `estado_disco`/`estado_funda`; una futura vertical de ropa de segunda mano: su propia escala). Un único formulario genérico en `admin/compras` y `admin/tpv` renderiza "los campos de condición que declare la extensión de esta vertical, si los hay" — mismo principio que el buscador de referencias, sin lista de casos especiales por vertical.
+
+Esto unifica con el plan de arquetipos (§18): el mismo mecanismo de "renderizar los campos que la extensión de este vertical declare" sirve tanto para el alta de catálogo como para compras/TPV — un solo renderer genérico dirigido por lo que cada vertical declara, no tres implementaciones distintas.
+
+### 19.3 Configuració
+
+Dos cambios independientes:
+- **Generalizar copy** que hoy nombra discos aunque el concepto es genérico (el hint de IVA/REBU aplica a cualquier vertical con segunda mano, no solo discos).
+- **Ocultar bloques según `tenant_features`** (p.ej. no mostrar "club de suscripción" si `subscriptions` no está activo para ese tenant) — la infraestructura (`tenant_features`) ya existe, solo falta que esta pantalla la consulte.
+
+### 19.4 Resultat / contabilidad — aparcado
+
+Se descarta meterlo en este saneamiento. Es una funcionalidad nueva (afecta IVA, márgenes, caja, movimientos bancarios — coste económico directo si hay un error), no un fix de acoplamiento. Queda pendiente para una sesión de diseño propia, con el mismo protocolo que ya usa el proyecto para cambios de modelo ERP: proponer el modelo, discutirlo, no migrar hasta aprobarlo.
+
+---
+
+## 20. Gestión de verticales en superadmin — ampliación del registro (propuesta, 2026-08-29)
+
+Hoy (§5/§9, Fase 1) el registro de verticals solo guarda identidad (`id`, nombres i18n, `active`). Para soportar el mecanismo de §19 sin volver a tocar código en cada vertical nueva, se amplía:
+
+```
+verticals
+  id                  string PK   -- ya existe
+  name_ca/es/en       string      -- ya existe
+  active              bool        -- ya existe
+  catalog_provider    string null -- "discogs" | "openlibrary" | null — qué proveedor de búsqueda de referencias usa (§19.1)
+  product_archetype   string      -- "record" | "consumable" | "botanical" | "retail_simple" | "apparel_variant" (§18) — qué tabla de extensión de Product/StockItem usa esta vertical
+  default_features    JSON        -- {"discogs_sync": true, "subscriptions": false, ...} — qué tenant_features se siembran al crear un tenant de esta vertical (sustituye el mapeo hardcodeado que menciona §9)
+```
+
+Puntos de diseño:
+
+- **`catalog_provider` y `product_archetype` no son texto libre**: se validan contra un registro en código de lo que hay realmente implementado (un `Literal`/enum de providers y de archetypes con código real detrás). Superadmin elige entre las opciones ya construidas, no inventa una combinación sin tabla/proveedor real — igual que hoy `POST /superadmin/tenants` valida contra `verticals.active` en vez de aceptar cualquier string.
+- **`product_archetype` es prácticamente fijo tras la creación**: cambiarlo implicaría migrar datos de una tabla de extensión a otra, así que en la práctica lo fija quien da de alta la vertical en código (junto con la migración de su tabla de extensión); superadmin lo ve pero no lo cambia una vez hay datos.
+- **`catalog_provider` y `default_features` sí son editables en caliente**, sin redeploy — es el valor real de esta ampliación: activar/desactivar un proveedor o ajustar qué features trae una vertical por defecto sin tocar código.
+- **Las credenciales de API (token de Discogs, etc.) NO viven en `verticals`, siguen en `tenant_features.config`** (Fase 7, ya existe): el proveedor es una propiedad de la vertical (todas las tiendas de discos usan Discogs), pero el token/credencial es de cada tenant (dos tiendas de discos pueden tener cuentas Discogs distintas). Mezclar esto en `verticals` rompería el aislamiento multi-tenant.
+- Endpoints: `GET/POST/PUT /superadmin/verticals` (hoy solo `GET`, §10) se amplía a CRUD completo con estas validaciones.
+
+---
+
+## 21. §20 — implementado, con seed de las 12 verticales previstas (2026-08-29)
+
+**Nota de corrección sobre §10**: el CRUD completo (`GET/POST/PATCH /superadmin/verticals` + pantalla `superadmin/verticals`) ya existía antes de esta sesión — §10 decía "hoy solo GET", desactualizado (mismo tipo de deriva ya detectado antes con Fase 4 Etapa B). Solo faltaba la ampliación con `catalog_provider`/`product_archetype`/`default_features` descrita arriba, que es lo que se implementa aquí.
+
+- **Modelo** (`models/platform.py::Vertical`): 3 columnas nuevas, todas nullable/con default, sin tocar nada existente. `app/verticals_registry.py` (nuevo módulo) centraliza qué hay realmente implementado: `CATALOG_PROVIDERS = ["discogs"]`, `PRODUCT_ARCHETYPES_IMPLEMENTED = ["record", "floristry"]` + `PRODUCT_ARCHETYPES_PLANNED` (los 5 arquetipos de §18, sin tabla propia todavía), `TENANT_FEATURE_KEYS` (las 5 claves que el código realmente consulta hoy — `discogs_sync`, `subscriptions`, `catalog_browse_mode`, `catalog_format_filter`, `catalog_genre_filter`; **Spotify no es una de ellas**, sigue siendo kill switch global + vertical, ver §13/Spotify más abajo).
+- **Validación**: `VerticalCreateIn`/`VerticalUpdateIn` rechazan (422) cualquier `catalog_provider`/`product_archetype`/clave de `default_features` que no esté en el registro — impide que superadmin invente una combinación sin código real detrás.
+- **Migración** `0a8e9cde93d3`: añade las 3 columnas + siembra las 10 verticales nuevas discutidas con el usuario (café, vino, queso, cerveza artesana, alimentación → arquetipo `consumable`; plantas → `botanical`; juguetes, cosmética → `retail_simple`; ropa → `apparel_variant`; libros → `media_catalog`), todas con **`active=False`** (registradas pero no ofrecidas todavía en el alta de tenant, porque ninguna tiene tabla de extensión real — evita que alguien cree un tenant esperando campos específicos que no existen). `records`/`floristry` (ya existentes) se rellenan con sus valores reales (`records`: `catalog_provider="discogs"`, `product_archetype="record"`, `default_features` con las 5 claves activas; `floristry`: `product_archetype="floristry"`, sin proveedor). **Aplicada en dev** (confirmado con el usuario antes de `alembic upgrade head`; el `Dockerfile` ya corre la migración automáticamente en el arranque del contenedor `api`).
+- **Frontend** (`superadmin/verticals/page.jsx`): añadidos selects de proveedor/arquetipo y checkboxes de features (con las mismas 5 claves del registro, no texto libre), más 2 columnas nuevas en la tabla. Verificado en el navegador contra dev: las 12 verticales se listan con sus datos correctos, el diálogo de edición/creación funciona (confirmado que los checkboxes son independientes entre sí pese a un estilo visual circular preexistente del componente `Checkbox` compartido, no introducido por este cambio).
+- **Deliberadamente fuera de esta fase**: `POST /superadmin/tenants` todavía no siembra `tenant_features` a partir de `default_features` (el propio §20 ya lo marcaba como un paso posterior); ningún código de negocio consulta todavía `product_archetype`/`catalog_provider` para decidir comportamiento — los checks de §19 (Spotify, grading, PesFormat, club del disc) siguen siendo `vertical_id == "records"` directo en código, no leen el registro. Unificar ambas cosas (que el código consulte el registro en vez de hardcodear el vertical) queda pendiente para cuando haya un segundo caso real que lo justifique.
+- `pytest`: 463 passed (mismo fallo preexistente y no relacionado en `test_superadmin_tenant_features.py`).

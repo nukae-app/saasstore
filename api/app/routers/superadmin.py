@@ -28,6 +28,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import get_superadmin_settings
+from ..verticals_registry import CATALOG_PROVIDERS, PRODUCT_ARCHETYPES, TENANT_FEATURE_KEYS
 from ..database import get_db_unscoped
 from ..models import (
     BillingPeriod, ConfiguracioBotiga, Order, PlatformAdmin, PlatformAdminAuditLog, PlatformAdminRole,
@@ -114,11 +115,38 @@ class VerticalOut(BaseModel):
     name_es: str
     name_en: str
     active: bool
+    catalog_provider: str | None = None
+    product_archetype: str | None = None
+    default_features: dict = {}
 
     model_config = {"from_attributes": True}
 
 
 VERTICAL_ID_RE = re.compile(r"^[a-z][a-z0-9_]{1,29}$")
+
+
+def _validate_catalog_provider(v: str | None) -> str | None:
+    # Contra verticals_registry.CATALOG_PROVIDERS, no texto libre: asignar un
+    # proveedor sin services/ real detrás rompería en cuanto alguien lo usara
+    # (ver docs/ARQUITECTURA_CORE_VERTICAL.md §20).
+    if v is not None and v not in CATALOG_PROVIDERS:
+        raise ValueError(f"catalog_provider ha de ser un dels implementats: {CATALOG_PROVIDERS}")
+    return v
+
+
+def _validate_product_archetype(v: str | None) -> str | None:
+    if v is not None and v not in PRODUCT_ARCHETYPES:
+        raise ValueError(f"product_archetype ha de ser un dels reconeguts: {PRODUCT_ARCHETYPES}")
+    return v
+
+
+def _validate_default_features(v: dict | None) -> dict | None:
+    if v is None:
+        return v
+    unknown = set(v) - set(TENANT_FEATURE_KEYS)
+    if unknown:
+        raise ValueError(f"claus de feature desconegudes: {sorted(unknown)}. Vàlides: {TENANT_FEATURE_KEYS}")
+    return v
 
 
 class VerticalCreateIn(BaseModel):
@@ -127,6 +155,9 @@ class VerticalCreateIn(BaseModel):
     name_es: str
     name_en: str
     active: bool = True
+    catalog_provider: str | None = None
+    product_archetype: str | None = None
+    default_features: dict = {}
 
     @field_validator("id")
     @classmethod
@@ -139,6 +170,21 @@ class VerticalCreateIn(BaseModel):
             raise ValueError("L'id ha de ser minúscules/dígits/guió baix, començant per una lletra (p. ex. 'floristry')")
         return v
 
+    @field_validator("catalog_provider")
+    @classmethod
+    def _valid_catalog_provider(cls, v: str | None) -> str | None:
+        return _validate_catalog_provider(v)
+
+    @field_validator("product_archetype")
+    @classmethod
+    def _valid_product_archetype(cls, v: str | None) -> str | None:
+        return _validate_product_archetype(v)
+
+    @field_validator("default_features")
+    @classmethod
+    def _valid_default_features(cls, v: dict) -> dict:
+        return _validate_default_features(v)
+
 
 class VerticalUpdateIn(BaseModel):
     # id fora a propòsit, mateix criteri que Tenant.slug a TenantUpdateIn:
@@ -147,6 +193,24 @@ class VerticalUpdateIn(BaseModel):
     name_es: str | None = None
     name_en: str | None = None
     active: bool | None = None
+    catalog_provider: str | None = None
+    product_archetype: str | None = None
+    default_features: dict | None = None
+
+    @field_validator("catalog_provider")
+    @classmethod
+    def _valid_catalog_provider(cls, v: str | None) -> str | None:
+        return _validate_catalog_provider(v)
+
+    @field_validator("product_archetype")
+    @classmethod
+    def _valid_product_archetype(cls, v: str | None) -> str | None:
+        return _validate_product_archetype(v)
+
+    @field_validator("default_features")
+    @classmethod
+    def _valid_default_features(cls, v: dict | None) -> dict | None:
+        return _validate_default_features(v)
 
 
 class PlatformAdminOut(BaseModel):

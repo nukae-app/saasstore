@@ -48,10 +48,65 @@ def test_owner_crea_vertical_i_queda_auditat(db, client):
     assert resp.status_code == 201, resp.text
     assert resp.json() == {
         "id": "merch", "name_ca": "Merxandatge", "name_es": "Merchandising", "name_en": "Merch", "active": True,
+        "catalog_provider": None, "product_archetype": None, "default_features": {},
     }
 
     list_resp = client.get("/superadmin/verticals", headers=_auth(token))
     assert any(v["id"] == "merch" for v in list_resp.json())
+
+
+def test_crear_vertical_amb_catalog_provider_i_archetype_valids(db, client):
+    admin = _create_admin(db, "owner2@example.com", PlatformAdminRole.owner)
+    token = _login(client, "owner2@example.com")
+
+    payload = {
+        **_vertical_payload("books"),
+        "catalog_provider": "discogs", "product_archetype": "media_catalog",
+        "default_features": {"subscriptions": True},
+    }
+    resp = client.post("/superadmin/verticals", json=payload, headers=_auth(token))
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["catalog_provider"] == "discogs"
+    assert resp.json()["product_archetype"] == "media_catalog"
+    assert resp.json()["default_features"] == {"subscriptions": True}
+
+
+def test_catalog_provider_no_implementat_es_rebutjat(db, client):
+    admin = _create_admin(db, "owner3@example.com", PlatformAdminRole.owner)
+    token = _login(client, "owner3@example.com")
+
+    payload = {**_vertical_payload("wine"), "catalog_provider": "vivino"}
+    resp = client.post("/superadmin/verticals", json=payload, headers=_auth(token))
+    assert resp.status_code == 422
+
+
+def test_product_archetype_desconegut_es_rebutjat(db, client):
+    admin = _create_admin(db, "owner4@example.com", PlatformAdminRole.owner)
+    token = _login(client, "owner4@example.com")
+
+    payload = {**_vertical_payload("toys"), "product_archetype": "no_existeix"}
+    resp = client.post("/superadmin/verticals", json=payload, headers=_auth(token))
+    assert resp.status_code == 422
+
+
+def test_default_features_amb_clau_desconeguda_es_rebutjat(db, client):
+    admin = _create_admin(db, "owner6@example.com", PlatformAdminRole.owner)
+    token = _login(client, "owner6@example.com")
+
+    payload = {**_vertical_payload("craft_beer"), "default_features": {"instagram_ads": True}}
+    resp = client.post("/superadmin/verticals", json=payload, headers=_auth(token))
+    assert resp.status_code == 422
+
+
+def test_update_vertical_amb_product_archetype_invalid_es_rebutjat(db, client):
+    admin = _create_admin(db, "owner5@example.com", PlatformAdminRole.owner)
+    token = _login(client, "owner5@example.com")
+    client.post("/superadmin/verticals", json=_vertical_payload("cheese"), headers=_auth(token))
+
+    resp = client.patch(
+        "/superadmin/verticals/cheese", json={"product_archetype": "inventado"}, headers=_auth(token),
+    )
+    assert resp.status_code == 422
 
     log_resp = client.get("/superadmin/audit-log", headers=_auth(token))
     entries = log_resp.json()

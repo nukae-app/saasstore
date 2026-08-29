@@ -62,6 +62,28 @@ class Vertical(Base):
     name_es: Mapped[str] = mapped_column(String(100))
     name_en: Mapped[str] = mapped_column(String(100))
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # Proveedor de búsqueda de referencias externas en compras (ver
+    # docs/ARQUITECTURA_CORE_VERTICAL.md §19.1/§20) — null si esta vertical
+    # no tiene ninguno (la mayoría). Validado en el schema de superadmin
+    # contra `verticals_registry.CATALOG_PROVIDERS` (qué hay realmente
+    # implementado en código), no texto libre.
+    catalog_provider: Mapped[str | None] = mapped_column(String(30))
+    # Arquetipo de extensión de Product/StockItem (§18) al que pertenece esta
+    # vertical. "record"/"floristry" ya tienen tabla de extensión real
+    # (RecordProduct/RecordStockDetail, ReleaseFloristeria); el resto de
+    # valores son arquetipos planificados sin tabla propia todavía — una
+    # vertical con uno de esos asignado vende hoy producto Core puro
+    # (nombre/precio/stock), sin campos específicos, hasta que se construya
+    # su extensión. Validado contra `verticals_registry.PRODUCT_ARCHETYPES`.
+    product_archetype: Mapped[str | None] = mapped_column(String(30))
+    # Qué `tenant_features` (ver Fase 7, TenantFeature) se siembran por
+    # defecto al dar de alta un tenant de esta vertical — p.ej.
+    # {"discogs_sync": true, "subscriptions": true} para records (Spotify no
+    # es un tenant_feature: es un kill switch global de Settings, ver §13 y
+    # routers/spotify.py). No se aplica todavía en `POST /superadmin/tenants`
+    # (fuera de alcance de esta fase, que es solo el registro — ver §20),
+    # pero ya se guarda para cuando se aborde.
+    default_features: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
