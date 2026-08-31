@@ -12,8 +12,10 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from ..accounting_registry import LEGAL_FORMS_BY_JURISDICTION
 from ..database import get_db
-from ..models import ConfiguracioBotiga, MargeConfig, PesFormat, Seccio, TipusIva, TramEnviament
+from ..models import AccountingAccount, ConfiguracioBotiga, MargeConfig, PesFormat, Seccio, TipusIva, TramEnviament
+from ..services.comptabilitat_seed import seed_chart_of_accounts
 from ..schemas import (
     ConfiguracioBotigaOut, ConfiguracioBotigaPublic, ConfiguracioBotigaUpdate,
     CustomCssUpdateIn, ThemeTokens, HEX_COLOR_RE, THEME_COLOR_FIELDS,
@@ -57,9 +59,38 @@ def get_configuracio(db: Session = Depends(get_db)):
 
 
 @router.patch("/configuracio", response_model=ConfiguracioBotigaOut)
-def update_configuracio(payload: ConfiguracioBotigaUpdate, db: Session = Depends(get_db)):
+def update_configuracio(payload: ConfiguracioBotigaUpdate, request: Request, db: Session = Depends(get_db)):
     config = _get_or_create_config(db)
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    camps = payload.model_dump(exclude_unset=True)
+
+    # legal_form fora del setattr genèric: la primera vegada que es fixa
+    # sembra el pla de comptes (mateix pas que fa create_tenant per a un
+    # tenant nou, ver services/comptabilitat_seed.py) — un cop ja hi ha
+    # comptes sembrats, canviar-lo aquí els deixaria despenjats de la forma
+    # jurídica real, així que es bloqueja i cal gestionar-ho a mà.
+    if "legal_form" in camps:
+        nou_valor = camps.pop("legal_form")
+        if nou_valor != config.legal_form:
+            tenant = request.state.tenant
+            formes_valides = LEGAL_FORMS_BY_JURISDICTION.get(tenant.accounting_jurisdiction_id, [])
+            if nou_valor not in formes_valides:
+                raise HTTPException(
+                    422,
+                    f"Forma jurídica '{nou_valor}' no vàlida per '{tenant.accounting_jurisdiction_id}' "
+                    f"(vàlides: {', '.join(formes_valides)})",
+                )
+            ja_te_pla = db.scalar(select(AccountingAccount.id).limit(1)) is not None
+            if config.legal_form is not None or ja_te_pla:
+                raise HTTPException(
+                    409,
+                    "La forma jurídica ja està fixada i el pla de comptes ja existeix — "
+                    "no es pot canviar des d'aquí, contacta amb suport",
+                )
+            config.legal_form = nou_valor
+            db.flush()
+            seed_chart_of_accounts(db, tenant.accounting_jurisdiction_id, nou_valor)
+
+    for k, v in camps.items():
         setattr(config, k, v)
     db.commit()
     db.refresh(config)

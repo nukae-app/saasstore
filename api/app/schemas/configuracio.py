@@ -90,6 +90,7 @@ class ConfiguracioBotigaOut(BaseModel):
     id: int
     fiscal_name: str
     nif: str | None
+    legal_form: str | None
     address: str
     phone: str | None
     contact_email: str | None
@@ -115,6 +116,11 @@ class ConfiguracioBotigaOut(BaseModel):
 class ConfiguracioBotigaUpdate(BaseModel):
     fiscal_name: str | None = None
     nif: str | None = None
+    # Validat contra accounting_registry.LEGAL_FORMS_BY_JURISDICTION i
+    # gestionat a mà a l'endpoint (no al setattr genèric): la primera vegada
+    # que es fixa, sembra el pla de comptes; un cop ja n'hi ha un, no es pot
+    # tornar a canviar des d'aquí (ver routers/configuracio.py).
+    legal_form: str | None = None
     address: str | None = None
     phone: str | None = None
     contact_email: str | None = None

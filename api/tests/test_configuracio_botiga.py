@@ -82,3 +82,47 @@ def test_reserva_minuts_es_desa(db, client):
 
     config = db.get(ConfiguracioBotiga, 1)
     assert config.reservation_minutes == 5
+
+
+def test_legal_form_primer_cop_sembra_pla_de_comptes(db, client):
+    """El tenant de test del fixture `db` ja té un pla de comptes sembrat a
+    mà (per als tests de comptabilitat), però sense `legal_form` fixat —
+    exactament l'estat dels tenants reals d'abans de la Fase 1. Esborrem
+    aquest pla per simular un tenant net i comprovar que fixar legal_form
+    per primera vegada el sembra sol."""
+    from app.models import AccountingAccount
+
+    db.query(AccountingAccount).delete()
+    db.commit()
+
+    admin = _admin_token(client, db)
+    resp = client.patch("/admin/configuracio", json={"legal_form": "autonom"}, headers=_auth(admin))
+    assert resp.status_code == 200
+    assert resp.json()["legal_form"] == "autonom"
+
+    codis = {a.code for a in db.query(AccountingAccount).all()}
+    assert "550" in codis  # titular de l'explotació, autònom — no 100/112
+    assert "100" not in codis
+
+
+def test_legal_form_ja_fixat_dona_409(db, client):
+    admin = _admin_token(client, db)
+    # El fixture ja sembra el pla (ver conftest.py) però no fixa legal_form:
+    # la primera crida l'estableix i re-sembra sense duplicar (el pla ja hi és).
+    resp1 = client.patch("/admin/configuracio", json={"legal_form": "sl"}, headers=_auth(admin))
+    assert resp1.status_code == 409  # ja_te_pla és True des del fixture
+
+    from app.models import ConfiguracioBotiga
+    config = db.get(ConfiguracioBotiga, 1)
+    assert config.legal_form is None  # no s'ha tocat
+
+
+def test_legal_form_invalid_per_jurisdiccio_dona_422(db, client):
+    from app.models import AccountingAccount
+
+    db.query(AccountingAccount).delete()
+    db.commit()
+
+    admin = _admin_token(client, db)
+    resp = client.patch("/admin/configuracio", json={"legal_form": "ltd"}, headers=_auth(admin))
+    assert resp.status_code == 422
