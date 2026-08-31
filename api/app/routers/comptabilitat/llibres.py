@@ -21,12 +21,23 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import AccountingAccount, AccountType, JournalEntry, JournalLine
 from ...schemas import (
-    ApuntLlibreOut, AssentamentLlibreOut, BalancLiniaOut, BalancSituacioOut, ComptePyGLiniaOut, ComptePyGOut,
-    LlibreDiariOut, LlibreMajorLiniaOut, LlibreMajorOut,
+    AccountingAccountOut, ApuntLlibreOut, AssentamentLlibreOut, BalancLiniaOut, BalancSituacioOut,
+    ComptePyGLiniaOut, ComptePyGOut, LlibreDiariOut, LlibreMajorLiniaOut, LlibreMajorOut,
 )
 from ...services.security import require_admin
 
 router = APIRouter(prefix="/admin", tags=["comptabilitat"], dependencies=[Depends(require_admin)])
+
+
+@router.get("/comptes-comptables", response_model=list[AccountingAccountOut])
+def list_comptes_comptables(db: Session = Depends(get_db)):
+    accounts = db.scalars(select(AccountingAccount).order_by(AccountingAccount.code)).all()
+    return [
+        AccountingAccountOut(
+            id=a.id, code=a.code, name=a.name, group=a.group, account_type=a.account_type.value, active=a.active,
+        )
+        for a in accounts
+    ]
 
 
 def _validar_mes(mes: int) -> None:

@@ -310,6 +310,17 @@ class VendesRealsLiniaOut(BaseModel):
     cultural_voucher: Decimal = Decimal("0")
 
 
+class AccountingAccountOut(BaseModel):
+    id: int
+    code: str
+    name: str
+    group: int
+    account_type: str
+    active: bool
+
+    model_config = {"from_attributes": True}
+
+
 # --- Fase 3: llibres comptables (Diari, Major, Balanç, Compte de resultats) ---
 #
 # Derivats de JournalEntry/JournalLine (partida doble, ver

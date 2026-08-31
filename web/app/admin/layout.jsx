@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Disc3, ShoppingCart, PackagePlus, Store, Users,
   LogOut, Menu, X, Globe, FileText, CalendarDays, Layers,
   Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
-  Settings, Repeat, LayoutTemplate,
+  Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown,
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
@@ -57,11 +57,15 @@ function getNavGroups(config) {
     },
     {
       label: 'Comptabilitat',
+      collapsible: true,
       items: [
-        { href: '/admin/despeses', key: 'nav.despeses', label: 'Despeses',  icon: Receipt },
-        { href: '/admin/banc',     key: 'nav.banc',     label: 'Banc',      icon: Landmark },
-        { href: '/admin/resultat', key: 'nav.resultat', label: 'Resultat',  icon: TrendingUp },
-        { href: '/admin/iva',      key: 'nav.iva',      label: 'IVA',       icon: Calculator },
+        { href: '/admin/despeses',    key: 'nav.despeses',    label: 'Despeses',      icon: Receipt },
+        { href: '/admin/banc',        key: 'nav.banc',        label: 'Banc',          icon: Landmark },
+        { href: '/admin/resultat',    key: 'nav.resultat',    label: 'Resultat',      icon: TrendingUp },
+        { href: '/admin/iva',         key: 'nav.iva',         label: 'IVA',           icon: Calculator },
+        { href: '/admin/pla-comptes', key: 'nav.pla_comptes', label: 'Pla de comptes', icon: BookText },
+        { href: '/admin/actius',      key: 'nav.actius',      label: 'Actius',        icon: Boxes },
+        // Llibres i Exportacions pendents — s'afegeixen aquí quan es construeixin les seves pantalles.
       ],
     },
     {
@@ -115,6 +119,24 @@ function AdminShell({ children }) {
     () => getNavGroups(config), [config]
   );
   const NAV = useMemo(() => NAV_GROUPS.flatMap(g => g.items), [NAV_GROUPS]);
+
+  // Grups desplegables (avui només "Comptabilitat", que ha crescut prou per
+  // no voler-lo sempre expandit): comença tancat, però s'obre sol quan la
+  // pàgina activa hi és a dins — mai es tanca sol en navegar-hi fora, així
+  // que un cop l'usuari el desplega a mà es queda obert per la resta de
+  // sessió de navegació.
+  const [openGroups, setOpenGroups] = useState({});
+  useEffect(() => {
+    setOpenGroups(prev => {
+      const next = { ...prev };
+      for (const g of NAV_GROUPS) {
+        if (!g.collapsible) continue;
+        const isActive = g.items.some(it => (it.exact ? pathname === it.href : pathname.startsWith(it.href)));
+        if (isActive) next[g.label] = true;
+      }
+      return next;
+    });
+  }, [pathname, NAV_GROUPS]);
 
   // Tanca el drawer mòbil en canviar de pàgina.
   useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -205,9 +227,23 @@ function AdminShell({ children }) {
 
         {/* Nav */}
         <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-4">
-          {NAV_GROUPS.map((group, gi) => (
+          {NAV_GROUPS.map((group, gi) => {
+            // Els grups desplegables només es pleguen amb el sidebar
+            // expandit — en mode icona (showLabels=false) no té sentit
+            // amagar-los, es mostren sempre plans com la resta.
+            const isCollapsibleOpen = !group.collapsible || !showLabels || !!openGroups[group.label];
+            return (
             <div key={gi}>
-              {group.label && showLabels && (
+              {group.label && showLabels && group.collapsible && (
+                <button
+                  onClick={() => setOpenGroups(g => ({ ...g, [group.label]: !g[group.label] }))}
+                  className="w-full flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-zinc-600 uppercase tracking-widest hover:text-zinc-400"
+                >
+                  {group.label}
+                  <ChevronDown size={12} className={`transition-transform ${isCollapsibleOpen ? '' : '-rotate-90'}`} />
+                </button>
+              )}
+              {group.label && showLabels && !group.collapsible && (
                 <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest px-3 mb-1">
                   {group.label}
                 </p>
@@ -215,29 +251,32 @@ function AdminShell({ children }) {
               {group.label && !showLabels && gi > 0 && (
                 <div className="border-t border-zinc-800 mb-1 mx-2" />
               )}
-              <div className="space-y-0.5">
-                {group.items.map(({ href, key, label: fallbackLabel, icon: Icon, exact }) => {
-                  const active = exact ? pathname === href : pathname.startsWith(href);
-                  const label = t(key, fallbackLabel);
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      title={collapsed && !mobileOpen ? label : undefined}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        active
-                          ? 'bg-zinc-800 text-white font-medium'
-                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                      }`}
-                    >
-                      <Icon size={16} className="shrink-0" />
-                      {showLabels && <span>{label}</span>}
-                    </Link>
-                  );
-                })}
-              </div>
+              {isCollapsibleOpen && (
+                <div className="space-y-0.5">
+                  {group.items.map(({ href, key, label: fallbackLabel, icon: Icon, exact }) => {
+                    const active = exact ? pathname === href : pathname.startsWith(href);
+                    const label = t(key, fallbackLabel);
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        title={collapsed && !mobileOpen ? label : undefined}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          active
+                            ? 'bg-zinc-800 text-white font-medium'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        }`}
+                      >
+                        <Icon size={16} className="shrink-0" />
+                        {showLabels && <span>{label}</span>}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* User + logout */}

@@ -59,6 +59,14 @@ def test_llibre_diari_llista_assentaments_del_mes_ordenats(client, db):
         assert total_debit == total_credit
 
 
+def test_list_comptes_comptables(client, db):
+    token = _admin_token(client, db)
+    resp = client.get("/admin/comptes-comptables", headers=_auth(token))
+    assert resp.status_code == 200
+    codis = {a["code"] for a in resp.json()}
+    assert "570" in codis and "700" in codis
+
+
 def test_llibre_diari_export_csv(client, db):
     token = _admin_token(client, db)
     _crear_despesa(client, token, base="100.00")

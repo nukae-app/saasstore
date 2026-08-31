@@ -144,6 +144,7 @@ from .comptabilitat import (
     CompteBancariOut,
     MovimentBancariOut,
     ConciliarMovimentIn,
+    AccountingAccountOut,
     ResultatLiniaDespesa,
     ResultatMensualOut,
     IVALiniaOut,
