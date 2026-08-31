@@ -27,16 +27,18 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..accounting_registry import LEGAL_FORMS_BY_JURISDICTION
 from ..config import get_superadmin_settings
 from ..verticals_registry import CATALOG_PROVIDERS, PRODUCT_ARCHETYPES, TENANT_FEATURE_KEYS
 from ..database import get_db_unscoped
 from ..models import (
-    BillingPeriod, ConfiguracioBotiga, Order, PlatformAdmin, PlatformAdminAuditLog, PlatformAdminRole,
-    PlatformInvoice, PlatformInvoiceStatus, PlatformPlan, Tenant, TenantBilling, TenantBillingStatus,
-    TenantFeature, TipusIva, TramEnviament, Vertical,
+    AccountingJurisdiction, BillingPeriod, ConfiguracioBotiga, Order, PlatformAdmin, PlatformAdminAuditLog,
+    PlatformAdminRole, PlatformInvoice, PlatformInvoiceStatus, PlatformPlan, Tenant, TenantBilling,
+    TenantBillingStatus, TenantFeature, TipusIva, TramEnviament, Vertical,
 )
 from ..rate_limit import limiter
 from ..schemas import TenantSecretsStatusOut
+from ..services.comptabilitat_seed import seed_chart_of_accounts
 from ..services.security import hash_password, verify_password
 from ..services.superadmin_security import (
     create_superadmin_token, record_audit, require_superadmin, require_superadmin_role,
@@ -81,6 +83,16 @@ class TenantCreateIn(BaseModel):
     fiscal_name: str
     address: str
     vertical_id: str = "records"
+    # Eix independent del vertical (ver AccountingJurisdiction a
+    # models/platform.py) — decideix el pla de comptes sembrat. Default "es"
+    # perquè avui tots els tenants ho són; validat contra
+    # AccountingJurisdiction.active a create_tenant(), no assumit.
+    accounting_jurisdiction_id: str = "es"
+    # Forma jurídica ("sl", "autonom"...) — obligatòria en l'alta perquè
+    # decideix quin compte de grup 1 sembra AccountingAccount (capital
+    # social vs titular de l'explotació). Validada contra
+    # accounting_registry.LEGAL_FORMS_BY_JURISDICTION[accounting_jurisdiction_id].
+    legal_form: str
 
     # Sin @field_validator a propósito: un ValueError de Pydantic devuelve
     # `detail` como lista de objetos (formato 422 estándar de FastAPI), no
@@ -96,6 +108,7 @@ class TenantOut(BaseModel):
     domain: str
     nombre: str
     vertical_id: str
+    accounting_jurisdiction_id: str
     activo: bool
 
 
@@ -513,8 +526,26 @@ def create_tenant(
         raise HTTPException(409, f"Ya existe un tenant con domain '{domain}'")
     if not db.scalar(select(Vertical).where(Vertical.id == payload.vertical_id, Vertical.active)):
         raise HTTPException(422, f"Vertical '{payload.vertical_id}' no existe o no está activo")
+    if not db.scalar(
+        select(AccountingJurisdiction).where(
+            AccountingJurisdiction.id == payload.accounting_jurisdiction_id, AccountingJurisdiction.active
+        )
+    ):
+        raise HTTPException(
+            422, f"Jurisdicció comptable '{payload.accounting_jurisdiction_id}' no existeix o no té pla de comptes"
+        )
+    formes_valides = LEGAL_FORMS_BY_JURISDICTION.get(payload.accounting_jurisdiction_id, [])
+    if payload.legal_form not in formes_valides:
+        raise HTTPException(
+            422,
+            f"Forma jurídica '{payload.legal_form}' no vàlida per '{payload.accounting_jurisdiction_id}' "
+            f"(vàlides: {', '.join(formes_valides)})",
+        )
 
-    tenant = Tenant(slug=payload.slug, domain=domain, nombre=payload.nombre, vertical_id=payload.vertical_id)
+    tenant = Tenant(
+        slug=payload.slug, domain=domain, nombre=payload.nombre, vertical_id=payload.vertical_id,
+        accounting_jurisdiction_id=payload.accounting_jurisdiction_id,
+    )
     db.add(tenant)
     db.flush()
 
@@ -523,7 +554,10 @@ def create_tenant(
     # app/tenancy.py lee el tenant activo de la sesión, que hasta este
     # punto no tenía ninguno puesto).
     with scoped_to(db, tenant.id):
-        config = ConfiguracioBotiga(fiscal_name=payload.fiscal_name, address=payload.address, reservation_minutes=20)
+        config = ConfiguracioBotiga(
+            fiscal_name=payload.fiscal_name, address=payload.address, reservation_minutes=20,
+            legal_form=payload.legal_form,
+        )
         db.add(config)
         # flush antes de tocar discogs_habilitat: ese campo vive en
         # TenantFeature (ver models.py::ConfiguracioBotiga._set_feature), que
@@ -553,6 +587,7 @@ def create_tenant(
         # en nombre del tenant sería peor que forzarlo a configurar los
         # suyos antes de activar envíos.
         db.add(TramEnviament(country="ES", max_weight_g=999999, price=Decimal("0.00"), active=False))
+        seed_chart_of_accounts(db, payload.accounting_jurisdiction_id, payload.legal_form)
         db.flush()
         # Traducciones de UI + páginas legales: gestionadas por desarrollo/
         # superadmin, no por el tenant (ver scripts/seed_translations.py,
@@ -570,7 +605,10 @@ def create_tenant(
     provision_tenant_secret(tenant.id)
     record_audit(
         db, admin, "tenant.create", target_tenant_id=tenant.id,
-        details={"slug": tenant.slug, "domain": tenant.domain, "vertical_id": tenant.vertical_id},
+        details={
+            "slug": tenant.slug, "domain": tenant.domain, "vertical_id": tenant.vertical_id,
+            "accounting_jurisdiction_id": tenant.accounting_jurisdiction_id, "legal_form": payload.legal_form,
+        },
     )
 
     return _tenant_out(tenant)
@@ -588,7 +626,8 @@ def _get_tenant_or_404(db, tenant_id: uuid.UUID) -> Tenant:
 def _tenant_out(tenant: Tenant) -> TenantOut:
     return TenantOut(
         id=tenant.id, slug=tenant.slug, domain=tenant.domain, nombre=tenant.nombre,
-        vertical_id=tenant.vertical_id, activo=tenant.activo,
+        vertical_id=tenant.vertical_id, accounting_jurisdiction_id=tenant.accounting_jurisdiction_id,
+        activo=tenant.activo,
     )
 
 

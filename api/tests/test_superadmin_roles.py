@@ -32,6 +32,7 @@ def _tenant_payload(slug: str) -> dict:
     return {
         "slug": slug, "domain": f"{slug}.example.com", "nombre": slug.title(),
         "fiscal_name": slug.title(), "address": "Carrer Fals 1", "vertical_id": "records",
+        "legal_form": "sl",
     }
 
 

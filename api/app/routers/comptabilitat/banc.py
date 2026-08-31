@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
 from ...models import (
-    CompteBancari, Despesa, EstatConciliacio, EstatPagamentDespesa, MovimentBancari, Order,
+    CompteBancari, Despesa, EstatConciliacio, EstatPagamentDespesa, JournalSourceType, MovimentBancari, Order,
     VentaExterna,
 )
 from ...schemas import CompteBancariIn, CompteBancariOut, ConciliarMovimentIn, MovimentBancariOut
+from ...services.comptabilitat_posting import post_cobrament_conciliacio, post_despesa_pagament
 from ...services.n43 import parse_csv_generic, parse_n43
 from ...services.security import require_admin
 
@@ -147,18 +148,31 @@ def conciliar_moviment(
         if despesa and despesa.payment_status != EstatPagamentDespesa.pagat:
             despesa.payment_status = EstatPagamentDespesa.pagat
             despesa.payment_date = mov.operation_date
+            post_despesa_pagament(
+                db, despesa, payment_date=mov.operation_date, amount=abs(mov.movement_amount), cash=False,
+            )
 
     # Si conciliem amb una venda externa, la marquem com a cobrada
     if payload.status == "conciliat" and payload.venta_externa_id:
         venta = db.get(VentaExterna, payload.venta_externa_id)
         if venta and venta.paid_at is None:
             venta.paid_at = datetime.combine(mov.operation_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+            post_cobrament_conciliacio(
+                db, entry_date=mov.operation_date, source_type=JournalSourceType.venda_externa,
+                source_id=venta.id, amount=abs(mov.movement_amount),
+                description=f"Cobrament venda {venta.channel.value} #{str(venta.ticket_id)[:8]}",
+            )
 
     # Si conciliem amb un order, el marquem com a cobrat
     if payload.status == "conciliat" and payload.order_id:
         order = db.get(Order, payload.order_id)
         if order and order.paid_at is None:
             order.paid_at = datetime.combine(mov.operation_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+            post_cobrament_conciliacio(
+                db, entry_date=mov.operation_date, source_type=JournalSourceType.venda_web,
+                source_id=order.id, amount=abs(mov.movement_amount),
+                description=f"Cobrament venda web #{str(order.id)[:8]}",
+            )
 
     db.commit()
     db.refresh(mov)

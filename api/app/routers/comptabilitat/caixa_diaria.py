@@ -14,6 +14,7 @@ from ...schemas import (
     CAIXA_DIARIA_CAMPS, CaixaDiariaLiniaIn, CaixaDiariaLiniaOut, CaixaDiariaMesOut, VendesRealsLiniaOut,
 )
 from ...services.caixa_diaria_export import generate_caixa_diaria_excel, generate_caixa_diaria_pdf
+from ...services.comptabilitat_posting import post_caixa_diaria
 from ...services.security import require_admin
 
 router = APIRouter(prefix="/admin", tags=["comptabilitat"], dependencies=[Depends(require_admin)])
@@ -160,6 +161,8 @@ def save_caixa_diaria(year: int, mes: int, payload: list[CaixaDiariaLiniaIn], db
             existents[linia.date] = caixa
         for camp in CAIXA_DIARIA_CAMPS:
             setattr(caixa, camp, getattr(linia, camp))
+        db.flush()
+        post_caixa_diaria(db, caixa)
     db.commit()
 
     return _get_caixa_diaria_mes(year, mes, db)

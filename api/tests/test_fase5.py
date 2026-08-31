@@ -62,6 +62,7 @@ def test_admin_secrets_round_trip(db, client, monkeypatch):
     assert resp.json() == {
         "redsys_merchant_code": False, "redsys_terminal": False, "redsys_secret_key": False,
         "discogs_token": False, "spotify_client_id": False, "spotify_client_secret": False,
+        "holded_api_key": False,
     }
 
     resp = client.post("/admin/secrets", json={"discogs_token": "fake-token-123"}, headers=_auth(admin))

@@ -19,7 +19,8 @@ from fastapi.testclient import TestClient
 from app import models  # noqa: F401  registra las tablas
 from app.database import Base, SessionLocal, engine
 from app.main import app
-from app.models import ConfiguracioBotiga, Tenant, Vertical
+from app.models import AccountingJurisdiction, ConfiguracioBotiga, Tenant, Vertical
+from app.services.comptabilitat_seed import seed_chart_of_accounts
 from app.tenant_secrets import TenantSecrets
 
 
@@ -44,6 +45,10 @@ def db():
     session.add_all([
         Vertical(id="records", name_ca="Discos", name_es="Discos", name_en="Records"),
         Vertical(id="floristry", name_ca="Floristeria", name_es="Floristería", name_en="Florist"),
+        # Igual que Vertical arriba: create_tenant() valida contra esta
+        # tabla (ver accounting_registry.py), no basta con el default "es"
+        # de Tenant.accounting_jurisdiction_id.
+        AccountingJurisdiction(id="es", name="España", tax_model="eu_vat", active=True),
     ])
     tenant = Tenant(slug="test-tenant", domain="testserver", nombre="Test Tenant", vertical_id="records")
     session.add(tenant)
@@ -62,6 +67,12 @@ def db():
     # sin pasar antes por /admin/configuracio vería 404 en vez del
     # comportamiento que prueba.
     config.discogs_habilitat = True
+    # Sin esto, cualquier operación que dispare el motor de posting
+    # (checkout, TPV, despeses, banc, caixa diaria — ver
+    # services/comptabilitat_posting.py) fallaría con "compte no trobat":
+    # el pla de comptes no es crea solo, lo siembra create_tenant() en el
+    # flujo real (ver services/comptabilitat_seed.py).
+    seed_chart_of_accounts(session, "es", "sl")
     session.commit()
     # Expira los objetos sembrados aquí (tenant, config...) antes de ceder la
     # sesión al test: sin esto, `config` sigue vivo como variable local de
@@ -95,9 +106,13 @@ def _fake_tenant_secrets(monkeypatch):
         discogs_token=os.environ.get("DISCOGS_TOKEN"),
         spotify_client_id=os.environ.get("SPOTIFY_CLIENT_ID"),
         spotify_client_secret=os.environ.get("SPOTIFY_CLIENT_SECRET"),
+        holded_api_key="test-holded-key",
     )
     fake = lambda tenant_id: secrets  # noqa: E731
-    for module in ("app.routers.checkout", "app.routers.subscripcions_public", "app.routers.spotify"):
+    for module in (
+        "app.routers.checkout", "app.routers.subscripcions_public", "app.routers.spotify",
+        "app.routers.comptabilitat.holded",
+    ):
         monkeypatch.setattr(f"{module}.get_tenant_secrets", fake, raising=False)
 
 

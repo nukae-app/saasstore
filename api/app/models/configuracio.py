@@ -93,6 +93,14 @@ class ConfiguracioBotiga(TenantScoped, Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     fiscal_name: Mapped[str] = mapped_column(String(200))
     nif: Mapped[str | None] = mapped_column(String(20))
+    # Forma jurídica del tenant ("sl", "autonom", "ltd", "sarl"...). String
+    # validat en codi contra `accounting_registry.LEGAL_FORMS_BY_JURISDICTION[
+    # tenant.accounting_jurisdiction_id]`, no un Enum de BD: cada jurisdicció
+    # comptable té les seves pròpies formes jurídiques i un Enum exigiria un
+    # ALTER TYPE cada vegada que s'afegeix un país (ver AccountingJurisdiction
+    # a platform.py). Nul·lable a propòsit: els tenants existents no tenen
+    # aquest dato confirmat encara, no s'ha d'inventar.
+    legal_form: Mapped[str | None] = mapped_column(String(30), index=True)
     address: Mapped[str] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(String(30))
     contact_email: Mapped[str | None] = mapped_column(String(200))

@@ -154,6 +154,15 @@ from .comptabilitat import (
     CaixaDiariaLiniaOut,
     CaixaDiariaMesOut,
     VendesRealsLiniaOut,
+    ApuntLlibreOut,
+    AssentamentLlibreOut,
+    LlibreDiariOut,
+    LlibreMajorLiniaOut,
+    LlibreMajorOut,
+    BalancLiniaOut,
+    BalancSituacioOut,
+    ComptePyGLiniaOut,
+    ComptePyGOut,
 )
 
 from .configuracio import (
@@ -188,6 +197,25 @@ from .subscripcions import (
     SubscripcioMePatch,
     SubscripcioCatalogItemOut,
     InformeSubscripcioMensualOut,
+)
+
+from .actius import (
+    CATEGORIES_ACTIU,
+    FixedAssetIn,
+    FixedAssetOut,
+    AssetDepreciationEntryOut,
+    GenerarAmortitzacionsOut,
+)
+
+from .aeat import (
+    Model303TipusOut,
+    Model303Out,
+)
+
+from .holded import (
+    HoldedExportIn,
+    HoldedExportLiniaOut,
+    HoldedExportOut,
 )
 
 from .storefront import (

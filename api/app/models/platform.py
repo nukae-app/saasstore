@@ -43,6 +43,14 @@ class Tenant(Base):
         ForeignKey("verticals.id"), default="records", server_default="records", index=True
     )
     vertical: Mapped["Vertical"] = relationship()
+    # Eix independent del vertical: quina jurisdicció comptable fa servir
+    # aquest tenant (decideix el pla de comptes sembrat i les formes
+    # jurídiques vàlides, ver AccountingJurisdiction més avall). Tots els
+    # tenants existents són espanyols, d'aquí el default.
+    accounting_jurisdiction_id: Mapped[str] = mapped_column(
+        ForeignKey("accounting_jurisdictions.id"), default="es", server_default="es", index=True
+    )
+    accounting_jurisdiction: Mapped["AccountingJurisdiction"] = relationship()
     activo: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -84,6 +92,37 @@ class Vertical(Base):
     # (fuera de alcance de esta fase, que es solo el registro — ver §20),
     # pero ya se guarda para cuando se aborde.
     default_features: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AccountingJurisdiction(Base):
+    """Registro de jurisdicciones comptables suportades — mateix criteri que
+    `Vertical`: taula real en comptes d'un string lliure, perquè donar
+    d'alta una jurisdicció nova no ha d'exigir tocar un Literal hardcodejat.
+    Eix independent del vertical de negoci (una tenda de vins pot ser
+    espanyola o francesa igual que una de discos): decideix quin pla de
+    comptes es sembra (`AccountingAccount`, ver comptabilitat.py) i quines
+    formes jurídiques són vàlides (`ConfiguracioBotiga.legal_form`, validat
+    contra `accounting_registry.LEGAL_FORMS_BY_JURISDICTION`).
+
+    Només `es` té proveïdor de pla de comptes real implementat avui
+    (`accounting_registry.ACCOUNTING_JURISDICTIONS_IMPLEMENTED`); la resta
+    es sembren amb `active=False` per reservar l'id/nom des de superadmin,
+    sense oferir-les encara en l'alta de tenant — mateix criteri que les 10
+    verticals planificades de la migració 0a8e9cde93d3."""
+
+    __tablename__ = "accounting_jurisdictions"
+
+    id: Mapped[str] = mapped_column(String(2), primary_key=True)  # "es", "fr", "it", "uk", "us"
+    name: Mapped[str] = mapped_column(String(100))
+    # "eu_vat" | "uk_vat" | "us_sales_tax" — no és només metadada descriptiva:
+    # el motor de posting (fase 2) haurà de triar quin `TaxRegimeHandler` fer
+    # servir segons aquest valor, perquè l'IVA europeu (recuperable en
+    # compres, es liquida trimestralment) i el sales tax americà (no
+    # recuperable, es cobra només en la venda final) no comparteixen ni
+    # l'estructura de comptes ni la lògica de càlcul.
+    tax_model: Mapped[str] = mapped_column(String(30))
+    active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

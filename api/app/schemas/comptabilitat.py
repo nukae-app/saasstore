@@ -310,6 +310,90 @@ class VendesRealsLiniaOut(BaseModel):
     cultural_voucher: Decimal = Decimal("0")
 
 
+# --- Fase 3: llibres comptables (Diari, Major, Balanç, Compte de resultats) ---
+#
+# Derivats de JournalEntry/JournalLine (partida doble, ver
+# services/comptabilitat_posting.py) — a diferència de ResultatMensualOut
+# (que suma directament OrderItem.price/VentaExterna.sale_price, imports
+# AMB IVA inclòs), aquests informes surten del llibre major i per tant
+# reflecteixen l'IVA per separat (700 net de 477), com un compte de
+# resultats de veritat.
+
+
+class ApuntLlibreOut(BaseModel):
+    id: uuid.UUID
+    compte_code: str
+    compte_name: str
+    debit: Decimal
+    credit: Decimal
+    description: str | None = None
+
+
+class AssentamentLlibreOut(BaseModel):
+    id: uuid.UUID
+    entry_number: int
+    date: date
+    description: str
+    source_type: str
+    apunts: list[ApuntLlibreOut]
+
+
+class LlibreDiariOut(BaseModel):
+    year: int
+    mes: int
+    assentaments: list[AssentamentLlibreOut]
+
+
+class LlibreMajorLiniaOut(BaseModel):
+    date: date
+    entry_number: int
+    description: str
+    debit: Decimal
+    credit: Decimal
+    saldo_acumulat: Decimal
+
+
+class LlibreMajorOut(BaseModel):
+    compte_code: str
+    compte_name: str
+    year: int
+    linies: list[LlibreMajorLiniaOut]
+    saldo_final: Decimal
+
+
+class BalancLiniaOut(BaseModel):
+    compte_code: str
+    compte_name: str
+    saldo: Decimal
+
+
+class BalancSituacioOut(BaseModel):
+    year: int
+    mes: int
+    actiu: list[BalancLiniaOut]
+    passiu: list[BalancLiniaOut]
+    patrimoni_net: list[BalancLiniaOut]
+    total_actiu: Decimal
+    total_passiu_patrimoni_net: Decimal
+    quadrat: bool
+
+
+class ComptePyGLiniaOut(BaseModel):
+    compte_code: str
+    compte_name: str
+    total: Decimal
+
+
+class ComptePyGOut(BaseModel):
+    year: int
+    mes: int
+    ingressos: list[ComptePyGLiniaOut]
+    despeses: list[ComptePyGLiniaOut]
+    total_ingressos: Decimal
+    total_despeses: Decimal
+    resultat: Decimal
+
+
 # --- Subscripcions (club del disc) ---
 #
 # No hi ha "plans": el client configura la seva pròpia subscripció

@@ -242,6 +242,7 @@ class TenantSecretsStatusOut(BaseModel):
     discogs_token: bool
     spotify_client_id: bool
     spotify_client_secret: bool
+    holded_api_key: bool
 
 
 class TenantSecretsUpdateIn(BaseModel):
@@ -251,3 +252,4 @@ class TenantSecretsUpdateIn(BaseModel):
     discogs_token: str | None = None
     spotify_client_id: str | None = None
     spotify_client_secret: str | None = None
+    holded_api_key: str | None = None

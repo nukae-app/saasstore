@@ -11,6 +11,7 @@ from ._base import TenantScoped
 from .platform import (
     Tenant,
     Vertical,
+    AccountingJurisdiction,
     PlatformAdmin,
     PlatformAdminRole,
     PlatformAdminAuditLog,
@@ -74,6 +75,13 @@ from .compras import (
     SolicitudCompraLinea,
 )
 
+from .actius import (
+    AssetCategory,
+    DepreciationMethod,
+    FixedAsset,
+    AssetDepreciationEntry,
+)
+
 from .peticiones import (
     EstadoPeticionCliente,
     PeticionCliente,
@@ -91,6 +99,8 @@ from .ventas_externas import (
 )
 
 from .comptabilitat import (
+    AccountType,
+    AccountingAccount,
     CategoriaDespesa,
     EstatPagamentDespesa,
     EstatConciliacio,
@@ -100,6 +110,10 @@ from .comptabilitat import (
     MovimentBancari,
     PeriodeComptable,
     CaixaDiaria,
+    JournalSourceType,
+    JournalEntryCounter,
+    JournalEntry,
+    JournalLine,
 )
 
 from .configuracio import (

@@ -8,10 +8,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
 from ...models import (
-    CanalVenta, CondicionItem, DevolucionVenta, EstadoPeticionCliente, Item, ItemStatus,
+    CanalVenta, CondicionItem, DevolucionVenta, EstadoPeticionCliente, Item, ItemStatus, JournalSourceType,
     MetodoPago, PeticionCliente, StockHold, TipusIva, User, VentaExterna,
 )
 from ...schemas import VentaExternaIn, VentaExternaLoteIn, VentaExternaOut, VincularUsuariTicketIn
+from ...services.comptabilitat_posting import post_venda
 from ...services.discogs_sync import get_discogs_token_if_enabled, sync_stock_listing
 from ...services.iva import compute_iva_venda
 from ...services.reservations import release_expired
@@ -87,6 +88,7 @@ def _crear_linia_venta(
         )
         db.add(venta)
         db.flush()
+        _post_venda_externa(db, venta, cost=None)
         return venta, None
 
     # Una PeticionCliente en Via 2 (recollida_paga_botiga) reté l'ítem amb
@@ -174,7 +176,22 @@ def _crear_linia_venta(
     )
     db.add(venta)
     db.flush()
+    cost = (item.acquisition_cost * quantity) if item.acquisition_cost is not None else None
+    _post_venda_externa(db, venta, cost=cost)
     return venta, item
+
+
+def _post_venda_externa(db: Session, venta: VentaExterna, *, cost: Decimal | None) -> None:
+    # vat_amount pot ser None (REBU sense acquisition_cost resolt, ver
+    # services/iva.py) — buit de dades ja existent, es tracta com 0 en
+    # comptes de bloquejar la venda de mostrador.
+    vat_amount = venta.vat_amount or Decimal("0")
+    post_venda(
+        db, entry_date=venta.date.date(), source_type=JournalSourceType.venda_externa, source_id=venta.id,
+        description=f"Venda {venta.channel.value} #{str(venta.ticket_id)[:8]}",
+        total_collected=venta.sale_price, revenue_base=venta.sale_price - vat_amount,
+        vat_amount=vat_amount, cost=cost,
+    )
 
 
 def _venta_externa_out(venta: VentaExterna, item: Item | None) -> VentaExternaOut:

@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -44,6 +45,42 @@ class EstatConciliacio(str, enum.Enum):
     pendent = "pendent"
     conciliat = "conciliat"
     ignorat = "ignorat"   # transferència entre comptes propis, etc.
+
+
+class AccountType(str, enum.Enum):
+    actiu = "actiu"
+    passiu = "passiu"
+    patrimoni_net = "patrimoni_net"
+    ingres = "ingres"
+    despesa = "despesa"
+
+
+class AccountingAccount(TenantScoped, Base):
+    """Compte del pla general comptable, sembrat per tenant a la creació
+    segons la seva jurisdicció (`Tenant.accounting_jurisdiction_id`, ver
+    platform.py::AccountingJurisdiction) i forma jurídica
+    (`ConfiguracioBotiga.legal_form`) — ver services/comptabilitat_seed.py.
+
+    `group`/`account_type` es guarden explícits en comptes de derivar-se del
+    primer dígit de `code` en cada query — mateix criteri que `Despesa.vat_pct`
+    guarda l'snapshot del percentatge en comptes de recalcular-lo, perquè els
+    informes de fase 3 (Balanç de Situació / PyG) siguin un simple
+    `WHERE account_type IN (...)`.
+
+    No es modela el tercer (proveïdor/client) com a subcompte explotat
+    (400001, 400002...): això és `JournalLine.counterparty_id` (fase 2), no
+    una fila més aquí."""
+
+    __tablename__ = "comptes_comptables"
+    __table_args__ = (UniqueConstraint("tenant_id", "code"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(10), index=True)  # "570", "4750"...
+    name: Mapped[str] = mapped_column(String(200))
+    group: Mapped[int] = mapped_column(Integer, index=True)  # 1-7, primer dígit del pla de comptes
+    account_type: Mapped[AccountType] = mapped_column(Enum(AccountType, name="account_type"), index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class TipusIva(TenantScoped, Base):
@@ -216,3 +253,79 @@ class CaixaDiaria(TenantScoped, Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class JournalSourceType(str, enum.Enum):
+    venda_web = "venda_web"
+    venda_externa = "venda_externa"
+    despesa_alta = "despesa_alta"
+    despesa_pagament = "despesa_pagament"
+    caixa_diaria = "caixa_diaria"
+    actiu_alta = "actiu_alta"
+    actiu_amortitzacio = "actiu_amortitzacio"
+    manual = "manual"
+
+
+class JournalEntryCounter(TenantScoped, Base):
+    """Comptador correlatiu d'assentaments per any fiscal — requisit legal
+    del Libro Diario (numeració sense buits ni duplicats). S'actualitza amb
+    un UPDATE condicionat, mai amb un SELECT previ seguit d'UPDATE — mateix
+    criteri que services/reservations.py per a la reserva atòmica
+    d'exemplars, aquí perquè un número duplicat és un problema legal, no
+    només un bug de negoci."""
+
+    __tablename__ = "assentament_comptadors"
+    __table_args__ = (UniqueConstraint("tenant_id", "fiscal_year"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fiscal_year: Mapped[int] = mapped_column(Integer, index=True)
+    next_number: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+
+
+class JournalEntry(TenantScoped, Base):
+    """Assentament de partida doble. `source_type`/`source_id` apunten al
+    document de negoci que el va originar (venda, despesa, conciliació...);
+    `source_id` NO és una FK real perquè cada `source_type` apunta a una
+    taula diferent (i `manual` a cap). La invariant sum(debit)==sum(credit)
+    de les seves línies es garanteix al servei
+    (services/comptabilitat_posting.py::post_entry), no a l'esquema —
+    Postgres no pot expressar-la com a CHECK entre files."""
+
+    __tablename__ = "assentaments"
+    __table_args__ = (UniqueConstraint("tenant_id", "fiscal_year", "entry_number"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    fiscal_year: Mapped[int] = mapped_column(Integer, index=True)
+    entry_number: Mapped[int] = mapped_column(Integer)
+    date: Mapped[date] = mapped_column(Date, index=True)
+    description: Mapped[str] = mapped_column(String(500))
+    source_type: Mapped[JournalSourceType] = mapped_column(
+        Enum(JournalSourceType, name="journal_source_type"), index=True
+    )
+    source_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
+    period_id: Mapped[int | None] = mapped_column(
+        ForeignKey("periodes_comptables.id", ondelete="RESTRICT"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    lines: Mapped[list["JournalLine"]] = relationship(back_populates="entry", cascade="all, delete-orphan")
+
+
+class JournalLine(TenantScoped, Base):
+    """Línia d'un assentament: exactament un de `debit`/`credit` és > 0
+    (mai els dos, mai cap dels dos) — `ck_apunts_debit_xor_credit`."""
+
+    __tablename__ = "apunts"
+    __table_args__ = (
+        CheckConstraint("(debit = 0 AND credit > 0) OR (debit > 0 AND credit = 0)", name="ck_apunts_debit_xor_credit"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    entry_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assentaments.id", ondelete="CASCADE"), index=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("comptes_comptables.id", ondelete="RESTRICT"), index=True)
+    debit: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), server_default="0")
+    credit: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), server_default="0")
+    description: Mapped[str | None] = mapped_column(String(500))
+
+    entry: Mapped["JournalEntry"] = relationship(back_populates="lines")
+    account: Mapped["AccountingAccount"] = relationship()

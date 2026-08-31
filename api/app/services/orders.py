@@ -9,15 +9,17 @@ Punto compartido por dos caminos que llegan a "pagado":
 
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..models import (
-    CondicionItem, EstadoPeticionCliente, Item, Order, OrderItem, OrderStatus, PeticionCliente,
+    CondicionItem, EstadoPeticionCliente, Item, JournalSourceType, Order, OrderItem, OrderStatus, PeticionCliente,
     StockHold, Tenant,
 )
 from ..tenancy import tenant_frontend_url
+from .comptabilitat_posting import post_venda
 from .discogs_sync import get_discogs_token_if_enabled, remove_item_from_discogs, sync_stock_listing
 from .emailer import render_email_html, send_email
 from .i18n import translate
@@ -100,6 +102,28 @@ def finalize_payment(db: Session, order: Order) -> list[uuid.UUID]:
         ):
             peticion.status = EstadoPeticionCliente.recollida
             peticion.order_id = order.id
+
+    # Ingrés a 430 (Clients) — es cobra de veritat, i tanca aquest 430, quan
+    # es concilia el moviment bancari (ver banc.py::conciliar_moviment) o el
+    # PSP ho confirma; aquí només es reconeix la venda. `vat_amount` pot ser
+    # None en un cas ja existent i preexistent (REBU sense acquisition_cost
+    # resolt, ver services/iva.py) — es tracta com 0 en comptes de bloquejar
+    # el pagament per un buit de dades que no ve d'aquest canvi.
+    #
+    # OrderItem.price és PER UNITAT (ver checkout.py: `price=r.item.price`),
+    # però OrderItem.vat_amount ja és el TOTAL de la línia (calculat sobre
+    # `precio_total_linea = r.item.price * r.quantity`, ver checkout.py) —
+    # per això aquí es multiplica price per quantity però vat_amount no.
+    revenue_base = (
+        sum((r.price * r.quantity - (r.vat_amount or Decimal("0"))) for r in rows) + order.shipping_cost
+    )
+    vat_amount = sum((r.vat_amount or Decimal("0")) for r in rows)
+    cost = sum((r.item.acquisition_cost or Decimal("0")) * r.quantity for r in rows_amb_item if r.item.acquisition_cost)
+    post_venda(
+        db, entry_date=order.paid_at.date(), source_type=JournalSourceType.venda_web, source_id=order.id,
+        description=f"Venda web #{str(order.id)[:8]}", total_collected=order.total,
+        revenue_base=revenue_base, vat_amount=vat_amount, cost=cost or None,
+    )
 
     db.commit()
 

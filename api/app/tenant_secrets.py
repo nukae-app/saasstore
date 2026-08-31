@@ -37,6 +37,10 @@ class TenantSecrets(BaseModel):
     discogs_token: str | None = None
     spotify_client_id: str | None = None
     spotify_client_secret: str | None = None
+    # Fase 5 comptabilitat: API key de Holded per exportar el llibre diari
+    # (ver services/holded_export.py) — opcional, sense això l'exportació
+    # es queda en CSV genèric.
+    holded_api_key: str | None = None
 
 
 def _secret_id(tenant_id: uuid.UUID) -> str:

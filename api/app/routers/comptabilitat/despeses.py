@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import CategoriaDespesa, Compra, Despesa, EstatPagamentDespesa, Proveedor, TipusIva
 from ...schemas import DespesaDesDeComprasIn, DespesaIn, DespesaOut, DespesaUpdate
+from ...services.comptabilitat_posting import post_despesa_alta, post_despesa_pagament
 from ...services.security import require_admin
 
 router = APIRouter(prefix="/admin", tags=["comptabilitat"], dependencies=[Depends(require_admin)])
@@ -86,6 +87,16 @@ def create_despesa(payload: DespesaIn, db: Session = Depends(get_db)):
         notes=payload.notes,
     )
     db.add(despesa)
+    db.flush()
+    post_despesa_alta(db, despesa)
+    # L'admin pot marcar la despesa com a pagada ja en l'alta (p.ex. una
+    # compra en efectiu pagada al moment) — sense passar per la conciliació
+    # bancària de banc.py, que és l'altre camí cap a `pagat`.
+    if despesa.payment_status == EstatPagamentDespesa.pagat:
+        post_despesa_pagament(
+            db, despesa, payment_date=despesa.payment_date or despesa.invoice_date,
+            amount=despesa.total, cash=(despesa.payment_method == "efectiu"),
+        )
     db.commit()
     db.refresh(despesa)
     return _despesa_out(despesa)
