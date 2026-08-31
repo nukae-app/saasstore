@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Disc3, ShoppingCart, PackagePlus, Store, Users,
   LogOut, Menu, X, Globe, FileText, CalendarDays, Layers,
   Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
-  Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown,
+  Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown, Library,
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
@@ -65,7 +65,8 @@ function getNavGroups(config) {
         { href: '/admin/iva',         key: 'nav.iva',         label: 'IVA',           icon: Calculator },
         { href: '/admin/pla-comptes', key: 'nav.pla_comptes', label: 'Pla de comptes', icon: BookText },
         { href: '/admin/actius',      key: 'nav.actius',      label: 'Actius',        icon: Boxes },
-        // Llibres i Exportacions pendents — s'afegeixen aquí quan es construeixin les seves pantalles.
+        { href: '/admin/llibres',     key: 'nav.llibres',     label: 'Llibres',       icon: Library },
+        // Exportacions pendent — s'afegeix aquí quan es construeixi la seva pantalla.
       ],
     },
     {
