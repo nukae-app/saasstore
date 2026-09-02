@@ -7,6 +7,7 @@ import {
   TrendingUp, TrendingDown, Calculator, Landmark, Clock, AlertCircle,
   Receipt, BookText, Boxes, Library, Truck, ArrowRight,
 } from 'lucide-react';
+import { useT } from '../../lib/i18n';
 
 function fmtEur(v) {
   return v != null ? parseFloat(v).toFixed(2) + ' €' : '—';
@@ -16,22 +17,23 @@ function fmtDate(d) {
   return new Date(d + 'T00:00:00').toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit' });
 }
 
-const ACCESSOS = [
-  { href: '/admin/despeses', label: 'Despeses', icon: Receipt },
-  { href: '/admin/banc', label: 'Banc', icon: Landmark },
-  { href: '/admin/proveidors', label: 'Proveïdors', icon: Truck },
-  { href: '/admin/pla-comptes', label: 'Pla de comptes', icon: BookText },
-  { href: '/admin/actius', label: 'Actius', icon: Boxes },
-  { href: '/admin/llibres', label: 'Llibres', icon: Library },
-];
-
 export default function ComptabilitatResumPage() {
+  const t = useT();
   const [pyg, setPyg] = useState(null);
   const [aeat, setAeat] = useState(null);
   const [pendents, setPendents] = useState([]);
   const [saldoBanc, setSaldoBanc] = useState(null);
   const [diari, setDiari] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const ACCESSOS = [
+    { href: '/admin/despeses', label: t('nav.despeses', 'Despeses'), icon: Receipt },
+    { href: '/admin/banc', label: t('nav.banc', 'Banc'), icon: Landmark },
+    { href: '/admin/proveidors', label: t('nav.proveidors', 'Proveïdors'), icon: Truck },
+    { href: '/admin/pla-comptes', label: t('nav.pla_comptes', 'Pla de comptes'), icon: BookText },
+    { href: '/admin/actius', label: t('nav.actius', 'Actius'), icon: Boxes },
+    { href: '/admin/llibres', label: t('nav.llibres', 'Llibres'), icon: Library },
+  ];
 
   useEffect(() => {
     const now = new Date();
@@ -58,7 +60,7 @@ export default function ComptabilitatResumPage() {
     });
   }, []);
 
-  if (loading) return <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>;
+  if (loading) return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>;
 
   const resultatPositiu = pyg && parseFloat(pyg.resultat) >= 0;
   const vencudes = pendents.filter(d => d.payment_status === 'vencut');
@@ -71,15 +73,15 @@ export default function ComptabilitatResumPage() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-900">Comptabilitat</h2>
-        <p className="text-sm text-zinc-500 mt-1">Resum del mes en curs — un cop d&apos;ull abans d&apos;entrar al detall.</p>
+        <h2 className="text-2xl font-bold text-zinc-900">{t('nav.comptabilitat', 'Comptabilitat')}</h2>
+        <p className="text-sm text-zinc-500 mt-1">{t('comptabilitat.subtitle', "Resum del mes en curs — un cop d'ull abans d'entrar al detall.")}</p>
       </div>
 
       {/* Targes resum */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className={`rounded-xl p-4 border ${resultatPositiu ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
           <div className={`flex items-center gap-1.5 text-xs mb-1 ${resultatPositiu ? 'text-green-600' : 'text-red-600'}`}>
-            {resultatPositiu ? <TrendingUp size={13} /> : <TrendingDown size={13} />} Resultat del mes
+            {resultatPositiu ? <TrendingUp size={13} /> : <TrendingDown size={13} />} {t('comptabilitat.card.month_result', 'Resultat del mes')}
           </div>
           <div className={`text-xl font-bold ${resultatPositiu ? 'text-green-700' : 'text-red-700'}`}>
             {pyg ? fmtEur(pyg.resultat) : '—'}
@@ -87,18 +89,18 @@ export default function ComptabilitatResumPage() {
         </div>
 
         <div className="rounded-xl p-4 border bg-blue-50 border-blue-200">
-          <div className="flex items-center gap-1.5 text-xs mb-1 text-blue-600"><Calculator size={13} /> IVA trimestre actual</div>
+          <div className="flex items-center gap-1.5 text-xs mb-1 text-blue-600"><Calculator size={13} /> {t('comptabilitat.card.vat_quarter', 'IVA trimestre actual')}</div>
           <div className="text-xl font-bold text-blue-700">{aeat ? fmtEur(aeat.casella_64_resultat_liquidacio) : '—'}</div>
         </div>
 
         <div className="rounded-xl p-4 border bg-zinc-50 border-zinc-200">
-          <div className="flex items-center gap-1.5 text-xs mb-1 text-zinc-500"><Landmark size={13} /> Saldo banc (572)</div>
+          <div className="flex items-center gap-1.5 text-xs mb-1 text-zinc-500"><Landmark size={13} /> {t('comptabilitat.card.bank_balance', 'Saldo banc (572)')}</div>
           <div className="text-xl font-bold text-zinc-800">{saldoBanc != null ? fmtEur(saldoBanc) : '—'}</div>
         </div>
 
         <div className={`rounded-xl p-4 border ${vencudes.length ? 'bg-red-50 border-red-200' : 'bg-zinc-50 border-zinc-200'}`}>
           <div className={`flex items-center gap-1.5 text-xs mb-1 ${vencudes.length ? 'text-red-600' : 'text-zinc-500'}`}>
-            <AlertCircle size={13} /> Factures vençudes
+            <AlertCircle size={13} /> {t('comptabilitat.card.overdue', 'Factures vençudes')}
           </div>
           <div className={`text-xl font-bold ${vencudes.length ? 'text-red-700' : 'text-zinc-800'}`}>{vencudes.length}</div>
         </div>
@@ -108,20 +110,20 @@ export default function ComptabilitatResumPage() {
         {/* Pendents de pagament */}
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
-            <span className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5"><Clock size={14} /> Properes a vèncer</span>
+            <span className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5"><Clock size={14} /> {t('comptabilitat.upcoming_due', 'Properes a vèncer')}</span>
             <Link href="/admin/despeses" className="text-xs text-zinc-400 hover:text-zinc-700 flex items-center gap-0.5">
-              Veure totes <ArrowRight size={11} />
+              {t('common.see_all', 'Veure totes')} <ArrowRight size={11} />
             </Link>
           </div>
           {properesAVencer.length === 0 ? (
-            <div className="p-6 text-center text-zinc-400 text-xs">Cap factura pendent</div>
+            <div className="p-6 text-center text-zinc-400 text-xs">{t('comptabilitat.no_pending_invoices', 'Cap factura pendent')}</div>
           ) : (
             <div className="divide-y divide-zinc-100">
               {properesAVencer.map(d => (
                 <div key={d.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
                   <div>
                     <div className="text-zinc-800">{d.supplier_name}</div>
-                    <div className="text-xs text-zinc-400">Venç {fmtDate(d.due_date)}</div>
+                    <div className="text-xs text-zinc-400">{t('comptabilitat.due', 'Venç')} {fmtDate(d.due_date)}</div>
                   </div>
                   <div className="font-semibold text-zinc-900">{fmtEur(d.total)}</div>
                 </div>
@@ -133,13 +135,13 @@ export default function ComptabilitatResumPage() {
         {/* Últims assentaments */}
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
-            <span className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5"><Library size={14} /> Últims assentaments</span>
+            <span className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5"><Library size={14} /> {t('comptabilitat.latest_entries', 'Últims assentaments')}</span>
             <Link href="/admin/llibres" className="text-xs text-zinc-400 hover:text-zinc-700 flex items-center gap-0.5">
-              Veure llibres <ArrowRight size={11} />
+              {t('comptabilitat.see_books', 'Veure llibres')} <ArrowRight size={11} />
             </Link>
           </div>
           {ultimsAssentaments.length === 0 ? (
-            <div className="p-6 text-center text-zinc-400 text-xs">Cap assentament aquest mes</div>
+            <div className="p-6 text-center text-zinc-400 text-xs">{t('llibres.no_entries_month', 'Cap assentament aquest mes')}</div>
           ) : (
             <div className="divide-y divide-zinc-100">
               {ultimsAssentaments.map(a => (
