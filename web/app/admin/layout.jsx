@@ -8,6 +8,7 @@ import {
   LogOut, Menu, X, Globe, FileText, CalendarDays, Layers,
   Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
   Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown, Library, Truck,
+  FileSignature, PackageCheck,
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
@@ -60,6 +61,8 @@ function getNavGroups(config) {
       collapsible: true,
       items: [
         { href: '/admin/comptabilitat', key: 'nav.comptabilitat_resum', label: 'Resum', icon: LayoutDashboard, exact: true },
+        { href: '/admin/pressupostos', key: 'nav.pressupostos', label: 'Pressupostos', icon: FileSignature },
+        { href: '/admin/albarans',    key: 'nav.albarans',    label: 'Albarans',      icon: PackageCheck },
         { href: '/admin/despeses',    key: 'nav.despeses',    label: 'Despeses',      icon: Receipt },
         { href: '/admin/banc',        key: 'nav.banc',        label: 'Banc',          icon: Landmark },
         { href: '/admin/proveidors',  key: 'nav.proveidors',  label: 'Proveïdors',    icon: Truck },

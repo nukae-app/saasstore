@@ -1262,6 +1262,45 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "iva.category.personal":         {"ca": "Personal", "es": "Personal", "en": "Staff"},
     "iva.category.fiscal":           {"ca": "Gestoria i fiscal", "es": "Gestoría y fiscal", "en": "Accounting and tax"},
     "iva.category.bancaris":         {"ca": "Comissions bancàries", "es": "Comisiones bancarias", "en": "Bank fees"},
+
+    # --- Bloc B1: pressupostos i albarans (docs/PLAN_PARIDAD_HOLDED.md) ---
+    "nav.pressupostos": {"ca": "Pressupostos", "es": "Presupuestos", "en": "Quotes"},
+    "nav.albarans":     {"ca": "Albarans", "es": "Albaranes", "en": "Delivery notes"},
+
+    "common.delete": {"ca": "Eliminar", "es": "Eliminar", "en": "Delete"},
+    "common.error":  {"ca": "Error", "es": "Error", "en": "Error"},
+    "common.edit":   {"ca": "Editar", "es": "Editar", "en": "Edit"},
+
+    "pressupostos.title":           {"ca": "Pressupostos", "es": "Presupuestos", "en": "Quotes"},
+    "pressupostos.new":             {"ca": "Nou pressupost", "es": "Nuevo presupuesto", "en": "New quote"},
+    "pressupostos.edit":            {"ca": "Editar pressupost", "es": "Editar presupuesto", "en": "Edit quote"},
+    "pressupostos.empty":           {"ca": "Cap pressupost trobat", "es": "Ningún presupuesto encontrado", "en": "No quotes found"},
+    "pressupostos.client":          {"ca": "Client", "es": "Cliente", "en": "Client"},
+    "pressupostos.client_name":     {"ca": "Nom del client", "es": "Nombre del cliente", "en": "Client name"},
+    "pressupostos.client_email":    {"ca": "Email del client", "es": "Email del cliente", "en": "Client email"},
+    "pressupostos.valid_until":     {"ca": "Vàlid fins", "es": "Válido hasta", "en": "Valid until"},
+    "pressupostos.col.number":      {"ca": "Número", "es": "Número", "en": "Number"},
+    "pressupostos.col.quantity":    {"ca": "Quant.", "es": "Cant.", "en": "Qty."},
+    "pressupostos.col.unit_price":  {"ca": "Preu unit.", "es": "Precio unit.", "en": "Unit price"},
+    "pressupostos.status.draft":    {"ca": "Esborrany", "es": "Borrador", "en": "Draft"},
+    "pressupostos.status.sent":     {"ca": "Enviat", "es": "Enviado", "en": "Sent"},
+    "pressupostos.status.accepted": {"ca": "Acceptat", "es": "Aceptado", "en": "Accepted"},
+    "pressupostos.status.rejected": {"ca": "Rebutjat", "es": "Rechazado", "en": "Rejected"},
+    "pressupostos.download_pdf":    {"ca": "Descarregar PDF", "es": "Descargar PDF", "en": "Download PDF"},
+    "pressupostos.send":            {"ca": "Enviar", "es": "Enviar", "en": "Send"},
+    "pressupostos.accept":          {"ca": "Acceptar", "es": "Aceptar", "en": "Accept"},
+    "pressupostos.reject":          {"ca": "Rebutjar", "es": "Rechazar", "en": "Reject"},
+    "pressupostos.confirm_delete":  {"ca": "Eliminar aquest pressupost?", "es": "¿Eliminar este presupuesto?", "en": "Delete this quote?"},
+    "pressupostos.line_placeholder": {"ca": "Descripció...", "es": "Descripción...", "en": "Description..."},
+    "pressupostos.create":          {"ca": "Crear pressupost", "es": "Crear presupuesto", "en": "Create quote"},
+
+    "albarans.new":               {"ca": "Nou albarà", "es": "Nuevo albarán", "en": "New delivery note"},
+    "albarans.empty":             {"ca": "Cap albarà trobat", "es": "Ningún albarán encontrado", "en": "No delivery notes found"},
+    "albarans.col.order":         {"ca": "Comanda", "es": "Pedido", "en": "Order"},
+    "albarans.col.delivery_date": {"ca": "Data entrega", "es": "Fecha entrega", "en": "Delivery date"},
+    "albarans.select_order":      {"ca": "Selecciona una comanda...", "es": "Selecciona un pedido...", "en": "Select an order..."},
+    "albarans.no_pending_orders": {"ca": "Totes les comandes ja tenen albarà", "es": "Todos los pedidos ya tienen albarán", "en": "All orders already have a delivery note"},
+    "albarans.create":            {"ca": "Crear albarà", "es": "Crear albarán", "en": "Create delivery note"},
 }
 
 TRANSLATIONS.update(EMAIL_TRANSLATIONS)
