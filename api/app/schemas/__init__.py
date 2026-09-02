@@ -229,3 +229,13 @@ from .storefront import (
     HomeBlockReorderIn,
     UploadedVideoOut,
 )
+
+from .documents import (
+    PressupostLiniaIn,
+    PressupostIn,
+    PressupostStatusIn,
+    PressupostLiniaOut,
+    PressupostOut,
+    AlbaraIn,
+    AlbaraOut,
+)

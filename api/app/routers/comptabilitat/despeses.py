@@ -1,8 +1,10 @@
+import io
 import uuid
 from datetime import date, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
@@ -10,6 +12,7 @@ from ...database import get_db
 from ...models import CategoriaDespesa, Compra, Despesa, EstatPagamentDespesa, Proveedor, TipusIva
 from ...schemas import DespesaDesDeComprasIn, DespesaIn, DespesaOut, DespesaUpdate
 from ...services.comptabilitat_posting import post_despesa_alta, post_despesa_pagament
+from ...services.documents_pdf import generate_despesa_pdf
 from ...services.security import require_admin
 
 router = APIRouter(prefix="/admin", tags=["comptabilitat"], dependencies=[Depends(require_admin)])
@@ -155,6 +158,21 @@ def get_despesa(despesa_id: uuid.UUID, db: Session = Depends(get_db)):
     if d is None:
         raise HTTPException(404, "Despesa no trobada")
     return _despesa_out(d)
+
+
+@router.get("/despeses/{despesa_id}/pdf")
+def despesa_pdf(despesa_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Formalitza la despesa (factura de compra ja registrada) com a PDF —
+    veure docs/PLAN_PARIDAD_HOLDED.md bloc B1."""
+    d = db.get(Despesa, despesa_id)
+    if d is None:
+        raise HTTPException(404, "Despesa no trobada")
+    pdf_bytes = generate_despesa_pdf(d, db)
+    filename = f"factura_compra_{d.id}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes), media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.patch("/despeses/{despesa_id}", response_model=DespesaOut)

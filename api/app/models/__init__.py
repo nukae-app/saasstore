@@ -156,3 +156,11 @@ from .storefront import (
     HomeBlock,
     UploadedVideo,
 )
+
+from .documents import (
+    DocumentCounter,
+    PressupostStatus,
+    Pressupost,
+    PressupostLinia,
+    Albara,
+)
