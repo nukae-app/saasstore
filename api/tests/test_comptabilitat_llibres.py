@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from app.models import User
+from app.models import JournalEntry, User
 
 
 def _admin_token(client, db) -> str:
@@ -57,6 +57,78 @@ def test_llibre_diari_llista_assentaments_del_mes_ordenats(client, db):
         total_debit = sum(Decimal(l["debit"]) for l in assentament["apunts"])
         total_credit = sum(Decimal(l["credit"]) for l in assentament["apunts"])
         assert total_debit == total_credit
+
+
+def test_crear_assentament_manual_balancejat(client, db):
+    token = _admin_token(client, db)
+    resp = client.post(
+        "/admin/assentaments/manual",
+        json={
+            "date": "2026-06-10", "description": "Ajust manual de prova",
+            "apunts": [
+                {"compte_code": "570", "debit": "50.00", "credit": "0"},
+                {"compte_code": "572", "debit": "0", "credit": "50.00"},
+            ],
+        },
+        headers=_auth(token),
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["source_type"] == "manual"
+    assert len(body["apunts"]) == 2
+
+    entry = db.scalar(select(JournalEntry).where(JournalEntry.id == uuid.UUID(body["id"])))
+    assert entry is not None
+    assert entry.entry_number == 1
+
+
+def test_crear_assentament_manual_descompensat_dona_422(client, db):
+    token = _admin_token(client, db)
+    resp = client.post(
+        "/admin/assentaments/manual",
+        json={
+            "date": "2026-06-10", "description": "Descompensat",
+            "apunts": [
+                {"compte_code": "570", "debit": "50.00", "credit": "0"},
+                {"compte_code": "572", "debit": "0", "credit": "30.00"},
+            ],
+        },
+        headers=_auth(token),
+    )
+    assert resp.status_code == 422
+    assert db.scalar(select(JournalEntry)) is None
+
+
+def test_esborrar_assentament_manual(client, db):
+    token = _admin_token(client, db)
+    resp = client.post(
+        "/admin/assentaments/manual",
+        json={
+            "date": "2026-06-10", "description": "Per esborrar",
+            "apunts": [{"compte_code": "570", "debit": "10.00", "credit": "0"}, {"compte_code": "572", "debit": "0", "credit": "10.00"}],
+        },
+        headers=_auth(token),
+    )
+    entry_id = resp.json()["id"]
+    resp_del = client.delete(f"/admin/assentaments/{entry_id}", headers=_auth(token))
+    assert resp_del.status_code == 204
+    assert db.get(JournalEntry, uuid.UUID(entry_id)) is None
+
+
+def test_no_es_pot_esborrar_assentament_automatic(client, db):
+    token = _admin_token(client, db)
+    resp = client.post(
+        "/admin/despeses",
+        json={
+            "invoice_date": "2026-06-10", "supplier_name": "Test", "category": "subministraments",
+            "concept": "Test", "taxable_base": "100.00", "vat_pct": "21.00",
+        },
+        headers=_auth(token),
+    )
+    entry = db.scalar(select(JournalEntry).where(JournalEntry.source_type == "despesa_alta"))
+    resp_del = client.delete(f"/admin/assentaments/{entry.id}", headers=_auth(token))
+    assert resp_del.status_code == 409
+    assert db.get(JournalEntry, entry.id) is not None
 
 
 def test_list_comptes_comptables(client, db):

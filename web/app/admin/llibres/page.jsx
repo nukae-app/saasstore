@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
-import { Download, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Download, CheckCircle2, AlertTriangle, Plus, Trash2, X } from 'lucide-react';
 
 const MESOS = ['Gener', 'Febrer', 'Març', 'Abril', 'Maig', 'Juny', 'Juliol', 'Agost', 'Setembre', 'Octubre', 'Novembre', 'Desembre'];
 const NOW = new Date();
@@ -79,11 +79,24 @@ function DiariTab({ year, mes }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [deleting, setDeleting] = useState(null);
 
-  useEffect(() => {
+  function loadData() {
     setLoading(true);
     authFetch(`/admin/llibre-diari/${year}/${mes}`).then(r => r.json()).then(d => { setData(d); setLoading(false); });
-  }, [year, mes]);
+  }
+  useEffect(loadData, [year, mes]);
+
+  async function esborrar(id) {
+    setDeleting(id);
+    try {
+      const r = await authFetch(`/admin/assentaments/${id}`, { method: 'DELETE' });
+      if (r.ok) loadData();
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   async function exportarCsv() {
     setExporting(true);
@@ -106,9 +119,12 @@ function DiariTab({ year, mes }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <Button variant="secondary" size="sm" disabled={exporting} onClick={exportarCsv} className="flex items-center gap-1.5">
           <Download size={14} /> {exporting ? 'Exportant...' : `Exportar CSV (any ${year} complet)`}
+        </Button>
+        <Button size="sm" onClick={() => setShowModal(true)} className="flex items-center gap-1.5">
+          <Plus size={14} /> Nou assentament manual
         </Button>
       </div>
 
@@ -124,8 +140,19 @@ function DiariTab({ year, mes }) {
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-xs text-zinc-400">#{a.entry_number}</span>
                   <span className="text-sm font-medium text-zinc-800">{a.description}</span>
+                  {a.source_type === 'manual' && (
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Manual</span>
+                  )}
                 </div>
-                <span className="text-xs text-zinc-500">{fmtDate(a.date)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-zinc-500">{fmtDate(a.date)}</span>
+                  {a.source_type === 'manual' && (
+                    <button onClick={() => esborrar(a.id)} disabled={deleting === a.id}
+                      className="text-zinc-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" title="Esborrar assentament">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
               <table className="w-full text-sm">
                 <tbody className="divide-y divide-zinc-100">
@@ -143,6 +170,137 @@ function DiariTab({ year, mes }) {
           ))}
         </div>
       )}
+
+      {showModal && (
+        <ManualEntryModal defaultDate={`${year}-${String(mes).padStart(2, '0')}-01`}
+          onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); loadData(); }} />
+      )}
+    </div>
+  );
+}
+
+function ManualEntryModal({ defaultDate, onClose, onSaved }) {
+  const [comptes, setComptes] = useState([]);
+  const [date, setDate] = useState(defaultDate);
+  const [description, setDescription] = useState('');
+  const [linies, setLinies] = useState([{ compte_code: '', debit: '', credit: '' }, { compte_code: '', debit: '', credit: '' }]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { authFetch('/admin/comptes-comptables').then(r => r.json()).then(setComptes); }, []);
+
+  const totalDebit = linies.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0);
+  const totalCredit = linies.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);
+  const quadra = totalDebit > 0 && Math.abs(totalDebit - totalCredit) < 0.005;
+
+  function updateLinia(i, camp, valor) {
+    setLinies(ls => ls.map((l, idx) => (idx === i ? { ...l, [camp]: valor } : l)));
+  }
+  function afegirLinia() {
+    setLinies(ls => [...ls, { compte_code: '', debit: '', credit: '' }]);
+  }
+  function treureLinia(i) {
+    setLinies(ls => ls.filter((_, idx) => idx !== i));
+  }
+
+  async function save(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    const payload = {
+      date, description,
+      apunts: linies
+        .filter(l => l.compte_code && (parseFloat(l.debit) > 0 || parseFloat(l.credit) > 0))
+        .map(l => ({ compte_code: l.compte_code, debit: parseFloat(l.debit || '0'), credit: parseFloat(l.credit || '0') })),
+    };
+    const r = await authFetch('/admin/assentaments/manual', { method: 'POST', body: JSON.stringify(payload) });
+    setSaving(false);
+    if (r.ok) onSaved();
+    else setError((await r.json()).detail || 'Error desant');
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+          <h3 className="text-lg font-bold text-zinc-900">Nou assentament manual</h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+        </div>
+        <form onSubmit={save} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Data *</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Concepte *</label>
+              <input value={description} onChange={e => setDescription(e.target.value)} required
+                placeholder="Ajust d'inventari, correcció..."
+                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            </div>
+          </div>
+
+          <div className="border border-zinc-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 text-xs text-zinc-500">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Compte</th>
+                  <th className="px-3 py-2 text-right font-medium w-28">Debe</th>
+                  <th className="px-3 py-2 text-right font-medium w-28">Haver</th>
+                  <th className="w-8" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {linies.map((l, i) => (
+                  <tr key={i}>
+                    <td className="px-2 py-1.5">
+                      <select value={l.compte_code} onChange={e => updateLinia(i, 'compte_code', e.target.value)}
+                        className="w-full border border-zinc-200 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900">
+                        <option value="">—</option>
+                        {comptes.map(c => <option key={c.id} value={c.code}>{c.code} — {c.name}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input type="number" step="0.01" value={l.debit} onChange={e => updateLinia(i, 'debit', e.target.value)}
+                        className="w-full border border-zinc-200 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input type="number" step="0.01" value={l.credit} onChange={e => updateLinia(i, 'credit', e.target.value)}
+                        className="w-full border border-zinc-200 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                    </td>
+                    <td className="px-1">
+                      {linies.length > 2 && (
+                        <button type="button" onClick={() => treureLinia(i)} className="text-zinc-300 hover:text-red-500"><X size={14} /></button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-zinc-50 border-t border-zinc-200">
+                <tr>
+                  <td className="px-3 py-2">
+                    <button type="button" onClick={afegirLinia} className="text-xs text-zinc-500 hover:text-zinc-800 font-medium">+ Afegir línia</button>
+                  </td>
+                  <td className="px-3 py-2 text-right font-medium text-zinc-700">{totalDebit.toFixed(2)} €</td>
+                  <td className="px-3 py-2 text-right font-medium text-zinc-700">{totalCredit.toFixed(2)} €</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {!quadra && (
+            <p className="text-xs text-amber-600">L&apos;assentament ha de quadrar (debe = haver) abans de desar-lo.</p>
+          )}
+          {error && <p className="text-red-500 text-xs">{error}</p>}
+
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={onClose}>Cancel·lar</Button>
+            <Button type="submit" disabled={saving || !quadra}>{saving ? 'Desant...' : 'Crear assentament'}</Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

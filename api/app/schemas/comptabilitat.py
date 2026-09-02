@@ -331,6 +331,19 @@ class AccountingAccountOut(BaseModel):
 # resultats de veritat.
 
 
+class ApuntManualIn(BaseModel):
+    compte_code: str
+    debit: Decimal = Decimal("0")
+    credit: Decimal = Decimal("0")
+    description: str | None = None
+
+
+class AssentamentManualIn(BaseModel):
+    date: date
+    description: str
+    apunts: list[ApuntManualIn]
+
+
 class ApuntLlibreOut(BaseModel):
     id: uuid.UUID
     compte_code: str

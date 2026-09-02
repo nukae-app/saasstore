@@ -145,6 +145,8 @@ from .comptabilitat import (
     MovimentBancariOut,
     ConciliarMovimentIn,
     AccountingAccountOut,
+    ApuntManualIn,
+    AssentamentManualIn,
     ResultatLiniaDespesa,
     ResultatMensualOut,
     IVALiniaOut,

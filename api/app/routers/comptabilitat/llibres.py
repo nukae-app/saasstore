@@ -10,6 +10,7 @@ llibre major i per tant l'IVA hi apareix per separat (700 net de 477)."""
 import calendar
 import csv
 import io
+import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -19,11 +20,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
-from ...models import AccountingAccount, AccountType, JournalEntry, JournalLine
+from ...models import AccountingAccount, AccountType, JournalEntry, JournalLine, JournalSourceType
 from ...schemas import (
-    AccountingAccountOut, ApuntLlibreOut, AssentamentLlibreOut, BalancLiniaOut, BalancSituacioOut,
-    ComptePyGLiniaOut, ComptePyGOut, LlibreDiariOut, LlibreMajorLiniaOut, LlibreMajorOut,
+    AccountingAccountOut, ApuntLlibreOut, AssentamentLlibreOut, AssentamentManualIn, BalancLiniaOut,
+    BalancSituacioOut, ComptePyGLiniaOut, ComptePyGOut, LlibreDiariOut, LlibreMajorLiniaOut, LlibreMajorOut,
 )
+from ...services.comptabilitat_posting import post_entry
 from ...services.security import require_admin
 
 router = APIRouter(prefix="/admin", tags=["comptabilitat"], dependencies=[Depends(require_admin)])
@@ -38,6 +40,54 @@ def list_comptes_comptables(db: Session = Depends(get_db)):
         )
         for a in accounts
     ]
+
+
+def _assentament_out(entry: JournalEntry) -> AssentamentLlibreOut:
+    return AssentamentLlibreOut(
+        id=entry.id, entry_number=entry.entry_number, date=entry.date, description=entry.description,
+        source_type=entry.source_type.value,
+        apunts=[
+            ApuntLlibreOut(
+                id=l.id, compte_code=l.account.code, compte_name=l.account.name,
+                debit=l.debit, credit=l.credit, description=l.description,
+            )
+            for l in entry.lines
+        ],
+    )
+
+
+@router.post("/assentaments/manual", status_code=201, response_model=AssentamentLlibreOut)
+def create_assentament_manual(payload: AssentamentManualIn, db: Session = Depends(get_db)):
+    """Ajustos que no vénen de cap document de negoci — el motor automàtic
+    (checkout, TPV, despeses, banc, caixa) cobreix la resta. `post_entry` ja
+    valida que quadri i que el període no estigui tancat; aquí només es
+    tradueix el payload."""
+    lines = [(l.compte_code, l.debit, l.credit) for l in payload.apunts]
+    try:
+        entry = post_entry(
+            db, entry_date=payload.date, description=payload.description,
+            source_type=JournalSourceType.manual, source_id=None, lines=lines,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    db.commit()
+    db.refresh(entry)
+    return _assentament_out(entry)
+
+
+@router.delete("/assentaments/{entry_id}", status_code=204)
+def delete_assentament_manual(entry_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Només es poden esborrar assentaments manuals — un d'automàtic reflecteix
+    un document de negoci real (venda, despesa...) i esborrar-lo el
+    desincronitzaria d'aquell document sense revertir-lo enlloc. Per corregir
+    un manual erroni, la via neta és un altre assentament manual invers."""
+    entry = db.get(JournalEntry, entry_id)
+    if entry is None:
+        raise HTTPException(404, "Assentament no trobat")
+    if entry.source_type != JournalSourceType.manual:
+        raise HTTPException(409, "Només es poden esborrar assentaments manuals")
+    db.delete(entry)
+    db.commit()
 
 
 def _validar_mes(mes: int) -> None:
@@ -97,23 +147,7 @@ def llibre_diari(year: int, mes: int, db: Session = Depends(get_db)):
         .options(selectinload(JournalEntry.lines).selectinload(JournalLine.account))
         .order_by(JournalEntry.entry_number)
     ).all()
-    return LlibreDiariOut(
-        year=year, mes=mes,
-        assentaments=[
-            AssentamentLlibreOut(
-                id=e.id, entry_number=e.entry_number, date=e.date, description=e.description,
-                source_type=e.source_type.value,
-                apunts=[
-                    ApuntLlibreOut(
-                        id=l.id, compte_code=l.account.code, compte_name=l.account.name,
-                        debit=l.debit, credit=l.credit, description=l.description,
-                    )
-                    for l in e.lines
-                ],
-            )
-            for e in entries
-        ],
-    )
+    return LlibreDiariOut(year=year, mes=mes, assentaments=[_assentament_out(e) for e in entries])
 
 
 @router.get("/llibre-major/{year}", response_model=LlibreMajorOut)
