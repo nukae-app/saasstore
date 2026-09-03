@@ -364,3 +364,56 @@ def test_eliminar_linia_resolta_desde_estoc_falla(db, client):
 
     resp = client.delete(f"/admin/solicitudes-compra/{solicitud['id']}/lineas/{linea_id}", headers=_auth(admin))
     assert resp.status_code == 409
+
+
+def test_refill_sugerencias_no_falla_amb_candidats_reals(db, client):
+    """Regressió: _suggest_proveedor_para_release feia servir HistorialCompra
+    sense importar-la — l'endpoint només "funcionava" quan no hi havia cap
+    candidat (el bucle mai s'executava). Amb estoc baix + vendes recents,
+    abans d'aquest fix petava amb NameError."""
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from app.models import HistorialCompra, Order, OrderItem, OrderStatus
+
+    admin = _admin_token(client, db)
+    release = _seed_release(db, "Artista Refill", "Poc estoc")
+    proveedor = _seed_proveedor(db, "Distro Refill")
+
+    # 1 unitat disponible, s'ha venut 10 cops en els últims 60 dies -> estoc
+    # urgent (dies_estoc molt per sota del llindar de 21).
+    item = Item(
+        release_id=release.id, price=Decimal("20.00"), acquisition_cost=Decimal("10.00"),
+        condition=CondicionItem.nou, quantity=1, status=ItemStatus.disponible,
+    )
+    db.add(item)
+    db.flush()
+
+    for _ in range(10):
+        order = Order(
+            contact_email="client@example.com", status=OrderStatus.pagado,
+            total=Decimal("20.00"), shipping_method="recogida_tienda",
+        )
+        db.add(order)
+        db.flush()
+        db.add(OrderItem(
+            order_id=order.id, item_id=item.id, release_id=release.id,
+            price=Decimal("20.00"), condition=CondicionItem.nou, quantity=1,
+        ))
+
+    # Historial de compra a aquest proveïdor per aquest mateix release —
+    # exerceix exactament la línia que fallava per la importació que faltava.
+    db.add(HistorialCompra(
+        proveedor_id=proveedor.id, date=datetime.now(timezone.utc).date(),
+        artist=release.artista, title=release.title, release_id=release.id,
+        quantity=5, cost_price=Decimal("10.00"),
+    ))
+    db.commit()
+
+    resp = client.get("/admin/solicitudes-compra/refill-sugerencias", headers=_auth(admin))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["release_id"] == str(release.id)
+    assert body[0]["proveedor_sugerido_id"] == str(proveedor.id)
+    assert body[0]["proveedor_sugerido_nombre"] == "Distro Refill"

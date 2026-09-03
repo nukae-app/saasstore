@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import (
     Comanda, ComandaLinea, CondicionItem, DevolucionVenta, EstadoComanda, EstadoPeticionCliente,
-    EstadoSolicitud, Item, ItemStatus, Order, OrderItem, OrderStatus, OrigenSolicitud,
+    EstadoSolicitud, HistorialCompra, Item, ItemStatus, Order, OrderItem, OrderStatus, OrigenSolicitud,
     PeticionCliente, Proveedor, Release, SolicitudCompra, SolicitudCompraLinea, VentaExterna,
 )
 from ...schemas import (
@@ -169,6 +169,11 @@ def refill_sugerencias(db: Session = Depends(get_db)):
     for rid, avg_marge in [*marge_web, *marge_externa]:
         if avg_marge is None:
             continue
+        # func.avg() no garanteix Decimal en tots els backends (SQLite el
+        # retorna com a float, Postgres com a Decimal) — normalitzem abans
+        # de sumar per evitar un TypeError en barrejar tipus.
+        if not isinstance(avg_marge, Decimal):
+            avg_marge = Decimal(str(avg_marge))
         marge_por_release[rid] = marge_por_release.get(rid, Decimal("0")) + avg_marge
         contador_marge[rid] = contador_marge.get(rid, 0) + 1
     for rid in marge_por_release:
