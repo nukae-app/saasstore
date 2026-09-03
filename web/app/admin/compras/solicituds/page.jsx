@@ -173,7 +173,7 @@ export default function SolicitudsPage() {
                       {l.label && <span className="text-zinc-400">{l.label}</span>}
                       <span className="text-zinc-300 text-xs ml-auto">{new Date(l.solicitud_created_at).toLocaleDateString()}</span>
                       {!l.release_id && (
-                        <span className="text-amber-600 text-xs">{t('purchases.resolve_request_modal.not_catalogued', 'Encara no catalogat')}</span>
+                        <span className="text-sky-600 text-xs">{t('purchases.resolve_request_modal.not_catalogued', 'Article nou al catàleg')}</span>
                       )}
                     </label>
                   ))}
@@ -874,7 +874,7 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
                         {l.quantity}x{l.label ? ` · ${l.label}` : ''}
                         {!catalogat && (
                           <span className="text-amber-600 font-medium">
-                            · {t('purchases.resolve_request_modal.not_catalogued', 'Encara no catalogat')}
+                            · {t('purchases.resolve_request_modal.not_catalogued', 'Article nou al catàleg')}
                           </span>
                         )}
                         {resolved && (
