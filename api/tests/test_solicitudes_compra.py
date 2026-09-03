@@ -158,6 +158,65 @@ def test_resolver_solicitud_sense_release_falla(db, client):
     assert resp.status_code == 422
 
 
+def test_resolver_solicitud_amb_release_id_al_payload_resol_linia_sense_catalogar(db, client):
+    """Una línia creada a mà (sense release_id, disc encara no al catàleg)
+    es pot resoldre aportant el release_id en aquest mateix pas — ja no cal
+    sortir a donar d'alta el disc abans."""
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db, "Artista Nou", "Disc acabat de catalogar")
+
+    solicitud = client.post(
+        "/admin/solicitudes-compra",
+        json={"lineas": [{"artist": "Artista Nou", "title": "Disc acabat de catalogar", "quantity": 2}]},
+        headers=_auth(admin),
+    ).json()
+    linea_id = solicitud["lineas"][0]["id"]
+    assert solicitud["lineas"][0]["release_id"] is None
+
+    resp = client.post(
+        "/admin/solicitudes-compra/resolver",
+        json={
+            "proveedor_id": str(prov.id),
+            "date": "2026-06-01T10:00:00",
+            "lineas": [{"solicitud_linea_id": linea_id, "release_id": str(release.id)}],
+        },
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 201
+    comanda = resp.json()
+    assert comanda["lineas"][0]["release_id"] == str(release.id)
+
+    solicitud_actualitzada = client.get(
+        f"/admin/solicitudes-compra/{solicitud['id']}", headers=_auth(admin)
+    ).json()
+    assert solicitud_actualitzada["lineas"][0]["release_id"] == str(release.id)
+    assert solicitud_actualitzada["lineas"][0]["resuelta"] is True
+
+
+def test_resolver_solicitud_amb_release_id_inexistent_falla(db, client):
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+
+    solicitud = client.post(
+        "/admin/solicitudes-compra",
+        json={"lineas": [{"artist": "X", "title": "Y", "quantity": 1}]},
+        headers=_auth(admin),
+    ).json()
+    linea_id = solicitud["lineas"][0]["id"]
+
+    resp = client.post(
+        "/admin/solicitudes-compra/resolver",
+        json={
+            "proveedor_id": str(prov.id),
+            "date": "2026-06-01T10:00:00",
+            "lineas": [{"solicitud_linea_id": linea_id, "release_id": str(uuid.uuid4())}],
+        },
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 404
+
+
 def test_resolver_linia_ya_resuelta_falla(db, client):
     admin = _admin_token(client, db)
     prov = _seed_proveedor(db)

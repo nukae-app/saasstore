@@ -83,11 +83,12 @@ export default function SolicitudsPage() {
   } = useSortFilter(solicitudes, solicitudsColumns);
 
   function toggleGrup(lineasGrup) {
-    const seleccionables = lineasGrup.filter(l => l.release_id);
-    const totesSeleccionades = seleccionables.length > 0 && seleccionables.every(l => seleccio.has(l.id));
+    // Les línies sense release_id també es poden seleccionar: es resolen
+    // (cerca/alta al catàleg) dins del mateix modal de "Resoldre".
+    const totesSeleccionades = lineasGrup.length > 0 && lineasGrup.every(l => seleccio.has(l.id));
     setSeleccio(prev => {
       const next = new Set(prev);
-      for (const l of seleccionables) {
+      for (const l of lineasGrup) {
         if (totesSeleccionades) next.delete(l.id); else next.add(l.id);
       }
       return next;
@@ -151,12 +152,11 @@ export default function SolicitudsPage() {
           </div>
           <div className="divide-y divide-zinc-100 max-h-96 overflow-y-auto">
             {gruposOrdenados.map(([nomProveedor, lineasGrup]) => {
-              const seleccionables = lineasGrup.filter(l => l.release_id);
-              const totesSeleccionades = seleccionables.length > 0 && seleccionables.every(l => seleccio.has(l.id));
+              const totesSeleccionades = lineasGrup.length > 0 && lineasGrup.every(l => seleccio.has(l.id));
               return (
                 <div key={nomProveedor}>
                   <label className="flex items-center gap-2 px-5 py-2 bg-zinc-50 cursor-pointer">
-                    <input type="checkbox" checked={totesSeleccionades} disabled={seleccionables.length === 0}
+                    <input type="checkbox" checked={totesSeleccionades} disabled={lineasGrup.length === 0}
                       onChange={() => toggleGrup(lineasGrup)}
                       className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
                     <span className="text-xs font-semibold text-zinc-600 uppercase tracking-wide">{nomProveedor}</span>
@@ -164,15 +164,17 @@ export default function SolicitudsPage() {
                   </label>
                   {lineasGrup.map(l => (
                     <label key={l.id}
-                      className={`flex items-center gap-3 px-5 py-2.5 text-sm flex-wrap ${l.release_id ? 'cursor-pointer hover:bg-zinc-50' : 'opacity-50'}`}>
-                      <input type="checkbox" checked={seleccio.has(l.id)} disabled={!l.release_id}
+                      className="flex items-center gap-3 px-5 py-2.5 text-sm flex-wrap cursor-pointer hover:bg-zinc-50">
+                      <input type="checkbox" checked={seleccio.has(l.id)}
                         onChange={() => toggleLinia(l.id)}
                         className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
                       <span className="font-medium text-zinc-900">{l.artist} — {l.title}</span>
                       <span className="text-zinc-500">{l.quantity}x</span>
                       {l.label && <span className="text-zinc-400">{l.label}</span>}
                       <span className="text-zinc-300 text-xs ml-auto">{new Date(l.solicitud_created_at).toLocaleDateString()}</span>
-                      {!l.release_id && <span className="text-amber-600 text-xs">{t('purchases.request.needs_release', 'Cal donar d\'alta el disc abans')}</span>}
+                      {!l.release_id && (
+                        <span className="text-amber-600 text-xs">{t('purchases.resolve_request_modal.not_catalogued', 'Encara no catalogat')}</span>
+                      )}
                     </label>
                   ))}
                 </div>
@@ -682,14 +684,29 @@ function NovaSolicitudModal({ proveedores, onClose, onSaved }) {
 
 function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
   const t = useT();
+  const discogsEnabled = useDiscogsEnabled();
   const pendents = lineas.filter(l => !l.resuelta);
   const [proveedorId, setProveedorId] = useState(pendents[0]?.proveedor_sugerido_id || '');
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [notas, setNotas] = useState('');
-  const [seleccio, setSeleccio] = useState(() => new Set(pendents.map(l => l.id)));
+  // Les línies sense release_id (creades a mà, disc encara no al catàleg) no
+  // es marquen soles: cal resoldre-les primer (cercar/donar d'alta) abans
+  // de poder-les incloure a la comanda.
+  const [seleccio, setSeleccio] = useState(() => new Set(pendents.filter(l => l.release_id).map(l => l.id)));
   const [preus, setPreus] = useState(() => Object.fromEntries(pendents.map(l => [l.id, ''])));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Resolució de línies sense catalogar: només una oberta a la vegada.
+  const [resolvingLineaId, setResolvingLineaId] = useState(null);
+  const [resolvedReleases, setResolvedReleases] = useState({}); // { [linea_id]: { id, artista, titulo, existing } }
+  const [discogsQ, setDiscogsQ] = useState('');
+  const [discogsRes, setDiscogsRes] = useState([]);
+  const [searchingDiscogs, setSearchingDiscogs] = useState(false);
+  const [resolvingRelease, setResolvingRelease] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualForm, setManualForm] = useState({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '' });
+  const discogsDebounce = useRef(null);
 
   function toggle(id) {
     setSeleccio(prev => {
@@ -697,6 +714,93 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  }
+
+  function openResolver(linea) {
+    setResolvingLineaId(linea.id);
+    setManualMode(false);
+    setManualForm({ artista: linea.artist || '', titulo: linea.title || '', sello: linea.label || '', formato: linea.format || 'LP', anio: '' });
+    setDiscogsQ(''); setDiscogsRes([]);
+  }
+
+  function handleDiscogsQ(val) {
+    setDiscogsQ(val);
+    clearTimeout(discogsDebounce.current);
+    if (val.trim().length < 3) { setDiscogsRes([]); return; }
+    discogsDebounce.current = setTimeout(async () => {
+      setSearchingDiscogs(true);
+      try {
+        const r = await authFetch(`/admin/discogs/search?q=${encodeURIComponent(val)}`);
+        const data = await r.json();
+        setDiscogsRes(Array.isArray(data) ? data : (data.results ?? []));
+      } finally {
+        setSearchingDiscogs(false);
+      }
+    }, 400);
+  }
+
+  async function resolveRelease({ discogsId, artista, titulo, sello, formato, anio, genero, estilos, pais, imagen_url, tracklist, credits }) {
+    const params = new URLSearchParams();
+    if (discogsId) params.set('discogs_release_id', discogsId);
+    else { params.set('artista', artista); params.set('titulo', titulo); }
+    const dupRes = await authFetch(`/admin/releases/check-duplicate?${params.toString()}`);
+    const matches = dupRes.ok ? await dupRes.json() : [];
+    if (matches.length > 0) {
+      const m = matches[0];
+      return { id: m.id, artista: m.artista, titulo: m.titulo, existing: true };
+    }
+    const rRes = await authFetch('/admin/releases', {
+      method: 'POST',
+      body: JSON.stringify({
+        artista, title: titulo, sello: sello || null, formato: formato || null,
+        anio: anio ? parseInt(anio) : null, genero: genero || null,
+        estilos: estilos || null, pais: pais || null, image_url: imagen_url || null,
+        tracklist: tracklist || null, credits: credits || null,
+        discogs_release_id: discogsId ? parseInt(discogsId) : null,
+      }),
+    });
+    const { id } = await rRes.json();
+    return { id, artista, titulo, existing: false };
+  }
+
+  function applyResolved(rel) {
+    setResolvedReleases(prev => ({ ...prev, [resolvingLineaId]: rel }));
+    setSeleccio(prev => new Set(prev).add(resolvingLineaId));
+    setResolvingLineaId(null);
+  }
+
+  async function pickDiscogs(result) {
+    setResolvingRelease(true);
+    try {
+      let full = result;
+      if (result.discogs_release_id) {
+        try {
+          const r = await authFetch(`/admin/discogs/release/${result.discogs_release_id}`);
+          if (r.ok) full = { ...result, ...(await r.json()) };
+        } catch { /* ens conformem amb les dades de la cerca */ }
+      }
+      const rel = await resolveRelease({
+        discogsId: full.discogs_release_id, artista: full.artista, titulo: full.titulo,
+        sello: full.sello, formato: full.formato?.split(',')[0]?.trim(), anio: full.anio,
+        genero: full.genero, estilos: full.estilos, pais: full.pais, imagen_url: full.imagen_url,
+        tracklist: full.tracklist, credits: full.credits,
+      });
+      applyResolved(rel);
+    } finally {
+      setResolvingRelease(false);
+      setDiscogsQ(''); setDiscogsRes([]);
+    }
+  }
+
+  async function addManual() {
+    if (!manualForm.titulo.trim()) return;
+    setResolvingRelease(true);
+    try {
+      const rel = await resolveRelease(manualForm);
+      applyResolved(rel);
+    } finally {
+      setResolvingRelease(false);
+    }
   }
 
   async function save(e) {
@@ -711,6 +815,7 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
       lineas: pendents.filter(l => seleccio.has(l.id)).map(l => ({
         solicitud_linea_id: l.id,
         estimated_unit_price: preus[l.id] ? parseFloat(preus[l.id]) : null,
+        release_id: l.release_id ? undefined : resolvedReleases[l.id]?.id,
       })),
     };
     const r = await authFetch('/admin/solicitudes-compra/resolver', { method: 'POST', body: JSON.stringify(payload) });
@@ -753,20 +858,115 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
           </div>
 
           <div className="border border-zinc-200 rounded-xl divide-y divide-zinc-100">
-            {pendents.map(l => (
-              <label key={l.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-zinc-50">
-                <input type="checkbox" checked={seleccio.has(l.id)} onChange={() => toggle(l.id)}
-                  className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-zinc-900 truncate">{l.artist} — {l.title}</div>
-                  <div className="text-xs text-zinc-400">{l.quantity}x{l.label ? ` · ${l.label}` : ''}</div>
-                </div>
-                <input type="number" step="0.01" min="0" placeholder={t('purchases.est_price', 'Preu est.')} value={preus[l.id] ?? ''}
-                  onChange={e => setPreus(prev => ({ ...prev, [l.id]: e.target.value }))}
-                  onClick={e => e.stopPropagation()}
-                  className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
-              </label>
-            ))}
+            {pendents.map(l => {
+              const resolved = resolvedReleases[l.id];
+              const catalogat = !!l.release_id || !!resolved;
+              return (
+                <Fragment key={l.id}>
+                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
+                    <input type="checkbox" checked={seleccio.has(l.id)} disabled={!catalogat} onChange={() => toggle(l.id)}
+                      className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900 disabled:opacity-40" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 truncate">
+                        {resolved ? `${resolved.artista} — ${resolved.titulo}` : `${l.artist} — ${l.title}`}
+                      </div>
+                      <div className="text-xs text-zinc-400 flex items-center gap-1.5">
+                        {l.quantity}x{l.label ? ` · ${l.label}` : ''}
+                        {!catalogat && (
+                          <span className="text-amber-600 font-medium">
+                            · {t('purchases.resolve_request_modal.not_catalogued', 'Encara no catalogat')}
+                          </span>
+                        )}
+                        {resolved && (
+                          <span className="text-emerald-600 font-medium">
+                            · {resolved.existing ? t('purchases.modal.already_in_catalog', 'Ja al catàleg') : t('purchases.resolve_request_modal.newly_catalogued', 'Acabat de catalogar')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {catalogat ? (
+                      <input type="number" step="0.01" min="0" placeholder={t('purchases.est_price', 'Preu est.')} value={preus[l.id] ?? ''}
+                        onChange={e => setPreus(prev => ({ ...prev, [l.id]: e.target.value }))}
+                        className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                    ) : (
+                      <Button type="button" variant="secondary" size="sm" onClick={() => openResolver(l)}
+                        disabled={resolvingLineaId === l.id}>
+                        {t('purchases.resolve_request_modal.resolve_btn', 'Cercar / donar d\'alta')}
+                      </Button>
+                    )}
+                  </div>
+
+                  {resolvingLineaId === l.id && (
+                    <div className="px-4 py-3 bg-amber-50/50 space-y-2">
+                      {discogsEnabled && (
+                        <div className="relative">
+                          <input
+                            value={discogsQ}
+                            onChange={e => handleDiscogsQ(e.target.value)}
+                            placeholder={t('purchases.discogs_search_ph', 'Cerca a Discogs...')}
+                            disabled={resolvingRelease}
+                            autoFocus
+                            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 disabled:opacity-50"
+                          />
+                          {searchingDiscogs && (
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">{t('common.searching')}</span>
+                          )}
+                          {discogsRes.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg z-10 overflow-hidden max-h-72 overflow-y-auto">
+                              {discogsRes.map((r, i) => (
+                                <button key={i} type="button" onClick={() => pickDiscogs(r)} disabled={resolvingRelease}
+                                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-amber-50 border-b border-zinc-100 last:border-0 transition-colors disabled:opacity-50">
+                                  <span className="font-medium">{r.artista}</span>
+                                  <span className="text-zinc-500"> — {r.titulo}</span>
+                                  <span className="text-zinc-400 ml-2 text-xs">{[r.sello, r.formato, r.anio].filter(Boolean).join(' · ')}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {discogsEnabled && (
+                        <button type="button" onClick={() => setManualMode(m => !m)}
+                          className="text-xs text-amber-600 hover:text-amber-700 font-medium">
+                          {manualMode ? t('common.cancel') : t('purchases.add_manual_toggle', '+ Afegir disc a mà')}
+                        </button>
+                      )}
+                      {(!discogsEnabled || manualMode) && (
+                        <div className="p-3 bg-white rounded-xl border border-zinc-200 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <input value={manualForm.artista} onChange={e => setManualForm(f => ({ ...f, artista: e.target.value }))}
+                              placeholder={t('purchases.manual.artist_ph', 'Artista')}
+                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                            <input value={manualForm.titulo} onChange={e => setManualForm(f => ({ ...f, titulo: e.target.value }))}
+                              placeholder={t('purchases.manual.title_ph', 'Títol')}
+                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                            <input value={manualForm.sello} onChange={e => setManualForm(f => ({ ...f, sello: e.target.value }))}
+                              placeholder={t('purchases.manual.label_ph', 'Segell')}
+                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                            <select value={manualForm.formato} onChange={e => setManualForm(f => ({ ...f, formato: e.target.value }))}
+                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                              {['LP', 'EP', '7"', '12"', 'CD', 'Cassette'].map(x => <option key={x}>{x}</option>)}
+                              <option>{t('purchases.manual.format_other', 'Altre')}</option>
+                            </select>
+                            <input type="number" value={manualForm.anio} onChange={e => setManualForm(f => ({ ...f, anio: e.target.value }))}
+                              placeholder={t('purchases.manual.year_ph', 'Any')} min="1900" max="2030"
+                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button type="button" size="sm" onClick={addManual} disabled={resolvingRelease || !manualForm.titulo.trim()}>
+                              {resolvingRelease ? t('common.creating') : t('common.add', 'Afegir')}
+                            </Button>
+                            <Button type="button" variant="secondary" size="sm" onClick={() => setResolvingLineaId(null)}>
+                              {t('common.cancel')}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Fragment>
+              );
+            })}
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}

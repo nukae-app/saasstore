@@ -65,6 +65,11 @@ class SolicitudResolverLineaIn(BaseModel):
     solicitud_linea_id: uuid.UUID
     quantity: int | None = None  # per defecte, la cantidad demanada a la línia
     estimated_unit_price: Decimal | None = None
+    # Si la línia es va crear a mà (sense release_id, disc encara no al
+    # catàleg), el frontend el resol aquí mateix (cerca a Discogs + alta
+    # automàtica, o alta manual) en comptes d'obligar a sortir d'aquesta
+    # pantalla. Si la línia ja tenia release_id, es pot ometre.
+    release_id: uuid.UUID | None = None
 
 
 class SolicitudResolverIn(BaseModel):

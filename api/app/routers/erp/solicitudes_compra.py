@@ -335,25 +335,33 @@ def delete_linea_solicitud(solicitud_id: uuid.UUID, linea_id: uuid.UUID, db: Ses
 def resolver_solicitud_compra(payload: SolicitudResolverIn, db: Session = Depends(get_db)):
     """Construeix una Comanda real per a un proveïdor concret a partir de línies
     de sol·licituds seleccionades (poden venir de sol·licituds diferents). Cada
-    línia ha de tenir `release_id` (si el disc encara no existeix al catàleg,
-    cal donar-lo d'alta abans). Marca les línies com a resoltes i, si totes les
-    línies de la seva sol·licitud ja estan resoltes, la passa a 'resolta'."""
+    línia ha de tenir `release_id` — si la línia de sol·licitud encara no en
+    tenia (disc no catalogat), el payload pot aportar-ne un de resolt just
+    abans de cridar aquest endpoint (cerca a Discogs + alta automàtica, o
+    alta manual, des del mateix modal de resoldre) i es persisteix a la
+    línia. Marca les línies com a resoltes i, si totes les línies de la seva
+    sol·licitud ja estan resoltes, la passa a 'resolta'."""
     if db.get(Proveedor, payload.proveedor_id) is None:
         raise HTTPException(404, "Proveedor no encontrado")
 
     solicitud_lineas: list[SolicitudCompraLinea] = []
+    release_ids: dict[uuid.UUID, uuid.UUID] = {}
     for item in payload.lineas:
         linea = db.get(SolicitudCompraLinea, item.solicitud_linea_id)
         if linea is None:
             raise HTTPException(404, f"Línia de sol·licitud {item.solicitud_linea_id} no trobada")
         if linea.comanda_linea_id is not None or linea.item_resuelto_id is not None:
             raise HTTPException(409, f"La línia {item.solicitud_linea_id} ja està resolta")
-        if linea.release_id is None:
+        release_id = item.release_id or linea.release_id
+        if release_id is None:
             raise HTTPException(
                 422,
                 f"La línia '{linea.artist} - {linea.title}' no té release_id: "
-                "cal donar d'alta el disc al catàleg abans de resoldre-la",
+                "cal resoldre quin disc del catàleg és abans de crear la comanda",
             )
+        if item.release_id is not None and db.get(Release, item.release_id) is None:
+            raise HTTPException(404, f"Release {item.release_id} no trobat")
+        release_ids[linea.id] = release_id
         solicitud_lineas.append(linea)
 
     for intento in range(3):
@@ -373,8 +381,11 @@ def resolver_solicitud_compra(payload: SolicitudResolverIn, db: Session = Depend
     lineas_por_solicitud: dict[uuid.UUID, list[SolicitudCompraLinea]] = {}
     for item, linea in zip(payload.lineas, solicitud_lineas):
         cantidad = item.quantity if item.quantity is not None else linea.quantity
+        release_id = release_ids[linea.id]
+        if linea.release_id is None:
+            linea.release_id = release_id
         comanda_linea = ComandaLinea(
-            comanda_id=comanda.id, release_id=linea.release_id, quantity=cantidad,
+            comanda_id=comanda.id, release_id=release_id, quantity=cantidad,
             estimated_unit_price=item.estimated_unit_price, notes=linea.notes,
         )
         db.add(comanda_linea)
