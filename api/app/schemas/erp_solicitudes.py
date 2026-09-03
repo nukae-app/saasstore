@@ -52,6 +52,7 @@ class SolicitudCompraLineaOut(BaseModel):
 
 class SolicitudCompraOut(BaseModel):
     id: uuid.UUID
+    numero: str
     estado: str
     origen: str
     user_id: uuid.UUID | None
@@ -88,6 +89,7 @@ class SolicitudPoolLineaOut(SolicitudCompraLineaOut):
     (veure GET /solicitudes-compra/pool): permet llistar-les totes juntes,
     sense agrupar-les per lot, que és com les gestiona l'admin realment."""
     solicitud_id: uuid.UUID
+    solicitud_numero: str
     origen: str
     solicitud_notes: str | None
     solicitud_created_at: datetime
@@ -99,6 +101,13 @@ class SolicitudPoolPage(BaseModel):
     page: int
     page_size: int
     results: list[SolicitudPoolLineaOut]
+
+
+class SolicitudCompraListPage(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    results: list[SolicitudCompraOut]
 
 
 class RefillSugerenciaOut(BaseModel):

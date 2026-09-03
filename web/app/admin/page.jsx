@@ -67,7 +67,7 @@ export default function AdminDashboard() {
       ]);
       setOrders(ordersRes.ok ? await ordersRes.json() : []);
       setPeticiones(peticionesRes.ok ? await peticionesRes.json() : []);
-      setSolicitudsObertes(solicitudsRes.ok ? await solicitudsRes.json() : []);
+      setSolicitudsObertes(solicitudsRes.ok ? (await solicitudsRes.json()).results : []);
       setComprasStats(statsRes.ok ? await statsRes.json() : null);
       setVentasExternas(ventasRes.ok ? await ventasRes.json() : []);
       setSubscripcions(subsRes.ok ? await subsRes.json() : []);

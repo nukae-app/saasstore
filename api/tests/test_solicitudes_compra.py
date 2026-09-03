@@ -337,9 +337,9 @@ def test_list_solicitudes_filtra_per_estat(db, client):
     ).json()
     client.patch(f"/admin/solicitudes-compra/{solicitud['id']}/cancelar", headers=_auth(admin))
 
-    obertes = client.get("/admin/solicitudes-compra?estado=oberta", headers=_auth(admin)).json()
+    obertes = client.get("/admin/solicitudes-compra?estado=oberta", headers=_auth(admin)).json()["results"]
     assert all(s["estado"] == "oberta" for s in obertes)
-    cancelades = client.get("/admin/solicitudes-compra?estado=cancelada", headers=_auth(admin)).json()
+    cancelades = client.get("/admin/solicitudes-compra?estado=cancelada", headers=_auth(admin)).json()["results"]
     assert any(s["id"] == solicitud["id"] for s in cancelades)
 
 
@@ -566,3 +566,29 @@ def test_pool_lineas_filtra_per_estat_origen_i_cerca(db, client):
 
     per_cerca = client.get("/admin/solicitudes-compra/pool?estado=totes&q=cancel", headers=_auth(admin)).json()
     assert [l["title"] for l in per_cerca["results"]] == ["Es cancel·la"]
+
+
+def test_solicituds_tenen_numero_correlatiu_per_any(db, client):
+    """Cada sol·licitud (independentment de l'origen) rep un número humà
+    ("SOL-{any}-{seq}"), correlatiu per tenant+any — mateix patró que
+    Comanda/Pressupost/Albara, veure DocumentCounter."""
+    from datetime import datetime, timezone
+
+    admin = _admin_token(client, db)
+    any_actual = datetime.now(timezone.utc).year
+
+    s1 = client.post(
+        "/admin/solicitudes-compra", json={"lineas": [{"title": "U", "quantity": 1}]}, headers=_auth(admin),
+    ).json()
+    s2 = client.post(
+        "/admin/solicitudes-compra", json={"lineas": [{"title": "Dos", "quantity": 1}]}, headers=_auth(admin),
+    ).json()
+
+    assert s1["numero"] == f"SOL-{any_actual}-000001"
+    assert s2["numero"] == f"SOL-{any_actual}-000002"
+
+    # Aplicat també a la línia dins del pool (mateix número que la solicitud pare).
+    pool = client.get("/admin/solicitudes-compra/pool", headers=_auth(admin)).json()
+    numeros_pool = {l["title"]: l["solicitud_numero"] for l in pool["results"]}
+    assert numeros_pool["U"] == s1["numero"]
+    assert numeros_pool["Dos"] == s2["numero"]

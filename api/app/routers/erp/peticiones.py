@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
@@ -13,6 +14,7 @@ from ...schemas import (
     PeticionCatalogarIn, PeticionClienteAdminOut, PeticionPrecioIn, PeticionTiendaIn,
     PeticionVincularIn, PeticionVincularItemIn, ReservaRecollidaOut, SolicitudCompraOut,
 )
+from ...services.documents_numbering import next_document_number
 from ...services.emailer import render_email_html, send_email
 from ...services.i18n import translate
 from ...services.reservations import release_expired
@@ -190,7 +192,9 @@ def vincular_peticion_a_solicitud(peticion_id: uuid.UUID, payload: PeticionVincu
     if peticion.release_id is None:
         raise HTTPException(422, "La petició no té un disc catalogat")
 
+    fiscal_year = datetime.now(timezone.utc).year
     solicitud = SolicitudCompra(
+        fiscal_year=fiscal_year, number=next_document_number(db, "solicitud_compra", fiscal_year),
         origen=OrigenSolicitud.peticion_cliente, notes=f"Petició de {peticion.user.email}",
     )
     db.add(solicitud)

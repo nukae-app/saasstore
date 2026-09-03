@@ -93,6 +93,7 @@ from .erp_solicitudes import (
     RefillSugerenciaOut,
     SolicitudPoolLineaOut,
     SolicitudPoolPage,
+    SolicitudCompraListPage,
 )
 
 from .erp_peticiones import (

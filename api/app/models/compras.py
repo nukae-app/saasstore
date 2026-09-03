@@ -220,8 +220,14 @@ class SolicitudCompra(TenantScoped, Base):
     concret; la sol·licitud pot acabar repartida entre diverses comandes."""
 
     __tablename__ = "solicitudes_compra"
+    __table_args__ = (UniqueConstraint("tenant_id", "fiscal_year", "number"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    # Numeració humana ("SOL-2026-000001"), atòmica via DocumentCounter —
+    # mateix patró que Pressupost/Albara. Assignada un cop en crear-se (mai
+    # canvia), independent de l'`id` intern.
+    fiscal_year: Mapped[int] = mapped_column(Integer, index=True)
+    number: Mapped[int] = mapped_column(Integer)
     estado: Mapped[EstadoSolicitud] = mapped_column(
         Enum(EstadoSolicitud, name="estado_solicitud"), default=EstadoSolicitud.oberta, index=True
     )

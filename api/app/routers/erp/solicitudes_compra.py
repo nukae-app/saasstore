@@ -15,8 +15,10 @@ from ...models import (
 )
 from ...schemas import (
     ComandaOut, RefillSugerenciaOut, ResoldreEstocIn, SolicitudCompraIn, SolicitudCompraLineaIn,
-    SolicitudCompraLineaOut, SolicitudCompraOut, SolicitudPoolLineaOut, SolicitudPoolPage, SolicitudResolverIn,
+    SolicitudCompraLineaOut, SolicitudCompraListPage, SolicitudCompraOut, SolicitudPoolLineaOut, SolicitudPoolPage,
+    SolicitudResolverIn,
 )
+from ...services.documents_numbering import next_document_number
 from ...services.security import require_admin
 from ._peticiones_stock import (
     _enviar_email_item_arribat, _reservar_item_para_peticion, _tancar_linea_solicitud_desde_stock,
@@ -44,9 +46,14 @@ def _solicitud_linea_out(linea: SolicitudCompraLinea) -> SolicitudCompraLineaOut
     )
 
 
+def _format_solicitud_numero(solicitud: SolicitudCompra) -> str:
+    return f"SOL-{solicitud.fiscal_year}-{solicitud.number:06d}"
+
+
 def _solicitud_out(solicitud: SolicitudCompra) -> SolicitudCompraOut:
     return SolicitudCompraOut(
         id=solicitud.id,
+        numero=_format_solicitud_numero(solicitud),
         estado=solicitud.estado,
         origen=solicitud.origen,
         user_id=solicitud.user_id,
@@ -243,7 +250,9 @@ def create_solicitud_compra(payload: SolicitudCompraIn, db: Session = Depends(ge
         if linea.proveedor_sugerido_id and db.get(Proveedor, linea.proveedor_sugerido_id) is None:
             raise HTTPException(404, f"Proveedor {linea.proveedor_sugerido_id} no encontrado")
 
+    fiscal_year = datetime.now(timezone.utc).year
     solicitud = SolicitudCompra(
+        fiscal_year=fiscal_year, number=next_document_number(db, "solicitud_compra", fiscal_year),
         origen=OrigenSolicitud(payload.origen), user_id=payload.user_id, notes=payload.notes,
     )
     db.add(solicitud)
@@ -258,21 +267,38 @@ def create_solicitud_compra(payload: SolicitudCompraIn, db: Session = Depends(ge
     return _solicitud_out(_get_solicitud_or_404(db, solicitud.id))
 
 
-@router.get("/solicitudes-compra", response_model=list[SolicitudCompraOut])
-def list_solicitudes_compra(estado: str | None = None, db: Session = Depends(get_db)):
+@router.get("/solicitudes-compra", response_model=SolicitudCompraListPage)
+def list_solicitudes_compra(
+    estado: str | None = None,
+    origen: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(200, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    """Llistat de sol·licituds com a entitat (una fila = un lot, amb el seu
+    número — veure [[SolicitudPoolLineaOut]] per la vista aplanada per
+    línia). `page_size` per defecte alt perquè el dashboard encara en
+    consumeix el total sencer per comptar línies obertes."""
+    stmt = select(SolicitudCompra).order_by(SolicitudCompra.created_at.desc())
+    if estado:
+        stmt = stmt.where(SolicitudCompra.estado == EstadoSolicitud(estado))
+    if origen:
+        stmt = stmt.where(SolicitudCompra.origen == OrigenSolicitud(origen))
+
+    total = db.scalar(select(func.count()).select_from(stmt.with_only_columns(SolicitudCompra.id).subquery()))
     stmt = (
-        select(SolicitudCompra)
-        .options(
+        stmt.options(
             selectinload(SolicitudCompra.lineas).selectinload(SolicitudCompraLinea.release),
             selectinload(SolicitudCompra.lineas).selectinload(SolicitudCompraLinea.proveedor_sugerido),
             selectinload(SolicitudCompra.user),
         )
-        .order_by(SolicitudCompra.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
     )
-    if estado:
-        stmt = stmt.where(SolicitudCompra.estado == EstadoSolicitud(estado))
-    solicitudes = db.scalars(stmt).all()
-    return [_solicitud_out(s) for s in solicitudes]
+    solicitudes = db.scalars(stmt).unique().all()
+    return SolicitudCompraListPage(
+        total=total, page=page, page_size=page_size, results=[_solicitud_out(s) for s in solicitudes],
+    )
 
 
 @router.get("/solicitudes-compra/pool", response_model=SolicitudPoolPage)
@@ -332,6 +358,7 @@ def list_pool_lineas(
         SolicitudPoolLineaOut(
             **_solicitud_linea_out(linea).model_dump(),
             solicitud_id=linea.solicitud_id,
+            solicitud_numero=_format_solicitud_numero(linea.solicitud),
             origen=linea.solicitud.origen.value,
             solicitud_notes=linea.solicitud.notes,
             solicitud_created_at=linea.solicitud.created_at,

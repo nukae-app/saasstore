@@ -9,10 +9,11 @@ import { Button } from '../../../../components/ui/button';
 import { useSortFilter } from '../../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../../components/admin/table/SortableTh';
 import {
-  Plus, X, Trash2, PackageCheck, ArrowRight, Sparkles, TrendingUp, TrendingDown, Minus,
+  Plus, X, Trash2, PackageCheck, ArrowRight, Sparkles, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight, Ban,
 } from 'lucide-react';
 import {
   poolLineaEstat, poolLineaEstatLabel, POOL_LINEA_ESTAT_COLOR, origenSolicitudLabel, ORIGEN_SOLICITUD_COLOR,
+  solicitudStatusLabel, SOLICITUD_STATUS_COLOR,
 } from '../../../../components/admin/compras/shared';
 
 // Pool de línies de sol·licitud: totes les línies de tots els orígens
@@ -26,6 +27,7 @@ const ESTAT_TABS = ['pendent', 'resolta', 'cancelada', 'totes'];
 
 export default function SolicitudsPage() {
   const t = useT();
+  const [vista, setVista] = useState('pool');
   const [estado, setEstado] = useState('pendent');
   const [origen, setOrigen] = useState('');
   const [proveedorId, setProveedorId] = useState('');
@@ -118,6 +120,21 @@ export default function SolicitudsPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-1 border-b border-zinc-200">
+        <button onClick={() => setVista('pool')}
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'pool' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}>
+          {t('purchases.view.pool', 'Pool de compra')}
+        </button>
+        <button onClick={() => setVista('llistat')}
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'llistat' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}>
+          {t('purchases.view.list', 'Registre de sol·licituds')}
+        </button>
+      </div>
+
+      {vista === 'llistat' && <SolicitudsLlistatView proveedores={proveedores} />}
+
+      {vista === 'pool' && (
+      <>
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
           {ESTAT_TABS.map(tab => (
@@ -176,6 +193,7 @@ export default function SolicitudsPage() {
                       onChange={toggleAllVisible}
                       className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
                   </th>
+                  <th className="px-4 py-3 text-left font-medium">{t('purchases.col.number', 'Número')}</th>
                   <th className="px-4 py-3 text-left font-medium">{t('tpv.col.record')}</th>
                   <th className="px-4 py-3 text-center font-medium">{t('purchases.quantity', 'Quantitat')}</th>
                   <th className="px-4 py-3 text-left font-medium">{t('purchases.col.origin')}</th>
@@ -195,6 +213,7 @@ export default function SolicitudsPage() {
                           onChange={() => toggleLinea(row)}
                           className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900 disabled:opacity-30" />
                       </td>
+                      <td className="px-4 py-3 font-mono text-xs text-zinc-500">{row.solicitud_numero}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-zinc-900">{row.artist} — {row.title}</div>
                         {row.label && <div className="text-xs text-zinc-400">{row.label}</div>}
@@ -268,10 +287,254 @@ export default function SolicitudsPage() {
           onClose={() => setResolvingLineas(null)}
           onSaved={() => { setResolvingLineas(null); setSeleccio(new Map()); loadPool(); }} />
       )}
+      </>
+      )}
+
       {showRefillModal && (
         <RefillSugerenciesModal
           onClose={() => setShowRefillModal(false)}
           onSaved={() => { setShowRefillModal(false); loadPool(); }} />
+      )}
+    </div>
+  );
+}
+
+const LLISTAT_PAGE_SIZE = 20;
+const LLISTAT_ESTAT_TABS = ['oberta', 'resolta', 'cancelada', 'totes'];
+
+// Registre de sol·licituds com a entitat (una fila = un lot, amb el seu
+// número — veure GET /admin/solicitudes-compra): a diferència del pool
+// (aplanat per línia), aquí es classifica per sol·licitud, per poder
+// referenciar-ne una en concret ("SOL-2026-000004").
+function SolicitudsLlistatView({ proveedores }) {
+  const t = useT();
+  const [estado, setEstado] = useState('oberta');
+  const [origen, setOrigen] = useState('');
+  const [page, setPage] = useState(1);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const [resolvingEstocLinea, setResolvingEstocLinea] = useState(null);
+  const [resolvingLineas, setResolvingLineas] = useState(null);
+
+  async function loadSolicituds() {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page), page_size: String(LLISTAT_PAGE_SIZE) });
+    if (estado !== 'totes') params.set('estado', estado);
+    if (origen) params.set('origen', origen);
+    const r = await authFetch(`/admin/solicitudes-compra?${params.toString()}`);
+    const data = await r.json();
+    setSolicitudes(data.results ?? []);
+    setTotal(data.total ?? 0);
+    setLoading(false);
+  }
+  useEffect(() => { loadSolicituds(); }, [estado, origen, page]);
+  useEffect(() => { setPage(1); }, [estado, origen]);
+
+  async function cancelar(s) {
+    if (!confirm(t('purchases.request.confirm_cancel', 'Cancel·lar aquesta sol·licitud?'))) return;
+    setBusyId(s.id + '_cancelar');
+    await authFetch(`/admin/solicitudes-compra/${s.id}/cancelar`, { method: 'PATCH' });
+    setBusyId(null);
+    loadSolicituds();
+  }
+
+  async function eliminar(s) {
+    if (!confirm(t('purchases.request.confirm_delete', 'Eliminar aquesta sol·licitud?'))) return;
+    setBusyId(s.id + '_eliminar');
+    const r = await authFetch(`/admin/solicitudes-compra/${s.id}`, { method: 'DELETE' });
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      alert(body.detail || t('catalog.delete_error'));
+    }
+    setBusyId(null);
+    loadSolicituds();
+  }
+
+  async function eliminarLinia(s, l) {
+    if (!confirm(t('purchases.request.confirm_remove_line', 'Treure "{disc}" d\'aquesta sol·licitud?').replace('{disc}', `${l.artist} — ${l.title}`))) return;
+    setBusyId(l.id + '_eliminar_linia');
+    const r = await authFetch(`/admin/solicitudes-compra/${s.id}/lineas/${l.id}`, { method: 'DELETE' });
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      alert(body.detail || t('purchases.request.delete_line_error', 'No s\'ha pogut eliminar el disc.'));
+    }
+    setBusyId(null);
+    loadSolicituds();
+  }
+
+  const from = total === 0 ? 0 : (page - 1) * LLISTAT_PAGE_SIZE + 1;
+  const to = Math.min(page * LLISTAT_PAGE_SIZE, total);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
+          {LLISTAT_ESTAT_TABS.map(tab => (
+            <button key={tab} onClick={() => setEstado(tab)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
+              {tab === 'totes' ? t('purchases.pool.tab.totes', 'Totes') : solicitudStatusLabel(t, tab)}
+            </button>
+          ))}
+        </div>
+        <select value={origen} onChange={e => setOrigen(e.target.value)}
+          className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+          <option value="">{t('purchases.pool.filter.origin_all', 'Tots els orígens')}</option>
+          <option value="manual">{origenSolicitudLabel(t, 'manual')}</option>
+          <option value="refill_stock">{origenSolicitudLabel(t, 'refill_stock')}</option>
+          <option value="peticion_cliente">{origenSolicitudLabel(t, 'peticion_cliente')}</option>
+        </select>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+        ) : solicitudes.length === 0 ? (
+          <div className="p-12 text-center text-zinc-400 text-sm">{t('purchases.request.no_requests', 'Encara no hi ha cap sol·licitud de compra.')}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+                <tr>
+                  <th className="w-8 px-4 py-3" />
+                  <th className="px-4 py-3 text-left font-medium">{t('purchases.col.number', 'Número')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('common.date')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('purchases.col.origin')}</th>
+                  <th className="px-4 py-3 text-center font-medium">{t('purchases.col.lines', 'Línies')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('purchases.col.status')}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t('catalog.col.actions')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {solicitudes.map(s => {
+                  const pendents = s.lineas.filter(l => !l.resuelta).length;
+                  return (
+                    <Fragment key={s.id}>
+                      <tr onClick={() => setExpanded(expanded === s.id ? null : s.id)}
+                        className="hover:bg-zinc-50 cursor-pointer transition-colors">
+                        <td className="px-4 py-3 text-zinc-400">
+                          {expanded === s.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-zinc-700">{s.numero}</td>
+                        <td className="px-4 py-3 text-zinc-500">{new Date(s.created_at).toLocaleDateString()}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ORIGEN_SOLICITUD_COLOR[s.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                            {origenSolicitudLabel(t, s.origen)}
+                          </span>
+                          {s.user_nom && <span className="text-zinc-400 text-xs"> · {s.user_nom}</span>}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-700">
+                            {s.lineas.length}{pendents > 0 && pendents < s.lineas.length ? ` (${pendents} ${t('purchases.pending', 'pendents')})` : ''}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${SOLICITUD_STATUS_COLOR[s.estado]}`}>
+                            {solicitudStatusLabel(t, s.estado)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {s.estado === 'oberta' && pendents > 0 && (
+                              <button onClick={() => setResolvingLineas(s.lineas.filter(l => !l.resuelta))} title={t('purchases.action.resolve_to_order', 'Resoldre cap a una comanda')}
+                                className="flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700 border border-amber-200 rounded-lg px-2 py-1 hover:bg-amber-50 transition-colors">
+                                <ArrowRight size={12} /> {t('purchases.action.resolve', 'Resoldre')}
+                              </button>
+                            )}
+                            {s.estado === 'oberta' && (
+                              <button onClick={() => cancelar(s)} disabled={busyId === s.id + '_cancelar'} title={t('common.cancel')}
+                                className="p-1.5 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                                <Ban size={14} />
+                              </button>
+                            )}
+                            {pendents === s.lineas.length && (
+                              <button onClick={() => eliminar(s)} disabled={busyId === s.id + '_eliminar'} title={t('catalog.delete')}
+                                className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {expanded === s.id && (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-3 bg-amber-50/40 border-b border-amber-100">
+                            <div className="space-y-1">
+                              {s.lineas.map(l => (
+                                <div key={l.id} className="flex items-center gap-3 text-sm flex-wrap">
+                                  <span className="font-semibold text-zinc-900">{l.artist} — {l.title}</span>
+                                  <span className="text-zinc-500">{l.quantity}x</span>
+                                  {l.label && <span className="text-zinc-400">{l.label}</span>}
+                                  {l.proveedor_sugerido_nombre && (
+                                    <span className="text-zinc-400">{t('purchases.suggested', 'Suggerit')}: {l.proveedor_sugerido_nombre}</span>
+                                  )}
+                                  {l.resuelta ? (
+                                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700">
+                                      {l.item_resuelto_id ? t('purchases.solicitud_status.resolved_stock', 'Resolta (estoc)') : solicitudStatusLabel(t, 'resolta')}
+                                    </span>
+                                  ) : (
+                                    <>
+                                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500">
+                                        {t('purchases.pending', 'Pendent')}
+                                      </span>
+                                      {l.release_id && (
+                                        <button onClick={() => setResolvingEstocLinea(l)}
+                                          className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg px-2 py-0.5 hover:bg-emerald-50 transition-colors">
+                                          <PackageCheck size={11} /> {t('purchases.action.resolve_from_stock', "Resoldre d'estoc")}
+                                        </button>
+                                      )}
+                                      <button onClick={() => eliminarLinia(s, l)} disabled={busyId === l.id + '_eliminar_linia'}
+                                        title={t('purchases.action.remove_from_request', 'Treure aquest disc de la sol·licitud')}
+                                        className="p-1 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50 ml-auto">
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            {s.notes && <div className="mt-2 text-xs text-zinc-400">{s.notes}</div>}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {total > LLISTAT_PAGE_SIZE && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
+            <span>{from}–{to} {t('common.of', 'de')} {total}</span>
+            <div className="flex gap-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                ← {t('common.previous', 'Anterior')}
+              </button>
+              <button onClick={() => setPage(p => p + 1)} disabled={page * LLISTAT_PAGE_SIZE >= total}
+                className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                {t('common.next', 'Següent')} →
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {resolvingEstocLinea && (
+        <ResoldreEstocModal
+          linea={resolvingEstocLinea}
+          onClose={() => setResolvingEstocLinea(null)}
+          onSaved={() => { setResolvingEstocLinea(null); loadSolicituds(); }} />
+      )}
+
+      {resolvingLineas && (
+        <ResoldreSolicitudModal
+          lineas={resolvingLineas} proveedores={proveedores}
+          onClose={() => setResolvingLineas(null)}
+          onSaved={() => { setResolvingLineas(null); loadSolicituds(); }} />
       )}
     </div>
   );
