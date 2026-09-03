@@ -92,6 +92,7 @@ def list_releases(
                         "codi_discogs": i.codi_discogs,
                         "cantidad": i.quantity,
                         "cantidad_reservada": i.reserved_quantity,
+                        "alerta_stock_minimo": i.min_stock_alert,
                     }
                     for i in r.items
                 ],

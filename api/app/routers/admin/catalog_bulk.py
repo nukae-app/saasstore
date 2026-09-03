@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
 from ...models import CondicionItem, Item, ItemStatus, OrderItem
-from ...schemas import CatalogAgingItemsOut, CatalogAgingOut
+from ...schemas import CatalogAgingItemsOut, CatalogAgingOut, StockAlertsOut
 from ...services.discogs_sync import remove_item_from_discogs
 from ...services.security import require_admin
 from ...tenant_secrets import get_tenant_secrets
@@ -313,4 +313,42 @@ def catalog_aging_items(
     return {
         "total": total,
         "items": [_aging_item_out(item, dias) for item, dias in pagina],
+    }
+
+
+# --- Alertes d'estoc (Bloc B4, veure docs/PLAN_PARIDAD_HOLDED.md) ---
+
+
+@router.get("/catalog/stock-alerts", response_model=StockAlertsOut)
+def catalog_stock_alerts(db: Session = Depends(get_db)):
+    """Línies 'nou' amb alarma configurada (min_stock_alert) l'estoc
+    disponible de les quals ha caigut al llindar o per sota. Només aplica a
+    nou: una còpia segona_ma és sempre 1 unitat, no hi ha "estoc" a alertar."""
+    items = db.scalars(
+        select(Item)
+        .options(selectinload(Item.release))
+        .where(
+            Item.condition == CondicionItem.nou,
+            Item.status == ItemStatus.disponible,
+            Item.min_stock_alert.is_not(None),
+        )
+    ).all()
+
+    alertes = [i for i in items if (i.quantity - i.reserved_quantity) <= i.min_stock_alert]
+    alertes.sort(key=lambda i: i.quantity - i.reserved_quantity)
+
+    return {
+        "total": len(alertes),
+        "items": [
+            {
+                "item_id": i.id,
+                "release_id": i.release_id,
+                "artista": i.release.artista,
+                "titulo": i.release.title,
+                "imagen_url": i.release.image_url,
+                "disponible": i.quantity - i.reserved_quantity,
+                "alerta_stock_minimo": i.min_stock_alert,
+            }
+            for i in alertes
+        ],
     }

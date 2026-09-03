@@ -17,6 +17,7 @@ class ItemOut(BaseModel):
     # quantity siempre es 1 y reserved_quantity 0.
     quantity: int
     reserved_quantity: int
+    min_stock_alert: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -167,6 +168,8 @@ class ItemIn(BaseModel):
     # Només per a condicion='nou': unitats donades d'alta. Per a segona_ma
     # sempre 1 (cada alta és una còpia física amb el seu propi grading).
     quantity: int = 1
+    # Alarma de stock (Bloc B4): només té sentit per a condicion='nou'.
+    min_stock_alert: int | None = None
 
 
 class ItemUpdate(BaseModel):
@@ -178,6 +181,7 @@ class ItemUpdate(BaseModel):
     condition: str = "segona_ma"
     estado_disco: str | None = None
     estado_funda: str | None = None
+    min_stock_alert: int | None = None
 
 
 # --- ERP: Proveedores ---
@@ -221,3 +225,18 @@ class CatalogAgingOut(BaseModel):
     edad_media_dias: float | None
     edad_mediana_dias: float | None
     buckets: list[CatalogAgingBucketOut]
+
+
+class StockAlertItemOut(BaseModel):
+    item_id: uuid.UUID
+    release_id: uuid.UUID
+    artista: str
+    titulo: str
+    imagen_url: str | None
+    disponible: int
+    alerta_stock_minimo: int
+
+
+class StockAlertsOut(BaseModel):
+    total: int
+    items: list[StockAlertItemOut]

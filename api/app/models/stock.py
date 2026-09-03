@@ -109,6 +109,11 @@ class Item(TenantScoped, Base):
         ForeignKey("compras.id", ondelete="SET NULL"), index=True
     )
     rebu: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    # Alarma de stock (Bloc B4, veure docs/PLAN_PARIDAD_HOLDED.md): llindar
+    # d'unitats disponibles per sota del qual es mostra a "Alertes d'estoc".
+    # Només té sentit per a nou (stock agregat) — una còpia segona_ma és
+    # sempre 1 unitat, no hi ha "estoc" a alertar. None = sense alarma configurada.
+    min_stock_alert: Mapped[int | None] = mapped_column(Integer)
 
     release: Mapped[Release] = relationship(back_populates="items")
     compra: Mapped["Compra | None"] = relationship(back_populates="items")

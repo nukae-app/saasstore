@@ -302,7 +302,12 @@ export default function CatalogoPage() {
         ))}
       </div>
 
-      {tab === 'dashboards' && <AgingDashboard onVeureRelease={veureAlLlistat} />}
+      {tab === 'dashboards' && (
+        <div className="space-y-6">
+          <StockAlertsPanel onVeureRelease={veureAlLlistat} />
+          <AgingDashboard onVeureRelease={veureAlLlistat} />
+        </div>
+      )}
 
       {tab === 'llistat' && (
       <>
@@ -487,6 +492,73 @@ export default function CatalogoPage() {
           onDone={() => { setShowImport(false); refresh(); }}
         />
       )}
+    </div>
+  );
+}
+
+// ---- StockAlertsPanel: alertes d'estoc mínim (Bloc B4) ----------------------
+
+function StockAlertsPanel({ onVeureRelease }) {
+  const t = useT();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await authFetch('/admin/catalog/stock-alerts');
+      if (r.ok) setData(await r.json());
+    } catch { /* non-critical */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-zinc-400 text-sm flex items-center justify-center gap-2 bg-white rounded-2xl border border-zinc-200">
+        <Loader2 size={16} className="animate-spin" /> {t('common.loading')}
+      </div>
+    );
+  }
+  if (!data || data.total === 0) return null;
+
+  return (
+    <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-3 border-b border-amber-200 bg-amber-50 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+          <AlertTriangle size={15} />
+          {t('catalog.stock_alerts.title', 'Alertes d\'estoc')} ({data.total})
+        </div>
+        <button onClick={load}
+          className="flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 transition-colors">
+          <RefreshCw size={12} /> {t('catalog.refresh', 'Actualitzar')}
+        </button>
+      </div>
+      <p className="px-5 pt-3 text-sm text-zinc-500">
+        {t('catalog.stock_alerts.hint', "Línies de stock nou amb l'estoc disponible al llindar mínim configurat o per sota — fixa'l a l'edició de la còpia.")}
+      </p>
+      <div className="divide-y divide-zinc-100 max-h-[22rem] overflow-y-auto mt-2">
+        {data.items.map(it => (
+          <div key={it.item_id} className="flex items-center gap-3 px-5 py-2.5">
+            <CoverImg url={it.imagen_url} size={32} />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-zinc-900 truncate">{it.artista} — {it.titulo}</div>
+              <div className="text-xs text-zinc-400">
+                {t('catalog.stock_alerts.threshold', 'Llindar')}: {it.alerta_stock_minimo} {t('catalog.units', 'unitats')}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-sm font-semibold text-amber-700">{it.disponible} {t('catalog.units', 'unitats')}</div>
+              <div className="text-xs text-zinc-400">{t('catalog.stock_alerts.available', 'disponibles')}</div>
+            </div>
+            <button onClick={() => onVeureRelease(it.release_id, it.artista, it.titulo)} title={t('catalog.aging.view_in_list', 'Veure al llistat')}
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors shrink-0">
+              <Eye size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -998,7 +1070,7 @@ const statusKey = {
 function CopiesPanel({ release, items, onRefresh }) {
   const t = useT();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ precio: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '', cantidad: '1' });
+  const [form, setForm] = useState({ precio: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '', cantidad: '1', alerta_stock_minimo: '' });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -1018,10 +1090,11 @@ function CopiesPanel({ release, items, onRefresh }) {
         estado_disco: form.condicion === 'nou' ? null : (form.estado_disco || null),
         estado_funda: form.condicion === 'nou' ? null : (form.estado_funda || null),
         quantity: form.condicion === 'nou' ? (parseInt(form.cantidad, 10) || 1) : 1,
+        min_stock_alert: form.condicion === 'nou' && form.alerta_stock_minimo ? parseInt(form.alerta_stock_minimo, 10) : null,
       }),
     });
     setSaving(false);
-    setForm({ precio: '', coste_adquisicion: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '', cantidad: '1' });
+    setForm({ precio: '', coste_adquisicion: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '', cantidad: '1', alerta_stock_minimo: '' });
     setShowForm(false);
     onRefresh();
   }
@@ -1034,6 +1107,7 @@ function CopiesPanel({ release, items, onRefresh }) {
       condicion: item.condicion,
       estado_disco: item.estado_disco || '',
       estado_funda: item.estado_funda || '',
+      alerta_stock_minimo: item.alerta_stock_minimo != null ? String(item.alerta_stock_minimo) : '',
     });
   }
 
@@ -1048,6 +1122,7 @@ function CopiesPanel({ release, items, onRefresh }) {
         condition: editForm.condicion,
         estado_disco: editForm.condicion === 'nou' ? null : (editForm.estado_disco || null),
         estado_funda: editForm.condicion === 'nou' ? null : (editForm.estado_funda || null),
+        min_stock_alert: editForm.condicion === 'nou' && editForm.alerta_stock_minimo ? parseInt(editForm.alerta_stock_minimo, 10) : null,
       }),
     });
     setSavingEdit(false);
@@ -1132,14 +1207,24 @@ function CopiesPanel({ release, items, onRefresh }) {
                 placeholder="—"
                 className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </Field>
-            {editForm.condicion === 'segona_ma' && <>
-              <Field label={t('catalog.disc_grade')}>
-                <GradingSelect value={editForm.estado_disco} onChange={v => setEditForm(f => ({ ...f, estado_disco: v }))} />
+            {editForm.condicion === 'segona_ma' ? (
+              <>
+                <Field label={t('catalog.disc_grade')}>
+                  <GradingSelect value={editForm.estado_disco} onChange={v => setEditForm(f => ({ ...f, estado_disco: v }))} />
+                </Field>
+                <Field label={t('catalog.sleeve_grade')}>
+                  <GradingSelect value={editForm.estado_funda} onChange={v => setEditForm(f => ({ ...f, estado_funda: v }))} />
+                </Field>
+              </>
+            ) : (
+              <Field label={t('catalog.min_stock_alert', "Alerta d'estoc mínim")}>
+                <input type="number" step="1" min="0" value={editForm.alerta_stock_minimo}
+                  onChange={e => setEditForm(f => ({ ...f, alerta_stock_minimo: e.target.value }))}
+                  placeholder={t('catalog.min_stock_alert_placeholder', 'Cap')}
+                  title={t('catalog.min_stock_alert_hint', "Avisa quan l'estoc disponible baixi d'aquest llindar")}
+                  className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
               </Field>
-              <Field label={t('catalog.sleeve_grade')}>
-                <GradingSelect value={editForm.estado_funda} onChange={v => setEditForm(f => ({ ...f, estado_funda: v }))} />
-              </Field>
-            </>}
+            )}
             <div className="flex gap-2 pb-0.5">
               <Button type="submit" size="sm" disabled={savingEdit}>{savingEdit ? t('common.saving') : t('common.save')}</Button>
               <Button type="button" variant="ghost" size="sm" onClick={() => setEditingId(null)}>{t('common.cancel')}</Button>
@@ -1158,6 +1243,13 @@ function CopiesPanel({ release, items, onRefresh }) {
               <span className="text-xs text-zinc-500">
                 {item.cantidad} {t('catalog.units', 'unitats')}
                 {item.cantidad_reservada > 0 && ` (${item.cantidad_reservada} ${t('catalog.reserved_lower', 'reservades')})`}
+              </span>
+            )}
+            {item.condicion === 'nou' && item.alerta_stock_minimo != null
+              && (item.cantidad - item.cantidad_reservada) <= item.alerta_stock_minimo && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700"
+                title={t('catalog.low_stock_hint', 'Estoc disponible per sota del llindar configurat')}>
+                <AlertTriangle size={10} /> {t('catalog.low_stock', 'Estoc baix')}
               </span>
             )}
             {item.coste_adquisicion != null && (() => {
@@ -1242,12 +1334,21 @@ function CopiesPanel({ release, items, onRefresh }) {
               className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
           </Field>
           {form.condicion === 'nou' ? (
-            <Field label={t('catalog.units_label', 'Unitats')}>
-              <input type="number" step="1" min="1" required value={form.cantidad}
-                onChange={e => setForm(f => ({ ...f, cantidad: e.target.value }))}
-                title={t('catalog.units_hint', "Si ja hi ha estoc nou d'aquest disc, se sumarà a la línia existent")}
-                className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-            </Field>
+            <>
+              <Field label={t('catalog.units_label', 'Unitats')}>
+                <input type="number" step="1" min="1" required value={form.cantidad}
+                  onChange={e => setForm(f => ({ ...f, cantidad: e.target.value }))}
+                  title={t('catalog.units_hint', "Si ja hi ha estoc nou d'aquest disc, se sumarà a la línia existent")}
+                  className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              </Field>
+              <Field label={t('catalog.min_stock_alert', "Alerta d'estoc mínim")}>
+                <input type="number" step="1" min="0" value={form.alerta_stock_minimo}
+                  onChange={e => setForm(f => ({ ...f, alerta_stock_minimo: e.target.value }))}
+                  placeholder={t('catalog.min_stock_alert_placeholder', 'Cap')}
+                  title={t('catalog.min_stock_alert_hint', "Avisa quan l'estoc disponible baixi d'aquest llindar")}
+                  className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              </Field>
+            </>
           ) : (
             <>
               <Field label={t('catalog.disc_grade')}>
