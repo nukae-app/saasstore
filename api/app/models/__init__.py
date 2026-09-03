@@ -108,6 +108,7 @@ from .comptabilitat import (
     Despesa,
     CompteBancari,
     MovimentBancari,
+    ReglaConciliacio,
     PeriodeComptable,
     CaixaDiaria,
     JournalSourceType,

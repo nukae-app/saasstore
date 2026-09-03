@@ -5,7 +5,7 @@ import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
-import { Plus, X, Upload, CheckCircle2, Link2, Eye } from 'lucide-react';
+import { Plus, X, Upload, CheckCircle2, Link2, Eye, Settings2, Wand2, Sparkles, Trash2 } from 'lucide-react';
 import { useT } from '../../lib/i18n';
 
 function fmtDate(d) {
@@ -34,8 +34,11 @@ export default function BancPage() {
   const [loading, setLoading] = useState(false);
   const [showNouCompte, setShowNouCompte] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showRegles, setShowRegles] = useState(false);
   const [conciliant, setConciliant] = useState(null); // moviment seleccionat per conciliar
   const [despeses, setDespeses] = useState([]);
+  const [aplicantRegles, setAplicantRegles] = useState(false);
+  const [resultatRegles, setResultatRegles] = useState(null);
 
   async function loadComptes() {
     const r = await authFetch('/admin/comptes');
@@ -69,6 +72,20 @@ export default function BancPage() {
 
   const { rows: moviments_, sort, toggleSort, filters, setFilter, distinctValues } = useSortFilter(moviments, columns);
 
+  async function aplicarRegles() {
+    if (!compteActiu) return;
+    setAplicantRegles(true);
+    setResultatRegles(null);
+    const r = await authFetch(`/admin/banc/${compteActiu.id}/aplicar-regles`, { method: 'POST' });
+    setAplicantRegles(false);
+    if (r.ok) {
+      const body = await r.json();
+      setResultatRegles(body.conciliats);
+      loadMoviments(compteActiu.id);
+      loadDespeses();
+    }
+  }
+
   async function conciliar(movimentId, payload) {
     const r = await authFetch(`/admin/banc/moviments/${movimentId}/conciliar`, {
       method: 'PATCH',
@@ -98,13 +115,32 @@ export default function BancPage() {
           <Button variant="secondary" onClick={() => setShowNouCompte(true)}>
             <Plus size={15} /> {t('banc.new_account', 'Nou compte')}
           </Button>
+          <Button variant="secondary" onClick={() => setShowRegles(true)}>
+            <Settings2 size={15} /> {t('banc.rules.manage', 'Regles de conciliació')}
+          </Button>
           {compteActiu && (
-            <Button onClick={() => setShowImport(true)}>
-              <Upload size={15} /> {t('banc.import_statement', 'Importar extracte')}
-            </Button>
+            <>
+              <Button variant="secondary" onClick={aplicarRegles} disabled={aplicantRegles}>
+                <Wand2 size={15} /> {aplicantRegles ? t('banc.rules.applying', 'Aplicant...') : t('banc.rules.apply', 'Aplicar regles')}
+              </Button>
+              <Button onClick={() => setShowImport(true)}>
+                <Upload size={15} /> {t('banc.import_statement', 'Importar extracte')}
+              </Button>
+            </>
           )}
         </div>
       </div>
+
+      {resultatRegles != null && (
+        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm text-emerald-700">
+          <span className="flex items-center gap-2"><Sparkles size={14} />
+            {resultatRegles === 0
+              ? t('banc.rules.applied_none', 'Cap moviment nou conciliat per regles')
+              : t('banc.rules.applied_some', '{n} moviments conciliats automàticament per regles').replace('{n}', resultatRegles)}
+          </span>
+          <button onClick={() => setResultatRegles(null)} className="text-emerald-500 hover:text-emerald-700"><X size={14} /></button>
+        </div>
+      )}
 
       {/* Selector de compte */}
       {comptes.length > 0 && (
@@ -237,6 +273,9 @@ export default function BancPage() {
           onConciliar={(payload) => conciliar(conciliant.id, payload)}
         />
       )}
+      {showRegles && (
+        <ReglesModal onClose={() => setShowRegles(false)} />
+      )}
     </div>
   );
 }
@@ -365,12 +404,136 @@ function ImportModal({ compte, onClose, onSaved }) {
   );
 }
 
+function ReglesModal({ onClose }) {
+  const t = useT();
+  const [regles, setRegles] = useState([]);
+  const [proveidors, setProveidors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pattern, setPattern] = useState('');
+  const [proveidorId, setProveidorId] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function loadAll() {
+    setLoading(true);
+    const [rRes, pRes] = await Promise.all([
+      authFetch('/admin/banc/regles'),
+      authFetch('/admin/proveedores'),
+    ]);
+    setRegles(await rRes.json());
+    setProveidors(await pRes.json());
+    setLoading(false);
+  }
+  useEffect(() => { loadAll(); }, []);
+
+  async function crear(e) {
+    e.preventDefault();
+    setSaving(true);
+    const r = await authFetch('/admin/banc/regles', {
+      method: 'POST',
+      body: JSON.stringify({ pattern, proveidor_id: proveidorId }),
+    });
+    setSaving(false);
+    if (r.ok) {
+      setPattern('');
+      setProveidorId('');
+      loadAll();
+    }
+  }
+
+  async function toggleActiva(regla) {
+    await authFetch(`/admin/banc/regles/${regla.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ pattern: regla.pattern, proveidor_id: regla.proveidor_id, active: !regla.active }),
+    });
+    loadAll();
+  }
+
+  async function eliminar(regla) {
+    if (!confirm(t('banc.rules.confirm_delete', 'Eliminar aquesta regla?'))) return;
+    await authFetch(`/admin/banc/regles/${regla.id}`, { method: 'DELETE' });
+    loadAll();
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+          <h3 className="font-bold text-zinc-900">{t('banc.rules.title', 'Regles de conciliació')}</h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600"><X size={18} /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-zinc-500">
+            {t('banc.rules.hint', "Quan el concepte d'un moviment conté el text indicat, es concilia automàticament amb una factura pendent d'aquest proveïdor si l'import quadra exactament i no hi ha ambigüitat.")}
+          </p>
+
+          <form onSubmit={crear} className="flex items-end gap-2 flex-wrap p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+            <div className="flex-1 min-w-[10rem]">
+              <label className="block text-xs text-zinc-500 mb-1">{t('banc.rules.pattern', 'Text al concepte')}</label>
+              <input value={pattern} onChange={e => setPattern(e.target.value)} required placeholder="ENDESA, AMAZON..."
+                className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+            </div>
+            <div className="flex-1 min-w-[10rem]">
+              <label className="block text-xs text-zinc-500 mb-1">{t('banc.rules.supplier', 'Proveïdor')}</label>
+              <select value={proveidorId} onChange={e => setProveidorId(e.target.value)} required
+                className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-zinc-900">
+                <option value="">{t('common.select', 'Selecciona...')}</option>
+                {proveidors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <Button type="submit" size="sm" disabled={saving}>{saving ? t('common.saving', 'Desant...') : t('common.add', 'Afegir')}</Button>
+          </form>
+
+          {loading ? (
+            <div className="p-6 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>
+          ) : regles.length === 0 ? (
+            <div className="p-6 text-center text-zinc-400 text-sm">{t('banc.rules.empty', 'Cap regla configurada')}</div>
+          ) : (
+            <div className="divide-y divide-zinc-100 border border-zinc-200 rounded-xl overflow-hidden">
+              {regles.map(r => (
+                <div key={r.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                  <div className={r.active ? '' : 'opacity-40'}>
+                    <span className="font-mono text-xs bg-zinc-100 rounded px-1.5 py-0.5">{r.pattern}</span>
+                    <span className="text-zinc-400 mx-1.5">→</span>
+                    <span className="text-zinc-700">{r.proveidor_nom}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => toggleActiva(r)}
+                      className={`text-xs px-2 py-1 rounded-lg border transition-colors ${r.active ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 'border-zinc-200 text-zinc-500'}`}>
+                      {r.active ? t('banc.rules.active', 'Activa') : t('banc.rules.inactive', 'Inactiva')}
+                    </button>
+                    <button onClick={() => eliminar(r)} className="text-zinc-300 hover:text-red-500 p-1">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-end pt-1">
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.close', 'Tancar')}</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ConciliarModal({ moviment, despeses, onClose, onConciliar }) {
   const t = useT();
   const [tipus, setTipus] = useState('despesa'); // despesa | ignorar
   const [despesaId, setDespesaId] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [suggeriments, setSuggeriments] = useState([]);
+
+  useEffect(() => {
+    if (parseFloat(moviment.movement_amount) >= 0) return;
+    authFetch(`/admin/banc/moviments/${moviment.id}/suggeriments`).then(r => r.json()).then(list => {
+      setSuggeriments(list);
+      if (list.length > 0) setDespesaId(list[0].despesa_id);
+    });
+  }, [moviment.id]);
 
   const isIngres = parseFloat(moviment.movement_amount) > 0;
   // Per a ingressos, conciliar amb venda o ignorar; per a despeses, amb despesa o ignorar
@@ -428,15 +591,32 @@ function ConciliarModal({ moviment, despeses, onClose, onConciliar }) {
           {tipus === 'despesa' && (
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">{t('banc.pending_expense', 'Despesa pendent')}</label>
+              {suggeriments.length > 0 && (
+                <p className="text-xs text-violet-600 mb-1 flex items-center gap-1">
+                  <Sparkles size={11} /> {t('banc.rules.suggested', "Suggerida per import i data — revisa-ho abans de confirmar")}
+                </p>
+              )}
               <select value={despesaId} onChange={e => setDespesaId(e.target.value)} required
                 className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
                 <option value="">{t('banc.select_expense', 'Selecciona una despesa...')}</option>
-                {despeses.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.supplier_name} — {d.concept} — {parseFloat(d.total).toFixed(2)} €
-                    {d.due_date ? ` (vcmt. ${d.due_date})` : ''}
-                  </option>
-                ))}
+                {suggeriments.length > 0 && (
+                  <optgroup label={t('banc.rules.suggestions', 'Suggerides')}>
+                    {suggeriments.map(s => (
+                      <option key={s.despesa_id} value={s.despesa_id}>
+                        {s.supplier_name} — {s.concept} — {parseFloat(s.total).toFixed(2)} €
+                        {s.due_date ? ` (vcmt. ${s.due_date})` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label={t('banc.rules.all_pending', 'Totes les pendents')}>
+                  {despeses.filter(d => !suggeriments.some(s => s.despesa_id === d.id)).map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.supplier_name} — {d.concept} — {parseFloat(d.total).toFixed(2)} €
+                      {d.due_date ? ` (vcmt. ${d.due_date})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
           )}

@@ -211,6 +211,26 @@ class MovimentBancari(TenantScoped, Base):
     venta_externa: Mapped["VentaExterna | None"] = relationship(foreign_keys=[venta_externa_id])
 
 
+class ReglaConciliacio(TenantScoped, Base):
+    """Regla de conciliació bancària automàtica (Bloc B3, veure
+    docs/PLAN_PARIDAD_HOLDED.md): si el concepte d'un moviment conté
+    `pattern` (substring, sense distingir majúscules), es restringeix la
+    cerca de despeses candidates al `proveidor`. Coincidència per substring
+    simple, no regex — més fàcil de mantenir per un admin no tècnic i prou
+    per al cas d'ús real (proveïdors recurrents amb un concepte estable a
+    l'extracte, tipus "AMAZON" o "ENDESA ENERGIA")."""
+
+    __tablename__ = "regles_conciliacio"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    pattern: Mapped[str] = mapped_column(String(200))
+    proveidor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("proveedores.id", ondelete="CASCADE"), index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    proveidor: Mapped["Proveedor"] = relationship()
+
+
 class PeriodeComptable(TenantScoped, Base):
     """Mes comptable. Quan 'tancat=True' el mes es considera revisat i aprovat."""
 

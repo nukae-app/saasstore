@@ -8,9 +8,13 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import (
     CompteBancari, Despesa, EstatConciliacio, EstatPagamentDespesa, JournalSourceType, MovimentBancari, Order,
-    VentaExterna,
+    Proveedor, ReglaConciliacio, VentaExterna,
 )
-from ...schemas import CompteBancariIn, CompteBancariOut, ConciliarMovimentIn, MovimentBancariOut
+from ...schemas import (
+    CompteBancariIn, CompteBancariOut, ConciliarMovimentIn, DespesaSuggerimentOut, MovimentBancariOut,
+    ReglaConciliacioIn, ReglaConciliacioOut,
+)
+from ...services.banc_conciliacio import apply_rules_to_pending, find_matching_rule, rank_despesa_candidates
 from ...services.comptabilitat_posting import post_cobrament_conciliacio, post_despesa_pagament
 from ...services.n43 import parse_csv_generic, parse_n43
 from ...services.security import require_admin
@@ -42,6 +46,67 @@ def update_compte(compte_id: int, payload: CompteBancariIn, db: Session = Depend
     db.commit()
     db.refresh(compte)
     return compte
+
+
+def _regla_out(regla: ReglaConciliacio) -> dict:
+    return {
+        "id": regla.id, "pattern": regla.pattern, "proveidor_id": regla.proveidor_id,
+        "proveidor_nom": regla.proveidor.name, "active": regla.active, "created_at": regla.created_at,
+    }
+
+
+@router.post("/banc/regles", status_code=201, response_model=ReglaConciliacioOut)
+def create_regla(payload: ReglaConciliacioIn, db: Session = Depends(get_db)):
+    if db.get(Proveedor, payload.proveidor_id) is None:
+        raise HTTPException(404, "Proveïdor no trobat")
+    regla = ReglaConciliacio(**payload.model_dump())
+    db.add(regla)
+    db.commit()
+    db.refresh(regla)
+    return _regla_out(regla)
+
+
+@router.get("/banc/regles", response_model=list[ReglaConciliacioOut])
+def list_regles(db: Session = Depends(get_db)):
+    regles = db.scalars(
+        select(ReglaConciliacio).options(selectinload(ReglaConciliacio.proveidor)).order_by(ReglaConciliacio.pattern)
+    ).all()
+    return [_regla_out(r) for r in regles]
+
+
+@router.patch("/banc/regles/{regla_id}", response_model=ReglaConciliacioOut)
+def update_regla(regla_id: int, payload: ReglaConciliacioIn, db: Session = Depends(get_db)):
+    regla = db.get(ReglaConciliacio, regla_id)
+    if regla is None:
+        raise HTTPException(404, "Regla no trobada")
+    if db.get(Proveedor, payload.proveidor_id) is None:
+        raise HTTPException(404, "Proveïdor no trobat")
+    for k, v in payload.model_dump().items():
+        setattr(regla, k, v)
+    db.commit()
+    db.refresh(regla)
+    return _regla_out(regla)
+
+
+@router.delete("/banc/regles/{regla_id}", status_code=204)
+def delete_regla(regla_id: int, db: Session = Depends(get_db)):
+    regla = db.get(ReglaConciliacio, regla_id)
+    if regla is None:
+        raise HTTPException(404, "Regla no trobada")
+    db.delete(regla)
+    db.commit()
+
+
+@router.post("/banc/{compte_id}/aplicar-regles")
+def aplicar_regles(compte_id: int, db: Session = Depends(get_db)):
+    """Reaplica les regles actives als moviments pendents ja importats
+    d'aquest compte — útil quan es dona d'alta o s'edita una regla i hi ha
+    moviments antics que ara ja hi farien match."""
+    if db.get(CompteBancari, compte_id) is None:
+        raise HTTPException(404, "Compte no trobat")
+    conciliats = apply_rules_to_pending(db, compte_id)
+    db.commit()
+    return {"conciliats": conciliats}
 
 
 @router.post("/banc/{compte_id}/import", status_code=201)
@@ -89,7 +154,14 @@ async def import_extracte(
         nous += 1
 
     db.commit()
-    return {"importats": nous, "total_fitxer": len(moviments), "duplicats_ignorats": len(moviments) - nous}
+
+    conciliats_auto = apply_rules_to_pending(db, compte_id)
+    db.commit()
+
+    return {
+        "importats": nous, "total_fitxer": len(moviments), "duplicats_ignorats": len(moviments) - nous,
+        "conciliats_auto": conciliats_auto,
+    }
 
 
 @router.get("/banc/{compte_id}/moviments", response_model=list[MovimentBancariOut])
@@ -121,6 +193,27 @@ def list_moviments(
             despesa_proveidor=m.despesa.supplier_name if m.despesa else None,
         )
         for m in movs
+    ]
+
+
+@router.get("/banc/moviments/{moviment_id}/suggeriments", response_model=list[DespesaSuggerimentOut])
+def suggeriments_moviment(moviment_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Despeses pendents amb import exacte al moviment, per proximitat de
+    data — per pre-omplir el desplegable de conciliació manual sense que
+    l'admin hagi de buscar-la a mà (Bloc B3)."""
+    mov = db.get(MovimentBancari, moviment_id)
+    if mov is None:
+        raise HTTPException(404, "Moviment no trobat")
+    if mov.movement_amount >= 0:
+        return []
+    regla = find_matching_rule(db, mov.concept)
+    candidats = rank_despesa_candidates(db, mov, proveidor_id=regla.proveidor_id if regla else None)
+    return [
+        {
+            "despesa_id": d.id, "supplier_name": d.supplier_name, "concept": d.concept,
+            "total": d.total, "invoice_date": d.invoice_date, "due_date": d.due_date,
+        }
+        for d in candidats
     ]
 
 

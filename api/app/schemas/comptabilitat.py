@@ -182,6 +182,30 @@ class ConciliarMovimentIn(BaseModel):
     reconciliation_notes: str | None = None
 
 
+class ReglaConciliacioIn(BaseModel):
+    pattern: str
+    proveidor_id: uuid.UUID
+    active: bool = True
+
+
+class ReglaConciliacioOut(BaseModel):
+    id: int
+    pattern: str
+    proveidor_id: uuid.UUID
+    proveidor_nom: str
+    active: bool
+    created_at: datetime
+
+
+class DespesaSuggerimentOut(BaseModel):
+    despesa_id: uuid.UUID
+    supplier_name: str
+    concept: str
+    total: Decimal
+    invoice_date: date
+    due_date: date | None
+
+
 # --- Comptabilitat: Reports ---
 
 

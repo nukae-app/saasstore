@@ -22,6 +22,8 @@ from .catalog import (
     CatalogAgingItemOut,
     CatalogAgingItemsOut,
     CatalogAgingOut,
+    StockAlertItemOut,
+    StockAlertsOut,
 )
 
 from .auth import (
@@ -144,6 +146,9 @@ from .comptabilitat import (
     CompteBancariOut,
     MovimentBancariOut,
     ConciliarMovimentIn,
+    ReglaConciliacioIn,
+    ReglaConciliacioOut,
+    DespesaSuggerimentOut,
     AccountingAccountOut,
     ApuntManualIn,
     AssentamentManualIn,
