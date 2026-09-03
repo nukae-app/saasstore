@@ -383,6 +383,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "purchases.tab.orders":          {"ca": "Comandes",         "es": "Pedidos",         "en": "Orders"},
     "purchases.tab.search_supplier": {"ca": "Cerca proveïdor",  "es": "Buscar proveedor", "en": "Search supplier"},
     "purchases.tab.summary":         {"ca": "Resum",            "es": "Resumen",         "en": "Summary"},
+    "purchases.tab.history":         {"ca": "Historial",        "es": "Historial",       "en": "History"},
+    "purchases.tab.particulars":     {"ca": "Compres particulars", "es": "Compras particulares", "en": "Individual purchases"},
     "purchases.filter.search_ph":    {"ca": "Cerca per proveïdor, particular, núm. comanda o albarà...", "es": "Busca por proveedor, particular, núm. pedido o albarán...", "en": "Search by supplier, individual, order # or delivery note..."},
     "purchases.supplier_search_ph":  {"ca": "Cerca per nom, NIF, email, telèfon o contacte...", "es": "Busca por nombre, NIF, email, teléfono o contacto...", "en": "Search by name, tax ID, email, phone or contact..."},
     "purchases.no_supplier_match":   {"ca": "Cap proveïdor coincideix amb la cerca.", "es": "Ningún proveedor coincide con la búsqueda.", "en": "No supplier matches the search."},
@@ -1267,6 +1269,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "nav.pressupostos": {"ca": "Pressupostos", "es": "Presupuestos", "en": "Quotes"},
     "nav.albarans":     {"ca": "Albarans", "es": "Albaranes", "en": "Delivery notes"},
 
+    # --- Compres: submenú (separació del mòdul en rutes pròpies) ---
+    "nav.compres_solicituds":  {"ca": "Sol·licituds", "es": "Solicitudes", "en": "Requests"},
+    "nav.compres_comandes":    {"ca": "Comandes", "es": "Pedidos", "en": "Orders"},
+    "nav.compres_particulars": {"ca": "Compres particulars", "es": "Compras particulares", "en": "Individual purchases"},
+    "nav.compres_historial":   {"ca": "Historial", "es": "Historial", "en": "History"},
+    "nav.compres_proveidors":  {"ca": "Proveïdors", "es": "Proveedores", "en": "Suppliers"},
+
     "common.delete": {"ca": "Eliminar", "es": "Eliminar", "en": "Delete"},
     "common.error":  {"ca": "Error", "es": "Error", "en": "Error"},
     "common.edit":   {"ca": "Editar", "es": "Editar", "en": "Edit"},
@@ -1301,6 +1310,35 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "albarans.select_order":      {"ca": "Selecciona una comanda...", "es": "Selecciona un pedido...", "en": "Select an order..."},
     "albarans.no_pending_orders": {"ca": "Totes les comandes ja tenen albarà", "es": "Todos los pedidos ya tienen albarán", "en": "All orders already have a delivery note"},
     "albarans.create":            {"ca": "Crear albarà", "es": "Crear albarán", "en": "Create delivery note"},
+
+    # --- Bloc B4: alertes d'estoc (docs/PLAN_PARIDAD_HOLDED.md) ---
+    "catalog.low_stock":                  {"ca": "Estoc baix", "es": "Stock bajo", "en": "Low stock"},
+    "catalog.low_stock_hint":             {"ca": "Estoc disponible per sota del llindar configurat", "es": "Stock disponible por debajo del umbral configurado", "en": "Available stock is below the configured threshold"},
+    "catalog.min_stock_alert":            {"ca": "Alerta d'estoc mínim", "es": "Alerta de stock mínimo", "en": "Minimum stock alert"},
+    "catalog.min_stock_alert_hint":       {"ca": "Avisa quan l'estoc disponible baixi d'aquest llindar", "es": "Avisa cuando el stock disponible baje de este umbral", "en": "Warns when available stock drops below this threshold"},
+    "catalog.min_stock_alert_placeholder": {"ca": "Cap", "es": "Ninguna", "en": "None"},
+    "catalog.stock_alerts.title":         {"ca": "Alertes d'estoc", "es": "Alertas de stock", "en": "Stock alerts"},
+    "catalog.stock_alerts.hint":          {"ca": "Línies de stock nou amb l'estoc disponible al llindar mínim configurat o per sota — fixa'l a l'edició de la còpia.", "es": "Líneas de stock nuevo con el stock disponible en el umbral mínimo configurado o por debajo — fíjalo al editar la copia.", "en": "New-stock lines whose available stock is at or below the configured minimum threshold — set it when editing the copy."},
+    "catalog.stock_alerts.threshold":     {"ca": "Llindar", "es": "Umbral", "en": "Threshold"},
+    "catalog.stock_alerts.available":     {"ca": "disponibles", "es": "disponibles", "en": "available"},
+
+    # --- Bloc B3: regles de conciliació i suggeriments (docs/PLAN_PARIDAD_HOLDED.md) ---
+    "banc.rules.manage":        {"ca": "Regles de conciliació", "es": "Reglas de conciliación", "en": "Reconciliation rules"},
+    "banc.rules.apply":         {"ca": "Aplicar regles", "es": "Aplicar reglas", "en": "Apply rules"},
+    "banc.rules.applying":      {"ca": "Aplicant...", "es": "Aplicando...", "en": "Applying..."},
+    "banc.rules.applied_none":  {"ca": "Cap moviment nou conciliat per regles", "es": "Ningún movimiento nuevo conciliado por reglas", "en": "No new movements reconciled by rules"},
+    "banc.rules.applied_some":  {"ca": "{n} moviments conciliats automàticament per regles", "es": "{n} movimientos conciliados automáticamente por reglas", "en": "{n} movements automatically reconciled by rules"},
+    "banc.rules.title":         {"ca": "Regles de conciliació", "es": "Reglas de conciliación", "en": "Reconciliation rules"},
+    "banc.rules.hint":          {"ca": "Quan el concepte d'un moviment conté el text indicat, es concilia automàticament amb una factura pendent d'aquest proveïdor si l'import quadra exactament i no hi ha ambigüitat.", "es": "Cuando el concepto de un movimiento contiene el texto indicado, se concilia automáticamente con una factura pendiente de ese proveedor si el importe cuadra exactamente y no hay ambigüedad.", "en": "When a movement's concept contains the given text, it's automatically reconciled with a pending invoice from that supplier if the amount matches exactly and there's no ambiguity."},
+    "banc.rules.pattern":       {"ca": "Text al concepte", "es": "Texto en el concepto", "en": "Text in concept"},
+    "banc.rules.empty":         {"ca": "Cap regla configurada", "es": "Ninguna regla configurada", "en": "No rules configured"},
+    "banc.rules.active":        {"ca": "Activa", "es": "Activa", "en": "Active"},
+    "banc.rules.inactive":      {"ca": "Inactiva", "es": "Inactiva", "en": "Inactive"},
+    "banc.rules.confirm_delete": {"ca": "Eliminar aquesta regla?", "es": "¿Eliminar esta regla?", "en": "Delete this rule?"},
+    "banc.rules.suggested":     {"ca": "Suggerida per import i data — revisa-ho abans de confirmar", "es": "Sugerida por importe y fecha — revísalo antes de confirmar", "en": "Suggested by amount and date — review before confirming"},
+    "banc.rules.suggestions":   {"ca": "Suggerides", "es": "Sugeridas", "en": "Suggested"},
+    "banc.rules.all_pending":   {"ca": "Totes les pendents", "es": "Todas las pendientes", "en": "All pending"},
+    "banc.rules.supplier":      {"ca": "Proveïdor", "es": "Proveedor", "en": "Supplier"},
 }
 
 TRANSLATIONS.update(EMAIL_TRANSLATIONS)

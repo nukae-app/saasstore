@@ -118,12 +118,12 @@ export default function AdminDashboard() {
             color="blue" accent={peticionsPendentComanda > 0} href="/admin/peticions" />
           <StatCard icon={ClipboardList} label={t('dashboard.alert.solicituds_obertes')} value={solicitudsObertes.length}
             subtext={solicitudsLineasPendents > 0 ? `${solicitudsLineasPendents} discs` : null}
-            color="amber" accent={solicitudsObertes.length > 0} href="/admin/compras" />
+            color="amber" accent={solicitudsObertes.length > 0} href="/admin/compras/solicituds" />
           <StatCard icon={PackageCheck} label={t('dashboard.alert.comandes_pendents')} value={comprasStats?.comandes_pendents ?? 0}
-            color="green" accent={(comprasStats?.comandes_pendents ?? 0) > 0} href="/admin/compras" />
+            color="green" accent={(comprasStats?.comandes_pendents ?? 0) > 0} href="/admin/compras/comandes" />
           <StatCard icon={Receipt} label={t('dashboard.alert.recepcions_pendents')} value={comprasStats?.sense_facturar_count ?? 0}
             subtext={comprasStats?.sense_facturar_count ? fmtEur(comprasStats.sense_facturar_import) : null}
-            color="yellow" accent={(comprasStats?.sense_facturar_count ?? 0) > 0} href="/admin/compras" />
+            color="yellow" accent={(comprasStats?.sense_facturar_count ?? 0) > 0} href="/admin/compras/comandes" />
           <StatCard icon={Repeat} label={t('dashboard.alert.club_disc', 'Club del disc')} value={enviamentsSubPendents}
             subtext={novesSubscripcions > 0 ? `${novesSubscripcions} noves` : null}
             color="amber" accent={enviamentsSubPendents > 0 || novesSubscripcions > 0} href="/admin/subscripcions" />

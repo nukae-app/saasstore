@@ -8,7 +8,7 @@ import {
   LogOut, Menu, X, Globe, FileText, CalendarDays, Layers,
   Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
   Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown, Library, Truck,
-  FileSignature, PackageCheck,
+  FileSignature, PackageCheck, ClipboardList, PackageSearch, UserSquare2, History,
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
@@ -47,13 +47,24 @@ function getNavGroups(config) {
     {
       label: 'ERP',
       items: [
-        { href: '/admin/compras',   key: 'nav.purchases', label: 'Compres',   icon: PackagePlus },
         { href: '/admin/tpv',       key: 'nav.tpv',       label: 'TPV',       icon: Store },
         { href: '/admin/peticions', key: 'nav.peticions', label: 'Peticions', icon: Bell },
         {
           href: '/admin/subscripcions', key: 'nav.subscripcions', label: 'Club del disc', icon: Repeat,
           requiresFeature: 'subscripcions_actives',
         },
+      ],
+    },
+    {
+      label: 'Compres',
+      collapsible: true,
+      items: [
+        { href: '/admin/compras', key: 'nav.purchases', label: 'Compres', icon: LayoutDashboard, exact: true },
+        { href: '/admin/compras/solicituds',  key: 'nav.compres_solicituds',  label: 'Sol·licituds',        icon: ClipboardList },
+        { href: '/admin/compras/comandes',    key: 'nav.compres_comandes',    label: 'Comandes',             icon: PackagePlus },
+        { href: '/admin/compras/particulars', key: 'nav.compres_particulars', label: 'Compres particulars',  icon: UserSquare2 },
+        { href: '/admin/compras/historial',   key: 'nav.compres_historial',   label: 'Historial',            icon: History },
+        { href: '/admin/compras/proveidors',  key: 'nav.compres_proveidors',  label: 'Proveïdors',           icon: PackageSearch },
       ],
     },
     {
