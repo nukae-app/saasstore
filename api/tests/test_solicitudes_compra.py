@@ -9,7 +9,8 @@ import uuid
 from sqlalchemy import select
 
 from app.models import (
-    CondicionItem, Item, ItemStatus, Proveedor, Release, SolicitudCompra, SolicitudCompraLinea, User,
+    CondicionItem, EstadoSolicitud, Item, ItemStatus, OrigenSolicitud, Proveedor, Release, SolicitudCompra,
+    SolicitudCompraLinea, User,
 )
 
 
@@ -476,3 +477,92 @@ def test_refill_sugerencias_no_falla_amb_candidats_reals(db, client):
     assert body[0]["release_id"] == str(release.id)
     assert body[0]["proveedor_sugerido_id"] == str(proveedor.id)
     assert body[0]["proveedor_sugerido_nombre"] == "Distro Refill"
+
+
+def test_pool_lineas_aplana_i_pagina(db, client):
+    """El pool ha de mostrar línies de sol·licituds diferents (i orígens
+    diferents) com una sola llista, amb l'artista/títol resolt des del
+    catàleg quan la línia té release_id (veure comentari a Release.artista
+    sobre per què cal el join a RecordProduct, no Release.artista)."""
+    admin = _admin_token(client, db)
+    release = _seed_release(db, "Artista Catalogat", "Disc del catàleg")
+
+    client.post(
+        "/admin/solicitudes-compra",
+        json={"lineas": [{"release_id": str(release.id), "quantity": 2}]},
+        headers=_auth(admin),
+    )
+    client.post(
+        "/admin/solicitudes-compra",
+        json={"lineas": [{"title": "Disc sense catalogar", "quantity": 1}]},
+        headers=_auth(admin),
+    )
+
+    resp = client.get("/admin/solicitudes-compra/pool", headers=_auth(admin))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 2
+    assert body["page"] == 1
+    titles = {l["title"] for l in body["results"]}
+    assert titles == {"Disc del catàleg", "Disc sense catalogar"}
+    catalogada = next(l for l in body["results"] if l["title"] == "Disc del catàleg")
+    assert catalogada["artist"] == "Artista Catalogat"
+    assert catalogada["origen"] == "manual"
+
+    pag1 = client.get("/admin/solicitudes-compra/pool?page_size=1&page=1", headers=_auth(admin)).json()
+    pag2 = client.get("/admin/solicitudes-compra/pool?page_size=1&page=2", headers=_auth(admin)).json()
+    assert len(pag1["results"]) == 1
+    assert len(pag2["results"]) == 1
+    assert pag1["results"][0]["id"] != pag2["results"][0]["id"]
+
+
+def test_pool_lineas_filtra_per_estat_origen_i_cerca(db, client):
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db, "Reposició Band", "Reposar-me")
+
+    manual = client.post(
+        "/admin/solicitudes-compra",
+        json={"lineas": [{"title": "Pendent Manual", "quantity": 1}]},
+        headers=_auth(admin),
+    ).json()
+    refill = client.post(
+        "/admin/solicitudes-compra",
+        json={"origen": "refill_stock", "lineas": [{"release_id": str(release.id), "quantity": 1}]},
+        headers=_auth(admin),
+    ).json()
+    cancelada = client.post(
+        "/admin/solicitudes-compra",
+        json={"lineas": [{"title": "Es cancel·la", "quantity": 1}]},
+        headers=_auth(admin),
+    ).json()
+    client.patch(f"/admin/solicitudes-compra/{cancelada['id']}/cancelar", headers=_auth(admin))
+
+    resp = client.post(
+        "/admin/solicitudes-compra/resolver",
+        json={
+            "proveedor_id": str(prov.id),
+            "date": "2026-06-01T10:00:00",
+            "lineas": [{"solicitud_linea_id": refill["lineas"][0]["id"]}],
+        },
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 201
+
+    pendents = client.get("/admin/solicitudes-compra/pool", headers=_auth(admin)).json()
+    assert [l["title"] for l in pendents["results"]] == ["Pendent Manual"]
+
+    resoltes = client.get("/admin/solicitudes-compra/pool?estado=resolta", headers=_auth(admin)).json()
+    assert [l["title"] for l in resoltes["results"]] == ["Reposar-me"]
+
+    cancelades = client.get("/admin/solicitudes-compra/pool?estado=cancelada", headers=_auth(admin)).json()
+    assert [l["title"] for l in cancelades["results"]] == ["Es cancel·la"]
+
+    totes = client.get("/admin/solicitudes-compra/pool?estado=totes", headers=_auth(admin)).json()
+    assert totes["total"] == 3
+
+    per_origen = client.get("/admin/solicitudes-compra/pool?estado=totes&origen=refill_stock", headers=_auth(admin)).json()
+    assert [l["title"] for l in per_origen["results"]] == ["Reposar-me"]
+
+    per_cerca = client.get("/admin/solicitudes-compra/pool?estado=totes&q=cancel", headers=_auth(admin)).json()
+    assert [l["title"] for l in per_cerca["results"]] == ["Es cancel·la"]

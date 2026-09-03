@@ -2,8 +2,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import func, select, update
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -11,11 +11,11 @@ from ...database import get_db
 from ...models import (
     Comanda, ComandaLinea, CondicionItem, DevolucionVenta, EstadoComanda, EstadoPeticionCliente,
     EstadoSolicitud, HistorialCompra, Item, ItemStatus, Order, OrderItem, OrderStatus, OrigenSolicitud,
-    PeticionCliente, Proveedor, Release, SolicitudCompra, SolicitudCompraLinea, VentaExterna,
+    PeticionCliente, Proveedor, RecordProduct, Release, SolicitudCompra, SolicitudCompraLinea, VentaExterna,
 )
 from ...schemas import (
     ComandaOut, RefillSugerenciaOut, ResoldreEstocIn, SolicitudCompraIn, SolicitudCompraLineaIn,
-    SolicitudCompraLineaOut, SolicitudCompraOut, SolicitudResolverIn,
+    SolicitudCompraLineaOut, SolicitudCompraOut, SolicitudPoolLineaOut, SolicitudPoolPage, SolicitudResolverIn,
 )
 from ...services.security import require_admin
 from ._peticiones_stock import (
@@ -273,6 +273,73 @@ def list_solicitudes_compra(estado: str | None = None, db: Session = Depends(get
         stmt = stmt.where(SolicitudCompra.estado == EstadoSolicitud(estado))
     solicitudes = db.scalars(stmt).all()
     return [_solicitud_out(s) for s in solicitudes]
+
+
+@router.get("/solicitudes-compra/pool", response_model=SolicitudPoolPage)
+def list_pool_lineas(
+    estado: str = Query("pendent", description="pendent | resolta | cancelada | totes"),
+    origen: str | None = None,
+    proveedor_id: uuid.UUID | None = None,
+    q: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(30, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    """Totes les línies de totes les sol·licituds, aplanades i paginades
+    (independentment de a quin lot/sol·licitud pertanyin), que és com
+    l'admin les gestiona de fet: veure [[SolicitudPoolLineaOut]]."""
+    stmt = (
+        select(SolicitudCompraLinea)
+        .join(SolicitudCompra, SolicitudCompraLinea.solicitud_id == SolicitudCompra.id)
+        .outerjoin(Release, SolicitudCompraLinea.release_id == Release.id)
+        .outerjoin(RecordProduct, RecordProduct.release_id == Release.id)
+        .options(
+            selectinload(SolicitudCompraLinea.release).selectinload(Release.record),
+            selectinload(SolicitudCompraLinea.proveedor_sugerido),
+            selectinload(SolicitudCompraLinea.solicitud),
+        )
+    )
+    if estado == "pendent":
+        stmt = stmt.where(
+            SolicitudCompra.estado == EstadoSolicitud.oberta,
+            SolicitudCompraLinea.comanda_linea_id.is_(None),
+            SolicitudCompraLinea.item_resuelto_id.is_(None),
+        )
+    elif estado == "resolta":
+        stmt = stmt.where(
+            or_(SolicitudCompraLinea.comanda_linea_id.is_not(None), SolicitudCompraLinea.item_resuelto_id.is_not(None))
+        )
+    elif estado == "cancelada":
+        stmt = stmt.where(SolicitudCompra.estado == EstadoSolicitud.cancelada)
+    elif estado != "totes":
+        raise HTTPException(422, "estado ha de ser pendent, resolta, cancelada o totes")
+    if origen:
+        stmt = stmt.where(SolicitudCompra.origen == OrigenSolicitud(origen))
+    if proveedor_id:
+        stmt = stmt.where(SolicitudCompraLinea.proveedor_sugerido_id == proveedor_id)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(or_(
+            RecordProduct.artista.ilike(like), Release.title.ilike(like),
+            SolicitudCompraLinea.artist.ilike(like), SolicitudCompraLinea.title.ilike(like),
+        ))
+
+    total = db.scalar(select(func.count()).select_from(stmt.with_only_columns(SolicitudCompraLinea.id).subquery()))
+    stmt = stmt.order_by(SolicitudCompra.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    lineas = db.scalars(stmt).unique().all()
+
+    results = [
+        SolicitudPoolLineaOut(
+            **_solicitud_linea_out(linea).model_dump(),
+            solicitud_id=linea.solicitud_id,
+            origen=linea.solicitud.origen.value,
+            solicitud_notes=linea.solicitud.notes,
+            solicitud_created_at=linea.solicitud.created_at,
+            solicitud_estado=linea.solicitud.estado.value,
+        )
+        for linea in lineas
+    ]
+    return SolicitudPoolPage(total=total, page=page, page_size=page_size, results=results)
 
 
 @router.get("/solicitudes-compra/{solicitud_id}", response_model=SolicitudCompraOut)

@@ -83,6 +83,24 @@ class ResoldreEstocIn(BaseModel):
     item_id: uuid.UUID
 
 
+class SolicitudPoolLineaOut(SolicitudCompraLineaOut):
+    """Una línia de sol·licitud amb el context del seu lot d'origen aplanat
+    (veure GET /solicitudes-compra/pool): permet llistar-les totes juntes,
+    sense agrupar-les per lot, que és com les gestiona l'admin realment."""
+    solicitud_id: uuid.UUID
+    origen: str
+    solicitud_notes: str | None
+    solicitud_created_at: datetime
+    solicitud_estado: str
+
+
+class SolicitudPoolPage(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    results: list[SolicitudPoolLineaOut]
+
+
 class RefillSugerenciaOut(BaseModel):
     release_id: uuid.UUID
     artista: str

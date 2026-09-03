@@ -91,6 +91,8 @@ from .erp_solicitudes import (
     SolicitudResolverIn,
     ResoldreEstocIn,
     RefillSugerenciaOut,
+    SolicitudPoolLineaOut,
+    SolicitudPoolPage,
 )
 
 from .erp_peticiones import (
