@@ -57,6 +57,7 @@ def _serialize(db: Session, cart: Cart) -> CartOut:
             artista=ci.item.release.artista,
             title=ci.item.release.title,
             price=ci.item.price,
+            list_price=ci.item.list_price,
             status=ci.item.status.value,
             quantity=ci.quantity,
             condition=ci.item.condition.value,

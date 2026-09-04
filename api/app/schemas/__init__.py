@@ -247,3 +247,19 @@ from .documents import (
     AlbaraIn,
     AlbaraOut,
 )
+
+from .pricing import (
+    OfferCriteria,
+    OfferItemIn,
+    OfferItemOut,
+    OfferIn,
+    OfferOut,
+    OfferPreviewItem,
+    OfferPreviewOut,
+    OfferOverlapOut,
+    OfferApplyResultOut,
+    CouponIn,
+    CouponOut,
+    CouponRedemptionOut,
+    CouponApplyResultOut,
+)

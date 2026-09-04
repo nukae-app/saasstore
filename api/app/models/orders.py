@@ -108,6 +108,12 @@ class Order(TenantScoped, Base):
     # buscar la comanda (veure POST /admin/orders/{id}/avisar-recollida). Null
     # mentre encara no se li ha avisat.
     pickup_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Snapshot del cupó aplicat (si n'hi ha): igual criteri que `order_items.price`
+    # (decisió #3 del projecte) — mai es recalcula encara que el cupó canviï o
+    # s'esborri després. `coupon_code` es guarda com a text, no com a FK, perquè
+    # sobrevisqui l'esborrat del Coupon.
+    coupon_code: Mapped[str | None] = mapped_column(String(40))
+    coupon_discount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Venda detectada al Marketplace de Discogs (origin='discogs'): mateix model, mateixa pantalla.

@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { ChevronLeft } from 'lucide-react';
 import { api } from '../../app/lib/api';
 import AddToCartButton from './AddToCartButton';
+import PriceTag from './PriceTag';
 
 const PAGE_SIZE = 12;
 const MAX_TILT_DEG = 18;
@@ -281,8 +282,8 @@ function CrateCard({ release: r }) {
                   <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                     {td('newBadge')}
                   </span>
-                  <span className="text-sm font-semibold text-zinc-900 shrink-0">
-                    {parseFloat(item.price).toFixed(2)} €
+                  <span className="shrink-0">
+                    <PriceTag price={item.price} listPrice={item.list_price} size="text-sm" />
                   </span>
                 </div>
                 <AddToCartButton itemId={item.id} className="px-3 py-1.5 text-xs shrink-0" />
@@ -292,8 +293,8 @@ function CrateCard({ release: r }) {
               <div key={item.id} className="flex items-center justify-between gap-3 bg-white rounded-xl border border-zinc-200 px-3 py-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <ConditionBadge value={item.condition} />
-                  <span className="text-sm font-semibold text-zinc-900 shrink-0">
-                    {parseFloat(item.price).toFixed(2)} €
+                  <span className="shrink-0">
+                    <PriceTag price={item.price} listPrice={item.list_price} size="text-sm" />
                   </span>
                 </div>
                 <AddToCartButton itemId={item.id} className="px-3 py-1.5 text-xs shrink-0" />

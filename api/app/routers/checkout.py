@@ -32,7 +32,7 @@ from ..models import (
     Cart, CartItem, CondicionItem, ConfiguracioBotiga, Item, Order, OrderItem, OrderStatus, Payment,
     PaymentStatus, StockHold, User,
 )
-from ..schemas import CheckoutConfirm, OrderOut
+from ..schemas import CheckoutConfirm, CouponApplyResultOut, OrderOut
 from ..services import redsys
 from ..tenancy import scoped_to
 from ..tenant_secrets import get_tenant_secrets
@@ -41,6 +41,9 @@ from ..services.orders import finalize_payment
 from ..services.iva import compute_iva_venda
 from ..services.enviament import (
     PaisNoDisponible, PesNoConfigurat, compute_coste_enviament, paisos_disponibles, pes_total_g,
+)
+from ..services.pricing import (
+    CuponInvalido, compute_coupon_discount, redeem_coupon, release_coupon_redemption, validate_coupon,
 )
 from ..services.reservations import (
     release_expired, release_items, release_stock_hold, reservation_minutes, reserve_items,
@@ -136,6 +139,29 @@ def get_coste_envio(
     return {"coste_envio": str(coste_envio)}
 
 
+@router.get("/validate-coupon", response_model=CouponApplyResultOut)
+def get_validate_coupon(
+    code: str,
+    cart: Cart = Depends(get_or_create_cart),
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user_optional),
+):
+    """Previsualitza el descompte d'un cupó sobre el carret actual, sense
+    consumir-lo (mateix esperit que `/coste-envio`: el client el veu abans
+    de confirmar, però el valor que realment s'aplica es torna a calcular a
+    `/confirm`, que és qui el consumeix de veritat)."""
+    rows = _cart_items(db, cart)
+    if not rows:
+        raise HTTPException(400, "El carrito está vacío")
+    subtotal = sum((r.item.price * r.quantity for r in rows), Decimal("0"))
+    try:
+        coupon = validate_coupon(db, code, subtotal=subtotal, user_id=user.id if user else None)
+    except CuponInvalido as exc:
+        raise HTTPException(422, exc.motivo)
+    discount = compute_coupon_discount(coupon, subtotal)
+    return CouponApplyResultOut(coupon_code=coupon.code, discount_amount=discount)
+
+
 @router.post("/confirm", response_model=OrderOut, status_code=201)
 def confirm_checkout(
     payload: CheckoutConfirm,
@@ -189,7 +215,25 @@ def confirm_checkout(
         coste_envio = compute_coste_enviament(pes_g, payload.shipping_method, pais, db)
     except (PaisNoDisponible, PesNoConfigurat) as exc:
         raise HTTPException(422, str(exc))
-    total = subtotal + coste_envio
+
+    # El cupón descuenta solo del subtotal de artículos, nunca del envío.
+    # Se valida y se consume aquí (no antes): así el descuento queda
+    # congelado en el pedido igual que `order_items.price` (nunca se
+    # recalcula después), y `redeem_coupon` se llama en la misma
+    # transacción que crea el pedido para cerrar la ventana de carrera de
+    # `max_uses` (ver services/pricing.py).
+    coupon = None
+    coupon_discount = Decimal("0")
+    if payload.coupon_code:
+        try:
+            coupon = validate_coupon(
+                db, payload.coupon_code, subtotal=subtotal, user_id=user.id if user else None,
+            )
+        except CuponInvalido as exc:
+            raise HTTPException(422, exc.motivo)
+        coupon_discount = compute_coupon_discount(coupon, subtotal)
+
+    total = subtotal - coupon_discount + coste_envio
     order = Order(
         user_id=user.id if user else None,
         contact_email=email,
@@ -204,9 +248,13 @@ def confirm_checkout(
         # Cuenta ya existente (logueado o vinculado por email) manda su idioma
         # guardado; para un invitado sin cuenta es la única señal disponible.
         language=user.language if user else payload.language,
+        coupon_code=coupon.code if coupon else None,
+        coupon_discount=coupon_discount if coupon else None,
     )
     db.add(order)
     db.flush()
+    if coupon is not None:
+        redeem_coupon(db, coupon, order.id, coupon_discount, user.id if user else None)
     for r in rows:
         precio_total_linea = r.item.price * r.quantity
         tipus_iva_id, iva_pct, iva_import = compute_iva_venda(r.item, precio_total_linea, db)
@@ -384,5 +432,6 @@ async def redsys_notify(request: Request, db: Session = Depends(get_db_unscoped)
                     select(StockHold).where(StockHold.cart_id == order.cart_id, StockHold.item_id.in_(item_ids_nou))
                 ):
                     release_stock_hold(db, hold.id)
+            release_coupon_redemption(db, order.id)
 
     return {"status": "ok"}

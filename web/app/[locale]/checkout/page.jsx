@@ -155,6 +155,54 @@ export default function CheckoutPage() {
     setForm(f => ({ ...f, [key]: val }));
   }
 
+  // Cupón: se previsualiza contra /checkout/validate-coupon (no lo
+  // consume, igual que /coste-envio) y solo se manda de verdad en el
+  // payload de /checkout/confirm, que es quien lo consume — ver
+  // services/pricing.py::redeem_coupon en la API.
+  const [cuponInput, setCuponInput] = useState('');
+  const [cupon, setCupon] = useState(null); // { coupon_code, discount_amount } | null
+  const [cuponError, setCuponError] = useState('');
+  const [aplicandoCupon, setAplicandoCupon] = useState(false);
+
+  const COUPON_REASON_KEYS = {
+    no_encontrado: 'couponNotFound',
+    todavia_no_activo: 'couponNotYetActive',
+    caducado: 'couponExpired',
+    importe_minimo_no_alcanzado: 'couponMinOrderNotMet',
+    limite_de_usos_alcanzado: 'couponUsageLimitReached',
+  };
+
+  async function applyCoupon() {
+    const code = cuponInput.trim();
+    if (!code) return;
+    setAplicandoCupon(true);
+    setCuponError('');
+    try {
+      const res = await fetch(`/api/checkout/validate-coupon?code=${encodeURIComponent(code)}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setCuponError(t(COUPON_REASON_KEYS[body.detail] || 'couponInvalid'));
+        setCupon(null);
+        return;
+      }
+      setCupon(await res.json());
+    } catch {
+      setCuponError(t('connectionError'));
+    } finally {
+      setAplicandoCupon(false);
+    }
+  }
+
+  function removeCoupon() {
+    setCupon(null);
+    setCuponInput('');
+    setCuponError('');
+  }
+
+  const discountAmount = cupon ? parseFloat(cupon.discount_amount) : 0;
+
   // Preview del cost real (calculat al servidor a partir dels trams de pes
   // configurats a l'admin): recogida_tienda sempre 0, envio depèn del pes
   // total del carret. El cost que realment es cobra es recalcula igual a
@@ -222,6 +270,7 @@ export default function CheckoutPage() {
         shipping_method: form.metodo_envio,
         payment_method: form.metodo_envio === 'recogida_tienda' ? form.metodo_pago : 'redsys',
         notes: form.notas || null,
+        coupon_code: cupon?.coupon_code || null,
         shipping_address: form.metodo_envio === 'envio' ? {
           recipient_name: form.nombre,
           address_line1: form.linea1,
@@ -558,6 +607,37 @@ export default function CheckoutPage() {
               <div>
                 <h2 className="font-medium mb-4">{t('confirmOrder')}</h2>
 
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-zinc-500 mb-1.5">{t('couponCode')}</label>
+                  {cupon ? (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm">
+                      <span className="text-green-800 font-medium">
+                        {t('couponApplied', { code: cupon.coupon_code })} (-{discountAmount.toFixed(2)} €)
+                      </span>
+                      <button onClick={removeCoupon} className="text-green-700 hover:text-green-900 text-xs font-medium underline">
+                        {t('removeCoupon')}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        value={cuponInput}
+                        onChange={e => setCuponInput(e.target.value.toUpperCase())}
+                        placeholder={t('couponPlaceholder')}
+                        className="flex-1 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                      />
+                      <button
+                        onClick={applyCoupon}
+                        disabled={aplicandoCupon || !cuponInput.trim()}
+                        className="border border-zinc-200 text-zinc-700 hover:bg-zinc-50 px-4 py-2.5 rounded-xl font-medium text-sm transition-colors disabled:opacity-50"
+                      >
+                        {aplicandoCupon ? t('applyingCoupon') : t('applyCoupon')}
+                      </button>
+                    </div>
+                  )}
+                  {cuponError && <p className="text-red-500 text-xs mt-1.5">{cuponError}</p>}
+                </div>
+
                 <div className="bg-zinc-50 rounded-xl p-4 text-sm space-y-2 mb-6">
                   <div className="flex justify-between">
                     <span className="text-zinc-500">Email</span>
@@ -592,6 +672,12 @@ export default function CheckoutPage() {
                       <span className="font-medium text-right max-w-[200px]">{form.notas}</span>
                     </div>
                   )}
+                  {cupon && (
+                    <div className="flex justify-between text-green-700">
+                      <span>{t('discount')} ({cupon.coupon_code})</span>
+                      <span className="font-medium">-{discountAmount.toFixed(2)} €</span>
+                    </div>
+                  )}
                   <div className="flex justify-between pt-2 border-t border-zinc-200">
                     <span className="text-zinc-500">{t('shipping')}</span>
                     <span className="font-medium">
@@ -600,7 +686,12 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between font-semibold">
                     <span>{t('total')}</span>
-                    <span>{(parseFloat(total || 0) + (form.metodo_envio === 'recogida_tienda' ? 0 : costeEnviament)).toFixed(2)} €</span>
+                    <span>
+                      {(
+                        parseFloat(total || 0) - discountAmount
+                        + (form.metodo_envio === 'recogida_tienda' ? 0 : costeEnviament)
+                      ).toFixed(2)} €
+                    </span>
                   </div>
                 </div>
 
@@ -648,6 +739,12 @@ export default function CheckoutPage() {
                 <span>{t('subtotal')}</span>
                 <span>{parseFloat(total || 0).toFixed(2)} €</span>
               </div>
+              {cupon && (
+                <div className="flex justify-between text-sm text-green-700">
+                  <span>{t('discount')}</span>
+                  <span>-{discountAmount.toFixed(2)} €</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-zinc-500">
                 <span>{t('shipping')}</span>
                 <span>
@@ -656,7 +753,12 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between font-semibold text-zinc-900 pt-1">
                 <span>{t('total')}</span>
-                <span>{(parseFloat(total || 0) + (form.metodo_envio === 'recogida_tienda' ? 0 : costeEnviament)).toFixed(2)} €</span>
+                <span>
+                  {(
+                    parseFloat(total || 0) - discountAmount
+                    + (form.metodo_envio === 'recogida_tienda' ? 0 : costeEnviament)
+                  ).toFixed(2)} €
+                </span>
               </div>
             </div>
           </div>

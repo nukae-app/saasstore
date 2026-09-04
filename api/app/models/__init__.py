@@ -42,6 +42,15 @@ from .stock import (
     StockHold,
 )
 
+from .pricing import (
+    DiscountType,
+    Offer,
+    OfferItemMode,
+    OfferItem,
+    Coupon,
+    CouponRedemption,
+)
+
 from .users import (
     User,
     Identity,

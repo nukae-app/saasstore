@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Minus, Plus } from 'lucide-react';
 import AddToCartButton from './AddToCartButton';
+import PriceTag from './PriceTag';
 
-export default function NouStockLine({ itemId, precio, disponibles }) {
+export default function NouStockLine({ itemId, precio, precioTarifa, disponibles }) {
   const t = useTranslations('disc');
   const [cantidad, setCantidad] = useState(1);
 
@@ -18,9 +19,7 @@ export default function NouStockLine({ itemId, precio, disponibles }) {
         <span className="text-xs text-zinc-500">{t('copiesAvailable', { count: disponibles })}</span>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className="text-lg font-semibold text-zinc-900">
-          {parseFloat(precio).toFixed(2)} €
-        </span>
+        <PriceTag price={precio} listPrice={precioTarifa} />
         {disponibles > 1 && (
           <div className="flex items-center border border-zinc-200 rounded-full">
             <button

@@ -21,7 +21,10 @@ celery_app = Celery(
     "ultralocal",
     broker=_settings.redis_url,
     backend=_settings.redis_url,
-    include=["app.tasks.health", "app.tasks.newsletter", "app.tasks.peticiones", "app.tasks.subscripcions"],
+    include=[
+        "app.tasks.health", "app.tasks.newsletter", "app.tasks.peticiones", "app.tasks.pricing",
+        "app.tasks.subscripcions",
+    ],
 )
 
 celery_app.conf.beat_schedule = {
@@ -32,6 +35,10 @@ celery_app.conf.beat_schedule = {
     "release-expired-peticiones": {
         "task": "peticiones.release_expired_reservations",
         "schedule": crontab(minute="*/30"),
+    },
+    "recompute-pricing": {
+        "task": "pricing.recompute_all_tenants",
+        "schedule": crontab(minute=0, hour="*/6"),
     },
     # "facturar-subscripcions-pendents" desactivada en la fase 1 del núcleo
     # multi-tenant (ver plan): usa SessionLocal() directo (no pasa por

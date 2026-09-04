@@ -9,6 +9,7 @@ import AddToCartButton from '../../../../components/store/AddToCartButton';
 import RequestReleaseButton from '../../../../components/store/RequestReleaseButton';
 import DiscInfoTabs from '../../../../components/store/DiscInfoTabs';
 import NouStockLine from '../../../../components/store/NouStockLine';
+import PriceTag from '../../../../components/store/PriceTag';
 
 export async function generateMetadata({ params }) {
   const { id, locale } = await params;
@@ -216,6 +217,7 @@ export default async function DiscPage({ params }) {
                       key={item.id}
                       itemId={item.id}
                       precio={item.price}
+                      precioTarifa={item.list_price}
                       disponibles={item.quantity - item.reserved_quantity}
                     />
                   ))}
@@ -240,9 +242,7 @@ export default async function DiscPage({ params }) {
                         )}
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-lg font-semibold text-zinc-900">
-                          {parseFloat(item.price).toFixed(2)} €
-                        </span>
+                        <PriceTag price={item.price} listPrice={item.list_price} />
                         <AddToCartButton itemId={item.id} />
                       </div>
                     </div>

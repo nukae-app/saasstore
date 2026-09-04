@@ -9,6 +9,7 @@ import {
   Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
   Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown, Library, Truck,
   FileSignature, PackageCheck, ClipboardList, PackageSearch, UserSquare2, History,
+  Percent, Ticket,
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
@@ -41,6 +42,8 @@ function getNavGroups(config) {
           label: vertical === 'floristry' ? 'Productes' : 'Discos', icon: Disc3,
         },
         { href: '/admin/etiquetes',    key: 'nav.etiquetes',    label: 'Etiquetes',       icon: Tag },
+        { href: '/admin/ofertes',      key: 'nav.ofertes',      label: 'Ofertes',         icon: Percent },
+        { href: '/admin/cupons',       key: 'nav.cupons',       label: 'Cupons',          icon: Ticket },
         { href: '/admin/vendes-web',   key: 'nav.orders',       label: 'Vendes web',      icon: ShoppingCart },
       ],
     },

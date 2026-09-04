@@ -16,6 +16,7 @@ class CartItemOut(BaseModel):
     artista: str | None = None
     title: str
     price: Decimal
+    list_price: Decimal | None = None
     status: str
     quantity: int
     condition: str

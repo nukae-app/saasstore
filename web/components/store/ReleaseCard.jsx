@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '../../i18n/navigation';
 import Image from 'next/image';
+import PriceTag from './PriceTag';
 
 const VINYL_SVG = (
   <svg viewBox="0 0 100 100" className="w-16 h-16 text-zinc-300" fill="currentColor">
@@ -22,8 +23,11 @@ export default function ReleaseCard({ release }) {
   const disponibles = release.items.filter(i => i.condition === 'nou'
     ? i.status === 'disponible' && (i.quantity - i.reserved_quantity) > 0
     : i.status === 'disponible');
-  const prices = disponibles.map(i => parseFloat(i.price));
-  const minPrice = prices.length ? Math.min(...prices) : null;
+  // El item más barato es el que se enseña en la tarjeta — si ese tiene
+  // oferta activa (list_price), se muestra tachado junto al precio final.
+  const minItem = disponibles.length
+    ? disponibles.reduce((a, b) => (parseFloat(a.price) <= parseFloat(b.price) ? a : b))
+    : null;
 
   return (
     <Link href={`/disc/${release.id}`} className="group block">
@@ -72,9 +76,9 @@ export default function ReleaseCard({ release }) {
           <span className="text-xs text-zinc-500 truncate">
             {[release.formato, release.sello].filter(Boolean).join(' · ')}
           </span>
-          {minPrice !== null && (
-            <span className="text-sm font-semibold text-zinc-900 shrink-0 ml-1">
-              {minPrice.toFixed(2)} €
+          {minItem !== null && (
+            <span className="shrink-0 ml-1">
+              <PriceTag price={minItem.price} listPrice={minItem.list_price} size="text-sm" />
             </span>
           )}
         </div>

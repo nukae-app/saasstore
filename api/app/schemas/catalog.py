@@ -9,6 +9,10 @@ from pydantic import BaseModel
 class ItemOut(BaseModel):
     id: uuid.UUID
     price: Decimal
+    # Precio de tarifa sin oferta (ver models/pricing.py). None = sin oferta
+    # activa sobre este item; cuando viene relleno, el front muestra `price`
+    # como precio final y `list_price` tachado al lado.
+    list_price: Decimal | None = None
     condition: str
     estado_disco: str | None
     estado_funda: str | None

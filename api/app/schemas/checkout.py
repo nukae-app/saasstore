@@ -24,6 +24,7 @@ class CheckoutConfirm(BaseModel):
     shipping_address: AddressIn | None = None
     notes: str | None = None
     language: str = "ca"
+    coupon_code: str | None = None
 
 
 class OrderOut(BaseModel):
@@ -33,6 +34,8 @@ class OrderOut(BaseModel):
     shipping_cost: Decimal
     shipping_method: str
     payment_method: str
+    coupon_code: str | None = None
+    coupon_discount: Decimal | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

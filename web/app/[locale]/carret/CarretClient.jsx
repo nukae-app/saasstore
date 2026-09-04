@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useCart } from '../../../components/store/CartProvider';
 import StorefrontNav from '../../../components/store/StorefrontNav';
 import StorefrontFooter from '../../../components/store/StorefrontFooter';
+import PriceTag from '../../../components/store/PriceTag';
 
 function CartItem({ item, onRemove, removing }) {
   const t = useTranslations('carret');
@@ -44,7 +45,11 @@ function CartItem({ item, onRemove, removing }) {
 
       {/* Price + remove */}
       <div className="flex items-center gap-3 shrink-0">
-        <span className="font-semibold">{(parseFloat(item.price) * item.quantity).toFixed(2)} €</span>
+        <PriceTag
+          price={parseFloat(item.price) * item.quantity}
+          listPrice={item.list_price != null ? parseFloat(item.list_price) * item.quantity : null}
+          size="text-base"
+        />
         <button
           onClick={() => onRemove(item.item_id)}
           disabled={removing === item.item_id}

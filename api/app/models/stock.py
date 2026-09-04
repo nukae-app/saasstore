@@ -115,11 +115,25 @@ class Item(TenantScoped, Base):
     # sempre 1 unitat, no hi ha "estoc" a alertar. None = sense alarma configurada.
     min_stock_alert: Mapped[int | None] = mapped_column(Integer)
 
+    # Mòdul de pricing/ofertes (veure models/pricing.py). `list_price` és el
+    # preu de tarifa sense oferta, sempre reconstruïble; `price` segueix sent
+    # l'única cosa que llegeixen catàleg/carret/checkout, exactament igual
+    # que abans. Quan `active_offer_id` és None, `list_price` és None i
+    # `price` és el preu "normal". Quan una Offer s'aplica, el resolver
+    # (services/pricing.py) omple `list_price` amb el preu previ i sobreescriu
+    # `price` amb el rebaixat; en revertir, restaura `price = list_price` i
+    # buida totes dues columnes.
+    list_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    active_offer_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("offers.id", ondelete="SET NULL"), index=True
+    )
+
     release: Mapped[Release] = relationship(back_populates="items")
     compra: Mapped["Compra | None"] = relationship(back_populates="items")
     record_detail: Mapped["RecordStockDetail | None"] = relationship(
         back_populates="item", uselist=False, cascade="all, delete-orphan"
     )
+    active_offer: Mapped["Offer | None"] = relationship(foreign_keys=[active_offer_id])
 
     # Passthrough (lectura y escritura) a la extensión `RecordStockDetail` —
     # mismo patrón que Release.artista/etc. más arriba: el resto del código

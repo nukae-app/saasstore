@@ -18,6 +18,7 @@ from ...services.emailer import render_email_html, send_email
 from ...services.i18n import translate
 from ...services.iva import compute_iva_venda
 from ...services.orders import finalize_payment
+from ...services.pricing import release_coupon_redemption
 from ...services.reservations import release_expired, release_items, release_stock_hold
 from ...services.security import require_admin
 from ...tenancy import tenant_frontend_url
@@ -347,6 +348,7 @@ def update_order_status(order_id: uuid.UUID, payload: OrderStatusUpdate, db: Ses
                     select(StockHold).where(or_(StockHold.order_id == order.id, StockHold.cart_id == order.cart_id))
                 ):
                     release_stock_hold(db, hold.id)
+            release_coupon_redemption(db, order.id)
         elif order.status in _ESTATS_LOGISTICS and status in _ESTATS_LOGISTICS:
             order.status = status
             db.commit()
