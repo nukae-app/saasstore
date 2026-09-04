@@ -43,7 +43,7 @@ export default function HistorialPage() {
     setCistella(prev => prev.filter(c => c.key !== key));
   }
 
-  async function crearSolicitud(proveedorId, proveedorNombre) {
+  async function afegirAlPool(proveedorId, proveedorNombre) {
     const items = cistella.filter(c => c.proveedor_id === proveedorId);
     if (items.length === 0) return;
     setCreantProveidor(proveedorId);
@@ -70,19 +70,9 @@ export default function HistorialPage() {
         alert(body.detail || t('purchases.request.create_error', 'No s\'ha pogut crear la sol·licitud.'));
         return;
       }
-      // Aquestes línies ja venen agrupades a propòsit per proveïdor: es
-      // consolida directament en una sol·licitud numerada, sense passar
-      // per una segona confirmació.
-      const nuevasLineas = await r.json();
-      const gen = await authFetch('/admin/solicitudes-compra/generar', {
-        method: 'POST',
-        body: JSON.stringify({ linea_ids: nuevasLineas.map(l => l.id), notes: notaLote }),
-      });
-      if (!gen.ok) {
-        const body = await gen.json().catch(() => ({}));
-        alert(body.detail || t('purchases.request.create_error', 'No s\'ha pogut crear la sol·licitud.'));
-        return;
-      }
+      // S'afegeixen al pool (sense sol·licitud encara): des d'allà es
+      // seleccionaran (potser junt amb línies d'altres orígens) per crear
+      // la sol·licitud numerada.
       setCistella(prev => prev.filter(c => c.proveedor_id !== proveedorId));
     } finally {
       setCreantProveidor(null);
@@ -164,8 +154,8 @@ export default function HistorialPage() {
                 <span className="text-sm font-semibold text-zinc-700">
                   {grup.proveedor_nombre} · {grup.items.length} {grup.items.length === 1 ? t('purchases.record_singular', 'disc') : t('purchases.record_plural', 'discos')}
                 </span>
-                <Button onClick={() => crearSolicitud(grup.proveedor_id, grup.proveedor_nombre)} disabled={creantProveidor === grup.proveedor_id}>
-                  {creantProveidor === grup.proveedor_id ? t('common.creating') : t('purchases.request_modal.create_btn', 'Crear sol·licitud')}
+                <Button onClick={() => afegirAlPool(grup.proveedor_id, grup.proveedor_nombre)} disabled={creantProveidor === grup.proveedor_id}>
+                  {creantProveidor === grup.proveedor_id ? t('common.creating') : t('purchases.btn.add_to_pool', 'Afegir al pool')}
                 </Button>
               </div>
               <div className="divide-y divide-blue-100/70">
@@ -232,7 +222,7 @@ export default function HistorialPage() {
                                   {addable && (
                                     <button
                                       onClick={() => toggleCistella(l, p.proveedor_id, p.proveedor_nombre)}
-                                      title={selected ? t('purchases.search_history.remove_from_request', 'Treure de la sol·licitud') : t('purchases.search_history.add_to_request', 'Afegir a sol·licitud')}
+                                      title={selected ? t('purchases.search_history.remove_from_request', 'Treure del pool') : t('purchases.search_history.add_to_request', 'Afegir al pool')}
                                       className={`p-1 rounded-lg ${selected ? 'text-emerald-600 hover:bg-emerald-50' : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'} ${l.cost_price == null ? 'ml-auto' : ''}`}
                                     >
                                       {selected ? <PackageCheck size={15} /> : <Plus size={15} />}
