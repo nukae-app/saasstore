@@ -34,17 +34,16 @@ export function solicitudStatusLabel(t, estado) {
   return t(`purchases.solicitud_status.${estado}`, SOLICITUD_STATUS_FALLBACK[estado] ?? estado);
 }
 
-// Estat d'una línia dins del pool de sol·licituds (independent del lot al
-// qual pertany, veure GET /admin/solicitudes-compra/pool): "pendent" si
-// encara no s'ha resolt, "resolta" si ja té comanda_linea_id/item_resuelto_id,
-// "cancelada" si el lot sencer es va cancel·lar.
+// Estat d'una línia del pool (línia sense `solicitud_id`, veure GET
+// /admin/solicitudes-compra/pool): "pendent" si encara no s'ha resolt,
+// "resolta" si ja té comanda_linea_id/item_resuelto_id (resolta des
+// d'estoc directament, sense consolidar-se mai en cap sol·licitud — un cop
+// consolidada, la línia surt del pool i es gestiona des del registre).
 export const POOL_LINEA_ESTAT_COLOR = {
-  pendent: 'bg-zinc-100 text-zinc-500', resolta: 'bg-emerald-100 text-emerald-700', cancelada: 'bg-red-100 text-red-600',
+  pendent: 'bg-zinc-100 text-zinc-500', resolta: 'bg-emerald-100 text-emerald-700',
 };
 export function poolLineaEstat(linea) {
-  if (linea.solicitud_estado === 'cancelada') return 'cancelada';
-  if (linea.resuelta) return 'resolta';
-  return 'pendent';
+  return linea.resuelta ? 'resolta' : 'pendent';
 }
 export function poolLineaEstatLabel(t, linea) {
   const estat = poolLineaEstat(linea);
@@ -58,6 +57,15 @@ export const ORIGEN_SOLICITUD_COLOR = {
 };
 export function origenSolicitudLabel(t, origen) {
   return t(`purchases.origin.${origen}`, ORIGEN_SOLICITUD_FALLBACK[origen] ?? origen);
+}
+
+// Una sol·licitud consolidada pot barrejar línies de diversos orígens
+// (veure SolicitudCompraOut.origenes): si totes són del mateix, es mostra
+// aquell badge; si no, "Mixt".
+export function origenesSolicitudLabel(t, origenes) {
+  if (!origenes || origenes.length === 0) return '—';
+  if (origenes.length === 1) return origenSolicitudLabel(t, origenes[0]);
+  return t('purchases.origin.mixed', 'Mixt');
 }
 
 export function fmtEur(n) {

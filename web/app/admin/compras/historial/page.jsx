@@ -48,11 +48,11 @@ export default function HistorialPage() {
     if (items.length === 0) return;
     setCreantProveidor(proveedorId);
     try {
-      const r = await authFetch('/admin/solicitudes-compra', {
+      const notaLote = `${t('purchases.generated_from_search_supplier', 'Generada des de Cerca proveïdor')} (${proveedorNombre})`;
+      const r = await authFetch('/admin/solicitudes-compra/pool', {
         method: 'POST',
         body: JSON.stringify({
           origen: 'manual',
-          notes: `${t('purchases.generated_from_search_supplier', 'Generada des de Cerca proveïdor')} (${proveedorNombre})`,
           lineas: items.map(c => ({
             release_id: c.release_id || undefined,
             artist: c.release_id ? undefined : c.artista,
@@ -61,11 +61,25 @@ export default function HistorialPage() {
             format: c.release_id ? undefined : c.formato,
             quantity: c.cantidad,
             proveedor_sugerido_id: proveedorId,
+            notes: notaLote,
           })),
         }),
       });
       if (!r.ok) {
         const body = await r.json().catch(() => ({}));
+        alert(body.detail || t('purchases.request.create_error', 'No s\'ha pogut crear la sol·licitud.'));
+        return;
+      }
+      // Aquestes línies ja venen agrupades a propòsit per proveïdor: es
+      // consolida directament en una sol·licitud numerada, sense passar
+      // per una segona confirmació.
+      const nuevasLineas = await r.json();
+      const gen = await authFetch('/admin/solicitudes-compra/generar', {
+        method: 'POST',
+        body: JSON.stringify({ linea_ids: nuevasLineas.map(l => l.id), notes: notaLote }),
+      });
+      if (!gen.ok) {
+        const body = await gen.json().catch(() => ({}));
         alert(body.detail || t('purchases.request.create_error', 'No s\'ha pogut crear la sol·licitud.'));
         return;
       }

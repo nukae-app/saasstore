@@ -212,27 +212,25 @@ class OrigenSolicitud(str, enum.Enum):
 
 
 class SolicitudCompra(TenantScoped, Base):
-    """Llista de discos que es volen comprar, sense proveïdor encara triat
-    (a diferència de `Comanda`, que sempre en té un). És el punt d'entrada
-    flexible del flux de compres: es pot començar aquí, o saltar-se-la i
-    crear una `Comanda` directament quan ja se sap a qui es compra. Cada
-    línia es 'resol' quan s'assigna a una `ComandaLinea` d'un proveïdor
-    concret; la sol·licitud pot acabar repartida entre diverses comandes."""
+    """Un lot NUMERAT de línies que s'han decidit demanar juntes — es crea
+    explícitament ("Crear sol·licitud") seleccionant línies del pool
+    (`SolicitudCompraLinea` amb `solicitud_id IS NULL`), mai abans. No té
+    `origen` propi: com pot agrupar línies de diversos orígens, l'origen viu
+    a cada línia (veure `SolicitudCompraLinea.origen`). Cada línia es
+    'resol' quan s'assigna a una `ComandaLinea` d'un proveïdor concret; la
+    sol·licitud pot acabar repartida entre diverses comandes."""
 
     __tablename__ = "solicitudes_compra"
     __table_args__ = (UniqueConstraint("tenant_id", "fiscal_year", "number"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
     # Numeració humana ("SOL-2026-000001"), atòmica via DocumentCounter —
-    # mateix patró que Pressupost/Albara. Assignada un cop en crear-se (mai
-    # canvia), independent de l'`id` intern.
+    # mateix patró que Pressupost/Albara. Assignada en crear-se (que és quan
+    # es consolida des del pool, mai abans), i mai canvia.
     fiscal_year: Mapped[int] = mapped_column(Integer, index=True)
     number: Mapped[int] = mapped_column(Integer)
     estado: Mapped[EstadoSolicitud] = mapped_column(
         Enum(EstadoSolicitud, name="estado_solicitud"), default=EstadoSolicitud.oberta, index=True
-    )
-    origen: Mapped[OrigenSolicitud] = mapped_column(
-        Enum(OrigenSolicitud, name="origen_solicitud"), default=OrigenSolicitud.manual, index=True
     )
     user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     notes: Mapped[str | None] = mapped_column(Text)
@@ -245,20 +243,30 @@ class SolicitudCompra(TenantScoped, Base):
 
 
 class SolicitudCompraLinea(TenantScoped, Base):
-    """Línia: un disc que es vol comprar. `release_id` si ja existeix al
-    catàleg; si no, es descriu a mà (artista/titulo/sello/formato), com a
-    l'alta d'un disc nou. `proveedor_sugerido_id` és el proveïdor
-    suggerit (avui es tria a mà; en el futur, el motor de recomanació per
-    historial de compres). Es resol de dues maneres possibles, mai les
-    dues alhora: `comanda_linea_id` (s'ha comprat a proveïdor) o
-    `item_resuelto_id` (ja hi havia un exemplar a estoc i no ha calgut
-    comprar-lo)."""
+    """Línia: un disc que es vol comprar. `solicitud_id` és NULL mentre la
+    línia viu al pool (encara no s'ha consolidat en cap sol·licitud
+    numerada); s'assigna quan es crida "Crear sol·licitud" amb aquesta línia
+    seleccionada, i mai canvia després. `origen` viu aquí (no a
+    `SolicitudCompra`) perquè cal saber-lo abans que existeixi cap
+    sol·licitud, i perquè una sol·licitud consolidada pot barrejar línies de
+    diversos orígens. `release_id` si ja existeix al catàleg; si no, es
+    descriu a mà (artista/titulo/sello/formato), com a l'alta d'un disc nou.
+    `proveedor_sugerido_id` és el proveïdor suggerit (avui es tria a mà; en
+    el futur, el motor de recomanació per historial de compres). Es resol
+    de dues maneres possibles, mai les dues alhora: `comanda_linea_id`
+    (s'ha comprat a proveïdor — només possible un cop consolidada en una
+    sol·licitud) o `item_resuelto_id` (ja hi havia un exemplar a estoc i no
+    ha calgut comprar-lo — possible fins i tot des del pool, sense passar
+    per cap sol·licitud)."""
 
     __tablename__ = "solicitud_compra_items"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
-    solicitud_id: Mapped[uuid.UUID] = mapped_column(
+    solicitud_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("solicitudes_compra.id", ondelete="CASCADE"), index=True
+    )
+    origen: Mapped[OrigenSolicitud] = mapped_column(
+        Enum(OrigenSolicitud, name="origen_solicitud"), default=OrigenSolicitud.manual, index=True
     )
     release_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("releases.id", ondelete="SET NULL"), index=True
@@ -280,7 +288,7 @@ class SolicitudCompraLinea(TenantScoped, Base):
     notes: Mapped[str | None] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    solicitud: Mapped["SolicitudCompra"] = relationship(back_populates="lineas")
+    solicitud: Mapped["SolicitudCompra | None"] = relationship(back_populates="lineas")
     release: Mapped["Release | None"] = relationship()
     proveedor_sugerido: Mapped["Proveedor | None"] = relationship()
     comanda_linea: Mapped["ComandaLinea | None"] = relationship()

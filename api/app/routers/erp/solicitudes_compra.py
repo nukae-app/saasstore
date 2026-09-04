@@ -14,8 +14,8 @@ from ...models import (
     PeticionCliente, Proveedor, RecordProduct, Release, SolicitudCompra, SolicitudCompraLinea, VentaExterna,
 )
 from ...schemas import (
-    ComandaOut, RefillSugerenciaOut, ResoldreEstocIn, SolicitudCompraIn, SolicitudCompraLineaIn,
-    SolicitudCompraLineaOut, SolicitudCompraListPage, SolicitudCompraOut, SolicitudPoolLineaOut, SolicitudPoolPage,
+    ComandaOut, PoolLineasIn, RefillSugerenciaOut, ResoldreEstocIn, SolicitudCompraLineaIn,
+    SolicitudCompraLineaOut, SolicitudCompraListPage, SolicitudCompraOut, SolicitudGenerarIn, SolicitudPoolPage,
     SolicitudResolverIn,
 )
 from ...services.documents_numbering import next_document_number
@@ -31,6 +31,7 @@ router = APIRouter(prefix="/admin", tags=["erp"], dependencies=[Depends(require_
 def _solicitud_linea_out(linea: SolicitudCompraLinea) -> SolicitudCompraLineaOut:
     return SolicitudCompraLineaOut(
         id=linea.id,
+        origen=linea.origen.value,
         release_id=linea.release_id,
         artist=linea.release.artista if linea.release else linea.artist,
         title=linea.release.title if linea.release else linea.title,
@@ -43,6 +44,7 @@ def _solicitud_linea_out(linea: SolicitudCompraLinea) -> SolicitudCompraLineaOut
         item_resuelto_id=linea.item_resuelto_id,
         resuelta=linea.comanda_linea_id is not None or linea.item_resuelto_id is not None,
         notes=linea.notes,
+        created_at=linea.created_at,
     )
 
 
@@ -55,7 +57,7 @@ def _solicitud_out(solicitud: SolicitudCompra) -> SolicitudCompraOut:
         id=solicitud.id,
         numero=_format_solicitud_numero(solicitud),
         estado=solicitud.estado,
-        origen=solicitud.origen,
+        origenes=sorted({linea.origen.value for linea in solicitud.lineas}),
         user_id=solicitud.user_id,
         user_nom=solicitud.user.name if solicitud.user else None,
         notes=solicitud.notes,
@@ -242,27 +244,63 @@ def refill_sugerencias(db: Session = Depends(get_db)):
     return candidats
 
 
-@router.post("/solicitudes-compra", status_code=201, response_model=SolicitudCompraOut)
-def create_solicitud_compra(payload: SolicitudCompraIn, db: Session = Depends(get_db)):
+@router.post("/solicitudes-compra/pool", status_code=201, response_model=list[SolicitudCompraLineaOut])
+def add_lineas_pool(payload: PoolLineasIn, db: Session = Depends(get_db)):
+    """Afegeix línies soltes al pool (`solicitud_id` NULL): encara no formen
+    part de cap sol·licitud numerada. Veure `generar_solicitud` per
+    consolidar-les."""
     for linea in payload.lineas:
         if linea.release_id and db.get(Release, linea.release_id) is None:
             raise HTTPException(404, f"Release {linea.release_id} no encontrado")
         if linea.proveedor_sugerido_id and db.get(Proveedor, linea.proveedor_sugerido_id) is None:
             raise HTTPException(404, f"Proveedor {linea.proveedor_sugerido_id} no encontrado")
 
+    origen = OrigenSolicitud(payload.origen)
+    creadas: list[SolicitudCompraLinea] = []
+    for linea in payload.lineas:
+        nueva = SolicitudCompraLinea(
+            solicitud_id=None, origen=origen, release_id=linea.release_id,
+            artist=linea.artist, title=linea.title, label=linea.label, format=linea.format,
+            quantity=linea.quantity, proveedor_sugerido_id=linea.proveedor_sugerido_id, notes=linea.notes,
+        )
+        db.add(nueva)
+        creadas.append(nueva)
+    db.commit()
+    for linea in creadas:
+        db.refresh(linea)
+    stmt = (
+        select(SolicitudCompraLinea)
+        .where(SolicitudCompraLinea.id.in_([l.id for l in creadas]))
+        .options(selectinload(SolicitudCompraLinea.release), selectinload(SolicitudCompraLinea.proveedor_sugerido))
+    )
+    return [_solicitud_linea_out(l) for l in db.scalars(stmt).all()]
+
+
+@router.post("/solicitudes-compra/generar", status_code=201, response_model=SolicitudCompraOut)
+def generar_solicitud(payload: SolicitudGenerarIn, db: Session = Depends(get_db)):
+    """Consolida línies seleccionades del pool (poden ser de diversos
+    orígens) en una nova sol·licitud numerada — el pas explícit "Crear
+    sol·licitud" que dona significat al número (veure DocumentCounter)."""
+    lineas: list[SolicitudCompraLinea] = []
+    for linea_id in payload.linea_ids:
+        linea = db.get(SolicitudCompraLinea, linea_id)
+        if linea is None:
+            raise HTTPException(404, f"Línia {linea_id} no trobada")
+        if linea.solicitud_id is not None:
+            raise HTTPException(409, f"La línia '{linea.artist} - {linea.title}' ja pertany a una sol·licitud")
+        if linea.comanda_linea_id is not None or linea.item_resuelto_id is not None:
+            raise HTTPException(409, f"La línia '{linea.artist} - {linea.title}' ja està resolta")
+        lineas.append(linea)
+
     fiscal_year = datetime.now(timezone.utc).year
     solicitud = SolicitudCompra(
         fiscal_year=fiscal_year, number=next_document_number(db, "solicitud_compra", fiscal_year),
-        origen=OrigenSolicitud(payload.origen), user_id=payload.user_id, notes=payload.notes,
+        notes=payload.notes,
     )
     db.add(solicitud)
     db.flush()
-    for linea in payload.lineas:
-        db.add(SolicitudCompraLinea(
-            solicitud_id=solicitud.id, release_id=linea.release_id,
-            artist=linea.artist, title=linea.title, label=linea.label, format=linea.format,
-            quantity=linea.quantity, proveedor_sugerido_id=linea.proveedor_sugerido_id, notes=linea.notes,
-        ))
+    for linea in lineas:
+        linea.solicitud_id = solicitud.id
     db.commit()
     return _solicitud_out(_get_solicitud_or_404(db, solicitud.id))
 
@@ -275,15 +313,16 @@ def list_solicitudes_compra(
     page_size: int = Query(200, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
-    """Llistat de sol·licituds com a entitat (una fila = un lot, amb el seu
-    número — veure [[SolicitudPoolLineaOut]] per la vista aplanada per
-    línia). `page_size` per defecte alt perquè el dashboard encara en
-    consumeix el total sencer per comptar línies obertes."""
+    """Llistat de sol·licituds com a entitat (una fila = un lot ja
+    consolidat, amb el seu número — veure `list_pool_lineas` per la vista
+    aplanada per línia, encara sense consolidar). `page_size` per defecte
+    alt perquè el dashboard encara en consumeix el total sencer per
+    comptar línies obertes."""
     stmt = select(SolicitudCompra).order_by(SolicitudCompra.created_at.desc())
     if estado:
         stmt = stmt.where(SolicitudCompra.estado == EstadoSolicitud(estado))
     if origen:
-        stmt = stmt.where(SolicitudCompra.origen == OrigenSolicitud(origen))
+        stmt = stmt.where(SolicitudCompra.lineas.any(SolicitudCompraLinea.origen == OrigenSolicitud(origen)))
 
     total = db.scalar(select(func.count()).select_from(stmt.with_only_columns(SolicitudCompra.id).subquery()))
     stmt = (
@@ -303,7 +342,7 @@ def list_solicitudes_compra(
 
 @router.get("/solicitudes-compra/pool", response_model=SolicitudPoolPage)
 def list_pool_lineas(
-    estado: str = Query("pendent", description="pendent | resolta | cancelada | totes"),
+    estado: str = Query("pendent", description="pendent | resolta | totes"),
     origen: str | None = None,
     proveedor_id: uuid.UUID | None = None,
     q: str | None = None,
@@ -311,36 +350,31 @@ def list_pool_lineas(
     page_size: int = Query(30, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    """Totes les línies de totes les sol·licituds, aplanades i paginades
-    (independentment de a quin lot/sol·licitud pertanyin), que és com
-    l'admin les gestiona de fet: veure [[SolicitudPoolLineaOut]]."""
+    """Línies encara SENSE consolidar en cap sol·licitud (`solicitud_id IS
+    NULL`), aplanades i paginades — el pool real: veure `generar_solicitud`
+    per convertir-les en una sol·licitud numerada."""
     stmt = (
         select(SolicitudCompraLinea)
-        .join(SolicitudCompra, SolicitudCompraLinea.solicitud_id == SolicitudCompra.id)
+        .where(SolicitudCompraLinea.solicitud_id.is_(None))
         .outerjoin(Release, SolicitudCompraLinea.release_id == Release.id)
         .outerjoin(RecordProduct, RecordProduct.release_id == Release.id)
         .options(
             selectinload(SolicitudCompraLinea.release).selectinload(Release.record),
             selectinload(SolicitudCompraLinea.proveedor_sugerido),
-            selectinload(SolicitudCompraLinea.solicitud),
         )
     )
     if estado == "pendent":
         stmt = stmt.where(
-            SolicitudCompra.estado == EstadoSolicitud.oberta,
-            SolicitudCompraLinea.comanda_linea_id.is_(None),
-            SolicitudCompraLinea.item_resuelto_id.is_(None),
+            SolicitudCompraLinea.comanda_linea_id.is_(None), SolicitudCompraLinea.item_resuelto_id.is_(None),
         )
     elif estado == "resolta":
         stmt = stmt.where(
             or_(SolicitudCompraLinea.comanda_linea_id.is_not(None), SolicitudCompraLinea.item_resuelto_id.is_not(None))
         )
-    elif estado == "cancelada":
-        stmt = stmt.where(SolicitudCompra.estado == EstadoSolicitud.cancelada)
     elif estado != "totes":
-        raise HTTPException(422, "estado ha de ser pendent, resolta, cancelada o totes")
+        raise HTTPException(422, "estado ha de ser pendent, resolta o totes")
     if origen:
-        stmt = stmt.where(SolicitudCompra.origen == OrigenSolicitud(origen))
+        stmt = stmt.where(SolicitudCompraLinea.origen == OrigenSolicitud(origen))
     if proveedor_id:
         stmt = stmt.where(SolicitudCompraLinea.proveedor_sugerido_id == proveedor_id)
     if q:
@@ -351,22 +385,24 @@ def list_pool_lineas(
         ))
 
     total = db.scalar(select(func.count()).select_from(stmt.with_only_columns(SolicitudCompraLinea.id).subquery()))
-    stmt = stmt.order_by(SolicitudCompra.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    stmt = stmt.order_by(SolicitudCompraLinea.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     lineas = db.scalars(stmt).unique().all()
+    return SolicitudPoolPage(
+        total=total, page=page, page_size=page_size, results=[_solicitud_linea_out(l) for l in lineas],
+    )
 
-    results = [
-        SolicitudPoolLineaOut(
-            **_solicitud_linea_out(linea).model_dump(),
-            solicitud_id=linea.solicitud_id,
-            solicitud_numero=_format_solicitud_numero(linea.solicitud),
-            origen=linea.solicitud.origen.value,
-            solicitud_notes=linea.solicitud.notes,
-            solicitud_created_at=linea.solicitud.created_at,
-            solicitud_estado=linea.solicitud.estado.value,
-        )
-        for linea in lineas
-    ]
-    return SolicitudPoolPage(total=total, page=page, page_size=page_size, results=results)
+
+@router.delete("/solicitudes-compra/pool/lineas/{linea_id}", status_code=204)
+def delete_pool_linea(linea_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Elimina una línia encara al pool (mai consolidada en cap
+    sol·licitud). Per a línies ja consolidades, veure `delete_linea_solicitud`."""
+    linea = db.get(SolicitudCompraLinea, linea_id)
+    if linea is None or linea.solicitud_id is not None:
+        raise HTTPException(404, "Línia de pool no trobada")
+    if linea.comanda_linea_id is not None or linea.item_resuelto_id is not None:
+        raise HTTPException(409, "No es pot eliminar: la línia ja s'ha resolt")
+    db.delete(linea)
+    db.commit()
 
 
 @router.get("/solicitudes-compra/{solicitud_id}", response_model=SolicitudCompraOut)
@@ -404,7 +440,7 @@ def add_linea_solicitud(solicitud_id: uuid.UUID, payload: SolicitudCompraLineaIn
         raise HTTPException(404, f"Proveedor {payload.proveedor_sugerido_id} no encontrado")
 
     db.add(SolicitudCompraLinea(
-        solicitud_id=solicitud.id, release_id=payload.release_id,
+        solicitud_id=solicitud.id, origen=OrigenSolicitud.manual, release_id=payload.release_id,
         artist=payload.artist, title=payload.title, label=payload.label, format=payload.format,
         quantity=payload.quantity, proveedor_sugerido_id=payload.proveedor_sugerido_id, notes=payload.notes,
     ))
@@ -444,6 +480,12 @@ def resolver_solicitud_compra(payload: SolicitudResolverIn, db: Session = Depend
         linea = db.get(SolicitudCompraLinea, item.solicitud_linea_id)
         if linea is None:
             raise HTTPException(404, f"Línia de sol·licitud {item.solicitud_linea_id} no trobada")
+        if linea.solicitud_id is None:
+            raise HTTPException(
+                422,
+                f"La línia '{linea.artist} - {linea.title}' encara és al pool: "
+                "cal crear-ne la sol·licitud abans de fer-ne una comanda",
+            )
         if linea.comanda_linea_id is not None or linea.item_resuelto_id is not None:
             raise HTTPException(409, f"La línia {item.solicitud_linea_id} ja està resolta")
         release_id = item.release_id or linea.release_id
@@ -496,10 +538,10 @@ def resolver_solicitud_compra(payload: SolicitudResolverIn, db: Session = Depend
     return _comanda_out(_get_comanda_or_404(db, comanda.id))
 
 
-@router.post("/solicitudes-compra/lineas/{linea_id}/resoldre-estoc", response_model=SolicitudCompraOut)
+@router.post("/solicitudes-compra/lineas/{linea_id}/resoldre-estoc", response_model=SolicitudCompraLineaOut)
 def resolver_linea_desde_stock(linea_id: uuid.UUID, payload: ResoldreEstocIn, request: Request, db: Session = Depends(get_db)):
-    """Tanca una línia de sol·licitud SENSE comprar-la a proveïdor, perquè
-    ja hi ha un exemplar disponible a estoc. Si la sol·licitud ve d'una
+    """Tanca una línia (del pool o ja consolidada) SENSE comprar-la a
+    proveïdor, perquè ja hi ha un exemplar disponible a estoc. Si ve d'una
     petició de client, reserva aquest exemplar per a la petició (mateixa
     bifurcació Via 1/Via 2 que `vincular_item_peticion`) i avisa el client
     per email; si no, només tanca la línia (p.ex. refill_stock o manual:
@@ -512,9 +554,10 @@ def resolver_linea_desde_stock(linea_id: uuid.UUID, payload: ResoldreEstocIn, re
     if linea.release_id is None:
         raise HTTPException(422, "Cal un release per resoldre una línia des d'estoc")
 
-    solicitud = db.get(SolicitudCompra, linea.solicitud_id)
-    if solicitud.estado != EstadoSolicitud.oberta:
-        raise HTTPException(409, "Aquesta sol·licitud no està oberta")
+    if linea.solicitud_id is not None:
+        solicitud = db.get(SolicitudCompra, linea.solicitud_id)
+        if solicitud.estado != EstadoSolicitud.oberta:
+            raise HTTPException(409, "Aquesta sol·licitud no està oberta")
 
     item = db.get(Item, payload.item_id)
     if item is None:
@@ -523,7 +566,7 @@ def resolver_linea_desde_stock(linea_id: uuid.UUID, payload: ResoldreEstocIn, re
         raise HTTPException(422, "Aquest exemplar no correspon al disc de la línia")
 
     peticion = None
-    if solicitud.origen == OrigenSolicitud.peticion_cliente:
+    if linea.origen == OrigenSolicitud.peticion_cliente:
         peticion = db.scalar(
             select(PeticionCliente)
             .where(
@@ -556,4 +599,5 @@ def resolver_linea_desde_stock(linea_id: uuid.UUID, payload: ResoldreEstocIn, re
         db.refresh(peticion)
         _enviar_email_item_arribat(db, peticion, request.state.tenant)
 
-    return _solicitud_out(_get_solicitud_or_404(db, solicitud.id))
+    db.refresh(linea)
+    return _solicitud_linea_out(linea)

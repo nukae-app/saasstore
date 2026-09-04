@@ -12,8 +12,8 @@ import {
   Plus, X, Trash2, PackageCheck, ArrowRight, Sparkles, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight, Ban,
 } from 'lucide-react';
 import {
-  poolLineaEstat, poolLineaEstatLabel, POOL_LINEA_ESTAT_COLOR, origenSolicitudLabel, ORIGEN_SOLICITUD_COLOR,
-  solicitudStatusLabel, SOLICITUD_STATUS_COLOR,
+  poolLineaEstat, poolLineaEstatLabel, POOL_LINEA_ESTAT_COLOR, origenSolicitudLabel, origenesSolicitudLabel,
+  ORIGEN_SOLICITUD_COLOR, solicitudStatusLabel, SOLICITUD_STATUS_COLOR,
 } from '../../../../components/admin/compras/shared';
 
 // Pool de línies de sol·licitud: totes les línies de tots els orígens
@@ -23,7 +23,7 @@ import {
 // metadata de cada línia (veure GET /admin/solicitudes-compra/pool), no una
 // unitat de treball pròpia.
 const PAGE_SIZE = 30;
-const ESTAT_TABS = ['pendent', 'resolta', 'cancelada', 'totes'];
+const ESTAT_TABS = ['pendent', 'resolta', 'totes'];
 
 export default function SolicitudsPage() {
   const t = useT();
@@ -41,7 +41,7 @@ export default function SolicitudsPage() {
   const [seleccio, setSeleccio] = useState(() => new Map());
   const [busyId, setBusyId] = useState(null);
   const [resolvingEstocLinea, setResolvingEstocLinea] = useState(null);
-  const [resolvingLineas, setResolvingLineas] = useState(null);
+  const [generatingLineas, setGeneratingLineas] = useState(null);
   const [showRefillModal, setShowRefillModal] = useState(false);
   const qDebounce = useRef(null);
 
@@ -91,7 +91,7 @@ export default function SolicitudsPage() {
   async function eliminarLinia(row) {
     if (!confirm(t('purchases.request.confirm_remove_line', 'Treure "{disc}" d\'aquesta sol·licitud?').replace('{disc}', `${row.artist} — ${row.title}`))) return;
     setBusyId(row.id);
-    const r = await authFetch(`/admin/solicitudes-compra/${row.solicitud_id}/lineas/${row.id}`, { method: 'DELETE' });
+    const r = await authFetch(`/admin/solicitudes-compra/pool/lineas/${row.id}`, { method: 'DELETE' });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
       alert(body.detail || t('purchases.request.delete_line_error', 'No s\'ha pogut eliminar el disc.'));
@@ -115,7 +115,7 @@ export default function SolicitudsPage() {
           </button>
           <Link href="/admin/compras/solicituds/nueva"
             className="flex items-center gap-1.5 bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <Plus size={15} /> {t('purchases.btn.new_request', 'Nova sol·licitud')}
+            <Plus size={15} /> {t('purchases.btn.add_to_pool', 'Afegir al pool')}
           </Link>
         </div>
       </div>
@@ -170,8 +170,8 @@ export default function SolicitudsPage() {
             <button onClick={() => setSeleccio(new Map())} className="text-xs text-zinc-500 hover:text-zinc-700">
               {t('purchases.request.clear_selection', 'Netejar selecció')}
             </button>
-            <Button size="sm" onClick={() => setResolvingLineas([...seleccio.values()])}>
-              <ArrowRight size={13} /> {t('purchases.request.create_order', 'Crear comanda')}
+            <Button size="sm" onClick={() => setGeneratingLineas([...seleccio.values()])}>
+              <ArrowRight size={13} /> {t('purchases.request.generate_request', 'Crear sol·licitud')}
             </Button>
           </div>
         </div>
@@ -193,7 +193,6 @@ export default function SolicitudsPage() {
                       onChange={toggleAllVisible}
                       className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">{t('purchases.col.number', 'Número')}</th>
                   <th className="px-4 py-3 text-left font-medium">{t('tpv.col.record')}</th>
                   <th className="px-4 py-3 text-center font-medium">{t('purchases.quantity', 'Quantitat')}</th>
                   <th className="px-4 py-3 text-left font-medium">{t('purchases.col.origin')}</th>
@@ -213,11 +212,10 @@ export default function SolicitudsPage() {
                           onChange={() => toggleLinea(row)}
                           className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900 disabled:opacity-30" />
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-zinc-500">{row.solicitud_numero}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-zinc-900">{row.artist} — {row.title}</div>
                         {row.label && <div className="text-xs text-zinc-400">{row.label}</div>}
-                        {row.solicitud_notes && <div className="text-xs text-zinc-400">{row.solicitud_notes}</div>}
+                        {row.notes && <div className="text-xs text-zinc-400">{row.notes}</div>}
                       </td>
                       <td className="px-4 py-3 text-center text-zinc-600">{row.quantity}x</td>
                       <td className="px-4 py-3">
@@ -231,7 +229,7 @@ export default function SolicitudsPage() {
                           {poolLineaEstatLabel(t, row)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-zinc-500">{new Date(row.solicitud_created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-zinc-500">{new Date(row.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-right">
                         {estat === 'pendent' && (
                           <div className="flex items-center justify-end gap-1.5">
@@ -281,11 +279,11 @@ export default function SolicitudsPage() {
           onSaved={() => { setResolvingEstocLinea(null); loadPool(); }} />
       )}
 
-      {resolvingLineas && (
-        <ResoldreSolicitudModal
-          lineas={resolvingLineas} proveedores={proveedores}
-          onClose={() => setResolvingLineas(null)}
-          onSaved={() => { setResolvingLineas(null); setSeleccio(new Map()); loadPool(); }} />
+      {generatingLineas && (
+        <GenerarSolicitudModal
+          lineas={generatingLineas}
+          onClose={() => setGeneratingLineas(null)}
+          onSaved={() => { setGeneratingLineas(null); setSeleccio(new Map()); loadPool(); }} />
       )}
       </>
       )}
@@ -295,6 +293,69 @@ export default function SolicitudsPage() {
           onClose={() => setShowRefillModal(false)}
           onSaved={() => { setShowRefillModal(false); loadPool(); }} />
       )}
+    </div>
+  );
+}
+
+// Consolida línies seleccionades del pool (poden ser de diversos orígens)
+// en una nova sol·licitud numerada — el pas "Crear sol·licitud". Encara no
+// tria proveïdor: això és un pas posterior, des del registre (veure
+// ResoldreSolicitudModal, que sí que el demana per crear la comanda).
+function GenerarSolicitudModal({ lineas, onClose, onSaved }) {
+  const t = useT();
+  const [notas, setNotas] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function save(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    const r = await authFetch('/admin/solicitudes-compra/generar', {
+      method: 'POST',
+      body: JSON.stringify({ linea_ids: lineas.map(l => l.id), notes: notas || null }),
+    });
+    setSaving(false);
+    if (r.ok) onSaved();
+    else setError((await r.json().catch(() => ({}))).detail || t('purchases.action.resolve_error', 'No s\'ha pogut resoldre.'));
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+          <h3 className="text-lg font-bold text-zinc-900">{t('purchases.generate_request_modal.title', 'Crear sol·licitud')}</h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+        </div>
+        <form onSubmit={save} className="p-6 space-y-4">
+          <p className="text-xs text-zinc-400">
+            {t('purchases.generate_request_modal.hint', 'Aquestes línies (poden venir de diversos orígens) es consolidaran en una sol·licitud numerada. Podràs triar proveïdor i crear-ne la comanda més endavant, des del registre.')}
+          </p>
+          <div className="border border-zinc-200 rounded-xl divide-y divide-zinc-100 max-h-64 overflow-y-auto">
+            {lineas.map(l => (
+              <div key={l.id} className="px-4 py-2.5 text-sm flex items-center gap-2 flex-wrap">
+                <span className="font-medium text-zinc-900">{l.artist} — {l.title}</span>
+                <span className="text-zinc-400">{l.quantity}x</span>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                  {origenSolicitudLabel(t, l.origen)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes')}</label>
+            <input value={notas} onChange={e => setNotas(e.target.value)}
+              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? t('common.creating') : `${t('purchases.generate_request_modal.submit', 'Crear sol·licitud')} (${lineas.length})`}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -420,8 +481,8 @@ function SolicitudsLlistatView({ proveedores }) {
                         <td className="px-4 py-3 font-mono text-xs text-zinc-700">{s.numero}</td>
                         <td className="px-4 py-3 text-zinc-500">{new Date(s.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ORIGEN_SOLICITUD_COLOR[s.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                            {origenSolicitudLabel(t, s.origen)}
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${s.origenes.length === 1 ? (ORIGEN_SOLICITUD_COLOR[s.origenes[0]] ?? 'bg-zinc-100 text-zinc-600') : 'bg-fuchsia-100 text-fuchsia-700'}`}>
+                            {origenesSolicitudLabel(t, s.origenes)}
                           </span>
                           {s.user_nom && <span className="text-zinc-400 text-xs"> · {s.user_nom}</span>}
                         </td>
@@ -467,6 +528,9 @@ function SolicitudsLlistatView({ proveedores }) {
                                   <span className="font-semibold text-zinc-900">{l.artist} — {l.title}</span>
                                   <span className="text-zinc-500">{l.quantity}x</span>
                                   {l.label && <span className="text-zinc-400">{l.label}</span>}
+                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                                    {origenSolicitudLabel(t, l.origen)}
+                                  </span>
                                   {l.proveedor_sugerido_nombre && (
                                     <span className="text-zinc-400">{t('purchases.suggested', 'Suggerit')}: {l.proveedor_sugerido_nombre}</span>
                                   )}
@@ -966,16 +1030,17 @@ function RefillSugerenciesModal({ onClose, onSaved }) {
     if (selected.size === 0) return;
     setSaving(true);
     setError('');
+    const nota = `${t('purchases.refill_modal.auto_generated', 'Generat automàticament')} (${new Date().toLocaleDateString()})`;
     const payload = {
       origen: 'refill_stock',
-      notes: `${t('purchases.refill_modal.auto_generated', 'Generat automàticament')} (${new Date().toLocaleDateString()})`,
       lineas: candidats.filter(c => selected.has(c.release_id)).map(c => ({
         release_id: c.release_id,
         quantity: parseInt(cantidades[c.release_id], 10) || 1,
         proveedor_sugerido_id: c.proveedor_sugerido_id || null,
+        notes: nota,
       })),
     };
-    const r = await authFetch('/admin/solicitudes-compra', { method: 'POST', body: JSON.stringify(payload) });
+    const r = await authFetch('/admin/solicitudes-compra/pool', { method: 'POST', body: JSON.stringify(payload) });
     setSaving(false);
     if (r.ok) onSaved();
     else setError((await r.json().catch(() => ({}))).detail || t('purchases.request.create_error', 'No s\'ha pogut crear la sol·licitud.'));
@@ -1063,7 +1128,7 @@ function RefillSugerenciesModal({ onClose, onSaved }) {
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
             <Button type="button" onClick={save} disabled={saving || selected.size === 0}>
-              {saving ? t('common.creating') : `${t('purchases.request_modal.create_btn', 'Crear sol·licitud')} (${selected.size})`}
+              {saving ? t('common.creating') : `${t('purchases.btn.add_to_pool', 'Afegir al pool')} (${selected.size})`}
             </Button>
           </div>
         </div>

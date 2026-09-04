@@ -1,5 +1,6 @@
-"""Tests del flux de sol·licituds de compra: sol·licitud (sense proveïdor) ->
-resoldre cap a una comanda real d'un proveïdor concret."""
+"""Tests del flux de sol·licituds de compra: pool (línies soltes, sense
+sol·licitud) -> generar sol·licitud (consolida línies seleccionades, les
+numera) -> resoldre cap a una comanda real d'un proveïdor concret."""
 
 import contextlib
 import io
@@ -50,56 +51,117 @@ def _seed_proveedor(db, nombre="DistroX", email="prov@example.com") -> Proveedor
     return p
 
 
-def test_crear_solicitud_con_release_existente(db, client):
+def _add_pool(client, admin, lineas, origen="manual") -> list[dict]:
+    resp = client.post(
+        "/admin/solicitudes-compra/pool",
+        json={"origen": origen, "lineas": lineas},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def _crear_solicitud(client, admin, lineas, origen="manual", notes=None) -> dict:
+    """Flux complet: afegeix línies al pool i les consolida en una nova
+    sol·licitud numerada, tal com faria l'admin des de la pantalla."""
+    pool_lineas = _add_pool(client, admin, lineas, origen=origen)
+    resp = client.post(
+        "/admin/solicitudes-compra/generar",
+        json={"linea_ids": [l["id"] for l in pool_lineas], "notes": notes},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def test_pool_afegeix_linia_con_release_existente(db, client):
     admin = _admin_token(client, db)
     release = _seed_release(db)
 
-    payload = {
-        "lineas": [{"release_id": str(release.id), "quantity": 2, "notes": "reposició"}],
-    }
-    resp = client.post("/admin/solicitudes-compra", json=payload, headers=_auth(admin))
-    assert resp.status_code == 201
-    body = resp.json()
-    assert body["estado"] == "oberta"
-    assert body["origen"] == "manual"
-    assert len(body["lineas"]) == 1
-    assert body["lineas"][0]["artist"] == "Artista"
-    assert body["lineas"][0]["quantity"] == 2
-    assert body["lineas"][0]["resuelta"] is False
+    lineas = _add_pool(client, admin, [{"release_id": str(release.id), "quantity": 2, "notes": "reposició"}])
+    assert len(lineas) == 1
+    assert lineas[0]["artist"] == "Artista"
+    assert lineas[0]["quantity"] == 2
+    assert lineas[0]["resuelta"] is False
+    assert lineas[0]["origen"] == "manual"
 
 
-def test_crear_solicitud_con_disco_no_catalogado(db, client):
+def test_pool_afegeix_linia_con_disco_no_catalogado(db, client):
     admin = _admin_token(client, db)
-
-    payload = {
-        "lineas": [{"artist": "Nou Grup", "title": "Nou Disc", "label": "Segell X", "quantity": 1}],
-    }
-    resp = client.post("/admin/solicitudes-compra", json=payload, headers=_auth(admin))
-    assert resp.status_code == 201
-    body = resp.json()
-    assert body["lineas"][0]["release_id"] is None
-    assert body["lineas"][0]["artist"] == "Nou Grup"
+    lineas = _add_pool(client, admin, [{"artist": "Nou Grup", "title": "Nou Disc", "label": "Segell X", "quantity": 1}])
+    assert lineas[0]["release_id"] is None
+    assert lineas[0]["artist"] == "Nou Grup"
 
 
-def test_crear_solicitud_con_solo_title_sin_artista(db, client):
+def test_pool_afegeix_linia_con_solo_title_sin_artista(db, client):
     """§17.1: `artist` es detalle opcional (solo tiene sentido para discos);
     el mínimo para describir una línea sin catálogo es `title`, genérico a
     cualquier vertical (p. ej. una vertical de café sin campo 'artista')."""
     admin = _admin_token(client, db)
-    payload = {"lineas": [{"title": "Cafè de Kenya", "quantity": 1}]}
-    resp = client.post("/admin/solicitudes-compra", json=payload, headers=_auth(admin))
-    assert resp.status_code == 201
-    body = resp.json()
-    assert body["lineas"][0]["release_id"] is None
-    assert body["lineas"][0]["title"] == "Cafè de Kenya"
-    assert body["lineas"][0]["artist"] is None
+    lineas = _add_pool(client, admin, [{"title": "Cafè de Kenya", "quantity": 1}])
+    assert lineas[0]["release_id"] is None
+    assert lineas[0]["title"] == "Cafè de Kenya"
+    assert lineas[0]["artist"] is None
 
 
-def test_crear_solicitud_sin_release_ni_artista_falla(db, client):
+def test_pool_afegeix_linia_sin_release_ni_artista_falla(db, client):
     admin = _admin_token(client, db)
-    payload = {"lineas": [{"quantity": 1}]}
-    resp = client.post("/admin/solicitudes-compra", json=payload, headers=_auth(admin))
+    resp = client.post(
+        "/admin/solicitudes-compra/pool", json={"lineas": [{"quantity": 1}]}, headers=_auth(admin),
+    )
     assert resp.status_code == 422
+
+
+def test_generar_solicitud_consolida_linies_de_diversos_origens(db, client):
+    """Una sol·licitud consolidada pot barrejar línies de diversos orígens
+    (per això `origen` viu a la línia, no a la sol·licitud)."""
+    admin = _admin_token(client, db)
+    release = _seed_release(db)
+
+    manuals = _add_pool(client, admin, [{"title": "Manual A", "quantity": 1}], origen="manual")
+    refills = _add_pool(client, admin, [{"release_id": str(release.id), "quantity": 1}], origen="refill_stock")
+
+    resp = client.post(
+        "/admin/solicitudes-compra/generar",
+        json={"linea_ids": [manuals[0]["id"], refills[0]["id"]], "notes": "lot mixt"},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 201
+    solicitud = resp.json()
+    assert solicitud["estado"] == "oberta"
+    assert sorted(solicitud["origenes"]) == ["manual", "refill_stock"]
+    assert len(solicitud["lineas"]) == 2
+    assert solicitud["notes"] == "lot mixt"
+
+
+def test_generar_solicitud_amb_linia_ja_consolidada_falla(db, client):
+    admin = _admin_token(client, db)
+    lineas = _add_pool(client, admin, [{"title": "X", "quantity": 1}])
+    linea_id = lineas[0]["id"]
+    client.post("/admin/solicitudes-compra/generar", json={"linea_ids": [linea_id]}, headers=_auth(admin))
+
+    resp = client.post("/admin/solicitudes-compra/generar", json={"linea_ids": [linea_id]}, headers=_auth(admin))
+    assert resp.status_code == 409
+
+
+def test_eliminar_linia_pool(db, client):
+    admin = _admin_token(client, db)
+    lineas = _add_pool(client, admin, [{"title": "Es treu", "quantity": 1}])
+    linea_id = lineas[0]["id"]
+
+    resp = client.delete(f"/admin/solicitudes-compra/pool/lineas/{linea_id}", headers=_auth(admin))
+    assert resp.status_code == 204
+    assert db.get(SolicitudCompraLinea, uuid.UUID(linea_id)) is None
+
+
+def test_eliminar_linia_pool_ja_consolidada_falla(db, client):
+    admin = _admin_token(client, db)
+    lineas = _add_pool(client, admin, [{"title": "X", "quantity": 1}])
+    linea_id = lineas[0]["id"]
+    client.post("/admin/solicitudes-compra/generar", json={"linea_ids": [linea_id]}, headers=_auth(admin))
+
+    resp = client.delete(f"/admin/solicitudes-compra/pool/lineas/{linea_id}", headers=_auth(admin))
+    assert resp.status_code == 404
 
 
 def test_resolver_solicitud_crea_comanda(db, client):
@@ -107,11 +169,7 @@ def test_resolver_solicitud_crea_comanda(db, client):
     prov = _seed_proveedor(db)
     release = _seed_release(db)
 
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 3}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 3}])
     linea_id = solicitud["lineas"][0]["id"]
 
     resp = client.post(
@@ -136,15 +194,31 @@ def test_resolver_solicitud_crea_comanda(db, client):
     assert solicitud_actualitzada["lineas"][0]["comanda_linea_id"] == comanda["lineas"][0]["id"]
 
 
+def test_resolver_linia_de_pool_sense_consolidar_falla(db, client):
+    """No es pot saltar el pas "Crear sol·licitud": cal consolidar la
+    línia abans de poder-la resoldre cap a una comanda."""
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db)
+    lineas = _add_pool(client, admin, [{"release_id": str(release.id), "quantity": 1}])
+
+    resp = client.post(
+        "/admin/solicitudes-compra/resolver",
+        json={
+            "proveedor_id": str(prov.id),
+            "date": "2026-06-01T10:00:00",
+            "lineas": [{"solicitud_linea_id": lineas[0]["id"]}],
+        },
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 422
+
+
 def test_resolver_solicitud_sense_release_falla(db, client):
     admin = _admin_token(client, db)
     prov = _seed_proveedor(db)
 
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"artist": "X", "title": "Y", "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"artist": "X", "title": "Y", "quantity": 1}])
     linea_id = solicitud["lineas"][0]["id"]
 
     resp = client.post(
@@ -167,11 +241,9 @@ def test_resolver_solicitud_amb_release_id_al_payload_resol_linia_sense_cataloga
     prov = _seed_proveedor(db)
     release = _seed_release(db, "Artista Nou", "Disc acabat de catalogar")
 
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"artist": "Artista Nou", "title": "Disc acabat de catalogar", "quantity": 2}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(
+        client, admin, [{"artist": "Artista Nou", "title": "Disc acabat de catalogar", "quantity": 2}],
+    )
     linea_id = solicitud["lineas"][0]["id"]
     assert solicitud["lineas"][0]["release_id"] is None
 
@@ -199,11 +271,7 @@ def test_resolver_solicitud_amb_release_id_inexistent_falla(db, client):
     admin = _admin_token(client, db)
     prov = _seed_proveedor(db)
 
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"artist": "X", "title": "Y", "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"artist": "X", "title": "Y", "quantity": 1}])
     linea_id = solicitud["lineas"][0]["id"]
 
     resp = client.post(
@@ -223,11 +291,7 @@ def test_resolver_linia_ya_resuelta_falla(db, client):
     prov = _seed_proveedor(db)
     release = _seed_release(db)
 
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
     linea_id = solicitud["lineas"][0]["id"]
     resolver_payload = {
         "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
@@ -245,14 +309,10 @@ def test_partial_resolution_manté_solicitud_oberta(db, client):
     r1 = _seed_release(db, artista="A1", titulo="T1")
     r2 = _seed_release(db, artista="A2", titulo="T2")
 
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [
-            {"release_id": str(r1.id), "quantity": 1},
-            {"release_id": str(r2.id), "quantity": 1},
-        ]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [
+        {"release_id": str(r1.id), "quantity": 1},
+        {"release_id": str(r2.id), "quantity": 1},
+    ])
     linea1_id = solicitud["lineas"][0]["id"]
 
     client.post(
@@ -277,11 +337,7 @@ def test_eliminar_linia_resolta_falla(db, client):
     prov = _seed_proveedor(db)
     release = _seed_release(db)
 
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
     linea_id = solicitud["lineas"][0]["id"]
     client.post(
         "/admin/solicitudes-compra/resolver",
@@ -299,11 +355,7 @@ def test_eliminar_linia_resolta_falla(db, client):
 def test_cancelar_solicitud(db, client):
     admin = _admin_token(client, db)
     release = _seed_release(db)
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
 
     resp = client.patch(f"/admin/solicitudes-compra/{solicitud['id']}/cancelar", headers=_auth(admin))
     assert resp.status_code == 200
@@ -316,11 +368,7 @@ def test_cancelar_solicitud(db, client):
 def test_eliminar_solicitud_sense_resoldre(db, client):
     admin = _admin_token(client, db)
     release = _seed_release(db)
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
 
     resp = client.delete(f"/admin/solicitudes-compra/{solicitud['id']}", headers=_auth(admin))
     assert resp.status_code == 204
@@ -330,11 +378,7 @@ def test_eliminar_solicitud_sense_resoldre(db, client):
 def test_list_solicitudes_filtra_per_estat(db, client):
     admin = _admin_token(client, db)
     release = _seed_release(db)
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
     client.patch(f"/admin/solicitudes-compra/{solicitud['id']}/cancelar", headers=_auth(admin))
 
     obertes = client.get("/admin/solicitudes-compra?estado=oberta", headers=_auth(admin)).json()["results"]
@@ -346,11 +390,7 @@ def test_list_solicitudes_filtra_per_estat(db, client):
 def test_resoldre_estoc_manual_tanca_linia_sense_comanda(db, client):
     admin = _admin_token(client, db)
     release = _seed_release(db)
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
     linea_id = solicitud["lineas"][0]["id"]
 
     item = Item(release_id=release.id, price=20, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
@@ -364,23 +404,48 @@ def test_resoldre_estoc_manual_tanca_linia_sense_comanda(db, client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["estado"] == "resolta"
-    assert body["lineas"][0]["resuelta"] is True
-    assert body["lineas"][0]["item_resuelto_id"] == str(item.id)
+    assert body["resuelta"] is True
+    assert body["item_resuelto_id"] == str(item.id)
+
+    solicitud_actualitzada = client.get(
+        f"/admin/solicitudes-compra/{solicitud['id']}", headers=_auth(admin)
+    ).json()
+    assert solicitud_actualitzada["estado"] == "resolta"
 
     db.expire_all()
     item_db = db.get(Item, item.id)
     assert item_db.status.value == "reservado"
 
 
+def test_resoldre_estoc_directament_des_del_pool_sense_consolidar(db, client):
+    """Resoldre des d'estoc no requereix haver creat la sol·licitud primer:
+    si ja hi ha exemplar, no cal formalitzar-ne la compra."""
+    admin = _admin_token(client, db)
+    release = _seed_release(db)
+    lineas = _add_pool(client, admin, [{"release_id": str(release.id), "quantity": 1}])
+    linea_id = lineas[0]["id"]
+
+    item = Item(release_id=release.id, price=20, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    db.add(item)
+    db.commit()
+
+    resp = client.post(
+        f"/admin/solicitudes-compra/lineas/{linea_id}/resoldre-estoc",
+        json={"item_id": str(item.id)},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["resuelta"] is True
+
+    db.expire_all()
+    linea_db = db.get(SolicitudCompraLinea, uuid.UUID(linea_id))
+    assert linea_db.solicitud_id is None
+
+
 def test_resoldre_estoc_linia_ja_resolta_falla(db, client):
     admin = _admin_token(client, db)
     release = _seed_release(db)
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
     linea_id = solicitud["lineas"][0]["id"]
 
     item1 = Item(release_id=release.id, price=20, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
@@ -406,11 +471,7 @@ def test_resoldre_estoc_linia_ja_resolta_falla(db, client):
 def test_eliminar_linia_resolta_desde_estoc_falla(db, client):
     admin = _admin_token(client, db)
     release = _seed_release(db)
-    solicitud = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
     linea_id = solicitud["lineas"][0]["id"]
 
     item = Item(release_id=release.id, price=20, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
@@ -480,23 +541,15 @@ def test_refill_sugerencias_no_falla_amb_candidats_reals(db, client):
 
 
 def test_pool_lineas_aplana_i_pagina(db, client):
-    """El pool ha de mostrar línies de sol·licituds diferents (i orígens
-    diferents) com una sola llista, amb l'artista/títol resolt des del
-    catàleg quan la línia té release_id (veure comentari a Release.artista
-    sobre per què cal el join a RecordProduct, no Release.artista)."""
+    """El pool ha de mostrar totes les línies soltes (sense sol·licitud)
+    com una sola llista, amb l'artista/títol resolt des del catàleg quan la
+    línia té release_id (veure comentari a Release.artista sobre per què
+    cal el join a RecordProduct, no Release.artista)."""
     admin = _admin_token(client, db)
     release = _seed_release(db, "Artista Catalogat", "Disc del catàleg")
 
-    client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"release_id": str(release.id), "quantity": 2}]},
-        headers=_auth(admin),
-    )
-    client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"title": "Disc sense catalogar", "quantity": 1}]},
-        headers=_auth(admin),
-    )
+    _add_pool(client, admin, [{"release_id": str(release.id), "quantity": 2}])
+    _add_pool(client, admin, [{"title": "Disc sense catalogar", "quantity": 1}])
 
     resp = client.get("/admin/solicitudes-compra/pool", headers=_auth(admin))
     assert resp.status_code == 200
@@ -518,36 +571,33 @@ def test_pool_lineas_aplana_i_pagina(db, client):
 
 def test_pool_lineas_filtra_per_estat_origen_i_cerca(db, client):
     admin = _admin_token(client, db)
-    prov = _seed_proveedor(db)
     release = _seed_release(db, "Reposició Band", "Reposar-me")
 
-    manual = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"title": "Pendent Manual", "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
-    refill = client.post(
-        "/admin/solicitudes-compra",
-        json={"origen": "refill_stock", "lineas": [{"release_id": str(release.id), "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
-    cancelada = client.post(
-        "/admin/solicitudes-compra",
-        json={"lineas": [{"title": "Es cancel·la", "quantity": 1}]},
-        headers=_auth(admin),
-    ).json()
-    client.patch(f"/admin/solicitudes-compra/{cancelada['id']}/cancelar", headers=_auth(admin))
+    # Pendent: queda solta al pool.
+    _add_pool(client, admin, [{"title": "Pendent Manual", "quantity": 1}])
 
+    # Resolta directament des del pool, sense consolidar-se mai en cap
+    # sol·licitud.
+    refill_lineas = _add_pool(client, admin, [{"release_id": str(release.id), "quantity": 1}], origen="refill_stock")
+    item = Item(release_id=release.id, price=20, condition=CondicionItem.segona_ma, status=ItemStatus.disponible)
+    db.add(item)
+    db.commit()
     resp = client.post(
-        "/admin/solicitudes-compra/resolver",
-        json={
-            "proveedor_id": str(prov.id),
-            "date": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": refill["lineas"][0]["id"]}],
-        },
+        f"/admin/solicitudes-compra/lineas/{refill_lineas[0]['id']}/resoldre-estoc",
+        json={"item_id": str(item.id)},
         headers=_auth(admin),
     )
-    assert resp.status_code == 201
+    assert resp.status_code == 200
+
+    # Consolidada en una sol·licitud (encara que després es cancel·li): ja
+    # no és del pool.
+    consolidable = _add_pool(client, admin, [{"title": "Es consolida", "quantity": 1}])
+    gen = client.post(
+        "/admin/solicitudes-compra/generar",
+        json={"linea_ids": [consolidable[0]["id"]]},
+        headers=_auth(admin),
+    ).json()
+    client.patch(f"/admin/solicitudes-compra/{gen['id']}/cancelar", headers=_auth(admin))
 
     pendents = client.get("/admin/solicitudes-compra/pool", headers=_auth(admin)).json()
     assert [l["title"] for l in pendents["results"]] == ["Pendent Manual"]
@@ -555,40 +605,28 @@ def test_pool_lineas_filtra_per_estat_origen_i_cerca(db, client):
     resoltes = client.get("/admin/solicitudes-compra/pool?estado=resolta", headers=_auth(admin)).json()
     assert [l["title"] for l in resoltes["results"]] == ["Reposar-me"]
 
-    cancelades = client.get("/admin/solicitudes-compra/pool?estado=cancelada", headers=_auth(admin)).json()
-    assert [l["title"] for l in cancelades["results"]] == ["Es cancel·la"]
-
     totes = client.get("/admin/solicitudes-compra/pool?estado=totes", headers=_auth(admin)).json()
-    assert totes["total"] == 3
+    # Només 2: la consolidada ha sortit del pool en generar-se la sol·licitud.
+    assert totes["total"] == 2
 
     per_origen = client.get("/admin/solicitudes-compra/pool?estado=totes&origen=refill_stock", headers=_auth(admin)).json()
     assert [l["title"] for l in per_origen["results"]] == ["Reposar-me"]
 
-    per_cerca = client.get("/admin/solicitudes-compra/pool?estado=totes&q=cancel", headers=_auth(admin)).json()
-    assert [l["title"] for l in per_cerca["results"]] == ["Es cancel·la"]
+    per_cerca = client.get("/admin/solicitudes-compra/pool?estado=totes&q=Pendent", headers=_auth(admin)).json()
+    assert [l["title"] for l in per_cerca["results"]] == ["Pendent Manual"]
 
 
 def test_solicituds_tenen_numero_correlatiu_per_any(db, client):
-    """Cada sol·licitud (independentment de l'origen) rep un número humà
-    ("SOL-{any}-{seq}"), correlatiu per tenant+any — mateix patró que
+    """Cada sol·licitud rep un número humà ("SOL-{any}-{seq}"), correlatiu
+    per tenant+any, assignat en consolidar-se — mateix patró que
     Comanda/Pressupost/Albara, veure DocumentCounter."""
     from datetime import datetime, timezone
 
     admin = _admin_token(client, db)
     any_actual = datetime.now(timezone.utc).year
 
-    s1 = client.post(
-        "/admin/solicitudes-compra", json={"lineas": [{"title": "U", "quantity": 1}]}, headers=_auth(admin),
-    ).json()
-    s2 = client.post(
-        "/admin/solicitudes-compra", json={"lineas": [{"title": "Dos", "quantity": 1}]}, headers=_auth(admin),
-    ).json()
+    s1 = _crear_solicitud(client, admin, [{"title": "U", "quantity": 1}])
+    s2 = _crear_solicitud(client, admin, [{"title": "Dos", "quantity": 1}])
 
     assert s1["numero"] == f"SOL-{any_actual}-000001"
     assert s2["numero"] == f"SOL-{any_actual}-000002"
-
-    # Aplicat també a la línia dins del pool (mateix número que la solicitud pare).
-    pool = client.get("/admin/solicitudes-compra/pool", headers=_auth(admin)).json()
-    numeros_pool = {l["title"]: l["solicitud_numero"] for l in pool["results"]}
-    assert numeros_pool["U"] == s1["numero"]
-    assert numeros_pool["Dos"] == s2["numero"]

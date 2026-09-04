@@ -114,9 +114,8 @@ def test_flux_complet_fins_en_tramit(db, client):
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201
-    solicitud = resp.json()
-    assert solicitud["origen"] == "peticion_cliente"
-    assert len(solicitud["lineas"]) == 1
+    linea = resp.json()
+    assert linea["origen"] == "peticion_cliente"
 
     db.expire_all()
     peticion_db = db.get(PeticionCliente, uuid.UUID(peticion_id))
@@ -432,11 +431,13 @@ def test_vincular_item_tanca_linia_i_solicitud(db, client):
     assert resp.status_code == 200
 
     db.expire_all()
-    from app.models import EstadoSolicitud, SolicitudCompra, SolicitudCompraLinea
+    from app.models import SolicitudCompraLinea
 
     linea_db = db.get(SolicitudCompraLinea, linea_id)
     assert linea_db.item_resuelto_id == item.id
-    assert db.get(SolicitudCompra, linea_db.solicitud_id).estado == EstadoSolicitud.resolta
+    # Encara al pool (mai consolidada en cap sol·licitud numerada): resoldre
+    # des d'estoc no en requereix una.
+    assert linea_db.solicitud_id is None
 
 
 def test_resoldre_estoc_reserva_per_peticio_i_tanca_solicitud(db, client):
@@ -455,7 +456,7 @@ def test_resoldre_estoc_reserva_per_peticio_i_tanca_solicitud(db, client):
         headers=_auth(admin_token),
     )
     assert resp.status_code == 200
-    assert resp.json()["estado"] == "resolta"
+    assert resp.json()["resuelta"] is True
 
     db.expire_all()
     assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).status.value == "reservada"
@@ -473,6 +474,15 @@ def _resolver_solicitud_en_comanda(client, db, admin_token, peticion_id) -> str:
     prov = Proveedor(name="Distri Test")
     db.add(prov)
     db.commit()
+
+    # La línia encara és al pool (vincular-solicitud ja no crea cap
+    # SolicitudCompra): cal consolidar-la primer.
+    gen = client.post(
+        "/admin/solicitudes-compra/generar",
+        json={"linea_ids": [str(linea_id)]},
+        headers=_auth(admin_token),
+    )
+    assert gen.status_code == 201, gen.text
 
     resp = client.post(
         "/admin/solicitudes-compra/resolver",

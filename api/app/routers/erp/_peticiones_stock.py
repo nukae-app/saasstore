@@ -202,10 +202,13 @@ def _enviar_email_item_arribat(db: Session, peticion: PeticionCliente, tenant: T
 
 
 def _tancar_linea_solicitud_desde_stock(db: Session, linea: SolicitudCompraLinea, item: Item) -> None:
-    """Marca la línia de sol·licitud com a resolta amb un exemplar d'estoc
-    (sense compra) i, si totes les línies de la sol·licitud ja estan
-    resoltes, la passa a 'resolta'."""
+    """Marca la línia com a resolta amb un exemplar d'estoc (sense compra).
+    Si la línia ja estava consolidada en una sol·licitud i totes les seves
+    línies ja estan resoltes, la passa a 'resolta'; si encara era al pool
+    (sense sol·licitud), no hi ha res més a fer."""
     linea.item_resuelto_id = item.id
+    if linea.solicitud_id is None:
+        return
     solicitud = db.get(SolicitudCompra, linea.solicitud_id)
     if all(l.comanda_linea_id is not None or l.item_resuelto_id is not None for l in solicitud.lineas):
         solicitud.estado = EstadoSolicitud.resolta

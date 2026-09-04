@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
@@ -8,13 +7,12 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import (
     CondicionItem, EstadoPeticionCliente, Item, ItemStatus, OrigenSolicitud, PeticionCliente,
-    Release, SolicitudCompra, SolicitudCompraLinea, User,
+    Release, SolicitudCompraLinea, User,
 )
 from ...schemas import (
     PeticionCatalogarIn, PeticionClienteAdminOut, PeticionPrecioIn, PeticionTiendaIn,
-    PeticionVincularIn, PeticionVincularItemIn, ReservaRecollidaOut, SolicitudCompraOut,
+    PeticionVincularIn, PeticionVincularItemIn, ReservaRecollidaOut, SolicitudCompraLineaOut,
 )
-from ...services.documents_numbering import next_document_number
 from ...services.emailer import render_email_html, send_email
 from ...services.i18n import translate
 from ...services.reservations import release_expired
@@ -23,7 +21,7 @@ from ._peticiones_stock import (
     _enviar_email_item_arribat, _get_peticion_or_404, _link_un_clic_a_peticions,
     _peticion_admin_out, _reservar_item_para_peticion, _tancar_linea_solicitud_desde_stock,
 )
-from .solicitudes_compra import _get_solicitud_or_404, _solicitud_out
+from .solicitudes_compra import _solicitud_linea_out
 
 router = APIRouter(prefix="/admin", tags=["erp"], dependencies=[Depends(require_admin)])
 
@@ -181,27 +179,22 @@ def fijar_precio_peticion(peticion_id: uuid.UUID, payload: PeticionPrecioIn, req
     return _peticion_admin_out(_get_peticion_or_404(db, peticion.id))
 
 
-@router.post("/peticiones/{peticion_id}/vincular-solicitud", status_code=201, response_model=SolicitudCompraOut)
+@router.post("/peticiones/{peticion_id}/vincular-solicitud", status_code=201, response_model=SolicitudCompraLineaOut)
 def vincular_peticion_a_solicitud(peticion_id: uuid.UUID, payload: PeticionVincularIn, db: Session = Depends(get_db)):
-    """Un cop el client ha acceptat el preu: crea una SolicitudCompra
-    (origen='peticion_cliente') amb una línia per aquest release, per
-    continuar amb el flux normal (resoldre-la cap a una Comanda, com sempre)."""
+    """Un cop el client ha acceptat el preu: afegeix una línia al pool
+    (`origen='peticion_cliente'`, encara sense sol·licitud) per aquest
+    release. Es consolidarà en una sol·licitud numerada més endavant, junt
+    amb altres línies si convé (veure `generar_solicitud`)."""
     peticion = _get_peticion_or_404(db, peticion_id)
     if peticion.status != EstadoPeticionCliente.acceptada:
         raise HTTPException(409, "Només es pot vincular una petició ja acceptada pel client")
     if peticion.release_id is None:
         raise HTTPException(422, "La petició no té un disc catalogat")
 
-    fiscal_year = datetime.now(timezone.utc).year
-    solicitud = SolicitudCompra(
-        fiscal_year=fiscal_year, number=next_document_number(db, "solicitud_compra", fiscal_year),
-        origen=OrigenSolicitud.peticion_cliente, notes=f"Petició de {peticion.user.email}",
-    )
-    db.add(solicitud)
-    db.flush()
     linea = SolicitudCompraLinea(
-        solicitud_id=solicitud.id, release_id=peticion.release_id,
+        solicitud_id=None, origen=OrigenSolicitud.peticion_cliente, release_id=peticion.release_id,
         quantity=payload.cantidad, proveedor_sugerido_id=payload.proveedor_sugerido_id,
+        notes=f"Petició de {peticion.user.email}",
     )
     db.add(linea)
     db.flush()
@@ -209,7 +202,8 @@ def vincular_peticion_a_solicitud(peticion_id: uuid.UUID, payload: PeticionVincu
     peticion.solicitud_compra_linea_id = linea.id
     peticion.status = EstadoPeticionCliente.en_tramit
     db.commit()
-    return _solicitud_out(_get_solicitud_or_404(db, solicitud.id))
+    db.refresh(linea)
+    return _solicitud_linea_out(linea)
 
 
 @router.post("/peticiones/{peticion_id}/vincular-item", response_model=PeticionClienteAdminOut)

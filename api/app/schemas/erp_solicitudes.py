@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -27,15 +27,24 @@ class SolicitudCompraLineaIn(BaseModel):
         return self
 
 
-class SolicitudCompraIn(BaseModel):
+class PoolLineasIn(BaseModel):
+    """Afegeix línies soltes al pool (sense sol·licitud): `origen` s'aplica
+    a totes les línies d'aquesta crida. `peticion_cliente` no és aquí perquè
+    ja té el seu propi flux (`POST /peticiones/{id}/vincular-solicitud`)."""
     origen: Literal["manual", "refill_stock"] = "manual"
-    user_id: uuid.UUID | None = None
-    notes: str | None = None
     lineas: list[SolicitudCompraLineaIn] = Field(min_length=1)
+
+
+class SolicitudGenerarIn(BaseModel):
+    """Consolida línies del pool (`solicitud_id IS NULL`, poden ser de
+    diversos orígens) en una nova sol·licitud numerada."""
+    linea_ids: list[uuid.UUID] = Field(min_length=1)
+    notes: str | None = None
 
 
 class SolicitudCompraLineaOut(BaseModel):
     id: uuid.UUID
+    origen: str
     release_id: uuid.UUID | None
     artist: str | None
     title: str | None
@@ -48,13 +57,16 @@ class SolicitudCompraLineaOut(BaseModel):
     item_resuelto_id: uuid.UUID | None = None
     resuelta: bool = False
     notes: str | None
+    created_at: datetime
 
 
 class SolicitudCompraOut(BaseModel):
     id: uuid.UUID
     numero: str
     estado: str
-    origen: str
+    # Orígens distints de les línies que conté (pot ser més d'un: una
+    # sol·licitud consolidada des del pool pot barrejar-los).
+    origenes: list[str]
     user_id: uuid.UUID | None
     user_nom: str | None = None
     notes: str | None
@@ -84,23 +96,11 @@ class ResoldreEstocIn(BaseModel):
     item_id: uuid.UUID
 
 
-class SolicitudPoolLineaOut(SolicitudCompraLineaOut):
-    """Una línia de sol·licitud amb el context del seu lot d'origen aplanat
-    (veure GET /solicitudes-compra/pool): permet llistar-les totes juntes,
-    sense agrupar-les per lot, que és com les gestiona l'admin realment."""
-    solicitud_id: uuid.UUID
-    solicitud_numero: str
-    origen: str
-    solicitud_notes: str | None
-    solicitud_created_at: datetime
-    solicitud_estado: str
-
-
 class SolicitudPoolPage(BaseModel):
     total: int
     page: int
     page_size: int
-    results: list[SolicitudPoolLineaOut]
+    results: list[SolicitudCompraLineaOut]
 
 
 class SolicitudCompraListPage(BaseModel):

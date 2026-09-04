@@ -142,14 +142,14 @@ export default function NovaSolicitudPage() {
     setError('');
     const payload = {
       origen: 'manual',
-      notes: notas || null,
       lineas: lineas.map(l => ({
         release_id: l.release_id,
         quantity: parseInt(l.cantidad, 10),
         proveedor_sugerido_id: l.proveedor_sugerido_id || null,
+        notes: notas || null,
       })),
     };
-    const r = await authFetch('/admin/solicitudes-compra', { method: 'POST', body: JSON.stringify(payload) });
+    const r = await authFetch('/admin/solicitudes-compra/pool', { method: 'POST', body: JSON.stringify(payload) });
     setSaving(false);
     if (r.ok) router.push('/admin/compras/solicituds');
     else setError((await r.json().catch(() => ({}))).detail || t('purchases.request.create_error', 'No s\'ha pogut crear la sol·licitud.'));
@@ -158,12 +158,12 @@ export default function NovaSolicitudPage() {
   return (
     <div className="space-y-5 max-w-3xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('purchases.request_modal.title', 'Nova sol·licitud de compra')}</h2>
+        <h2 className="text-2xl font-bold text-zinc-900">{t('purchases.add_to_pool_page.title', 'Afegir discos al pool')}</h2>
       </div>
 
       <form onSubmit={save} className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-5">
         <p className="text-xs text-zinc-400">
-          {t('purchases.request_modal.hint', 'Afegeix els discos que vols comprar, encara sense triar proveïdor. Més endavant les resoldràs cap a una o diverses comandes des de la pestanya "Sol·licituds".')}
+          {t('purchases.add_to_pool_page.hint', 'Afegeix els discos que vols comprar. Més endavant, des de la pestanya "Sol·licituds", els seleccionaràs per crear-ne una sol·licitud numerada i, quan calgui, la comanda a proveïdor.')}
         </p>
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes')}</label>
@@ -282,7 +282,7 @@ export default function NovaSolicitudPage() {
             {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={saving || lineas.length === 0}>
-            {saving ? t('common.saving') : `${t('purchases.request_modal.create_btn', 'Crear sol·licitud')} (${lineas.length})`}
+            {saving ? t('common.saving') : `${t('purchases.btn.add_to_pool', 'Afegir al pool')} (${lineas.length})`}
           </Button>
         </div>
       </form>

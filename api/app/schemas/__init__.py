@@ -84,14 +84,14 @@ from .erp_historial import (
 
 from .erp_solicitudes import (
     SolicitudCompraLineaIn,
-    SolicitudCompraIn,
+    PoolLineasIn,
+    SolicitudGenerarIn,
     SolicitudCompraLineaOut,
     SolicitudCompraOut,
     SolicitudResolverLineaIn,
     SolicitudResolverIn,
     ResoldreEstocIn,
     RefillSugerenciaOut,
-    SolicitudPoolLineaOut,
     SolicitudPoolPage,
     SolicitudCompraListPage,
 )
