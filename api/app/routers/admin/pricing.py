@@ -27,7 +27,9 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(requir
 @router.get("/offers", response_model=list[OfferOut])
 def list_offers(db: Session = Depends(get_db)):
     return db.scalars(
-        select(Offer).options(selectinload(Offer.items)).order_by(Offer.priority.desc(), Offer.created_at.desc())
+        select(Offer)
+        .options(selectinload(Offer.items).selectinload(OfferItem.item).selectinload(Item.release))
+        .order_by(Offer.priority.desc(), Offer.created_at.desc())
     ).all()
 
 

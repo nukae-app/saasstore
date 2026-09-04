@@ -96,6 +96,21 @@ class OfferItem(TenantScoped, Base):
     offer: Mapped["Offer"] = relationship(back_populates="items")
     item: Mapped["Item"] = relationship()
 
+    # Passthrough de solo lectura para que el panel admin pueda mostrar qué
+    # disco es cada ajuste manual sin un endpoint aparte — igual patrón que
+    # los passthrough de Release/Item en catalog.py/stock.py.
+    @property
+    def item_title(self) -> str | None:
+        return self.item.release.title if self.item else None
+
+    @property
+    def item_artista(self) -> str | None:
+        return self.item.release.artista if self.item else None
+
+    @property
+    def item_price(self) -> Decimal | None:
+        return self.item.price if self.item else None
+
 
 class Coupon(TenantScoped, Base):
     """Codi de descompte aplicat pel client al checkout (a diferència

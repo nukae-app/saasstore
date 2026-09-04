@@ -62,6 +62,17 @@ def test_match_por_precio_y_condicion(db):
     assert caro_segona.id not in ids
 
 
+def test_match_criterios_vacios_no_matchea_nada(db):
+    """Una oferta 'solo estos discos concretos' (sin criterio dinámico, solo
+    OfferItem manual) no debe rebajar de rebote todo el catálogo."""
+    release = _release(db)
+    _item(db, release, price="10.00")
+    _item(db, release, price="50.00")
+
+    ids = set(db.scalars(match_items_by_criteria(OfferCriteria())))
+    assert ids == set()
+
+
 def test_match_excluye_stock_no_disponible(db):
     from app.models import ItemStatus
     release = _release(db)

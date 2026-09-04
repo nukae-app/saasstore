@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, and_, false, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..models import (
@@ -65,7 +65,17 @@ def _item_disponible_clause():
 def match_items_by_criteria(criteria: OfferCriteria) -> Select:
     """SELECT de `Item.id` que cumplen los criterios dinámicos de una oferta,
     sobre stock disponible. No incluye los ajustes manuales (`OfferItem`) —
-    ver `resolve_offer_items`."""
+    ver `resolve_offer_items`.
+
+    Una oferta SIN ningún criterio relleno no matchea nada por sí sola (en
+    vez de "todo el catálogo disponible"): si no fuera así, una oferta
+    pensada para cubrir solo un puñado de discos concretos (vía `OfferItem`
+    manual) rebajaría sin querer todo el stock hasta que se le añadiera una
+    exclusión para cada artículo — justo lo contrario de lo que se busca al
+    crear una oferta "solo estos discos"."""
+    if not criteria.model_dump(exclude_none=True):
+        return select(Item.id).where(false())
+
     now = datetime.now(timezone.utc)
     stmt = (
         select(Item.id)

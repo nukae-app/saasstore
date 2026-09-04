@@ -50,6 +50,9 @@ class OfferItemOut(BaseModel):
     item_id: uuid.UUID
     mode: OfferItemModeLiteral
     created_at: datetime
+    item_title: str | None = None
+    item_artista: str | None = None
+    item_price: Decimal | None = None
 
     model_config = {"from_attributes": True}
 

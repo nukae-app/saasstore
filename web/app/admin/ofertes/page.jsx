@@ -58,6 +58,11 @@ export default function OfertesPage() {
   const [etiquetes, setEtiquetes] = useState([]);
   const [editing, setEditing] = useState(null); // null | 'new' | offer object
   const [form, setForm] = useState(EMPTY_OFFER);
+  // Discos añadidos/excluidos a mano mientras se crea una oferta NUEVA
+  // (todavía sin id): se guardan aquí en local y se mandan a la API justo
+  // después de crear la oferta, en save(). Al editar una oferta ya
+  // existente esto no se usa — se persiste al instante (ver reloadEditing).
+  const [pendingItems, setPendingItems] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [recomputing, setRecomputing] = useState(false);
@@ -66,8 +71,20 @@ export default function OfertesPage() {
   async function load() {
     setLoading(true);
     const r = await authFetch('/admin/offers');
-    setOffers(await r.json());
+    const data = await r.json();
+    setOffers(data);
     setLoading(false);
+    return data;
+  }
+
+  // Tras añadir/quitar un disco a mano de una oferta ya guardada, refresca
+  // tanto la tabla como el propio panel de edición abierto (si no, la
+  // lista de "discos concretos" que se ve mientras editas se queda
+  // desactualizada hasta cerrar y reabrir).
+  async function reloadEditing(offerId) {
+    const data = await load();
+    const fresh = data.find(o => o.id === offerId);
+    if (fresh) setEditing(fresh);
   }
 
   useEffect(() => {
@@ -78,6 +95,7 @@ export default function OfertesPage() {
 
   function openNew() {
     setForm({ ...EMPTY_OFFER, criteria: { ...EMPTY_CRITERIA } });
+    setPendingItems([]);
     setEditing('new');
     setError('');
   }
@@ -120,8 +138,17 @@ export default function OfertesPage() {
         return;
       }
       const saved = await r.json();
-      setEditing(saved); // se queda en edición para poder añadir items manuales
-      load();
+      if (isNew && pendingItems.length > 0) {
+        // Discos elegidos a mano antes de que la oferta tuviera id: se
+        // mandan ahora, uno a uno (el endpoint no acepta un lote).
+        for (const p of pendingItems) {
+          await authFetch(`/admin/offers/${saved.id}/items`, {
+            method: 'POST', body: JSON.stringify({ item_id: p.item_id, mode: p.mode }),
+          });
+        }
+        setPendingItems([]);
+      }
+      await reloadEditing(saved.id); // se queda en edición, con los items ya reflejados
     } finally {
       setSaving(false);
     }
@@ -180,7 +207,8 @@ export default function OfertesPage() {
           seccions={seccions} etiquetes={etiquetes} isVinils={isVinils}
           offerId={editing === 'new' ? null : editing.id}
           savedOffer={editing === 'new' ? null : editing}
-          onOfferItemsChanged={load}
+          pendingItems={pendingItems} setPendingItems={setPendingItems}
+          onOfferItemsChanged={() => reloadEditing(editing.id)}
         />
       )}
 
@@ -245,6 +273,7 @@ export default function OfertesPage() {
 function OfferForm({
   form, setForm, onSave, onCancel, saving, error, isNew,
   seccions, etiquetes, isVinils, offerId, savedOffer, onOfferItemsChanged,
+  pendingItems, setPendingItems,
 }) {
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const fc = (k, v) => setForm(p => ({ ...p, criteria: { ...p.criteria, [k]: v } }));
@@ -485,8 +514,32 @@ function OfferForm({
         )}
       </div>
 
-      {!isNew && savedOffer && (
-        <ManualItemsSection offer={savedOffer} onChanged={onOfferItemsChanged} />
+      {isNew ? (
+        <ManualItemsSection
+          items={pendingItems.map(p => ({ ...p, key: p.item_id }))}
+          onAdd={(itemId, mode, meta) => {
+            setPendingItems(list => [...list.filter(x => x.item_id !== itemId), { item_id: itemId, mode, ...meta }]);
+            return Promise.resolve();
+          }}
+          onRemove={itemId => {
+            setPendingItems(list => list.filter(x => x.item_id !== itemId));
+            return Promise.resolve();
+          }}
+        />
+      ) : savedOffer && (
+        <ManualItemsSection
+          items={(savedOffer.items || []).map(oi => ({ ...oi, key: oi.id }))}
+          onAdd={async (itemId, mode) => {
+            await authFetch(`/admin/offers/${savedOffer.id}/items`, {
+              method: 'POST', body: JSON.stringify({ item_id: itemId, mode }),
+            });
+            await onOfferItemsChanged();
+          }}
+          onRemove={async itemId => {
+            await authFetch(`/admin/offers/${savedOffer.id}/items/${itemId}`, { method: 'DELETE' });
+            await onOfferItemsChanged();
+          }}
+        />
       )}
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -503,7 +556,12 @@ function OfferForm({
   );
 }
 
-function ManualItemsSection({ offer, onChanged }) {
+// `items`: [{ key, item_id, mode, item_title, item_artista, item_price }].
+// `onAdd(itemId, mode, meta)` / `onRemove(itemId)` deciden si eso persiste
+// ya mismo por la API (oferta ya guardada) o se queda en local (oferta
+// nueva sin id todavía, ver OfertesPage.pendingItems) — el componente no
+// necesita saberlo, solo espera a que la promesa resuelva.
+function ManualItemsSection({ items, onAdd, onRemove }) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -515,10 +573,10 @@ function ManualItemsSection({ offer, onChanged }) {
     try {
       const r = await authFetch(`/catalog?q=${encodeURIComponent(query)}&page_size=15`);
       const data = await r.json();
-      const items = (data.results ?? []).flatMap(rel =>
+      const found = (data.results ?? []).flatMap(rel =>
         (rel.items ?? []).map(it => ({ ...it, artista: rel.artista, titulo: rel.title }))
       );
-      setResults(items);
+      setResults(found);
     } finally {
       setSearching(false);
     }
@@ -531,24 +589,20 @@ function ManualItemsSection({ offer, onChanged }) {
     debounce = setTimeout(() => search(val), 300);
   }
 
-  async function addOverride(itemId, mode) {
+  async function handleAdd(it, mode) {
     setBusy(true);
     try {
-      await authFetch(`/admin/offers/${offer.id}/items`, {
-        method: 'POST', body: JSON.stringify({ item_id: itemId, mode }),
-      });
+      await onAdd(it.id, mode, { item_title: it.titulo, item_artista: it.artista, item_price: it.price });
       setQ(''); setResults([]);
-      onChanged();
     } finally {
       setBusy(false);
     }
   }
 
-  async function removeOverride(itemId) {
+  async function handleRemove(itemId) {
     setBusy(true);
     try {
-      await authFetch(`/admin/offers/${offer.id}/items/${itemId}`, { method: 'DELETE' });
-      onChanged();
+      await onRemove(itemId);
     } finally {
       setBusy(false);
     }
@@ -556,21 +610,27 @@ function ManualItemsSection({ offer, onChanged }) {
 
   return (
     <div className="border-t border-zinc-100 pt-4">
-      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
-        Ajustos manuals (incloure/excloure articles concrets)
+      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">
+        Discos concrets (incloure/excloure a mà)
+      </p>
+      <p className="text-xs text-zinc-400 mb-2">
+        Per fer una oferta que només afecti uns discos triats, deixa els criteris de dalt buits i afegeix'ls aquí.
       </p>
 
-      {(offer.items || []).length > 0 && (
+      {items.length > 0 && (
         <ul className="mb-3 space-y-1">
-          {offer.items.map(oi => (
-            <li key={oi.id} className="flex items-center justify-between text-xs bg-zinc-50 rounded-lg px-3 py-1.5">
-              <span>
-                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold mr-2 ${oi.mode === 'include' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {oi.mode === 'include' ? 'INCLÒS' : 'EXCLÒS'}
+          {items.map(it => (
+            <li key={it.key} className="flex items-center justify-between gap-2 text-xs bg-zinc-50 rounded-lg px-3 py-1.5">
+              <span className="truncate">
+                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold mr-2 shrink-0 ${it.mode === 'include' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {it.mode === 'include' ? 'INCLÒS' : 'EXCLÒS'}
                 </span>
-                <span className="font-mono text-zinc-500">{oi.item_id.slice(0, 8)}…</span>
+                {[it.item_artista, it.item_title].filter(Boolean).join(' — ') || `Article ${it.item_id.slice(0, 8)}…`}
+                {it.item_price != null && (
+                  <span className="text-zinc-400"> · {parseFloat(it.item_price).toFixed(2)} €</span>
+                )}
               </span>
-              <button onClick={() => removeOverride(oi.item_id)} disabled={busy} className="text-zinc-400 hover:text-red-600">
+              <button onClick={() => handleRemove(it.item_id)} disabled={busy} className="text-zinc-400 hover:text-red-600 shrink-0">
                 <Trash2 size={13} />
               </button>
             </li>
@@ -597,13 +657,13 @@ function ManualItemsSection({ offer, onChanged }) {
               </span>
               <div className="flex gap-1 shrink-0">
                 <button
-                  onClick={() => addOverride(it.id, 'include')} disabled={busy}
+                  onClick={() => handleAdd(it, 'include')} disabled={busy}
                   className="px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 text-[11px] font-medium"
                 >
                   Incloure
                 </button>
                 <button
-                  onClick={() => addOverride(it.id, 'exclude')} disabled={busy}
+                  onClick={() => handleAdd(it, 'exclude')} disabled={busy}
                   className="px-2 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 text-[11px] font-medium"
                 >
                   Excloure

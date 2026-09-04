@@ -171,6 +171,47 @@ def test_offer_item_manual_include(db, client):
     assert reverted.price == Decimal("999.00")
 
 
+def test_offer_solo_discos_concretos_sin_criterio(db, client):
+    """Oferta creada sin ningún criterio (solo pensada para incluir discos a
+    mano): el resto del catálogo no debe verse afectado."""
+    admin = _admin_token(client, db)
+    elegido = _seed_item(db, price="30.00")
+    otro = _seed_item(db, price="30.00")
+
+    offer = client.post(
+        "/admin/offers",
+        json={"name": "Solo estos", "discount_type": "percentage", "discount_value": "10"},
+        headers=_auth(admin),
+    ).json()
+    client.post(
+        f"/admin/offers/{offer['id']}/items", json={"item_id": str(elegido.id), "mode": "include"},
+        headers=_auth(admin),
+    )
+
+    db.expire_all()
+    assert db.get(Item, elegido.id).price == Decimal("27.00")
+    assert db.get(Item, otro.id).price == Decimal("30.00")  # no tocado
+
+
+def test_offer_item_incluye_titulo_y_precio_del_disco(db, client):
+    admin = _admin_token(client, db)
+    item = _seed_item(db, price="15.00")
+    offer = client.post(
+        "/admin/offers",
+        json={"name": "Con detalle", "discount_type": "percentage", "discount_value": "10"},
+        headers=_auth(admin),
+    ).json()
+
+    resp = client.post(
+        f"/admin/offers/{offer['id']}/items", json={"item_id": str(item.id), "mode": "include"},
+        headers=_auth(admin),
+    )
+    body = resp.json()
+    assert body["item_title"] == "Àlbum"
+    assert body["item_artista"] == "Artista"
+    assert Decimal(body["item_price"]) == Decimal("13.50")  # ya rebajado tras el recompute
+
+
 def test_offer_discount_porcentaje_mayor_a_100_falla(db, client):
     admin = _admin_token(client, db)
     resp = client.post(
