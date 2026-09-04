@@ -307,6 +307,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "orders.pickup.sell_at_tpv":           {"ca": "Vendre al TPV", "es": "Vender en el TPV", "en": "Sell at POS"},
     "orders.detail.change_short":          {"ca": "Canviar", "es": "Cambiar", "en": "Change"},
     "orders.detail.print_shipping_label":  {"ca": "Imprimir etiqueta d'enviament", "es": "Imprimir etiqueta de envío", "en": "Print shipping label"},
+    "orders.detail.download_delivery_note": {"ca": "Descarregar albarà", "es": "Descargar albarán", "en": "Download delivery note"},
     "orders.detail.redsys_payment":        {"ca": "Pagament Redsys", "es": "Pago Redsys", "en": "Redsys payment"},
     "orders.detail.authorization":         {"ca": "Autorització", "es": "Autorización", "en": "Authorization"},
     "orders.detail.pending_arrival":       {"ca": "Pendent d'arribar", "es": "Pendiente de llegar", "en": "Pending arrival"},

@@ -8,7 +8,19 @@ import ReturnSaleModal from '../../../components/admin/ReturnSaleModal';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
 import Link from 'next/link';
-import { X, RotateCcw, Truck, RefreshCw, Store, Clock, CreditCard, Printer, Search } from 'lucide-react';
+import { X, RotateCcw, Truck, RefreshCw, Store, Clock, CreditCard, Printer, Search, Download } from 'lucide-react';
+
+async function downloadPdf(url, filename) {
+  const r = await authFetch(url);
+  if (!r.ok) return;
+  const blob = await r.blob();
+  const objUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(objUrl);
+}
 
 const STATUS_COLOR = {
   pendiente_pago: 'bg-yellow-100 text-yellow-700',
@@ -539,11 +551,19 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
             )}
           </div>
 
-          {potImprimirEtiqueta && (
-            <div className="flex justify-end">
-              <Button size="sm" variant="secondary" onClick={() => window.print()}>
-                <Printer size={14} /> {t('orders.detail.print_shipping_label', "Imprimir etiqueta d'enviament")}
-              </Button>
+          {(potImprimirEtiqueta || order.albara_id) && (
+            <div className="flex justify-end gap-2">
+              {order.albara_id && (
+                <Button size="sm" variant="secondary"
+                  onClick={() => downloadPdf(`/admin/albarans/${order.albara_id}/pdf`, `albara_${order.id.slice(0, 8)}.pdf`)}>
+                  <Download size={14} /> {t('orders.detail.download_delivery_note', 'Descarregar albarà')}
+                </Button>
+              )}
+              {potImprimirEtiqueta && (
+                <Button size="sm" variant="secondary" onClick={() => window.print()}>
+                  <Printer size={14} /> {t('orders.detail.print_shipping_label', "Imprimir etiqueta d'enviament")}
+                </Button>
+              )}
             </div>
           )}
 

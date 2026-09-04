@@ -3,16 +3,18 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
 from ...models import (
-    CajaMovimiento, CajaSession, CondicionItem, DevolucionVenta, Item, Order, OrderItem,
+    Albara, CajaMovimiento, CajaSession, CondicionItem, DevolucionVenta, Item, Order, OrderItem,
     OrderOrigen, OrderStatus, StockHold, TipoMovimiento, User,
 )
 from ...schemas import (
     OrderMarcarPagadoTiendaIn, OrderPendentTiendaItemOut, OrderPendentTiendaOut, OrderStatusUpdate,
 )
+from ...services.albarans import crear_albara_per_order
 from ...services.discogs_sync import push_shipped_status, sync_stock_listing
 from ...services.emailer import render_email_html, send_email
 from ...services.i18n import translate
@@ -217,6 +219,7 @@ def get_order_detail(order_id: uuid.UUID, db: Session = Depends(get_db)):
         select(DevolucionVenta.order_item_id)
         .where(DevolucionVenta.order_item_id.in_([oi.id for oi in order.items]))
     ).all())
+    albara_id = db.scalar(select(Albara.id).where(Albara.order_id == order.id))
 
     return {
         "id": order.id,
@@ -235,6 +238,7 @@ def get_order_detail(order_id: uuid.UUID, db: Session = Depends(get_db)):
         "discogs_order_id": order.discogs_order_id,
         "discogs_buyer": order.discogs_buyer,
         "avisada_recollida_at": order.pickup_notified_at,
+        "albara_id": albara_id,
         "payments": [
             {
                 "id": p.id,
@@ -367,18 +371,30 @@ def update_order_status(order_id: uuid.UUID, payload: OrderStatusUpdate, db: Ses
         else:
             raise HTTPException(409, f"No es pot canviar de {order.status.value} a {status.value}")
 
-        if status == OrderStatus.enviado and order.discogs_order_id:
-            # best-effort: si falla, l'enviament local ja ha quedat registrat igualment
-            push_shipped_status(
-                get_tenant_secrets(order.tenant_id).discogs_token,
-                order.discogs_order_id, order.tracking_number, order.carrier,
-            )
+        if status == OrderStatus.enviado:
+            # Genera l'albarà en el mateix pas que es marca com a enviat —
+            # abans calia recordar anar a /admin/albarans i triar la
+            # comanda a mà. Idempotent: si ja en tenia un, no en duplica.
+            crear_albara_per_order(db, order)
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+
+            if order.discogs_order_id:
+                # best-effort: si falla, l'enviament local ja ha quedat registrat igualment
+                push_shipped_status(
+                    get_tenant_secrets(order.tenant_id).discogs_token,
+                    order.discogs_order_id, order.tracking_number, order.carrier,
+                )
     else:
         db.commit()
 
+    albara_id = db.scalar(select(Albara.id).where(Albara.order_id == order.id))
     return {
         "status": order.status, "metodo_envio": order.shipping_method,
         "numero_seguiment": order.tracking_number, "transportista": order.carrier,
+        "albara_id": albara_id,
     }
 
 

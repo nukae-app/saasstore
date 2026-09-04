@@ -1,6 +1,5 @@
 import io
 import uuid
-from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -11,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import Albara, Order, OrderItem
 from ...schemas import AlbaraIn, AlbaraOut
-from ...services.documents_numbering import next_document_number
+from ...services.albarans import crear_albara_per_order
 from ...services.documents_pdf import generate_albara_pdf
 from ...services.security import require_admin
 
@@ -42,15 +41,13 @@ def crear_albara(payload: AlbaraIn, db: Session = Depends(get_db)):
     order = db.get(Order, payload.order_id)
     if order is None:
         raise HTTPException(404, "Comanda no trobada")
+    # Alta manual explícita: a diferència de l'automàtica en marcar
+    # 'enviado' (idempotent, veure crear_albara_per_order), aquí sí que
+    # avisem si ja n'hi havia un — l'usuari ha triat aquesta comanda a mà.
+    if db.scalar(select(Albara.id).where(Albara.order_id == payload.order_id)) is not None:
+        raise HTTPException(409, "Aquesta comanda ja té un albarà")
 
-    delivery_date = payload.delivery_date or date.today()
-    fiscal_year = delivery_date.year
-    number = next_document_number(db, "albara", fiscal_year)
-    albara = Albara(
-        fiscal_year=fiscal_year, number=number,
-        order_id=payload.order_id, delivery_date=delivery_date, notes=payload.notes,
-    )
-    db.add(albara)
+    albara = crear_albara_per_order(db, order, delivery_date=payload.delivery_date, notes=payload.notes)
     try:
         db.commit()
     except IntegrityError:

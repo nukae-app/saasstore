@@ -10,7 +10,7 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from app.models import (
-    CategoriaDespesa, CondicionItem, Despesa, EstatPagamentDespesa, Order, OrderItem, Release, User,
+    CategoriaDespesa, CondicionItem, Despesa, EstatPagamentDespesa, Order, OrderItem, OrderStatus, Release, User,
 )
 from app.services.documents_numbering import next_document_number
 
@@ -186,3 +186,36 @@ def test_despesa_pdf(client, db):
     resp = client.get(f"/admin/despeses/{despesa.id}/pdf", headers=_auth(admin))
     assert resp.status_code == 200
     assert resp.content[:4] == b"%PDF"
+
+
+def test_marcar_enviado_genera_albara_automaticament(client, db):
+    """Ja no cal recordar anar a /admin/albarans i triar la comanda a mà:
+    en marcar com a enviada, es genera l'albarà en el mateix pas."""
+    admin = _admin_token(client, db)
+    order = _seed_order_amb_linia(db)
+    order.status = OrderStatus.pagado
+    db.commit()
+
+    resp = client.patch(
+        f"/admin/orders/{order.id}/status",
+        json={"status": "enviado", "tracking_number": "ABC123", "carrier": "GLS"},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["albara_id"] is not None
+
+    detalle = client.get(f"/admin/orders/{order.id}", headers=_auth(admin)).json()
+    assert detalle["albara_id"] == body["albara_id"]
+
+    albarans = client.get(f"/admin/albarans?order_id={order.id}", headers=_auth(admin)).json()
+    assert len(albarans) == 1
+    assert albarans[0]["id"] == body["albara_id"]
+
+    # Idempotent: tornar a marcar-la (p. ex. de 'enviado' a 'entregado' i un
+    # cop més a 'enviado' per corregir un error) no en duplica l'albarà.
+    client.patch(f"/admin/orders/{order.id}/status", json={"status": "entregado"}, headers=_auth(admin))
+    resp2 = client.patch(f"/admin/orders/{order.id}/status", json={"status": "enviado"}, headers=_auth(admin))
+    assert resp2.json()["albara_id"] == body["albara_id"]
+    albarans2 = client.get(f"/admin/albarans?order_id={order.id}", headers=_auth(admin)).json()
+    assert len(albarans2) == 1
