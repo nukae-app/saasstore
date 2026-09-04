@@ -194,7 +194,6 @@ def vincular_peticion_a_solicitud(peticion_id: uuid.UUID, payload: PeticionVincu
     linea = SolicitudCompraLinea(
         solicitud_id=None, origen=OrigenSolicitud.peticion_cliente, release_id=peticion.release_id,
         quantity=payload.cantidad, proveedor_sugerido_id=payload.proveedor_sugerido_id,
-        notes=f"Petició de {peticion.user.email}",
     )
     db.add(linea)
     db.flush()

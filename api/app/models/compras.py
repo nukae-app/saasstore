@@ -293,3 +293,7 @@ class SolicitudCompraLinea(TenantScoped, Base):
     proveedor_sugerido: Mapped["Proveedor | None"] = relationship()
     comanda_linea: Mapped["ComandaLinea | None"] = relationship()
     item_resuelto: Mapped["Item | None"] = relationship()
+    # Inversa de PeticionCliente.solicitud_compra_linea: només rellevant si
+    # `origen == peticion_cliente`, per mostrar de qui és la petició sense
+    # haver de consultar-ho a part (veure SolicitudCompraLineaOut.cliente_*).
+    peticion: Mapped["PeticionCliente | None"] = relationship(back_populates="solicitud_compra_linea", uselist=False)

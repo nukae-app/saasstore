@@ -222,6 +222,9 @@ export default function SolicitudsPage() {
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ORIGEN_SOLICITUD_COLOR[row.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
                           {origenSolicitudLabel(t, row.origen)}
                         </span>
+                        {row.origen === 'peticion_cliente' && (
+                          <div className="text-xs text-zinc-400 mt-0.5">{row.cliente_nombre || row.cliente_email}</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-zinc-600">{row.proveedor_sugerido_nombre ?? <span className="text-zinc-300">—</span>}</td>
                       <td className="px-4 py-3">
@@ -339,6 +342,9 @@ function GenerarSolicitudModal({ lineas, onClose, onSaved }) {
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
                   {origenSolicitudLabel(t, l.origen)}
                 </span>
+                {l.origen === 'peticion_cliente' && (
+                  <span className="text-zinc-400 text-xs">{l.cliente_nombre || l.cliente_email}</span>
+                )}
               </div>
             ))}
           </div>
@@ -531,6 +537,9 @@ function SolicitudsLlistatView({ proveedores }) {
                                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
                                     {origenSolicitudLabel(t, l.origen)}
                                   </span>
+                                  {l.origen === 'peticion_cliente' && (
+                                    <span className="text-zinc-400">{l.cliente_nombre || l.cliente_email}</span>
+                                  )}
                                   {l.proveedor_sugerido_nombre && (
                                     <span className="text-zinc-400">{t('purchases.suggested', 'Suggerit')}: {l.proveedor_sugerido_nombre}</span>
                                   )}

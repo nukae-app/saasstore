@@ -116,11 +116,18 @@ def test_flux_complet_fins_en_tramit(db, client):
     assert resp.status_code == 201
     linea = resp.json()
     assert linea["origen"] == "peticion_cliente"
+    assert linea["cliente_email"] == "client@example.com"
+    assert linea["cliente_nombre"] is None  # magic link: cap nom, només email
 
     db.expire_all()
     peticion_db = db.get(PeticionCliente, uuid.UUID(peticion_id))
     assert peticion_db.status.value == "en_tramit"
     assert peticion_db.solicitud_compra_linea_id is not None
+
+    # També visible al pool (la línia encara no s'ha consolidat en cap sol·licitud).
+    pool = client.get("/admin/solicitudes-compra/pool", headers=_auth(admin_token)).json()
+    linea_pool = next(l for l in pool["results"] if l["id"] == linea["id"])
+    assert linea_pool["cliente_email"] == "client@example.com"
 
 
 def test_rebutjar_peticion(db, client):
@@ -1085,3 +1092,35 @@ def test_release_expired_allibera_i_caduca_peticio(db, client):
     assert db.get(Item, item.id).reserved_quantity == 0
     assert db.get(StockHold, hold.id) is None
     assert db.get(PeticionCliente, uuid.UUID(str(peticion_id))).status.value == "caducada"
+
+
+def test_linea_de_peticion_tienda_mostra_nom_del_client(db, client):
+    """Tant si la petició ve de compte de client (web) com de botiga
+    (mostrador/telèfon), la línia ha de mostrar de qui és."""
+    admin_token = _admin_token(client, db)
+    _login(client, "mostrador@example.com")
+    cliente = db.scalar(select(User).where(User.email == "mostrador@example.com"))
+    cliente.name = "Client Mostrador"
+    db.commit()
+    release = _seed_release(db, artista="Grup Tienda", titulo="Disc Tienda")
+
+    peticion = client.post(
+        "/admin/peticiones/tienda",
+        json={"user_id": str(cliente.id), "release_id": str(release.id)},
+        headers=_auth(admin_token),
+    ).json()
+    client.patch(
+        f"/admin/peticiones/{peticion['id']}/precio",
+        json={"estimated_price": "22.50"},
+        headers=_auth(admin_token),
+    )
+
+    resp = client.post(
+        f"/admin/peticiones/{peticion['id']}/vincular-solicitud",
+        json={"cantidad": 1},
+        headers=_auth(admin_token),
+    )
+    assert resp.status_code == 201
+    linea = resp.json()
+    assert linea["cliente_nombre"] == "Client Mostrador"
+    assert linea["cliente_email"] == "mostrador@example.com"

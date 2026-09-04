@@ -45,6 +45,11 @@ def _solicitud_linea_out(linea: SolicitudCompraLinea) -> SolicitudCompraLineaOut
         resuelta=linea.comanda_linea_id is not None or linea.item_resuelto_id is not None,
         notes=linea.notes,
         created_at=linea.created_at,
+        # Consulta `linea.peticion` només per a línies de petició_client
+        # (la immensa majoria no ho són) per no disparar un lazy-load
+        # innecessari a cada línia quan no s'ha fet eager-load.
+        cliente_nombre=(linea.peticion.user.name if linea.peticion else None) if linea.origen == OrigenSolicitud.peticion_cliente else None,
+        cliente_email=(linea.peticion.user.email if linea.peticion else None) if linea.origen == OrigenSolicitud.peticion_cliente else None,
     )
 
 
@@ -72,6 +77,7 @@ def _get_solicitud_or_404(db: Session, solicitud_id: uuid.UUID) -> SolicitudComp
         .options(
             selectinload(SolicitudCompra.lineas).selectinload(SolicitudCompraLinea.release),
             selectinload(SolicitudCompra.lineas).selectinload(SolicitudCompraLinea.proveedor_sugerido),
+            selectinload(SolicitudCompra.lineas).selectinload(SolicitudCompraLinea.peticion).selectinload(PeticionCliente.user),
             selectinload(SolicitudCompra.user),
         )
         .where(SolicitudCompra.id == solicitud_id)
@@ -329,6 +335,7 @@ def list_solicitudes_compra(
         stmt.options(
             selectinload(SolicitudCompra.lineas).selectinload(SolicitudCompraLinea.release),
             selectinload(SolicitudCompra.lineas).selectinload(SolicitudCompraLinea.proveedor_sugerido),
+            selectinload(SolicitudCompra.lineas).selectinload(SolicitudCompraLinea.peticion).selectinload(PeticionCliente.user),
             selectinload(SolicitudCompra.user),
         )
         .offset((page - 1) * page_size)
@@ -361,6 +368,7 @@ def list_pool_lineas(
         .options(
             selectinload(SolicitudCompraLinea.release).selectinload(Release.record),
             selectinload(SolicitudCompraLinea.proveedor_sugerido),
+            selectinload(SolicitudCompraLinea.peticion).selectinload(PeticionCliente.user),
         )
     )
     if estado == "pendent":

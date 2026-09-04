@@ -58,6 +58,10 @@ class SolicitudCompraLineaOut(BaseModel):
     resuelta: bool = False
     notes: str | None
     created_at: datetime
+    # Només quan origen == peticion_cliente: qui la va demanar (petició de
+    # botiga o de compte de client, sempre lligada a un User).
+    cliente_nombre: str | None = None
+    cliente_email: str | None = None
 
 
 class SolicitudCompraOut(BaseModel):
