@@ -8,8 +8,9 @@ import { useTenantVertical } from '../../../components/store/useTenantVertical';
 import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
+import DiscogsSearchField, { CoverImg } from '../../../components/admin/discogs/DiscogsSearchField';
 import {
-  Plus, Search, Disc3, ChevronDown, ChevronRight, X, Pencil, Trash2, Copy,
+  Plus, Search, ChevronDown, ChevronRight, X, Pencil, Trash2, Copy,
   AlertTriangle, RefreshCw, Upload, Image, Loader2, Download, FileSpreadsheet,
   CheckCircle2, Clock, CircleOff, ImageIcon, Music2, Eye,
 } from 'lucide-react';
@@ -69,19 +70,6 @@ function ReleaseSyncSummary({ items, discogs_release_id }) {
         </span>
       )}
     </div>
-  );
-}
-
-function CoverImg({ url, size = 36 }) {
-  const [failed, setFailed] = useState(false);
-  if (!url || failed) return (
-    <div className="rounded-lg bg-zinc-100 border border-zinc-200 shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
-      <Disc3 size={Math.round(size * 0.4)} className="text-zinc-300" />
-    </div>
-  );
-  return (
-    <img src={url} alt="" width={size} height={size} onError={() => setFailed(true)}
-      className="rounded-lg object-cover bg-zinc-100 shrink-0" style={{ width: size, height: size }} />
   );
 }
 
@@ -1432,9 +1420,6 @@ function DiscModal({ mode, release, onClose, onSaved }) {
   // amb el interruptor apagat tampoc — dues raons diferents, mateix resultat.
   const showDiscogs = !isFloristeria && !!discogsEnabled;
   const isEdit = mode === 'edit';
-  const [discogsQ, setDiscogsQ] = useState('');
-  const [discogsRes, setDiscogsRes] = useState([]);
-  const [searching, setSearching] = useState(false);
   const [form, setForm] = useState(release ? formFromRelease(release) : emptyForm());
   const [saving, setSaving] = useState(false);
   const [dupMatches, setDupMatches] = useState([]);
@@ -1485,24 +1470,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
 
   useEffect(() => { if (mode === 'duplicate') checkDuplicate(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function searchDiscogs() {
-    if (!discogsQ.trim()) return;
-    setSearching(true);
-    try {
-      const r = await authFetch(`/admin/discogs/search?q=${encodeURIComponent(discogsQ)}`);
-      const data = await r.json();
-      setDiscogsRes(Array.isArray(data) ? data : (data.results ?? []));
-    } finally { setSearching(false); }
-  }
-
-  async function pick(result) {
-    let full = result;
-    if (result.discogs_release_id) {
-      try {
-        const r = await authFetch(`/admin/discogs/release/${result.discogs_release_id}`);
-        if (r.ok) full = { ...result, ...(await r.json()) };
-      } catch {}
-    }
+  function pick(full) {
     setForm(prev => ({
       ...prev,
       artista: full.artista ?? prev.artista,
@@ -1519,7 +1487,6 @@ function DiscModal({ mode, release, onClose, onSaved }) {
       tracklist: full.tracklist ?? prev.tracklist ?? null,
       credits: full.credits ?? prev.credits ?? null,
     }));
-    setDiscogsRes([]);
     setTimeout(checkDuplicate, 0);
   }
 
@@ -1646,32 +1613,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
       {!isEdit && showDiscogs && (
         <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 space-y-3">
           <div className="text-sm font-medium text-zinc-700">{t('catalog.modal.discogs')}</div>
-          <div className="flex gap-2">
-            <input
-              value={discogsQ}
-              onChange={e => setDiscogsQ(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchDiscogs())}
-              placeholder={t('catalog.modal.discogs_ph')}
-              className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-            />
-            <Button type="button" variant="secondary" onClick={searchDiscogs} disabled={searching}>
-              <Search size={14} /> {searching ? t('common.searching') : t('common.search')}
-            </Button>
-          </div>
-          {discogsRes.length > 0 && (
-            <div className="max-h-52 overflow-y-auto space-y-1 border border-zinc-200 rounded-lg bg-white p-1">
-              {discogsRes.map((r, i) => (
-                <button key={i} type="button" onClick={() => pick(r)}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-amber-50 text-left transition-colors">
-                  <CoverImg url={r.imagen_url} size={40} />
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-zinc-900 truncate">{r.artista} — {r.titulo}</div>
-                    <div className="text-xs text-zinc-500">{[r.sello, r.formato, r.anio].filter(Boolean).join(' · ')}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          <DiscogsSearchField onPick={pick} variant="panel" placeholder={t('catalog.modal.discogs_ph')} />
         </div>
       )}
 

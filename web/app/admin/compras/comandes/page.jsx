@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { authFetch } from '../../../lib/auth';
 import { useT } from '../../../lib/i18n';
+import { resolveOrCreateRelease } from '../../../lib/discogs';
 import { useDiscogsEnabled } from '../../../../components/store/useDiscogsEnabled';
 import { useTenantVertical } from '../../../../components/store/useTenantVertical';
 import { Button } from '../../../../components/ui/button';
+import DiscogsSearchField from '../../../../components/admin/discogs/DiscogsSearchField';
 import { useSortFilter } from '../../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../../components/admin/table/SortableTh';
 import {
@@ -342,16 +344,12 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [notas, setNotas] = useState('');
   const [lineas, setLineas] = useState([]);
-  const [discogsQ, setDiscogsQ] = useState('');
-  const [discogsRes, setDiscogsRes] = useState([]);
-  const [searchingDiscogs, setSearchingDiscogs] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manualForm, setManualForm] = useState({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '' });
   const [saving, setSaving] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
   const [csvErrors, setCsvErrors] = useState([]);
-  const discogsDebounce = useRef(null);
   const csvInputRef = useRef(null);
 
   async function handleDownloadTemplate() {
@@ -390,66 +388,14 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
     }
   }
 
-  function handleDiscogsQ(val) {
-    setDiscogsQ(val);
-    clearTimeout(discogsDebounce.current);
-    if (val.trim().length < 3) { setDiscogsRes([]); return; }
-    discogsDebounce.current = setTimeout(async () => {
-      setSearchingDiscogs(true);
-      try {
-        const r = await authFetch(`/admin/discogs/search?q=${encodeURIComponent(val)}`);
-        const data = await r.json();
-        setDiscogsRes(Array.isArray(data) ? data : (data.results ?? []));
-      } finally {
-        setSearchingDiscogs(false);
-      }
-    }, 400);
-  }
 
-  async function resolveRelease({ discogsId, artista, titulo, sello, formato, anio, genero, estilos, pais, imagen_url, tracklist, credits }) {
-    const params = new URLSearchParams();
-    if (discogsId) params.set('discogs_release_id', discogsId);
-    else { params.set('artista', artista); params.set('titulo', titulo); }
-    const dupRes = await authFetch(`/admin/releases/check-duplicate?${params.toString()}`);
-    const matches = dupRes.ok ? await dupRes.json() : [];
-    if (matches.length > 0) {
-      const m = matches[0];
-      return { id: m.id, artista: m.artista, titulo: m.titulo, existing: true };
-    }
-    const rRes = await authFetch('/admin/releases', {
-      method: 'POST',
-      body: JSON.stringify({
-        artista, title: titulo, sello: sello || null, formato: formato || null,
-        anio: anio ? parseInt(anio) : null, genero: genero || null,
-        estilos: estilos || null, pais: pais || null, image_url: imagen_url || null,
-        tracklist: tracklist || null, credits: credits || null,
-        discogs_release_id: discogsId ? parseInt(discogsId) : null,
-      }),
-    });
-    const { id } = await rRes.json();
-    return { id, artista, titulo, existing: false };
-  }
-
-  async function pickDiscogs(result) {
+  async function pickDiscogs(full) {
     setResolving(true);
     try {
-      let full = result;
-      if (result.discogs_release_id) {
-        try {
-          const r = await authFetch(`/admin/discogs/release/${result.discogs_release_id}`);
-          if (r.ok) full = { ...result, ...(await r.json()) };
-        } catch { /* ens conformem amb les dades de la cerca */ }
-      }
-      const rel = await resolveRelease({
-        discogsId: full.discogs_release_id, artista: full.artista, titulo: full.titulo,
-        sello: full.sello, formato: full.formato?.split(',')[0]?.trim(), anio: full.anio,
-        genero: full.genero, estilos: full.estilos, pais: full.pais, imagen_url: full.imagen_url,
-        tracklist: full.tracklist, credits: full.credits,
-      });
+      const rel = await resolveOrCreateRelease(full);
       addLinea(rel);
     } finally {
       setResolving(false);
-      setDiscogsQ(''); setDiscogsRes([]);
     }
   }
 
@@ -457,7 +403,7 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
     if (!manualForm.titulo.trim()) return;
     setResolving(true);
     try {
-      const rel = await resolveRelease(manualForm);
+      const rel = await resolveOrCreateRelease(manualForm);
       addLinea(rel);
       setManualForm({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '' });
       setManualMode(false);
@@ -524,30 +470,7 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
           <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
             <div className="text-sm font-semibold text-zinc-700">{t('purchases.order_modal.records_requested', 'Discos demanats')}</div>
             {discogsEnabled && (
-            <div className="relative">
-              <input
-                value={discogsQ}
-                onChange={e => handleDiscogsQ(e.target.value)}
-                placeholder={t('purchases.discogs_search_ph', 'Cerca a Discogs...')}
-                disabled={resolving}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 disabled:opacity-50"
-              />
-              {searchingDiscogs && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">{t('common.searching')}</span>
-              )}
-              {discogsRes.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg z-10 overflow-hidden max-h-72 overflow-y-auto">
-                  {discogsRes.map((r, i) => (
-                    <button key={i} type="button" onClick={() => pickDiscogs(r)} disabled={resolving}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-amber-50 border-b border-zinc-100 last:border-0 transition-colors disabled:opacity-50">
-                      <span className="font-medium">{r.artista}</span>
-                      <span className="text-zinc-500"> — {r.titulo}</span>
-                      <span className="text-zinc-400 ml-2 text-xs">{[r.sello, r.formato, r.anio].filter(Boolean).join(' · ')}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              <DiscogsSearchField onPick={pickDiscogs} disabled={resolving} />
             )}
 
             {discogsEnabled && (

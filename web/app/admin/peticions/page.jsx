@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { authFetch } from '../../lib/auth';
+import { searchDiscogsReleases, enrichDiscogsResult, resolveOrCreateRelease } from '../../lib/discogs';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
+import { CoverImg } from '../../../components/admin/discogs/DiscogsSearchField';
 import { Search, X, Check, Loader2, Link2, Tag, Package, Ban, Plus, Phone } from 'lucide-react';
 import { useT } from '../../lib/i18n';
 
@@ -48,11 +50,8 @@ function CatalogarModal({ peticion, onClose, onSaved }) {
     if (val.trim().length < 3) { setResults([]); return; }
     discogsDebounce.current = setTimeout(async () => {
       setSearching(true);
-      try {
-        const r = await authFetch(`/admin/discogs/search?q=${encodeURIComponent(val)}`);
-        const data = await r.json();
-        setResults(Array.isArray(data) ? data : (data.results ?? []));
-      } finally { setSearching(false); }
+      try { setResults(await searchDiscogsReleases(val)); }
+      finally { setSearching(false); }
     }, 400);
   }
 
@@ -78,38 +77,10 @@ function CatalogarModal({ peticion, onClose, onSaved }) {
   async function pickDiscogs(result) {
     setSaving(true);
     try {
-      let full = result;
-      if (result.discogs_release_id) {
-        try {
-          const r = await authFetch(`/admin/discogs/release/${result.discogs_release_id}`);
-          if (r.ok) full = { ...result, ...(await r.json()) };
-        } catch { /* ens conformem amb les dades de la cerca */ }
-      }
-      const params = new URLSearchParams();
-      if (full.discogs_release_id) params.set('discogs_release_id', full.discogs_release_id);
-      else { params.set('artista', full.artista); params.set('titulo', full.titulo); }
-      const dupRes = await authFetch(`/admin/releases/check-duplicate?${params.toString()}`);
-      const matches = dupRes.ok ? await dupRes.json() : [];
-      let releaseId;
-      if (matches.length > 0) {
-        releaseId = matches[0].id;
-      } else {
-        const rRes = await authFetch('/admin/releases', {
-          method: 'POST',
-          body: JSON.stringify({
-            artista: full.artista, title: full.titulo, sello: full.sello || null,
-            formato: full.formato?.split(',')[0]?.trim() || null,
-            anio: full.anio ? parseInt(full.anio) : null, genero: full.genero || null,
-            estilos: full.estilos || null, pais: full.pais || null, image_url: full.imagen_url || null,
-            tracklist: full.tracklist || null, credits: full.credits || null,
-            discogs_release_id: full.discogs_release_id ? parseInt(full.discogs_release_id) : null,
-          }),
-        });
-        const created = await rRes.json();
-        releaseId = created.id;
-      }
+      const full = await enrichDiscogsResult(result);
+      const rel = await resolveOrCreateRelease(full);
       const r = await authFetch(`/admin/peticiones/${peticion.id}/catalogar`, {
-        method: 'PATCH', body: JSON.stringify({ release_id: releaseId }),
+        method: 'PATCH', body: JSON.stringify({ release_id: rel.id }),
       });
       if (r.ok) onSaved();
     } finally { setSaving(false); }
@@ -163,12 +134,10 @@ function CatalogarModal({ peticion, onClose, onSaved }) {
           {mode === 'discogs' && results.map((r, i) => (
             <button key={r.discogs_release_id || i} disabled={saving} onClick={() => pickDiscogs(r)}
               className="w-full flex items-center gap-3 text-left p-2.5 rounded-lg shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] hover:border-zinc-300 hover:bg-zinc-50 transition-colors disabled:opacity-50">
-              {r.imagen_url ? (
-                <img src={r.imagen_url} alt="" className="w-9 h-9 rounded object-cover shrink-0 bg-zinc-100" />
-              ) : <div className="w-9 h-9 rounded bg-zinc-100 shrink-0" />}
+              <CoverImg url={r.imagen_url} size={36} />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-zinc-800 truncate">{r.titulo}</p>
-                <p className="text-xs text-zinc-500 truncate">{r.artista} {r.sello ? `· ${r.sello}` : ''} {r.anio ? `· ${r.anio}` : ''}</p>
+                <p className="text-xs text-zinc-500 truncate">{[r.artista, r.sello, r.anio, r.genero].filter(Boolean).join(' · ')}</p>
               </div>
             </button>
           ))}
