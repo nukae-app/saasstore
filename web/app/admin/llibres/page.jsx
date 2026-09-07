@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
-import { Download, CheckCircle2, AlertTriangle, Plus, Trash2, X } from 'lucide-react';
+import { Download, CheckCircle2, AlertTriangle, Plus, Trash2, X, Lock, Unlock } from 'lucide-react';
 import { useT } from '../../lib/i18n';
 
 const MESOS_FALLBACK = ['Gener', 'Febrer', 'Març', 'Abril', 'Maig', 'Juny', 'Juliol', 'Agost', 'Setembre', 'Octubre', 'Novembre', 'Desembre'];
@@ -20,9 +21,11 @@ function fmtDate(d) {
 
 export default function LlibresPage() {
   const t = useT();
-  const [tab, setTab] = useState('diari');
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'diari');
   const [year, setYear] = useState(NOW.getFullYear());
   const [mes, setMes] = useState(NOW.getMonth() + 1);
+  const compteInicial = searchParams.get('compte') || '';
 
   const TABS = [
     ['diari', t('llibres.tab.diari', 'Diari')],
@@ -70,7 +73,7 @@ export default function LlibresPage() {
       </div>
 
       {tab === 'diari' && <DiariTab year={year} mes={mes} />}
-      {tab === 'major' && <MajorTab year={year} />}
+      {tab === 'major' && <MajorTab year={year} initialCompte={compteInicial} />}
       {tab === 'balanc' && <BalancTab year={year} mes={mes} />}
       {tab === 'pyg' && <PygTab year={year} mes={mes} />}
     </div>
@@ -311,10 +314,10 @@ function ManualEntryModal({ defaultDate, onClose, onSaved }) {
   );
 }
 
-function MajorTab({ year }) {
+function MajorTab({ year, initialCompte }) {
   const t = useT();
   const [comptes, setComptes] = useState([]);
-  const [compte, setCompte] = useState('');
+  const [compte, setCompte] = useState(initialCompte || '');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -334,6 +337,18 @@ function MajorTab({ year }) {
       .then(d => { setData(d); setLoading(false); });
   }, [year, compte]);
 
+  async function togglePunteat(linia) {
+    const nouPunteat = !linia.punteat;
+    setData(d => ({ ...d, linies: d.linies.map(l => (l.id === linia.id ? { ...l, punteat: nouPunteat } : l)) }));
+    const r = await authFetch(`/admin/apunts/${linia.id}/punteig`, { method: 'PATCH', body: JSON.stringify({ punteat: nouPunteat }) });
+    if (!r.ok) {
+      setData(d => ({ ...d, linies: d.linies.map(l => (l.id === linia.id ? linia : l)) }));
+      return;
+    }
+    const actualitzat = await r.json();
+    setData(d => ({ ...d, linies: d.linies.map(l => (l.id === linia.id ? { ...l, ...actualitzat } : l)) }));
+  }
+
   return (
     <div className="space-y-3">
       <select value={compte} onChange={e => setCompte(e.target.value)}
@@ -351,6 +366,7 @@ function MajorTab({ year }) {
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
                 <tr>
+                  <th className="px-4 py-3 text-center font-medium" title={t('llibres.punteat_hint', 'Punteat (revisat manualment)')}>✓</th>
                   <th className="px-4 py-3 text-left font-medium">{t('common.date', 'Data')}</th>
                   <th className="px-4 py-3 text-left font-medium">{t('llibres.entry', 'Assentament')}</th>
                   <th className="px-4 py-3 text-right font-medium">{t('llibres.debit', 'Debe')}</th>
@@ -359,8 +375,13 @@ function MajorTab({ year }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {data.linies.map((l, i) => (
-                  <tr key={i}>
+                {data.linies.map(l => (
+                  <tr key={l.id} className={l.punteat ? 'bg-green-50/40' : ''}>
+                    <td className="px-4 py-2.5 text-center">
+                      <input type="checkbox" checked={l.punteat} onChange={() => togglePunteat(l)}
+                        title={l.punteat && l.punteat_by_name ? `${l.punteat_by_name} — ${fmtDate(l.punteat_at?.slice(0, 10))}` : undefined}
+                        className="cursor-pointer accent-zinc-900" />
+                    </td>
                     <td className="px-4 py-2.5 text-zinc-600">{fmtDate(l.date)}</td>
                     <td className="px-4 py-2.5 text-zinc-700">#{l.entry_number} — {l.description}</td>
                     <td className="px-4 py-2.5 text-right text-zinc-900">{parseFloat(l.debit) > 0 ? fmtEur(l.debit) : ''}</td>
@@ -371,7 +392,7 @@ function MajorTab({ year }) {
               </tbody>
               <tfoot className="bg-zinc-50 border-t border-zinc-200">
                 <tr>
-                  <td colSpan={4} className="px-4 py-3 text-right font-semibold text-zinc-700">{t('llibres.final_balance', 'Saldo final')}</td>
+                  <td colSpan={5} className="px-4 py-3 text-right font-semibold text-zinc-700">{t('llibres.final_balance', 'Saldo final')}</td>
                   <td className="px-4 py-3 text-right font-bold text-zinc-900">{fmtEur(data.saldo_final)}</td>
                 </tr>
               </tfoot>
@@ -417,22 +438,53 @@ function BalancTab({ year, mes }) {
   const t = useT();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tancant, setTancant] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  function loadData() {
     setLoading(true);
     authFetch(`/admin/balanc-situacio/${year}/${mes}`).then(r => r.json()).then(d => { setData(d); setLoading(false); });
-  }, [year, mes]);
+  }
+  useEffect(loadData, [year, mes]);
+
+  async function toggleExercici() {
+    setTancant(true);
+    setError('');
+    const endpoint = data.exercici_tancat
+      ? `/admin/periodes/${year}/reobrir-exercici`
+      : `/admin/periodes/${year}/tancar-exercici`;
+    const r = await authFetch(endpoint, { method: 'POST' });
+    setTancant(false);
+    if (r.ok) loadData();
+    else setError((await r.json()).detail || t('common.error_saving', 'Error desant'));
+  }
 
   if (loading) return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>;
   if (!data) return null;
 
   return (
     <div className="space-y-3">
-      <div className={`inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border ${data.quadrat ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-        {data.quadrat ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-        {data.quadrat ? t('llibres.balances', 'Quadra') : t('llibres.does_not_balance', 'No quadra')}
-        {' — '}{t('llibres.assets', 'Actiu')} {fmtEur(data.total_actiu)} / {t('llibres.liabilities_equity', 'Passiu + Patrimoni net')} {fmtEur(data.total_passiu_patrimoni_net)}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className={`inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border ${data.quadrat ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+          {data.quadrat ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+          {data.quadrat ? t('llibres.balances', 'Quadra') : t('llibres.does_not_balance', 'No quadra')}
+          {' — '}{t('llibres.assets', 'Actiu')} {fmtEur(data.total_actiu)} / {t('llibres.liabilities_equity', 'Passiu + Patrimoni net')} {fmtEur(data.total_passiu_patrimoni_net)}
+        </div>
+        <div className="flex items-center gap-2">
+          {data.exercici_tancat && (
+            <span className="inline-flex items-center gap-1 text-xs text-zinc-500 px-2 py-1 rounded-full bg-zinc-100">
+              <Lock size={13} /> {t('llibres.exercici_tancat', 'Exercici {year} tancat').replace('{year}', year)}
+            </span>
+          )}
+          <Button variant={data.exercici_tancat ? 'secondary' : 'default'} size="sm" disabled={tancant} onClick={toggleExercici}
+            className="flex items-center gap-1.5">
+            {data.exercici_tancat
+              ? <><Unlock size={14} /> {t('llibres.reobrir_exercici', 'Reobrir exercici')}</>
+              : <><Lock size={14} /> {t('llibres.tancar_exercici', 'Tancar exercici {year}').replace('{year}', year)}</>}
+          </Button>
+        </div>
       </div>
+      {error && <p className="text-red-500 text-xs">{error}</p>}
 
       <div className="grid md:grid-cols-2 gap-4">
         <BalancColumna titol={t('llibres.assets', 'Actiu')} linies={data.actiu} total={data.total_actiu} />

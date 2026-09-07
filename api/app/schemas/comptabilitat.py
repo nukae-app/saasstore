@@ -393,12 +393,16 @@ class LlibreDiariOut(BaseModel):
 
 
 class LlibreMajorLiniaOut(BaseModel):
+    id: uuid.UUID
     date: date
     entry_number: int
     description: str
     debit: Decimal
     credit: Decimal
     saldo_acumulat: Decimal
+    punteat: bool
+    punteat_at: datetime | None = None
+    punteat_by_name: str | None = None
 
 
 class LlibreMajorOut(BaseModel):
@@ -407,6 +411,31 @@ class LlibreMajorOut(BaseModel):
     year: int
     linies: list[LlibreMajorLiniaOut]
     saldo_final: Decimal
+
+
+class PunteigApuntIn(BaseModel):
+    punteat: bool
+
+
+class PunteigApuntOut(BaseModel):
+    id: uuid.UUID
+    punteat: bool
+    punteat_at: datetime | None = None
+    punteat_by_name: str | None = None
+
+
+class FluxCaixaLiniaOut(BaseModel):
+    year: int
+    mes: int
+    ingressos_estimats: Decimal
+    despeses_pendents: Decimal
+    saldo_projectat: Decimal
+
+
+class FluxCaixaProjectatOut(BaseModel):
+    saldo_actual: Decimal
+    anys_historic: int
+    linies: list[FluxCaixaLiniaOut]
 
 
 class BalancLiniaOut(BaseModel):
@@ -424,6 +453,7 @@ class BalancSituacioOut(BaseModel):
     total_actiu: Decimal
     total_passiu_patrimoni_net: Decimal
     quadrat: bool
+    exercici_tancat: bool
 
 
 class ComptePyGLiniaOut(BaseModel):

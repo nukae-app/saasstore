@@ -9,7 +9,7 @@ import {
   Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
   Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown, Library, Truck,
   FileSignature, PackageCheck, ClipboardList, PackageSearch, UserSquare2, History,
-  Percent, Ticket,
+  Percent, Ticket, LineChart,
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
@@ -81,7 +81,9 @@ function getNavGroups(config) {
         { href: '/admin/banc',        key: 'nav.banc',        label: 'Banc',          icon: Landmark },
         { href: '/admin/proveidors',  key: 'nav.proveidors',  label: 'Proveïdors',    icon: Truck },
         { href: '/admin/resultat',    key: 'nav.resultat',    label: 'Resultat',      icon: TrendingUp },
+        { href: '/admin/flux-caixa',  key: 'nav.flux_caixa',  label: 'Flux de caixa', icon: LineChart },
         { href: '/admin/iva',         key: 'nav.iva',         label: 'IVA',           icon: Calculator },
+        { href: '/admin/marges',      key: 'nav.marges',      label: 'Marges',        icon: Percent },
         { href: '/admin/pla-comptes', key: 'nav.pla_comptes', label: 'Pla de comptes', icon: BookText },
         { href: '/admin/actius',      key: 'nav.actius',      label: 'Actius',        icon: Boxes },
         { href: '/admin/llibres',     key: 'nav.llibres',     label: 'Llibres',       icon: Library },

@@ -6,8 +6,14 @@ mismo prefijo de URL); este paquete solo los agrega bajo un único `router`.
 
 from fastapi import APIRouter
 
-from . import actius, aeat, banc, caixa_diaria, despeses, holded, llibres, periodes, proveedores, resultat
+from . import (
+    actius, aeat, banc, caixa_diaria, despeses, flux_caixa, holded, llibres, periodes, proveedores,
+    resultat, tancament,
+)
 
 router = APIRouter()
-for _modulo in (proveedores, despeses, banc, resultat, llibres, actius, holded, aeat, periodes, caixa_diaria):
+for _modulo in (
+    proveedores, despeses, banc, resultat, llibres, actius, holded, aeat, periodes, caixa_diaria,
+    flux_caixa, tancament,
+):
     router.include_router(_modulo.router)

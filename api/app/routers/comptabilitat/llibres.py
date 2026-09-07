@@ -11,7 +11,7 @@ import calendar
 import csv
 import io
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,10 +20,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
-from ...models import AccountingAccount, AccountType, JournalEntry, JournalLine, JournalSourceType
+from ...models import AccountingAccount, AccountType, JournalEntry, JournalLine, JournalSourceType, User
 from ...schemas import (
     AccountingAccountOut, ApuntLlibreOut, AssentamentLlibreOut, AssentamentManualIn, BalancLiniaOut,
     BalancSituacioOut, ComptePyGLiniaOut, ComptePyGOut, LlibreDiariOut, LlibreMajorLiniaOut, LlibreMajorOut,
+    PunteigApuntIn, PunteigApuntOut,
 )
 from ...services.comptabilitat_posting import post_entry
 from ...services.security import require_admin
@@ -162,7 +163,7 @@ def llibre_major(year: int, compte: str, db: Session = Depends(get_db)):
         select(JournalLine)
         .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
         .where(JournalLine.account_id == account.id, JournalEntry.fiscal_year == year)
-        .options(selectinload(JournalLine.entry))
+        .options(selectinload(JournalLine.entry), selectinload(JournalLine.punteat_by))
         .order_by(JournalEntry.date, JournalEntry.entry_number)
     ).all()
 
@@ -172,11 +173,35 @@ def llibre_major(year: int, compte: str, db: Session = Depends(get_db)):
     for l in lines:
         saldo += (l.debit - l.credit) if normal_debit else (l.credit - l.debit)
         linies_out.append(LlibreMajorLiniaOut(
-            date=l.entry.date, entry_number=l.entry.entry_number, description=l.entry.description,
+            id=l.id, date=l.entry.date, entry_number=l.entry.entry_number, description=l.entry.description,
             debit=l.debit, credit=l.credit, saldo_acumulat=saldo,
+            punteat=l.punteat, punteat_at=l.punteat_at,
+            punteat_by_name=(l.punteat_by.name or l.punteat_by.email) if l.punteat_by else None,
         ))
 
     return LlibreMajorOut(compte_code=account.code, compte_name=account.name, year=year, linies=linies_out, saldo_final=saldo)
+
+
+@router.patch("/apunts/{apunt_id}/punteig", response_model=PunteigApuntOut)
+def punteig_apunt(apunt_id: uuid.UUID, payload: PunteigApuntIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Marca/desmarca una línia del llibre major com a revisada. És una simple
+    marca manual (no canvia cap import ni encadena efectes sobre cap document
+    de negoci) — a diferència de la conciliació bancària (`banc.py`), que sí
+    mou l'estat de `Despesa`/`Order`/`VentaExterna`."""
+    apunt = db.get(JournalLine, apunt_id)
+    if apunt is None:
+        raise HTTPException(404, "Apunt no trobat")
+
+    apunt.punteat = payload.punteat
+    apunt.punteat_at = datetime.now(timezone.utc) if payload.punteat else None
+    apunt.punteat_by_id = admin.id if payload.punteat else None
+    db.commit()
+    db.refresh(apunt, attribute_names=["punteat_by"])
+
+    return PunteigApuntOut(
+        id=apunt.id, punteat=apunt.punteat, punteat_at=apunt.punteat_at,
+        punteat_by_name=(apunt.punteat_by.name or apunt.punteat_by.email) if apunt.punteat_by else None,
+    )
 
 
 def _saldos_per_tipus(db: Session, account_types: tuple[AccountType, ...], data_fins: date | None, data_des_de: date | None = None) -> dict[AccountType, list[BalancLiniaOut]]:
@@ -246,10 +271,16 @@ def balanc_situacio(year: int, mes: int, db: Session = Depends(get_db)):
     total_passiu_pn = sum((l.saldo for l in saldos[AccountType.passiu]), Decimal("0")) + sum(
         (l.saldo for l in patrimoni_net), Decimal("0")
     )
+    exercici_tancat = db.scalar(
+        select(JournalEntry.id).where(
+            JournalEntry.fiscal_year == year, JournalEntry.source_type == JournalSourceType.tancament_exercici,
+        )
+    ) is not None
     return BalancSituacioOut(
         year=year, mes=mes, actiu=saldos[AccountType.actiu], passiu=saldos[AccountType.passiu],
         patrimoni_net=patrimoni_net, total_actiu=total_actiu,
         total_passiu_patrimoni_net=total_passiu_pn, quadrat=(total_actiu == total_passiu_pn),
+        exercici_tancat=exercici_tancat,
     )
 
 

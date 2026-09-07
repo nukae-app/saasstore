@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { authFetch } from '../../lib/auth';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
@@ -82,7 +83,12 @@ export default function PlaComptesPage() {
               <tbody className="divide-y divide-zinc-100">
                 {llista.map(c => (
                   <tr key={c.id} className={!c.active ? 'opacity-50' : ''}>
-                    <td className="px-4 py-3 font-mono text-zinc-700">{c.code}</td>
+                    <td className="px-4 py-3 font-mono">
+                      <Link href={`/admin/llibres?tab=major&compte=${encodeURIComponent(c.code)}`}
+                        className="text-zinc-700 hover:text-zinc-900 hover:underline">
+                        {c.code}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-zinc-900">{c.name}</td>
                     <td className="px-4 py-3 text-zinc-500 text-xs">{t('pla_comptes.group', 'Grup')} {c.group}</td>
                     <td className="px-4 py-3 text-center"><TipusBadge tipus={c.account_type} label={TIPUS_LABEL[c.account_type] || c.account_type} /></td>

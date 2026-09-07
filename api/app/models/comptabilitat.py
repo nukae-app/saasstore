@@ -284,6 +284,7 @@ class JournalSourceType(str, enum.Enum):
     actiu_alta = "actiu_alta"
     actiu_amortitzacio = "actiu_amortitzacio"
     manual = "manual"
+    tancament_exercici = "tancament_exercici"
 
 
 class JournalEntryCounter(TenantScoped, Base):
@@ -346,6 +347,10 @@ class JournalLine(TenantScoped, Base):
     debit: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), server_default="0")
     credit: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), server_default="0")
     description: Mapped[str | None] = mapped_column(String(500))
+    punteat: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", index=True)
+    punteat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    punteat_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
 
     entry: Mapped["JournalEntry"] = relationship(back_populates="lines")
     account: Mapped["AccountingAccount"] = relationship()
+    punteat_by: Mapped["User | None"] = relationship()
