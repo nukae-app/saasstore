@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Loader2, Calendar, ExternalLink, X, Check } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { authFetch } from '../../lib/auth';
 
 const EMPTY_EVENT = {
@@ -39,57 +39,57 @@ function EventForm({ initial = EMPTY_EVENT, onSave, onCancel, saving }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium text-zinc-600 mb-1.5">Títol *</label>
+          <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Títol *</label>
           <input
             type="text"
             value={form.title}
             onChange={e => set('title', e.target.value)}
             required
             placeholder="Nom de l'esdeveniment…"
-            className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-600 mb-1.5">Data i hora *</label>
+          <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Data i hora *</label>
           <input
             type="datetime-local"
             value={form.date}
             onChange={e => set('date', e.target.value)}
             required
-            className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-600 mb-1.5">Lloc</label>
+          <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Lloc</label>
           <input
             type="text"
             value={form.location}
             onChange={e => set('location', e.target.value)}
-            className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium text-zinc-600 mb-1.5">Descripció</label>
+          <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Descripció</label>
           <textarea
             value={form.description}
             onChange={e => set('description', e.target.value)}
             placeholder="Detalls opcionals de l'acte…"
             rows={3}
-            className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+            className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           />
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium text-zinc-600 mb-1.5">Link extern (opcional)</label>
+          <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Link extern (opcional)</label>
           <input
             type="url"
             value={form.link}
             onChange={e => set('link', e.target.value)}
             placeholder="https://…"
-            className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
@@ -98,17 +98,17 @@ function EventForm({ initial = EMPTY_EVENT, onSave, onCancel, saving }) {
         <button
           type="submit"
           disabled={saving}
-          className="flex items-center gap-1.5 bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
+          className="flex items-center gap-1.5 bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
         >
-          {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+          {saving ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="check" size={13} />}
           {saving ? 'Guardant…' : 'Guardar'}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-1.5 border border-zinc-200 text-zinc-600 px-4 py-2 rounded-lg text-sm hover:bg-zinc-50 transition-colors"
+          className="flex items-center gap-1.5 border border-outline-variant text-on-surface-variant px-4 py-2 rounded-lg text-sm hover:bg-surface-container-high transition-colors"
         >
-          <X size={13} /> Cancel·lar
+          <MIcon name="close" size={13} /> Cancel·lar
         </button>
       </div>
     </form>
@@ -178,23 +178,23 @@ export default function AdminAgendaPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">Agenda</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">
+          <p className="text-sm text-secondary mt-0.5">
             {upcoming.length} propers · {past.length} passats
           </p>
         </div>
         {!creating && (
           <button
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-1.5 bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            <Plus size={15} /> Nou esdeveniment
+            <MIcon name="add" size={15} /> Nou esdeveniment
           </button>
         )}
       </div>
 
       {/* Formulari de creació */}
       {creating && (
-        <div className="bg-white border border-zinc-200 rounded-xl p-5">
+        <div className="bg-card border border-outline-variant rounded-xl p-5">
           <p className="font-medium text-sm mb-4">Nou esdeveniment</p>
           <EventForm
             initial={{ ...EMPTY_EVENT, location: defaultPlace }}
@@ -207,15 +207,15 @@ export default function AdminAgendaPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 size={20} className="animate-spin text-zinc-400" />
+          <MIcon name="progress_activity" size={20} className="animate-spin text-secondary" />
         </div>
       ) : events.length === 0 && !creating ? (
-        <div className="text-center py-20 text-zinc-400">
-          <Calendar size={32} className="mx-auto mb-3 opacity-30" />
+        <div className="text-center py-20 text-secondary">
+          <MIcon name="calendar_today" size={32} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm mb-3">Sense esdeveniments.</p>
           <button
             onClick={() => setCreating(true)}
-            className="text-zinc-900 hover:text-zinc-600 text-sm font-medium"
+            className="text-on-surface hover:text-on-surface-variant text-sm font-medium"
           >
             Crear primer acte →
           </button>
@@ -224,7 +224,7 @@ export default function AdminAgendaPage() {
         <div className="space-y-3">
           {visible.map(event => (
             editing === event.id ? (
-              <div key={event.id} className="bg-white border border-zinc-300 rounded-xl p-5">
+              <div key={event.id} className="bg-card border border-outline-variant rounded-xl p-5">
                 <p className="font-medium text-sm mb-4">Editar esdeveniment</p>
                 <EventForm
                   initial={event}
@@ -248,7 +248,7 @@ export default function AdminAgendaPage() {
           {past.length > 0 && (
             <button
               onClick={() => setShowPast(v => !v)}
-              className="w-full text-sm text-zinc-400 hover:text-zinc-600 py-3 border border-dashed border-zinc-200 rounded-xl transition-colors"
+              className="w-full text-sm text-secondary hover:text-on-surface-variant py-3 border border-dashed border-outline-variant rounded-xl transition-colors"
             >
               {showPast ? `Amagar ${past.length} actes passats` : `Veure ${past.length} actes passats`}
             </button>
@@ -262,52 +262,52 @@ export default function AdminAgendaPage() {
 function EventCard({ event, defaultPlace, onEdit, onDelete, deleting }) {
   const past = isPast(event.date);
   return (
-    <div className={`bg-white rounded-xl border p-4 transition-colors ${past ? 'opacity-60 border-zinc-100' : 'border-zinc-100 hover:border-zinc-200'}`}>
+    <div className={`bg-card rounded-xl border p-4 transition-colors ${past ? 'opacity-60 border-outline-variant' : 'border-outline-variant hover:border-outline-variant'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium text-zinc-900">{event.title}</p>
+            <p className="font-medium text-on-surface">{event.title}</p>
             {past && (
-              <span className="text-xs text-zinc-400 bg-zinc-50 border border-zinc-200 px-1.5 py-0.5 rounded">Passat</span>
+              <span className="text-xs text-secondary bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded">Passat</span>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-zinc-500">
+          <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-secondary">
             <span className="flex items-center gap-1">
-              <Calendar size={10} /> {formatFecha(event.date)}
+              <MIcon name="calendar_today" size={10} /> {formatFecha(event.date)}
             </span>
             {event.location !== defaultPlace && (
               <span>{event.location}</span>
             )}
           </div>
           {event.description && (
-            <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2">{event.description}</p>
+            <p className="text-xs text-secondary mt-1.5 line-clamp-2">{event.description}</p>
           )}
           {event.link && (
             <a
               href={event.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-zinc-900 hover:text-zinc-600 mt-1.5"
+              className="inline-flex items-center gap-1 text-xs text-on-surface hover:text-on-surface-variant mt-1.5"
             >
-              <ExternalLink size={10} /> {event.link.replace(/^https?:\/\//, '').slice(0, 40)}
+              <MIcon name="open_in_new" size={10} /> {event.link.replace(/^https?:\/\//, '').slice(0, 40)}
             </a>
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={onEdit}
-            className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors"
+            className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
           >
-            <Pencil size={13} />
+            <MIcon name="edit" size={13} />
           </button>
           <button
             onClick={() => onDelete(event.id, event.title)}
             disabled={deleting === event.id}
-            className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
           >
             {deleting === event.id
-              ? <Loader2 size={13} className="animate-spin" />
-              : <Trash2 size={13} />
+              ? <MIcon name="progress_activity" size={13} className="animate-spin" />
+              : <MIcon name="delete" size={13} />
             }
           </button>
         </div>

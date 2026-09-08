@@ -4,10 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
-import {
-  Search, X, Plus, Download, ShoppingBag, Disc3, Package,
-  UserCheck, UserX, Mail, MoreHorizontal, ChevronRight,
-} from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -96,7 +93,7 @@ export default function UsuarisPage() {
       {/* Capçalera */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-zinc-900">Gestió d'usuaris</h2>
+          <h2 className="text-2xl font-bold text-on-surface">Gestió d'usuaris</h2>
           {stats && (
             <div className="flex flex-wrap gap-4 mt-2">
               <StatPill label="Total" value={stats.total} color="zinc" />
@@ -109,12 +106,12 @@ export default function UsuarisPage() {
         </div>
         <div className="flex gap-2 shrink-0">
           <button onClick={exportCsv}
-            className="flex items-center gap-2 px-3 py-2 border border-zinc-300 rounded-xl text-sm text-zinc-600 hover:bg-zinc-50 transition-colors">
-            <Download className="w-4 h-4" />
+            className="flex items-center gap-2 px-3 py-2 border border-outline-variant rounded-xl text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors">
+            <MIcon name="download" className="w-4 h-4" />
             Exportar newsletter
           </button>
           <Button onClick={() => setShowCreate(true)} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
+            <MIcon name="add" className="w-4 h-4" />
             Nou usuari
           </Button>
         </div>
@@ -123,13 +120,13 @@ export default function UsuarisPage() {
       {/* Filtres */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <MIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
           <input value={q} onChange={e => setQ(e.target.value)}
             placeholder="Nom, email o telèfon..."
-            className="w-full pl-9 pr-8 py-2 border border-zinc-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            className="w-full pl-9 pr-8 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           {q && (
             <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-3.5 h-3.5 text-zinc-400" />
+              <MIcon name="close" className="w-3.5 h-3.5 text-secondary" />
             </button>
           )}
         </div>
@@ -144,29 +141,29 @@ export default function UsuarisPage() {
         ]} />
         {(q || filterActivo || filterNewsletter || filterRol) && (
           <button onClick={() => { setQ(''); setFilterActivo(''); setFilterNewsletter(''); setFilterRol(''); }}
-            className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-700 flex items-center gap-1">
-            <X className="w-3.5 h-3.5" /> Netejar
+            className="px-3 py-2 text-sm text-secondary hover:text-on-surface-variant flex items-center gap-1">
+            <MIcon name="close" className="w-3.5 h-3.5" /> Netejar
           </button>
         )}
       </div>
 
       {/* Taula */}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-secondary text-sm">Carregant...</div>
         ) : users.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-zinc-300 text-4xl mb-3">👤</div>
-            <div className="text-zinc-500 text-sm">Cap usuari trobat</div>
+            <div className="text-secondary text-4xl mb-3">👤</div>
+            <div className="text-secondary text-sm">Cap usuari trobat</div>
           </div>
         ) : (
           <>
-            <div className="px-4 py-2.5 text-xs text-zinc-400 border-b border-zinc-100 flex items-center justify-between">
+            <div className="px-4 py-2.5 text-xs text-secondary border-b border-outline-variant flex items-center justify-between">
               <span>{total} usuaris</span>
               <label className="flex items-center gap-1.5">
                 Per pàgina
                 <select value={pageSize} onChange={e => setPageSize(Number(e.target.value))}
-                  className="border border-zinc-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+                  className="border border-outline-variant rounded-lg px-2 py-1 text-xs bg-card focus:outline-none focus:ring-2 focus:ring-primary">
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                 </select>
@@ -174,7 +171,7 @@ export default function UsuarisPage() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[750px]">
-                <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-100">
+                <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                   <tr>
                     <SortableTh label="Usuari" sortKey="nombre" sort={sort} onSort={toggleSort} className="w-[280px]" />
                     <SortableTh label="Accés" sortKey="rol" sort={sort} onSort={toggleSort} />
@@ -185,24 +182,24 @@ export default function UsuarisPage() {
                     <th className="px-4 py-3 w-8" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-outline-variant">
                   {users.map(u => {
                     const isSelected = selected?.id === u.id;
                     return (
                       <tr key={u.id}
-                        className={`hover:bg-zinc-50 cursor-pointer transition-colors ${isSelected ? 'bg-zinc-50' : ''} ${!u.active ? 'opacity-60' : ''}`}
+                        className={`hover:bg-surface-container-high cursor-pointer transition-colors ${isSelected ? 'bg-surface-container-high' : ''} ${!u.active ? 'opacity-60' : ''}`}
                         onClick={() => setSelected(isSelected ? null : u)}>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                              u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-700'
+                              u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-surface-container-high text-on-surface-variant'
                             }`}>
                               {initials(u)}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-medium text-zinc-900 truncate">{displayName(u)}</div>
-                              {u.name && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
-                              {u.phone && <div className="text-xs text-zinc-400">{u.phone}</div>}
+                              <div className="font-medium text-on-surface truncate">{displayName(u)}</div>
+                              {u.name && <div className="text-xs text-secondary truncate">{u.email}</div>}
+                              {u.phone && <div className="text-xs text-secondary">{u.phone}</div>}
                             </div>
                           </div>
                         </td>
@@ -212,32 +209,32 @@ export default function UsuarisPage() {
                               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-purple-100 text-purple-700 font-medium">Admin</span>
                             )}
                             {(u.providers || []).map(p => (
-                              <span key={p} className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-zinc-100 text-zinc-500">
+                              <span key={p} className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-surface-container-high text-secondary">
                                 {PROVIDER_LABELS[p] || p}
                               </span>
                             ))}
-                            {!u.providers?.length && <span className="text-xs text-zinc-300">Manual</span>}
+                            {!u.providers?.length && <span className="text-xs text-secondary">Manual</span>}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-3">
                             {u.stats?.orders > 0 && (
-                              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                                <ShoppingBag className="w-3 h-3" />{u.stats.orders}
+                              <span className="inline-flex items-center gap-1 text-xs text-secondary">
+                                <MIcon name="shopping_bag" className="w-3 h-3" />{u.stats.orders}
                               </span>
                             )}
                             {u.stats?.vendes_tpv > 0 && (
-                              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                                <Disc3 className="w-3 h-3" />{u.stats.vendes_tpv}
+                              <span className="inline-flex items-center gap-1 text-xs text-secondary">
+                                <MIcon name="album" className="w-3 h-3" />{u.stats.vendes_tpv}
                               </span>
                             )}
                             {u.stats?.compres_records > 0 && (
-                              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                                <Package className="w-3 h-3" />{u.stats.compres_records}
+                              <span className="inline-flex items-center gap-1 text-xs text-secondary">
+                                <MIcon name="package_2" className="w-3 h-3" />{u.stats.compres_records}
                               </span>
                             )}
                             {!u.stats?.orders && !u.stats?.vendes_tpv && !u.stats?.compres_records && (
-                              <span className="text-zinc-300 text-xs">—</span>
+                              <span className="text-secondary text-xs">—</span>
                             )}
                           </div>
                         </td>
@@ -247,8 +244,8 @@ export default function UsuarisPage() {
                             title={u.consent_newsletter ? 'Eliminar de newsletter' : 'Subscriure a newsletter'}
                             className={`w-5 h-5 rounded-full border-2 transition-colors ${
                               u.consent_newsletter
-                                ? 'bg-zinc-900 border-zinc-900'
-                                : 'bg-white border-zinc-300 hover:border-zinc-400'
+                                ? 'bg-primary border-primary'
+                                : 'bg-card border-outline-variant hover:border-outline'
                             }`}
                           />
                         </td>
@@ -259,17 +256,17 @@ export default function UsuarisPage() {
                             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                               u.active
                                 ? 'bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600'
-                                : 'bg-zinc-100 text-zinc-500 hover:bg-green-50 hover:text-green-700'
+                                : 'bg-surface-container-high text-secondary hover:bg-green-50 hover:text-green-700'
                             }`}>
-                            {u.active ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
+                            {u.active ? <MIcon name="how_to_reg" className="w-3 h-3" /> : <MIcon name="person_off" className="w-3 h-3" />}
                             {u.active ? 'Actiu' : 'Inactiu'}
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-right text-zinc-400 text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-right text-secondary text-xs whitespace-nowrap">
                           {fmt(u.created_at)}
                         </td>
                         <td className="px-4 py-3">
-                          <ChevronRight className={`w-4 h-4 transition-transform ${isSelected ? 'rotate-90 text-zinc-900' : 'text-zinc-300'}`} />
+                          <MIcon name="chevron_right" className={`w-4 h-4 transition-transform ${isSelected ? 'rotate-90 text-on-surface' : 'text-secondary'}`} />
                         </td>
                       </tr>
                     );
@@ -278,15 +275,15 @@ export default function UsuarisPage() {
               </table>
             </div>
             {total > pageSize && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
                 <span>{page * pageSize + 1}–{Math.min(page * pageSize + pageSize, total)} de {total}</span>
                 <div className="flex gap-2">
                   <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-                    className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                    className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                     ← Anterior
                   </button>
                   <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * pageSize >= total}
-                    className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                    className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                     Següent →
                   </button>
                 </div>
@@ -330,7 +327,7 @@ export default function UsuarisPage() {
 
 function StatPill({ label, value, color }) {
   const colors = {
-    zinc: 'bg-zinc-100 text-zinc-700',
+    zinc: 'bg-surface-container-high text-on-surface-variant',
     green: 'bg-green-100 text-green-700',
     red: 'bg-red-100 text-red-600',
     purple: 'bg-purple-100 text-purple-700',
@@ -345,7 +342,7 @@ function StatPill({ label, value, color }) {
 function FilterSelect({ value, onChange, options }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
-      className="border border-zinc-300 rounded-xl px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+      className="border border-outline-variant rounded-xl px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary bg-card">
       {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>
   );
@@ -385,11 +382,11 @@ function CreateUserModal({ onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">Nou usuari</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg">
-            <X className="w-5 h-5 text-zinc-400" />
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">Nou usuari</h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-surface-container-high rounded-lg">
+            <MIcon name="close" className="w-5 h-5 text-secondary" />
           </button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
@@ -425,21 +422,21 @@ function CreateUserModal({ onClose, onCreated }) {
               rows={2} className={INPUT} placeholder="Nota visible només per admin..." />
           </FormField>
           <div className="flex gap-5">
-            <label className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-on-surface-variant cursor-pointer">
               <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)}
-                className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" />
+                className="rounded border-outline-variant text-on-surface focus:ring-primary" />
               Compte actiu
             </label>
-            <label className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-on-surface-variant cursor-pointer">
               <input type="checkbox" checked={form.consent_newsletter} onChange={e => set('consent_newsletter', e.target.checked)}
-                className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" />
+                className="rounded border-outline-variant text-on-surface focus:ring-primary" />
               Newsletter
             </label>
           </div>
           {error && <div className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</div>}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-zinc-300 rounded-xl text-sm text-zinc-600 hover:bg-zinc-50">
+              className="flex-1 px-4 py-2.5 border border-outline-variant rounded-xl text-sm text-on-surface-variant hover:bg-surface-container-high">
               Cancel·lar
             </button>
             <Button type="submit" className="flex-1" disabled={saving}>
@@ -452,12 +449,12 @@ function CreateUserModal({ onClose, onCreated }) {
   );
 }
 
-const INPUT = "w-full border border-zinc-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900";
+const INPUT = "w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
 
 function FormField({ label, children, required }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-zinc-600 mb-1.5">
+      <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
       {children}
@@ -536,7 +533,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
   }
 
   if (!user) return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-8 text-center text-zinc-400 text-sm animate-pulse">
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-8 text-center text-secondary text-sm animate-pulse">
       Carregant...
     </div>
   );
@@ -553,17 +550,17 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
       {/* Capçalera */}
-      <div className="px-6 py-5 border-b border-zinc-100 flex items-start gap-4">
+      <div className="px-6 py-5 border-b border-outline-variant flex items-start gap-4">
         <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold shrink-0 ${
-          user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-700'
+          user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-surface-container-high text-on-surface-variant'
         }`}>
           {initials(user)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-zinc-900 text-lg">{displayName(user)}</span>
+            <span className="font-semibold text-on-surface text-lg">{displayName(user)}</span>
             {user.role === 'admin' && (
               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700">Admin</span>
             )}
@@ -573,13 +570,13 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
               {user.active ? 'Actiu' : 'Inactiu'}
             </span>
             {user.consent_newsletter && (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-700">
-                <Mail className="w-3 h-3 mr-1" /> Newsletter
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                <MIcon name="mail" className="w-3 h-3 mr-1" /> Newsletter
               </span>
             )}
           </div>
-          {user.name && <div className="text-sm text-zinc-500 mt-0.5">{user.email}</div>}
-          {user.phone && <div className="text-sm text-zinc-400">{user.phone}</div>}
+          {user.name && <div className="text-sm text-secondary mt-0.5">{user.email}</div>}
+          {user.phone && <div className="text-sm text-secondary">{user.phone}</div>}
           {/* Accions ràpides */}
           <div className="flex gap-2 mt-3 flex-wrap">
             <button onClick={toggleActivo}
@@ -588,41 +585,41 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                   ? 'border-red-200 text-red-600 hover:bg-red-50'
                   : 'border-green-200 text-green-600 hover:bg-green-50'
               }`}>
-              {user.active ? <><UserX className="w-3.5 h-3.5" /> Desactivar</> : <><UserCheck className="w-3.5 h-3.5" /> Reactivar</>}
+              {user.active ? <><MIcon name="person_off" className="w-3.5 h-3.5" /> Desactivar</> : <><MIcon name="how_to_reg" className="w-3.5 h-3.5" /> Reactivar</>}
             </button>
             <button onClick={toggleNewsletter}
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium ${
                 user.consent_newsletter
-                  ? 'border-zinc-300 text-zinc-700 hover:bg-zinc-50'
-                  : 'border-zinc-200 text-zinc-500 hover:bg-zinc-50'
+                  ? 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+                  : 'border-outline-variant text-secondary hover:bg-surface-container-high'
               }`}>
-              <Mail className="w-3.5 h-3.5" />
+              <MIcon name="mail" className="w-3.5 h-3.5" />
               {user.consent_newsletter ? 'Donar de baixa NL' : 'Subscriure a NL'}
             </button>
             <button onClick={() => setShowSetPassword(true)}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition-colors font-medium">
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-outline-variant text-secondary hover:bg-surface-container-high transition-colors font-medium">
               Assignar contrasenya
             </button>
           </div>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-lg shrink-0">
-          <X className="w-5 h-5 text-zinc-400" />
+        <button onClick={onClose} className="p-2 hover:bg-surface-container-high rounded-lg shrink-0">
+          <MIcon name="close" className="w-5 h-5 text-secondary" />
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 divide-x divide-zinc-100 border-b border-zinc-100 bg-zinc-50">
-        <MiniStat icon={<ShoppingBag className="w-4 h-4" />} label="Comandes web" count={user.orders?.length || 0} total={totalOrders} />
-        <MiniStat icon={<Disc3 className="w-4 h-4" />} label="Compres TPV" count={user.vendes_tpv?.length || 0} total={totalTpv} />
-        <MiniStat icon={<Package className="w-4 h-4" />} label="Records venuts" count={user.compres_records?.length || 0} total={totalRecords} totalLabel="pagat" />
+      <div className="grid grid-cols-3 divide-x divide-outline-variant border-b border-outline-variant bg-surface-container-high">
+        <MiniStat icon={<MIcon name="shopping_bag" className="w-4 h-4" />} label="Comandes web" count={user.orders?.length || 0} total={totalOrders} />
+        <MiniStat icon={<MIcon name="album" className="w-4 h-4" />} label="Compres TPV" count={user.vendes_tpv?.length || 0} total={totalTpv} />
+        <MiniStat icon={<MIcon name="package_2" className="w-4 h-4" />} label="Records venuts" count={user.compres_records?.length || 0} total={totalRecords} totalLabel="pagat" />
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-zinc-100 overflow-x-auto">
+      <div className="flex border-b border-outline-variant overflow-x-auto">
         {TABS.map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-5 py-3 text-sm font-medium shrink-0 border-b-2 transition-colors ${
-              tab === key ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-700'
+              tab === key ? 'border-primary text-on-surface' : 'border-transparent text-secondary hover:text-on-surface-variant'
             }`}>
             {label}
           </button>
@@ -665,18 +662,18 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                 <div className="flex gap-5">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={form.consent_newsletter} onChange={e => set('consent_newsletter', e.target.checked)}
-                      className="rounded border-zinc-300 text-zinc-900" />
+                      className="rounded border-outline-variant text-on-surface" />
                     Newsletter
                   </label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)}
-                      className="rounded border-zinc-300 text-zinc-900" />
+                      className="rounded border-outline-variant text-on-surface" />
                     Compte actiu
                   </label>
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button onClick={save} disabled={saving}>{saving ? 'Guardant...' : 'Guardar canvis'}</Button>
-                  <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700">
+                  <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
                     Cancel·lar
                   </button>
                 </div>
@@ -684,8 +681,8 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             ) : (
               <div className="space-y-3 max-w-md">
                 <ProfileRow label="Email" value={user.email} mono />
-                <ProfileRow label="Nom" value={user.name || <span className="text-zinc-300">—</span>} />
-                <ProfileRow label="Telèfon" value={user.phone || <span className="text-zinc-300">—</span>} />
+                <ProfileRow label="Nom" value={user.name || <span className="text-secondary">—</span>} />
+                <ProfileRow label="Telèfon" value={user.phone || <span className="text-secondary">—</span>} />
                 <ProfileRow label="Idioma" value={{ ca: 'Català', es: 'Castellà', en: 'Anglès' }[user.language] || user.language} />
                 <ProfileRow label="Rol" value={user.role} />
                 <ProfileRow label="Alta" value={new Date(user.created_at).toLocaleDateString('ca', { day: '2-digit', month: '2-digit', year: 'numeric' })} />
@@ -694,13 +691,13 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                 )}
                 {user.internal_notes && (
                   <div>
-                    <div className="text-xs text-zinc-400 mb-1">Notes internes</div>
-                    <div className="text-sm text-zinc-700 bg-zinc-50 rounded-xl p-3 whitespace-pre-wrap">{user.internal_notes}</div>
+                    <div className="text-xs text-secondary mb-1">Notes internes</div>
+                    <div className="text-sm text-on-surface-variant bg-surface-container-high rounded-xl p-3 whitespace-pre-wrap">{user.internal_notes}</div>
                   </div>
                 )}
                 <div className="pt-2">
                   <button onClick={() => setEditing(true)}
-                    className="text-sm text-zinc-900 hover:text-zinc-600 font-medium">
+                    className="text-sm text-on-surface hover:text-on-surface-variant font-medium">
                     Editar perfil →
                   </button>
                 </div>
@@ -708,12 +705,12 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             )}
 
             {/* Zona destructiva */}
-            <div className="border-t border-zinc-100 pt-6 mt-6">
-              <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-4">Zona perillosa</div>
+            <div className="border-t border-outline-variant pt-6 mt-6">
+              <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-4">Zona perillosa</div>
               {!confirmAnon ? (
                 <button onClick={() => setConfirmAnon(true)}
                   className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-xl px-4 py-2.5 transition-colors">
-                  <X className="w-4 h-4" />
+                  <MIcon name="close" className="w-4 h-4" />
                   Anonimitzar compte (RGPD)
                 </button>
               ) : (
@@ -728,7 +725,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                       {anonizing ? 'Anonimitzant...' : 'Sí, anonimitzar'}
                     </button>
                     <button onClick={() => setConfirmAnon(false)}
-                      className="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-700">
+                      className="px-4 py-2 text-sm text-secondary hover:text-on-surface-variant">
                       Cancel·lar
                     </button>
                   </div>
@@ -743,19 +740,19 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             items={user.orders || []}
             empty="Sense comandes web"
             renderItem={o => (
-              <div key={o.id} className="flex items-start gap-3 py-3 border-b border-zinc-50 last:border-0">
+              <div key={o.id} className="flex items-start gap-3 py-3 border-b border-outline-variant/40 last:border-0">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
-                  <ShoppingBag className="w-4 h-4" />
+                  <MIcon name="shopping_bag" className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <span className="text-xs text-zinc-400">{fmt(o.created_at)}</span>
+                    <span className="text-xs text-secondary">{fmt(o.created_at)}</span>
                     <div className="flex items-center gap-2">
                       <OrderStatusBadge status={o.status} />
-                      <span className="font-semibold text-zinc-900 text-sm">{o.total.toFixed(2)} €</span>
+                      <span className="font-semibold text-on-surface text-sm">{o.total.toFixed(2)} €</span>
                     </div>
                   </div>
-                  <div className="text-xs text-zinc-500">
+                  <div className="text-xs text-secondary">
                     {o.items.map(i => `${i.artista} — ${i.titulo}`).join(' · ')}
                   </div>
                 </div>
@@ -769,20 +766,20 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             items={user.vendes_tpv || []}
             empty="Sense compres en TPV"
             renderItem={v => (
-              <div key={v.id} className="flex items-center gap-3 py-3 border-b border-zinc-50 last:border-0">
-                <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-700 flex items-center justify-center shrink-0">
-                  <Disc3 className="w-4 h-4" />
+              <div key={v.id} className="flex items-center gap-3 py-3 border-b border-outline-variant/40 last:border-0">
+                <div className="w-8 h-8 rounded-lg bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0">
+                  <MIcon name="album" className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-zinc-900 text-sm truncate">{v.artista} — {v.titulo}</div>
-                  <div className="text-xs text-zinc-400">
+                  <div className="font-medium text-on-surface text-sm truncate">{v.artista} — {v.titulo}</div>
+                  <div className="text-xs text-secondary">
                     {fmt(v.date)} · {v.channel} ·
                     <span className={`ml-1 ${v.payment_method === 'efectivo' ? 'text-green-600' : 'text-indigo-600'}`}>
                       {v.payment_method}
                     </span>
                   </div>
                 </div>
-                <span className="font-semibold text-zinc-900 text-sm shrink-0">{v.sale_price.toFixed(2)} €</span>
+                <span className="font-semibold text-on-surface text-sm shrink-0">{v.sale_price.toFixed(2)} €</span>
               </div>
             )}
           />
@@ -793,12 +790,12 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             items={user.compres_records || []}
             empty="Sense records venuts a la botiga"
             renderItem={c => (
-              <div key={c.id} className="py-3 border-b border-zinc-50 last:border-0">
+              <div key={c.id} className="py-3 border-b border-outline-variant/40 last:border-0">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-xs text-zinc-400">{fmt(c.fecha)} · {c.num_items} disc{c.num_items !== 1 ? 'os' : ''}</span>
+                  <span className="text-xs text-secondary">{fmt(c.fecha)} · {c.num_items} disc{c.num_items !== 1 ? 'os' : ''}</span>
                   <span className="text-sm font-semibold text-green-700">{c.total_pagat.toFixed(2)} € pagat</span>
                 </div>
-                <div className="text-xs text-zinc-500">
+                <div className="text-xs text-secondary">
                   {c.items.map(i => `${i.artista} — ${i.titulo}`).join(' · ')}
                 </div>
               </div>
@@ -837,11 +834,11 @@ function SetPasswordModal({ userId, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">Assignar contrasenya</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg">
-            <X className="w-5 h-5 text-zinc-400" />
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">Assignar contrasenya</h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-surface-container-high rounded-lg">
+            <MIcon name="close" className="w-5 h-5 text-secondary" />
           </button>
         </div>
         {done ? (
@@ -860,7 +857,7 @@ function SetPasswordModal({ userId, onClose }) {
             {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>}
             <div className="flex gap-2">
               <Button type="submit" disabled={saving}>{saving ? 'Guardant...' : 'Assignar'}</Button>
-              <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700">
+              <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
                 Cancel·lar
               </button>
             </div>
@@ -874,25 +871,25 @@ function SetPasswordModal({ userId, onClose }) {
 function MiniStat({ icon, label, count, total, totalLabel = 'total' }) {
   return (
     <div className="px-4 py-3 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-zinc-400 mb-1">{icon}<span className="text-xs">{label}</span></div>
-      <div className="text-xl font-bold text-zinc-900">{count}</div>
-      {total > 0 && <div className="text-xs text-zinc-500 font-medium">{totalLabel} {total.toFixed(2)} €</div>}
+      <div className="flex items-center justify-center gap-1.5 text-secondary mb-1">{icon}<span className="text-xs">{label}</span></div>
+      <div className="text-xl font-bold text-on-surface">{count}</div>
+      {total > 0 && <div className="text-xs text-secondary font-medium">{totalLabel} {total.toFixed(2)} €</div>}
     </div>
   );
 }
 
 function ProfileRow({ label, value, mono }) {
   return (
-    <div className="flex items-start gap-3 py-1.5 border-b border-zinc-50">
-      <span className="text-xs text-zinc-400 w-20 shrink-0 pt-0.5">{label}</span>
-      <span className={`text-sm text-zinc-800 ${mono ? 'font-mono text-xs' : ''}`}>{value}</span>
+    <div className="flex items-start gap-3 py-1.5 border-b border-outline-variant/40">
+      <span className="text-xs text-secondary w-20 shrink-0 pt-0.5">{label}</span>
+      <span className={`text-sm text-on-surface ${mono ? 'font-mono text-xs' : ''}`}>{value}</span>
     </div>
   );
 }
 
 function ActivitySection({ items, empty, renderItem }) {
   if (!items.length) return (
-    <div className="py-12 text-center text-zinc-400 text-sm">{empty}</div>
+    <div className="py-12 text-center text-secondary text-sm">{empty}</div>
   );
   return <div>{items.map(renderItem)}</div>;
 }
@@ -906,7 +903,7 @@ const STATUS_COLORS = {
 };
 function OrderStatusBadge({ status }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[status] || 'bg-zinc-100 text-zinc-600'}`}>
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[status] || 'bg-surface-container-high text-on-surface-variant'}`}>
       {status}
     </span>
   );

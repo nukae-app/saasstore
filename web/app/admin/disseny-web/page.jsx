@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { authFetch } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
-import { Plus, Pencil, Trash2, GripVertical, RefreshCw, ExternalLink } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { Button } from '../../../components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -101,7 +101,7 @@ const SECTION_DIVIDER_OPTIONS = [
 function PresetField({ label, options, value, onChange }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-zinc-700 mb-2">{label}</label>
+      <label className="block text-sm font-medium text-on-surface-variant mb-2">{label}</label>
       <div className="flex flex-wrap gap-2">
         {options.map((opt) => (
           <button
@@ -109,7 +109,7 @@ function PresetField({ label, options, value, onChange }) {
             type="button"
             onClick={() => onChange(opt.value)}
             className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
-              value === opt.value ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+              value === opt.value ? 'border-primary bg-primary text-white' : 'border-outline-variant text-on-surface-variant hover:border-outline-variant'
             }`}
           >
             {opt.label}
@@ -161,19 +161,19 @@ export default function DissenyWebPage() {
     <div className="max-w-[1700px] mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-xl font-semibold text-zinc-900">{t('design.title', 'Disseny web')}</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">
+          <h1 className="text-xl font-semibold text-on-surface">{t('design.title', 'Disseny web')}</h1>
+          <p className="text-sm text-secondary mt-0.5">
             {t('design.hint', 'Blocs, colors, tipografia i CSS de la teva botiga — amb previsualització en directe.')}
           </p>
         </div>
-        <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
+        <div className="flex gap-1 bg-surface-container-high p-1 rounded-xl w-fit">
           {[
             ['blocs', t('design.tab.blocks', 'Blocs')],
             ['disseny', t('design.tab.design', 'Colors i tipografia')],
             ['css', t('design.tab.css', 'CSS')],
           ].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === k ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'}`}>
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === k ? 'bg-card shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}>
               {l}
             </button>
           ))}
@@ -189,19 +189,19 @@ export default function DissenyWebPage() {
 
         <div className="xl:sticky xl:top-6">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+            <p className="text-xs font-medium text-secondary uppercase tracking-wide">
               {t('design.preview', 'Previsualització en directe')}
             </p>
             <div className="flex items-center gap-3">
-              <a href="/ca" target="_blank" rel="noopener" className="text-zinc-400 hover:text-zinc-700 transition-colors" title={t('design.open_new_tab', 'Obrir en una pestanya nova')}>
-                <ExternalLink size={14} />
+              <a href="/ca" target="_blank" rel="noopener" className="text-secondary hover:text-on-surface-variant transition-colors" title={t('design.open_new_tab', 'Obrir en una pestanya nova')}>
+                <MIcon name="open_in_new" size={14} />
               </a>
-              <button onClick={reloadPreview} className="text-zinc-400 hover:text-zinc-700 transition-colors" title={t('design.reload', 'Recarregar')}>
-                <RefreshCw size={14} />
+              <button onClick={reloadPreview} className="text-secondary hover:text-on-surface-variant transition-colors" title={t('design.reload', 'Recarregar')}>
+                <MIcon name="refresh" size={14} />
               </button>
             </div>
           </div>
-          <div className="rounded-2xl border border-zinc-200 overflow-hidden bg-white shadow-sm h-[calc(100vh-190px)] min-h-[420px]">
+          <div className="rounded-2xl border border-outline-variant overflow-hidden bg-card shadow-sm h-[calc(100vh-190px)] min-h-[420px]">
             <iframe
               ref={iframeRef}
               src="/ca?admin_preview=1"
@@ -216,7 +216,7 @@ export default function DissenyWebPage() {
 }
 
 function Loading({ t }) {
-  return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>;
+  return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
 }
 
 function blockSummary(block) {
@@ -393,17 +393,17 @@ function BlocksPanel({ sendPreview }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 gap-3">
-        <p className="text-sm text-zinc-500">Arrossega per reordenar els blocs del home. La previsualització s&apos;actualitza en prémer &quot;Guardar canvis&quot;.</p>
+        <p className="text-sm text-secondary">Arrossega per reordenar els blocs del home. La previsualització s&apos;actualitza en prémer &quot;Guardar canvis&quot;.</p>
         <button
           onClick={() => { setErr(''); setAddOpen(true); }}
-          className="flex items-center gap-1.5 bg-white border border-zinc-200 text-zinc-700 text-sm px-4 py-2 rounded-xl hover:bg-zinc-50 transition-colors shrink-0"
+          className="flex items-center gap-1.5 bg-card border border-outline-variant text-on-surface-variant text-sm px-4 py-2 rounded-xl hover:bg-surface-container-high transition-colors shrink-0"
         >
-          <Plus size={15} /> Afegir bloc
+          <MIcon name="add" size={15} /> Afegir bloc
         </button>
       </div>
 
       {loading ? (
-        <p className="text-zinc-400 text-sm">Carregant…</p>
+        <p className="text-secondary text-sm">Carregant…</p>
       ) : (
         <div className="flex flex-col gap-2">
           {draft.map((block) => {
@@ -415,17 +415,17 @@ function BlocksPanel({ sendPreview }) {
                 onDragStart={() => onDragStart(block.id)}
                 onDragOver={onDragOver}
                 onDrop={() => onDrop(block.id)}
-                className={`flex items-center gap-3 bg-white rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] px-4 py-3 cursor-grab active:cursor-grabbing transition-opacity ${block.enabled ? '' : 'opacity-50'}`}
+                className={`flex items-center gap-3 bg-card rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] px-4 py-3 cursor-grab active:cursor-grabbing transition-opacity ${block.enabled ? '' : 'opacity-50'}`}
               >
-                <GripVertical size={16} className="text-zinc-300 shrink-0" />
+                <MIcon name="drag_indicator" size={16} className="text-secondary shrink-0" />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-zinc-900 text-sm">{meta?.label || block.block_type}</span>
-                    <span className="text-[10px] bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-full">{block.block_type}</span>
+                    <span className="font-medium text-on-surface text-sm">{meta?.label || block.block_type}</span>
+                    <span className="text-[10px] bg-surface-container-high text-secondary px-1.5 py-0.5 rounded-full">{block.block_type}</span>
                     {block._new && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">nou</span>}
                   </div>
-                  <p className="text-xs text-zinc-400 mt-0.5 truncate">{blockSummary(block)}</p>
+                  <p className="text-xs text-secondary mt-0.5 truncate">{blockSummary(block)}</p>
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
@@ -433,45 +433,45 @@ function BlocksPanel({ sendPreview }) {
                     type="button"
                     onClick={() => toggleEnabled(block)}
                     title={block.enabled ? 'Actiu' : 'Inactiu'}
-                    className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${block.enabled ? 'bg-green-500' : 'bg-zinc-300'}`}
+                    className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${block.enabled ? 'bg-green-500' : 'bg-muted'}`}
                   >
-                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${block.enabled ? 'left-5' : 'left-0.5'}`} />
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${block.enabled ? 'left-5' : 'left-0.5'}`} />
                   </button>
                   {meta?.editable && (
-                    <button onClick={() => openEdit(block)} className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors">
-                      <Pencil size={14} />
+                    <button onClick={() => openEdit(block)} className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                      <MIcon name="edit" size={14} />
                     </button>
                   )}
                   <button
                     onClick={() => deleteBlock(block)}
-                    className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                    className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <MIcon name="delete" size={14} />
                   </button>
                 </div>
               </div>
             );
           })}
           {draft.length === 0 && (
-            <p className="text-zinc-400 text-sm py-8 text-center">Cap bloc configurat. La pàgina d&apos;inici es mostrarà buida — afegeix-ne un!</p>
+            <p className="text-secondary text-sm py-8 text-center">Cap bloc configurat. La pàgina d&apos;inici es mostrarà buida — afegeix-ne un!</p>
           )}
         </div>
       )}
 
       {err && <p className="text-red-500 text-xs mt-3">{err}</p>}
 
-      <div className="flex items-center gap-3 mt-5 pt-5 border-t border-zinc-200">
+      <div className="flex items-center gap-3 mt-5 pt-5 border-t border-outline-variant">
         <button
           onClick={saveAll}
           disabled={!dirty || saving}
-          className="bg-zinc-900 text-white text-sm px-5 py-2 rounded-xl hover:bg-zinc-700 disabled:opacity-40 disabled:hover:bg-zinc-900 transition-colors"
+          className="bg-primary text-white text-sm px-5 py-2 rounded-xl hover:opacity-90 disabled:opacity-40 disabled:hover:opacity-40 transition-colors"
         >
           {saving ? 'Desant…' : 'Guardar canvis'}
         </button>
         {dirty && !saving && (
           <>
             <span className="text-xs text-amber-600">Tens canvis sense desar</span>
-            <button onClick={discardChanges} className="text-xs text-zinc-400 hover:text-zinc-700">
+            <button onClick={discardChanges} className="text-xs text-secondary hover:text-on-surface-variant">
               Descartar
             </button>
           </>
@@ -492,15 +492,15 @@ function BlocksPanel({ sendPreview }) {
                 <button
                   key={type}
                   onClick={() => addBlock(type)}
-                  className="flex flex-col items-start gap-0.5 p-3 rounded-xl border border-zinc-200 hover:border-zinc-900 text-left transition-colors"
+                  className="flex flex-col items-start gap-0.5 p-3 rounded-xl border border-outline-variant hover:border-primary text-left transition-colors"
                 >
-                  <span className="text-sm font-semibold text-zinc-900">{meta.label}</span>
-                  <span className="text-xs text-zinc-400">{meta.description}</span>
+                  <span className="text-sm font-semibold text-on-surface">{meta.label}</span>
+                  <span className="text-xs text-secondary">{meta.description}</span>
                 </button>
               );
             })}
             {availableToAdd.length === 0 && (
-              <p className="text-sm text-zinc-400 text-center py-4">Ja tens tots els blocs disponibles configurats.</p>
+              <p className="text-sm text-secondary text-center py-4">Ja tens tots els blocs disponibles configurats.</p>
             )}
           </div>
         </DialogContent>
@@ -524,13 +524,13 @@ function BlocksPanel({ sendPreview }) {
           <SheetFooter className="mt-6">
             <button
               onClick={() => setEditingId(null)}
-              className="text-sm px-4 py-2 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-colors"
+              className="text-sm px-4 py-2 rounded-xl border border-outline-variant hover:bg-surface-container-high transition-colors"
             >
               Cancel·lar
             </button>
             <button
               onClick={applyEdit}
-              className="bg-zinc-900 text-white text-sm px-5 py-2 rounded-xl hover:bg-zinc-700 transition-colors"
+              className="bg-primary text-white text-sm px-5 py-2 rounded-xl hover:opacity-90 transition-colors"
             >
               Aplicar
             </button>
@@ -647,12 +647,12 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
 
   return (
     <form onSubmit={save} className="space-y-5">
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
-        <p className="text-sm text-zinc-500">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
+        <p className="text-sm text-secondary">
           {t('config.design.hint', "Colors i tipografia propis de la teva botiga. Si has encarregat un disseny, pots copiar aquí els valors exactes (hex, nom de la font) que et doni el/la dissenyador/a.")}
         </p>
 
-        <div className="flex h-10 rounded-lg overflow-hidden border border-zinc-200">
+        <div className="flex h-10 rounded-lg overflow-hidden border border-outline-variant">
           {THEME_FIELDS.map((f) => (
             <div key={f.key} className="flex-1" style={{ backgroundColor: values[f.key] }} title={f.label} />
           ))}
@@ -665,14 +665,14 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
                 type="color"
                 value={values[f.key]}
                 onChange={(e) => setColor(f.key, e.target.value)}
-                className="w-9 h-9 rounded border border-zinc-300 shrink-0 cursor-pointer"
+                className="w-9 h-9 rounded border border-outline-variant shrink-0 cursor-pointer"
               />
               <div className="min-w-0 flex-1">
-                <label className="block text-xs font-medium text-zinc-700">{f.label}</label>
+                <label className="block text-xs font-medium text-on-surface-variant">{f.label}</label>
                 <input
                   value={values[f.key]}
                   onChange={(e) => setColor(f.key, e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -680,38 +680,38 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
-        <p className="text-sm text-zinc-500">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
+        <p className="text-sm text-secondary">
           {t('config.design.font_hint', "Cerca i tria una tipografia gratuïta (es descarrega i queda allotjada al teu servidor), o escriu-la a mà si ja saps que existeix (p. ex. una del sistema).")}
         </p>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.design.font_headline', 'Tipografia de títols')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.design.font_headline', 'Tipografia de títols')}</label>
           <div className="flex gap-2">
             <input value={fontHeadline} onChange={(e) => setFont('headline', e.target.value)}
               placeholder="Bodoni Moda, Georgia, serif"
-              className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             <button type="button" onClick={() => setPickerRole('headline')}
-              className="shrink-0 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg px-3 py-2 hover:bg-zinc-50 transition-colors">
+              className="shrink-0 text-sm font-medium text-on-surface-variant border border-outline-variant rounded-lg px-3 py-2 hover:bg-surface-container-high transition-colors">
               Cercar…
             </button>
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.design.font_body', 'Tipografia de text')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.design.font_body', 'Tipografia de text')}</label>
           <div className="flex gap-2">
             <input value={fontBody} onChange={(e) => setFont('body', e.target.value)}
               placeholder="Hanken Grotesk, system-ui, sans-serif"
-              className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             <button type="button" onClick={() => setPickerRole('body')}
-              className="shrink-0 text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg px-3 py-2 hover:bg-zinc-50 transition-colors">
+              className="shrink-0 text-sm font-medium text-on-surface-variant border border-outline-variant rounded-lg px-3 py-2 hover:bg-surface-container-high transition-colors">
               Cercar…
             </button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-5">
-        <p className="text-sm text-zinc-500">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-5">
+        <p className="text-sm text-secondary">
           Forma i textura dels blocs: targetes, botons i amplada del contingut. Si no tries res, es manté l&apos;aspecte actual.
         </p>
         <PresetField label="Radi de les targetes i imatges" options={RADIUS_CARD_OPTIONS} value={extra.radius_card} onChange={(v) => setExtraField('radius_card', v)} />
@@ -720,15 +720,15 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
         <PresetField label="Amplada del contingut" options={CONTENT_WIDTH_OPTIONS} value={extra.content_width} onChange={(v) => setExtraField('content_width', v)} />
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-700">Vores a les targetes</p>
-            <p className="text-xs text-zinc-400 mt-1 max-w-sm">Afegeix una vora fina (color &quot;Vores&quot; de la paleta) a les targetes que avui no en tenen.</p>
+            <p className="text-sm font-medium text-on-surface-variant">Vores a les targetes</p>
+            <p className="text-xs text-secondary mt-1 max-w-sm">Afegeix una vora fina (color &quot;Vores&quot; de la paleta) a les targetes que avui no en tenen.</p>
           </div>
           <button
             type="button"
             onClick={() => setExtraField('border_card', extra.border_card === BORDER_CARD_ON ? 'none' : BORDER_CARD_ON)}
-            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${extra.border_card === BORDER_CARD_ON ? 'bg-green-500' : 'bg-zinc-300'}`}
+            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${extra.border_card === BORDER_CARD_ON ? 'bg-green-500' : 'bg-muted'}`}
           >
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${extra.border_card === BORDER_CARD_ON ? 'left-5' : 'left-0.5'}`} />
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${extra.border_card === BORDER_CARD_ON ? 'left-5' : 'left-0.5'}`} />
           </button>
         </div>
         <PresetField label="Tractament de les fotos" options={IMAGE_TREATMENT_OPTIONS} value={extra.image_treatment} onChange={(v) => setExtraField('image_treatment', v)} />
@@ -747,7 +747,7 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
-        <button type="button" onClick={resetDefaults} className="text-xs text-zinc-500 hover:text-zinc-700">
+        <button type="button" onClick={resetDefaults} className="text-xs text-secondary hover:text-on-surface-variant">
           {t('config.design.reset', 'Restaurar valors per defecte')}
         </button>
         {saved && !saving && <span className="text-xs text-green-600">{t('subscriptions.config.saved', 'Desat')}</span>}
@@ -788,8 +788,8 @@ function CustomCssPanel({ config, onSaved, sendPreview }) {
 
   return (
     <form onSubmit={save} className="space-y-5">
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
-        <p className="text-sm text-zinc-500">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-3">
+        <p className="text-sm text-secondary">
           {t('config.css.hint', "Per a retocs que els colors/tipografia de \"Colors i tipografia\" no cobreixin. Pensat per a qui sap CSS o per al/la dissenyador/a que hagis contractat — no s'accepten @import ni @media en aquesta primera versió.")}
         </p>
         <textarea
@@ -798,7 +798,7 @@ function CustomCssPanel({ config, onSaved, sendPreview }) {
           rows={16}
           placeholder=".hero { letter-spacing: 0.02em; }"
           spellCheck={false}
-          className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}

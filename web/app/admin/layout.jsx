@@ -3,18 +3,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard, Disc3, ShoppingCart, PackagePlus, Store, Users,
-  LogOut, Menu, X, Globe, FileText, CalendarDays, Layers,
-  Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
-  Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown, Library, Truck,
-  FileSignature, PackageCheck, ClipboardList, PackageSearch, UserSquare2, History,
-  Percent, Ticket, LineChart, Stamp,
-} from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
 import { useTenantConfig } from '../../components/store/useTenantConfig';
 import { TranslationProvider, useT, useLang } from '../lib/i18n';
+import MIcon from '../../components/ui/m-icon';
 
 // Function del `config` complet (/config/public) en lloc d'array estàtic:
 // l'etiqueta de fallback del catàleg varia per vertical (la traducció real
@@ -31,7 +24,7 @@ function getNavGroups(config) {
     {
       label: null,
       items: [
-        { href: '/admin', key: 'nav.dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+        { href: '/admin', key: 'nav.dashboard', label: 'Dashboard', icon: 'space_dashboard', exact: true },
       ],
     },
     {
@@ -39,21 +32,21 @@ function getNavGroups(config) {
       items: [
         {
           href: '/admin/catalogo', key: 'nav.catalog',
-          label: vertical === 'floristry' ? 'Productes' : 'Discos', icon: Disc3,
+          label: vertical === 'floristry' ? 'Productes' : 'Discos', icon: 'album',
         },
-        { href: '/admin/etiquetes',    key: 'nav.etiquetes',    label: 'Etiquetes',       icon: Tag },
-        { href: '/admin/ofertes',      key: 'nav.ofertes',      label: 'Ofertes',         icon: Percent },
-        { href: '/admin/cupons',       key: 'nav.cupons',       label: 'Cupons',          icon: Ticket },
-        { href: '/admin/vendes-web',   key: 'nav.orders',       label: 'Vendes web',      icon: ShoppingCart },
+        { href: '/admin/etiquetes',    key: 'nav.etiquetes',    label: 'Etiquetes',       icon: 'sell' },
+        { href: '/admin/ofertes',      key: 'nav.ofertes',      label: 'Ofertes',         icon: 'local_offer' },
+        { href: '/admin/cupons',       key: 'nav.cupons',       label: 'Cupons',          icon: 'confirmation_number' },
+        { href: '/admin/vendes-web',   key: 'nav.orders',       label: 'Vendes web',      icon: 'shopping_bag' },
       ],
     },
     {
       label: 'ERP',
       items: [
-        { href: '/admin/tpv',       key: 'nav.tpv',       label: 'TPV',       icon: Store },
-        { href: '/admin/peticions', key: 'nav.peticions', label: 'Peticions', icon: Bell },
+        { href: '/admin/tpv',       key: 'nav.tpv',       label: 'TPV',       icon: 'point_of_sale' },
+        { href: '/admin/peticions', key: 'nav.peticions', label: 'Peticions', icon: 'inbox' },
         {
-          href: '/admin/subscripcions', key: 'nav.subscripcions', label: 'Club del disc', icon: Repeat,
+          href: '/admin/subscripcions', key: 'nav.subscripcions', label: 'Club del disc', icon: 'loyalty',
           requiresFeature: 'subscripcions_actives',
         },
       ],
@@ -62,50 +55,50 @@ function getNavGroups(config) {
       label: 'Compres',
       collapsible: true,
       items: [
-        { href: '/admin/compras', key: 'nav.purchases', label: 'Compres', icon: LayoutDashboard, exact: true },
-        { href: '/admin/compras/solicituds',  key: 'nav.compres_solicituds',  label: 'Sol·licituds',        icon: ClipboardList },
-        { href: '/admin/compras/comandes',    key: 'nav.compres_comandes',    label: 'Comandes',             icon: PackagePlus },
-        { href: '/admin/compras/particulars', key: 'nav.compres_particulars', label: 'Compres particulars',  icon: UserSquare2 },
-        { href: '/admin/compras/historial',   key: 'nav.compres_historial',   label: 'Historial',            icon: History },
-        { href: '/admin/compras/proveidors',  key: 'nav.compres_proveidors',  label: 'Proveïdors',           icon: PackageSearch },
+        { href: '/admin/compras', key: 'nav.purchases', label: 'Compres', icon: 'shopping_cart', exact: true },
+        { href: '/admin/compras/solicituds',  key: 'nav.compres_solicituds',  label: 'Sol·licituds',        icon: 'pending_actions' },
+        { href: '/admin/compras/comandes',    key: 'nav.compres_comandes',    label: 'Comandes',             icon: 'local_shipping' },
+        { href: '/admin/compras/particulars', key: 'nav.compres_particulars', label: 'Compres particulars',  icon: 'person_search' },
+        { href: '/admin/compras/historial',   key: 'nav.compres_historial',   label: 'Historial',            icon: 'history' },
+        { href: '/admin/compras/proveidors',  key: 'nav.compres_proveidors',  label: 'Proveïdors',           icon: 'factory' },
       ],
     },
     {
       label: 'Comptabilitat',
       collapsible: true,
       items: [
-        { href: '/admin/comptabilitat', key: 'nav.comptabilitat_resum', label: 'Resum', icon: LayoutDashboard, exact: true },
-        { href: '/admin/pressupostos', key: 'nav.pressupostos', label: 'Pressupostos', icon: FileSignature },
-        { href: '/admin/albarans',    key: 'nav.albarans',    label: 'Albarans',      icon: PackageCheck },
-        { href: '/admin/despeses',    key: 'nav.despeses',    label: 'Despeses',      icon: Receipt },
-        { href: '/admin/banc',        key: 'nav.banc',        label: 'Banc',          icon: Landmark },
-        { href: '/admin/proveidors',  key: 'nav.proveidors',  label: 'Proveïdors',    icon: Truck },
-        { href: '/admin/resultat',    key: 'nav.resultat',    label: 'Resultat',      icon: TrendingUp },
-        { href: '/admin/flux-caixa',  key: 'nav.flux_caixa',  label: 'Flux de caixa', icon: LineChart },
-        { href: '/admin/iva',         key: 'nav.iva',         label: 'IVA',           icon: Calculator },
-        { href: '/admin/models-fiscals', key: 'nav.models_fiscals', label: 'Models AEAT', icon: Stamp },
-        { href: '/admin/marges',      key: 'nav.marges',      label: 'Marges',        icon: Percent },
-        { href: '/admin/pla-comptes', key: 'nav.pla_comptes', label: 'Pla de comptes', icon: BookText },
-        { href: '/admin/actius',      key: 'nav.actius',      label: 'Actius',        icon: Boxes },
-        { href: '/admin/llibres',     key: 'nav.llibres',     label: 'Llibres',       icon: Library },
+        { href: '/admin/comptabilitat', key: 'nav.comptabilitat_resum', label: 'Resum', icon: 'calculate', exact: true },
+        { href: '/admin/pressupostos', key: 'nav.pressupostos', label: 'Pressupostos', icon: 'request_quote' },
+        { href: '/admin/albarans',    key: 'nav.albarans',    label: 'Albarans',      icon: 'receipt_long' },
+        { href: '/admin/despeses',    key: 'nav.despeses',    label: 'Despeses',      icon: 'payments' },
+        { href: '/admin/banc',        key: 'nav.banc',        label: 'Banc',          icon: 'account_balance' },
+        { href: '/admin/proveidors',  key: 'nav.proveidors',  label: 'Proveïdors',    icon: 'factory' },
+        { href: '/admin/resultat',    key: 'nav.resultat',    label: 'Resultat',      icon: 'trending_up' },
+        { href: '/admin/flux-caixa',  key: 'nav.flux_caixa',  label: 'Flux de caixa', icon: 'show_chart' },
+        { href: '/admin/iva',         key: 'nav.iva',         label: 'IVA',           icon: 'calculate' },
+        { href: '/admin/models-fiscals', key: 'nav.models_fiscals', label: 'Models AEAT', icon: 'gavel' },
+        { href: '/admin/marges',      key: 'nav.marges',      label: 'Marges',        icon: 'percent' },
+        { href: '/admin/pla-comptes', key: 'nav.pla_comptes', label: 'Pla de comptes', icon: 'menu_book' },
+        { href: '/admin/actius',      key: 'nav.actius',      label: 'Actius',        icon: 'inventory_2' },
+        { href: '/admin/llibres',     key: 'nav.llibres',     label: 'Llibres',       icon: 'auto_stories' },
         // Exportacions pendent — s'afegeix aquí quan es construeixi la seva pantalla.
       ],
     },
     {
       label: 'CMS',
       items: [
-        { href: '/admin/disseny-web', key: 'nav.disseny_web', label: 'Disseny web', icon: LayoutTemplate },
-        { href: '/admin/pagines',    key: 'nav.pagines',    label: 'Pàgines',    icon: Layers },
-        { href: '/admin/blog',       key: 'nav.blog',       label: 'Blog',       icon: FileText },
-        { href: '/admin/agenda',     key: 'nav.agenda',     label: 'Agenda',     icon: CalendarDays },
-        { href: '/admin/newsletter', key: 'nav.newsletter', label: 'Newsletter', icon: Mail },
+        { href: '/admin/disseny-web', key: 'nav.disseny_web', label: 'Disseny web', icon: 'palette' },
+        { href: '/admin/pagines',    key: 'nav.pagines',    label: 'Pàgines',    icon: 'description' },
+        { href: '/admin/blog',       key: 'nav.blog',       label: 'Blog',       icon: 'newspaper' },
+        { href: '/admin/agenda',     key: 'nav.agenda',     label: 'Agenda',     icon: 'event' },
+        { href: '/admin/newsletter', key: 'nav.newsletter', label: 'Newsletter', icon: 'mail' },
       ],
     },
     {
       label: 'Admin',
       items: [
-        { href: '/admin/usuaris',       key: 'nav.users',         label: 'Usuaris',       icon: Users },
-        { href: '/admin/configuracio',  key: 'nav.configuracio',  label: 'Configuració',  icon: Settings },
+        { href: '/admin/usuaris',       key: 'nav.users',         label: 'Usuaris',       icon: 'group' },
+        { href: '/admin/configuracio',  key: 'nav.configuracio',  label: 'Configuració',  icon: 'settings' },
       ],
     },
   ];
@@ -121,9 +114,26 @@ const LANGS = [
   { code: 'en', label: 'ENG' },
 ];
 
+const VERTICAL_LABEL = { records: 'Discos', floristry: 'Floristeria' };
+
+// Fonts pròpies de l'admin (Literata + Nunito Sans + Material Symbols): es
+// carreguen només aquí (no a globals.css) perquè cap altra pantalla —
+// storefront inclòs, que porta Bodoni Moda/Hanken Grotesk— les necessita.
+// React 19 hi puja aquests <link> a <head> automàticament allà on es
+// renderitzin.
+function AdminHead() {
+  return (
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..0&display=swap" rel="stylesheet" />
+    </>
+  );
+}
+
 export default function AdminLayout({ children }) {
   return (
     <TranslationProvider>
+      <AdminHead />
       <AdminShell>{children}</AdminShell>
     </TranslationProvider>
   );
@@ -176,7 +186,8 @@ function AdminShell({ children }) {
 
   if (!devBypass && loading) {
     return (
-      <div className="min-h-screen bg-primary flex items-center justify-center">
+      <div data-admin-theme="m3" className="min-h-screen bg-primary flex items-center justify-center">
+        <AdminHead />
         <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -184,13 +195,14 @@ function AdminShell({ children }) {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-primary flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
-          <h1 className="font-serif italic text-2xl text-zinc-900 mb-1">{config.nombre || 'Admin'}</h1>
-          <p className="text-sm text-zinc-500 mb-6">Cal iniciar sessió per accedir al panell.</p>
+      <div data-admin-theme="m3" className="min-h-screen bg-primary flex items-center justify-center p-4">
+        <AdminHead />
+        <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <h1 className="font-headline font-bold text-2xl text-on-surface mb-1">{config.nombre || 'Admin'}</h1>
+          <p className="text-sm text-on-surface-variant mb-6">Cal iniciar sessió per accedir al panell.</p>
           <Link
             href="/login"
-            className="inline-flex items-center justify-center w-full bg-primary hover:opacity-90 text-white px-5 py-2.5 rounded-full text-sm font-medium uppercase tracking-wide transition-opacity"
+            className="inline-flex items-center justify-center w-full bg-primary hover:opacity-90 text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold transition-opacity"
           >
             Anar al login
           </Link>
@@ -201,13 +213,14 @@ function AdminShell({ children }) {
 
   if (user.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-primary flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
-          <h1 className="font-serif italic text-2xl text-zinc-900 mb-1">Sense accés</h1>
-          <p className="text-sm text-zinc-500 mb-6">Aquest compte no té permisos d&apos;administració.</p>
+      <div data-admin-theme="m3" className="min-h-screen bg-primary flex items-center justify-center p-4">
+        <AdminHead />
+        <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <h1 className="font-headline font-bold text-2xl text-on-surface mb-1">Sense accés</h1>
+          <p className="text-sm text-on-surface-variant mb-6">Aquest compte no té permisos d&apos;administració.</p>
           <Link
             href="/"
-            className="inline-flex items-center justify-center w-full border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-zinc-50 transition-colors"
+            className="inline-flex items-center justify-center w-full border border-outline-variant text-on-surface-variant px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-surface-container-high transition-colors"
           >
             Tornar a la web
           </Link>
@@ -220,9 +233,11 @@ function AdminShell({ children }) {
   const currentLabel = currentSection ? t(currentSection.key, currentSection.label) : 'Admin';
 
   const showLabels = !collapsed || mobileOpen;
+  const initials = (user.nombre || user.name || user.email || '?').trim().slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex h-screen bg-zinc-50 overflow-hidden">
+    <div data-admin-theme="m3" className="flex h-screen bg-surface overflow-hidden font-body text-on-surface">
+      <AdminHead />
       {/* Mobile backdrop */}
       {mobileOpen && (
         <div
@@ -233,23 +248,33 @@ function AdminShell({ children }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 w-64 ${collapsed ? 'md:w-16' : 'md:w-56'} flex flex-col bg-primary shrink-0 transform transition-transform md:transition-[width] duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+        className={`fixed md:static inset-y-0 left-0 z-40 w-72 ${collapsed ? 'md:w-16' : 'md:w-64'} flex flex-col bg-surface-container-low shrink-0 transform transition-transform md:transition-[width] duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.06)] ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         {/* Brand */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-white/10 shrink-0">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-outline-variant/50 shrink-0">
           {showLabels && (
-            <span className="font-serif italic text-white text-lg truncate">{config.nombre || 'Admin'}</span>
+            <div className="flex items-center gap-2.5 min-w-0">
+              {config.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={config.logo_url} alt={config.nombre} className="h-7 w-auto object-contain shrink-0" />
+              ) : (
+                <span className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                  <MIcon name="storefront" size={16} />
+                </span>
+              )}
+              <span className="font-headline font-bold text-sm text-on-surface truncate">{config.nombre || 'Admin'}</span>
+            </div>
           )}
-          <button onClick={() => setCollapsed(!collapsed)} className="hidden md:block text-white/40 hover:text-white p-1 rounded-full ml-auto">
-            {collapsed ? <Menu size={18} /> : <X size={18} />}
+          <button onClick={() => setCollapsed(!collapsed)} className="hidden md:block text-on-surface-variant hover:text-on-surface p-1 rounded-full ml-auto">
+            <MIcon name={collapsed ? 'menu' : 'close'} size={18} />
           </button>
-          <button onClick={() => setMobileOpen(false)} className="md:hidden text-white/40 hover:text-white p-1 rounded-full ml-auto">
-            <X size={18} />
+          <button onClick={() => setMobileOpen(false)} className="md:hidden text-on-surface-variant hover:text-on-surface p-1 rounded-full ml-auto">
+            <MIcon name="close" size={18} />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-4 px-2 overflow-y-auto space-y-5">
+        <nav className="flex-1 py-3 px-3 overflow-y-auto space-y-4">
           {NAV_GROUPS.map((group, gi) => {
             // Els grups desplegables només es pleguen amb el sidebar
             // expandit — en mode icona (showLabels=false) no té sentit
@@ -260,23 +285,23 @@ function AdminShell({ children }) {
               {group.label && showLabels && group.collapsible && (
                 <button
                   onClick={() => setOpenGroups(g => ({ ...g, [group.label]: !g[group.label] }))}
-                  className="w-full flex items-center justify-between px-3 mb-1.5 font-mono text-[10px] text-white/35 uppercase tracking-[0.2em] hover:text-white/60"
+                  className="w-full flex items-center justify-between px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-secondary hover:text-on-surface"
                 >
                   {group.label}
-                  <ChevronDown size={12} className={`transition-transform ${isCollapsibleOpen ? '' : '-rotate-90'}`} />
+                  <MIcon name="expand_more" size={14} className={`transition-transform ${isCollapsibleOpen ? '' : '-rotate-90'}`} />
                 </button>
               )}
               {group.label && showLabels && !group.collapsible && (
-                <p className="font-mono text-[10px] text-white/35 uppercase tracking-[0.2em] px-3 mb-1.5">
+                <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-secondary">
                   {group.label}
                 </p>
               )}
               {group.label && !showLabels && gi > 0 && (
-                <div className="border-t border-white/10 mb-1 mx-2" />
+                <div className="border-t border-outline-variant/50 mb-1 mx-2" />
               )}
               {isCollapsibleOpen && (
                 <div className="space-y-0.5">
-                  {group.items.map(({ href, key, label: fallbackLabel, icon: Icon, exact }) => {
+                  {group.items.map(({ href, key, label: fallbackLabel, icon, exact }) => {
                     const active = exact ? pathname === href : pathname.startsWith(href);
                     const label = t(key, fallbackLabel);
                     return (
@@ -284,13 +309,13 @@ function AdminShell({ children }) {
                         key={href}
                         href={href}
                         title={collapsed && !mobileOpen ? label : undefined}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-full text-sm transition-colors ${
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                           active
-                            ? 'bg-white text-zinc-900 font-medium'
-                            : 'text-white/50 hover:text-white hover:bg-white/10'
+                            ? 'bg-primary text-primary-foreground font-semibold shadow-[0_2px_8px_rgba(74,124,89,0.2)]'
+                            : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                         }`}
                       >
-                        <Icon size={16} className="shrink-0" />
+                        <MIcon name={icon} size={20} className="shrink-0" />
                         {showLabels && <span>{label}</span>}
                       </Link>
                     );
@@ -303,16 +328,24 @@ function AdminShell({ children }) {
         </nav>
 
         {/* User + logout */}
-        <div className="p-2 border-t border-white/10 shrink-0">
-          {showLabels && (
-            <div className="px-3 py-1 font-mono text-[11px] text-white/30 truncate mb-1">{user.email}</div>
-          )}
+        <div className="p-4 bg-surface-container rounded-t-xl shrink-0">
+          <div className="flex items-center gap-2 mb-3 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs shrink-0">
+              {initials}
+            </div>
+            {showLabels && (
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-on-surface truncate">{user.email}</p>
+                <p className="text-[11px] text-secondary">Administrador</p>
+              </div>
+            )}
+          </div>
           <button
             onClick={logout}
             title={collapsed && !mobileOpen ? t('nav.logout') : undefined}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-full text-sm text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-surface-container-high text-xs font-semibold text-on-surface-variant hover:text-error hover:bg-error-container transition-all"
           >
-            <LogOut size={18} className="shrink-0" />
+            <MIcon name="logout" size={16} />
             {showLabels && <span>{t('nav.logout')}</span>}
           </button>
         </div>
@@ -321,41 +354,48 @@ function AdminShell({ children }) {
       {/* Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-14 bg-white/90 backdrop-blur-md border-b border-zinc-200 flex items-center justify-between px-3 sm:px-6 gap-2 shrink-0">
+        <header className="h-14 bg-surface/85 backdrop-blur-md border-b border-outline-variant/40 flex items-center justify-between px-3 sm:px-6 gap-2 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setMobileOpen(true)}
-              className="md:hidden text-zinc-500 hover:text-zinc-800 p-1 -ml-1 shrink-0"
+              className="md:hidden text-on-surface-variant hover:text-on-surface p-1 -ml-1 shrink-0"
             >
-              <Menu size={20} />
+              <MIcon name="menu" size={22} />
             </button>
-            <h1 className="font-serif italic text-lg text-zinc-900 truncate">{currentLabel}</h1>
+            <h1 className="font-headline font-semibold text-base text-on-surface truncate">{currentLabel}</h1>
+            {config.vertical && (
+              <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary mr-1.5 shrink-0" />
+                {VERTICAL_LABEL[config.vertical] || config.vertical}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Language switcher */}
-            <div className="flex items-center gap-1 bg-zinc-100 rounded-full p-0.5">
-              <Globe size={13} className="hidden sm:block text-zinc-400 ml-1.5" />
-              {LANGS.map(({ code, label }) => (
-                <button
-                  key={code}
-                  onClick={() => setLang(code)}
-                  className={`px-1.5 sm:px-2 py-1 rounded-full font-mono text-[10px] font-semibold tracking-wide transition-colors ${
-                    lang === code
-                      ? 'bg-zinc-900 text-white'
-                      : 'text-zinc-500 hover:text-zinc-800'
-                  }`}
-                >
-                  {label}
-                </button>
+            <nav className="flex items-center gap-1.5">
+              {LANGS.map(({ code, label }, i) => (
+                <span key={code} className="flex items-center gap-1.5">
+                  {i > 0 && <span className="text-outline-variant text-xs">|</span>}
+                  <button
+                    onClick={() => setLang(code)}
+                    className={`px-1 py-1 text-xs rounded transition-colors ${
+                      lang === code ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                </span>
               ))}
-            </div>
+            </nav>
             <Link
               href="/"
-              className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-800 border border-zinc-200 rounded-full px-2 sm:px-2.5 py-1.5 transition-colors"
+              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-highest text-on-surface transition-all"
             >
-              <Home size={13} /> <span className="hidden sm:inline">Web</span>
+              <MIcon name="open_in_new" size={16} /> <span className="hidden sm:inline">Web</span>
             </Link>
-            <span className="hidden lg:inline font-mono text-[11px] text-zinc-400">{user.name ?? user.email}</span>
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+              <MIcon name="person" size={18} className="text-primary-foreground" />
+            </div>
           </div>
         </header>
 

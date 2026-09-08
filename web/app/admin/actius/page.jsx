@@ -5,7 +5,7 @@ import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
-import { Plus, X, PlayCircle } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { useT } from '../../lib/i18n';
 
 function fmtDate(d) {
@@ -57,28 +57,28 @@ export default function ActiusPage() {
     <div className="space-y-5 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-zinc-900">{t('actius.title', 'Actius fixos')}</h2>
-          <p className="text-sm text-zinc-500 mt-1">{t('actius.subtitle', 'Immobilitzat material i amortitzacions.')}</p>
+          <h2 className="text-2xl font-bold text-on-surface">{t('actius.title', 'Actius fixos')}</h2>
+          <p className="text-sm text-secondary mt-1">{t('actius.subtitle', 'Immobilitzat material i amortitzacions.')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setShowAmortitzacio(true)}>
-            <PlayCircle size={16} /> {t('actius.generate_depreciation', 'Generar amortitzacions')}
+            <MIcon name="play_circle" size={16} /> {t('actius.generate_depreciation', 'Generar amortitzacions')}
           </Button>
           <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} /> {t('actius.new', 'Nou actiu')}
+            <MIcon name="add" size={16} /> {t('actius.new', 'Nou actiu')}
           </Button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : llista.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('actius.empty', "Cap actiu donat d'alta encara")}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('actius.empty', "Cap actiu donat d'alta encara")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                 <tr>
                   <SortableTh label={t('common.name', 'Nom')} sortKey="nom" sort={sort} onSort={toggleSort} />
                   <SortableTh label={t('actius.col.category', 'Categoria')} sortKey="categoria" sort={sort} onSort={toggleSort}
@@ -89,15 +89,15 @@ export default function ActiusPage() {
                   <SortableTh label={t('actius.col.book_value', 'Valor comptable')} sortKey="valor_comptable" sort={sort} onSort={toggleSort} align="right" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {llista.map(a => (
                   <tr key={a.id} className={a.disposal_date ? 'opacity-50' : ''}>
-                    <td className="px-4 py-3 font-medium text-zinc-900">{a.name}</td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">{CATEGORIES.find(c => c.value === a.category)?.label || a.category}</td>
-                    <td className="px-4 py-3 text-zinc-600">{fmtDate(a.acquisition_date)}</td>
-                    <td className="px-4 py-3 text-right text-zinc-900">{fmtEur(a.acquisition_cost)}</td>
-                    <td className="px-4 py-3 text-right text-zinc-500">{fmtEur(a.accumulated_depreciation)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-zinc-900">{fmtEur(a.book_value)}</td>
+                    <td className="px-4 py-3 font-medium text-on-surface">{a.name}</td>
+                    <td className="px-4 py-3 text-secondary text-xs">{CATEGORIES.find(c => c.value === a.category)?.label || a.category}</td>
+                    <td className="px-4 py-3 text-on-surface-variant">{fmtDate(a.acquisition_date)}</td>
+                    <td className="px-4 py-3 text-right text-on-surface">{fmtEur(a.acquisition_cost)}</td>
+                    <td className="px-4 py-3 text-right text-secondary">{fmtEur(a.accumulated_depreciation)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-on-surface">{fmtEur(a.book_value)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -152,62 +152,62 @@ function ActiuModal({ categories, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{t('actius.new', 'Nou actiu')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('actius.new', 'Nou actiu')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.name', 'Nom')} *</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.name', 'Nom')} *</label>
             <input value={name} onChange={e => setName(e.target.value)} required
               placeholder={t('actius.name_placeholder', 'Ordinador TPV, Furgoneta de repartiment...')}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('actius.col.category', 'Categoria')} *</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('actius.col.category', 'Categoria')} *</label>
               <select value={category} onChange={e => setCategory(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                 {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('actius.acquisition_date', "Data d'adquisició")} *</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('actius.acquisition_date', "Data d'adquisició")} *</label>
               <input type="date" value={acquisitionDate} onChange={e => setAcquisitionDate(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
-          <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
-            <div className="text-sm font-semibold text-zinc-700">{t('actius.cost_and_vat', 'Cost i IVA')}</div>
+          <div className="border border-outline-variant rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('actius.cost_and_vat', 'Cost i IVA')}</div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('actius.cost_base', 'Cost (base, sense IVA)')} *</label>
+                <label className="block text-xs text-secondary mb-1">{t('actius.cost_base', 'Cost (base, sense IVA)')} *</label>
                 <input type="number" step="0.01" value={cost} onChange={e => setCost(e.target.value)} required
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('actius.vat_supported', 'IVA suportat')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('actius.vat_supported', 'IVA suportat')}</label>
                 <input type="number" step="0.01" value={vat} onChange={e => setVat(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('actius.pct_label', '% amortització anual (lineal)')} *</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('actius.pct_label', '% amortització anual (lineal)')} *</label>
             <input type="number" step="0.01" value={pct} onChange={e => setPct(e.target.value)} required
               placeholder={t('actius.pct_placeholder', "Consulta les taules d'Hisenda o la teva gestoria — no és un valor que puguem endevinar")}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('actius.supplier', 'Proveïdor')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('actius.supplier', 'Proveïdor')}</label>
             <input value={supplier} onChange={e => setSupplier(e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes', 'Notes')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.notes', 'Notes')}</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">
@@ -240,35 +240,35 @@ function AmortitzacioModal({ onDone }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{t('actius.generate_depreciation', 'Generar amortitzacions')}</h3>
-          <button onClick={onDone} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('actius.generate_depreciation', 'Generar amortitzacions')}</h3>
+          <button onClick={onDone} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-secondary">
             {t('actius.generate_help', "Genera la quota d'amortització d'aquest mes per a tots els actius vigents. És idempotent: si ja s'havia generat aquest mes, no duplica res.")}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">{t('common.year', 'Any')}</label>
+              <label className="block text-xs text-secondary mb-1">{t('common.year', 'Any')}</label>
               <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value, 10))}
-                className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">{t('common.month', 'Mes')}</label>
+              <label className="block text-xs text-secondary mb-1">{t('common.month', 'Mes')}</label>
               <select value={mes} onChange={e => setMes(parseInt(e.target.value, 10))}
-                className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
           </div>
 
           {result && (
-            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-sm space-y-1">
-              <p className="font-medium text-zinc-800">{result.entrades_generades.length} {t('actius.generated', 'amortitzacions generades')}</p>
+            <div className="bg-surface-container-high border border-outline-variant rounded-xl p-3 text-sm space-y-1">
+              <p className="font-medium text-on-surface">{result.entrades_generades.length} {t('actius.generated', 'amortitzacions generades')}</p>
               {result.actius_saltats.length > 0 && (
-                <p className="text-zinc-500 text-xs">{t('actius.skipped', 'Saltats (ja fets o no vigents)')}: {result.actius_saltats.join(', ')}</p>
+                <p className="text-secondary text-xs">{t('actius.skipped', 'Saltats (ja fets o no vigents)')}: {result.actius_saltats.join(', ')}</p>
               )}
             </div>
           )}

@@ -9,11 +9,7 @@ import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
 import DiscogsSearchField, { CoverImg } from '../../../components/admin/discogs/DiscogsSearchField';
-import {
-  Plus, Search, ChevronDown, ChevronRight, X, Pencil, Trash2, Copy,
-  AlertTriangle, RefreshCw, Upload, Image, Loader2, Download, FileSpreadsheet,
-  CheckCircle2, Clock, CircleOff, ImageIcon, Music2, Eye,
-} from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 
 function fmtEur(n) {
   return `${parseFloat(n).toLocaleString('ca-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -35,38 +31,38 @@ function SyncBadge({ status, codiDiscogs }) {
   const t = useT();
   if (status === 'listed') return (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-      <CheckCircle2 size={9} /> #{codiDiscogs}
+      <MIcon name="check_circle" size={9} /> #{codiDiscogs}
     </span>
   );
   if (status === 'pending') return (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-      <Clock size={9} /> {t('purchases.pending', 'Pendent')}
+      <MIcon name="schedule" size={9} /> {t('purchases.pending', 'Pendent')}
     </span>
   );
   return (
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full">
-      <CircleOff size={9} /> {t('catalog.no_discogs_id', 'Sense ID')}
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-secondary bg-surface-container-high border border-outline-variant px-2 py-0.5 rounded-full">
+      <MIcon name="block" size={9} /> {t('catalog.no_discogs_id', 'Sense ID')}
     </span>
   );
 }
 
 function ReleaseSyncSummary({ items, discogs_release_id }) {
-  if (!items?.length) return <span className="text-zinc-300 text-xs">—</span>;
+  if (!items?.length) return <span className="text-secondary text-xs">—</span>;
   const active = items.filter(i => i.status === 'disponible' || i.status === 'reservado');
-  if (!active.length) return <span className="text-zinc-300 text-xs">—</span>;
+  if (!active.length) return <span className="text-secondary text-xs">—</span>;
   const listed = active.filter(i => i.codi_discogs).length;
   const pending = active.filter(i => !i.codi_discogs && discogs_release_id).length;
-  if (listed === 0 && pending === 0) return <span className="text-xs text-zinc-400">—</span>;
+  if (listed === 0 && pending === 0) return <span className="text-xs text-secondary">—</span>;
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {listed > 0 && (
         <span className="inline-flex items-center gap-0.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
-          <CheckCircle2 size={9} /> {listed}
+          <MIcon name="check_circle" size={9} /> {listed}
         </span>
       )}
       {pending > 0 && (
         <span className="inline-flex items-center gap-0.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
-          <Clock size={9} /> {pending}
+          <MIcon name="schedule" size={9} /> {pending}
         </span>
       )}
     </div>
@@ -93,14 +89,14 @@ function StatCard({ label, value, color }) {
   const colors = {
     emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700',
     amber:   'bg-amber-50 border-amber-200 text-amber-700',
-    zinc:    'bg-zinc-50 border-zinc-200 text-zinc-600',
+    zinc:    'bg-surface-container-high border-outline-variant text-on-surface-variant',
     blue:    'bg-blue-50 border-blue-200 text-blue-700',
     violet:  'bg-violet-50 border-violet-200 text-violet-700',
     rose:    'bg-rose-50 border-rose-200 text-rose-600',
   };
   return (
     <div className={`rounded-xl border p-3 ${colors[color] || colors.zinc}`}>
-      <p className="text-xl font-bold">{value ?? '—'}</p>
+      <p className="text-xl font-headline font-bold">{value ?? '—'}</p>
       <p className="text-xs mt-0.5 opacity-70">{label}</p>
     </div>
   );
@@ -250,41 +246,41 @@ export default function CatalogoPage() {
     <div className="space-y-5 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('catalog.title')}</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{t('catalog.title')}</h2>
         {tab === 'llistat' && (
         <div className="flex items-center gap-2">
           <button onClick={handleExport} disabled={exporting}
-            className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 px-3 py-2 rounded-lg transition-colors disabled:opacity-60">
-            {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors disabled:opacity-60">
+            {exporting ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="download" size={13} />}
             {t('catalog.export_csv', 'Exportar CSV')}
           </button>
           <button onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 px-3 py-2 rounded-lg transition-colors">
-            <FileSpreadsheet size={13} /> {t('catalog.import_changes', 'Importar canvis')}
+            className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors">
+            <MIcon name="table_chart" size={13} /> {t('catalog.import_changes', 'Importar canvis')}
           </button>
           {discogsEnabled && (
           <button onClick={handleBulkImages} disabled={bulkSyncing}
             className="flex items-center gap-1.5 text-sm border border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 px-3 py-2 rounded-lg transition-colors disabled:opacity-60">
-            {bulkSyncing ? <Loader2 size={13} className="animate-spin" /> : <Image size={13} />}
+            {bulkSyncing ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="image" size={13} />}
             {t('catalog.sync_discogs', 'Sync Discogs')}
           </button>
           )}
           <button onClick={refresh}
-            className="flex items-center gap-1.5 text-sm text-zinc-600 border border-zinc-200 px-3 py-2 rounded-lg hover:bg-zinc-50 transition-colors">
-            <RefreshCw size={13} /> {t('catalog.refresh', 'Actualitzar')}
+            className="flex items-center gap-1.5 text-sm text-on-surface-variant border border-outline-variant px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors">
+            <MIcon name="refresh" size={13} /> {t('catalog.refresh', 'Actualitzar')}
           </button>
           <Button onClick={() => setModal({ mode: 'create', release: null })}>
-            <Plus size={16} /> {t('catalog.new_disc')}
+            <MIcon name="add" size={16} /> {t('catalog.new_disc')}
           </Button>
         </div>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-surface-container-high p-1 rounded-xl w-fit">
         {[['llistat', t('catalog.tab.list', 'Llistat')], ['dashboards', t('catalog.tab.dashboards', 'Dashboards')]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-card text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`}>
             {label}
           </button>
         ))}
@@ -320,27 +316,27 @@ export default function CatalogoPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+        <MIcon name="search" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" />
         <input
           value={q}
           onChange={e => handleSearch(e.target.value)}
           placeholder={t('catalog.search_ph')}
-          className="w-full pl-10 pr-4 py-2.5 border border-zinc-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 shadow-sm"
+          className="w-full pl-10 pr-4 py-2.5 border border-outline-variant rounded-xl text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm flex items-center justify-center gap-2">
-            <Loader2 size={16} className="animate-spin" /> {t('common.loading')}
+          <div className="p-12 text-center text-secondary text-sm flex items-center justify-center gap-2">
+            <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
           </div>
         ) : sortedFiltered.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('catalog.no_results')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('catalog.no_results')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('catalog.col.artist')} sortKey="artista" sort={sort} onSort={handleSort} />
@@ -360,33 +356,33 @@ export default function CatalogoPage() {
                 <th className="px-4 py-3 text-right font-medium">{t('catalog.col.actions', 'Accions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {pageRows.map(r => (
                 <>
                   <tr key={r.id}
                     onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                    className="hover:bg-zinc-50 cursor-pointer transition-colors">
-                    <td className="px-4 py-3 text-zinc-400">
-                      {expanded === r.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    className="hover:bg-surface-container-high cursor-pointer transition-colors">
+                    <td className="px-4 py-3 text-secondary">
+                      {expanded === r.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <CoverImg url={r.imagen_url} size={36} />
                         <div>
-                          <div className="font-semibold text-zinc-900 flex items-center gap-1.5">
+                          <div className="font-semibold text-on-surface flex items-center gap-1.5">
                             {r.artista}
                             {r.properament && (
                               <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">
-                                <Clock size={8} /> {t('catalog.coming_soon', 'Properament')}
+                                <MIcon name="schedule" size={8} /> {t('catalog.coming_soon', 'Properament')}
                               </span>
                             )}
                             {r.esta_sonant && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-zinc-900 bg-zinc-100 border border-zinc-300 px-1.5 py-0.5 rounded-full">
-                                <Music2 size={8} /> {t('catalog.now_playing', 'Sonant')}
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-on-surface bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded-full">
+                                <MIcon name="music_note" size={8} /> {t('catalog.now_playing', 'Sonant')}
                               </span>
                             )}
                           </div>
-                          <div className="text-zinc-500 text-xs">{r.titulo}</div>
+                          <div className="text-secondary text-xs">{r.titulo}</div>
                           {r.etiquetes?.length > 0 && (
                             <div className="flex gap-1 mt-1 flex-wrap">
                               {r.etiquetes.map(e => (
@@ -401,10 +397,10 @@ export default function CatalogoPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-zinc-500 hidden md:table-cell">{r.sello ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-500 hidden md:table-cell">{r.formato ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell">{r.anio ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-500 hidden lg:table-cell font-mono text-xs">{r.ean ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary hidden md:table-cell">{r.sello ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary hidden md:table-cell">{r.formato ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary hidden lg:table-cell">{r.anio ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary hidden lg:table-cell font-mono text-xs">{r.ean ?? '—'}</td>
                     <td className="px-4 py-3 text-center">
                       <StockBadge items={r.items ?? []} />
                     </td>
@@ -414,16 +410,16 @@ export default function CatalogoPage() {
                     <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => setModal({ mode: 'edit', release: r })} title={t('catalog.edit')}
-                          className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors">
-                          <Pencil size={14} />
+                          className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                          <MIcon name="edit" size={14} />
                         </button>
                         <button onClick={() => setModal({ mode: 'duplicate', release: r })} title={t('catalog.duplicate')}
-                          className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors">
-                          <Copy size={14} />
+                          className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                          <MIcon name="content_copy" size={14} />
                         </button>
                         <button onClick={() => deleteRelease(r)} title={t('catalog.delete')}
-                          className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
-                          <Trash2 size={14} />
+                          className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
+                          <MIcon name="delete" size={14} />
                         </button>
                       </div>
                     </td>
@@ -447,15 +443,15 @@ export default function CatalogoPage() {
 
         {/* Pagination */}
         {total > LIMIT && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
             <span>{offset + 1}–{Math.min(offset + LIMIT, total)} {t('catalog.of', 'de')} {total}</span>
             <div className="flex gap-2">
               <button onClick={() => handlePage(-1)} disabled={offset === 0}
-                className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                 ← {t('catalog.previous', 'Anterior')}
               </button>
               <button onClick={() => handlePage(1)} disabled={offset + LIMIT >= total}
-                className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                 {t('catalog.next', 'Següent')} →
               </button>
             </div>
@@ -504,45 +500,45 @@ function StockAlertsPanel({ onVeureRelease }) {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-zinc-400 text-sm flex items-center justify-center gap-2 bg-white rounded-2xl border border-zinc-200">
-        <Loader2 size={16} className="animate-spin" /> {t('common.loading')}
+      <div className="p-8 text-center text-secondary text-sm flex items-center justify-center gap-2 bg-card rounded-2xl border border-outline-variant">
+        <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
       </div>
     );
   }
   if (!data || data.total === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
+    <div className="bg-card rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
       <div className="px-5 py-3 border-b border-amber-200 bg-amber-50 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
-          <AlertTriangle size={15} />
+          <MIcon name="warning" size={15} />
           {t('catalog.stock_alerts.title', 'Alertes d\'estoc')} ({data.total})
         </div>
         <button onClick={load}
           className="flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 transition-colors">
-          <RefreshCw size={12} /> {t('catalog.refresh', 'Actualitzar')}
+          <MIcon name="refresh" size={12} /> {t('catalog.refresh', 'Actualitzar')}
         </button>
       </div>
-      <p className="px-5 pt-3 text-sm text-zinc-500">
+      <p className="px-5 pt-3 text-sm text-secondary">
         {t('catalog.stock_alerts.hint', "Línies de stock nou amb l'estoc disponible al llindar mínim configurat o per sota — fixa'l a l'edició de la còpia.")}
       </p>
-      <div className="divide-y divide-zinc-100 max-h-[22rem] overflow-y-auto mt-2">
+      <div className="divide-y divide-outline-variant max-h-[22rem] overflow-y-auto mt-2">
         {data.items.map(it => (
           <div key={it.item_id} className="flex items-center gap-3 px-5 py-2.5">
             <CoverImg url={it.imagen_url} size={32} />
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium text-zinc-900 truncate">{it.artista} — {it.titulo}</div>
-              <div className="text-xs text-zinc-400">
+              <div className="text-sm font-medium text-on-surface truncate">{it.artista} — {it.titulo}</div>
+              <div className="text-xs text-secondary">
                 {t('catalog.stock_alerts.threshold', 'Llindar')}: {it.alerta_stock_minimo} {t('catalog.units', 'unitats')}
               </div>
             </div>
             <div className="text-right shrink-0">
               <div className="text-sm font-semibold text-amber-700">{it.disponible} {t('catalog.units', 'unitats')}</div>
-              <div className="text-xs text-zinc-400">{t('catalog.stock_alerts.available', 'disponibles')}</div>
+              <div className="text-xs text-secondary">{t('catalog.stock_alerts.available', 'disponibles')}</div>
             </div>
             <button onClick={() => onVeureRelease(it.release_id, it.artista, it.titulo)} title={t('catalog.aging.view_in_list', 'Veure al llistat')}
-              className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors shrink-0">
-              <Eye size={14} />
+              className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors shrink-0">
+              <MIcon name="visibility" size={14} />
             </button>
           </div>
         ))}
@@ -563,7 +559,7 @@ const ORIGEN_FALLBACK = { compra: 'Compra', discogs: 'Discogs (llegat)', descone
 const ORIGEN_COLOR = {
   compra: 'bg-blue-50 text-blue-700 border-blue-200',
   discogs: 'bg-violet-50 text-violet-700 border-violet-200',
-  desconegut: 'bg-zinc-50 text-zinc-500 border-zinc-200',
+  desconegut: 'bg-surface-container-high text-secondary border-outline-variant',
 };
 function origenLabel(t, origen) {
   return t(`catalog.aging.origin.${origen}`, ORIGEN_FALLBACK[origen] ?? origen);
@@ -620,13 +616,13 @@ function AgingDashboard({ onVeureRelease }) {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-zinc-400 text-sm flex items-center justify-center gap-2">
-        <Loader2 size={16} className="animate-spin" /> {t('common.loading')}
+      <div className="p-12 text-center text-secondary text-sm flex items-center justify-center gap-2">
+        <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
       </div>
     );
   }
   if (!data) {
-    return <div className="p-12 text-center text-zinc-400 text-sm">{t('purchases.resum.load_error', "No s'han pogut carregar les dades.")}</div>;
+    return <div className="p-12 text-center text-secondary text-sm">{t('purchases.resum.load_error', "No s'han pogut carregar les dades.")}</div>;
   }
 
   const maxCount = Math.max(1, ...data.buckets.map(b => b.count));
@@ -635,12 +631,12 @@ function AgingDashboard({ onVeureRelease }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500 max-w-2xl">
+        <p className="text-sm text-secondary max-w-2xl">
           {t('catalog.aging.hint', 'Antiguitat de l\'estoc disponible des de la data d\'entrada al magatzem (recepció de compra, o "posted" de Discogs per a l\'estoc anterior a l\'app).')}
         </p>
         <button onClick={refresh}
-          className="flex items-center gap-1.5 text-sm text-zinc-600 border border-zinc-200 px-3 py-2 rounded-lg hover:bg-zinc-50 transition-colors shrink-0">
-          <RefreshCw size={13} /> {t('catalog.refresh', 'Actualitzar')}
+          className="flex items-center gap-1.5 text-sm text-on-surface-variant border border-outline-variant px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors shrink-0">
+          <MIcon name="refresh" size={13} /> {t('catalog.refresh', 'Actualitzar')}
         </button>
       </div>
 
@@ -653,11 +649,11 @@ function AgingDashboard({ onVeureRelease }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1 bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
+        <div className="lg:col-span-1 bg-card rounded-2xl border border-outline-variant shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-semibold text-zinc-700">{t('catalog.aging.distribution', 'Distribució per antiguitat')}</div>
+            <div className="text-sm font-semibold text-on-surface-variant">{t('catalog.aging.distribution', 'Distribució per antiguitat')}</div>
             {bucket && (
-              <button onClick={() => selectBucket(bucket)} className="text-xs text-zinc-400 hover:text-zinc-700">
+              <button onClick={() => selectBucket(bucket)} className="text-xs text-secondary hover:text-on-surface-variant">
                 {t('catalog.aging.view_all', 'Veure tots')}
               </button>
             )}
@@ -668,12 +664,12 @@ function AgingDashboard({ onVeureRelease }) {
               const selected = bucket === b.key;
               return (
                 <button key={b.key} onClick={() => selectBucket(b.key)}
-                  className={`w-full text-left rounded-lg p-1.5 -m-1.5 transition-colors ${selected ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}>
-                  <div className="flex items-center justify-between text-xs text-zinc-600 mb-1 gap-2">
-                    <span className={`font-medium ${selected ? 'text-zinc-900' : ''}`}>{b.label}</span>
-                    <span className="text-zinc-400 shrink-0">{b.count} · {fmtEur(b.valor)} {t('catalog.aging.sale_short', 'venda')} · {fmtEur(b.coste)} {t('catalog.aging.cost_short', 'cost')}</span>
+                  className={`w-full text-left rounded-lg p-1.5 -m-1.5 transition-colors ${selected ? 'bg-surface-container-high' : 'hover:bg-surface-container-high'}`}>
+                  <div className="flex items-center justify-between text-xs text-on-surface-variant mb-1 gap-2">
+                    <span className={`font-medium ${selected ? 'text-on-surface' : ''}`}>{b.label}</span>
+                    <span className="text-secondary shrink-0">{b.count} · {fmtEur(b.valor)} {t('catalog.aging.sale_short', 'venda')} · {fmtEur(b.coste)} {t('catalog.aging.cost_short', 'cost')}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-surface-container-high overflow-hidden">
                     <div className={`h-full rounded-full ${AGING_BUCKET_COLOR[b.key] ?? 'bg-zinc-400'}`} style={{ width: `${pct}%` }} />
                   </div>
                 </button>
@@ -687,28 +683,28 @@ function AgingDashboard({ onVeureRelease }) {
           )}
         </div>
 
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-zinc-200">
-            <div className="text-sm font-semibold text-zinc-700">
+        <div className="lg:col-span-2 bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-outline-variant">
+            <div className="text-sm font-semibold text-on-surface-variant">
               {bucketLabel ? t('catalog.aging.records_in_bucket', 'Discs a "{bucket}"').replace('{bucket}', bucketLabel) : t('catalog.aging.oldest_records', 'Discs amb més antiguitat (tots els grups)')}
             </div>
           </div>
           {itemsLoading ? (
-            <div className="p-8 text-center text-zinc-400 text-sm flex items-center justify-center gap-2">
-              <Loader2 size={14} className="animate-spin" /> {t('common.loading')}
+            <div className="p-8 text-center text-secondary text-sm flex items-center justify-center gap-2">
+              <MIcon name="progress_activity" size={14} className="animate-spin" /> {t('common.loading')}
             </div>
           ) : items.length === 0 ? (
-            <div className="p-5 text-sm text-zinc-400">{t('catalog.aging.no_copies_in_group', 'Cap còpia en aquest grup.')}</div>
+            <div className="p-5 text-sm text-secondary">{t('catalog.aging.no_copies_in_group', 'Cap còpia en aquest grup.')}</div>
           ) : (
             <>
-              <div className="divide-y divide-zinc-100 max-h-[22rem] overflow-y-auto">
+              <div className="divide-y divide-outline-variant max-h-[22rem] overflow-y-auto">
                 {items.map(it => (
                   <div key={it.item_id} className="flex items-center gap-3 px-5 py-2.5">
                     <CoverImg url={it.imagen_url} size={32} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-zinc-900 truncate">{it.artista} — {it.titulo}</div>
+                      <div className="text-sm font-medium text-on-surface truncate">{it.artista} — {it.titulo}</div>
                       <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-xs text-secondary">
                           {it.fecha_entrada ? `${t('catalog.aging.since', 'des de')} ${new Date(it.fecha_entrada).toLocaleDateString('ca-ES')}` : t('catalog.aging.no_date', 'sense data')}
                         </span>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border ${ORIGEN_COLOR[it.origen]}`}>
@@ -717,28 +713,28 @@ function AgingDashboard({ onVeureRelease }) {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-semibold text-zinc-900">{it.dias != null ? `${it.dias} ${t('catalog.aging.days', 'dies')}` : '—'}</div>
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-sm font-semibold text-on-surface">{it.dias != null ? `${it.dias} ${t('catalog.aging.days', 'dies')}` : '—'}</div>
+                      <div className="text-xs text-secondary">
                         {fmtEur(it.precio)} {t('catalog.aging.sale_short', 'venda')}{it.coste != null ? ` · ${fmtEur(it.coste)} ${t('catalog.aging.cost_short', 'cost')}` : ''}
                       </div>
                     </div>
                     <button onClick={() => onVeureRelease(it.release_id, it.artista, it.titulo)} title={t('catalog.aging.view_in_list', 'Veure al llistat')}
-                      className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 transition-colors shrink-0">
-                      <Eye size={14} />
+                      className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors shrink-0">
+                      <MIcon name="visibility" size={14} />
                     </button>
                   </div>
                 ))}
               </div>
               {itemsTotal > AGING_ITEMS_LIMIT && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
                   <span>{itemsOffset + 1}–{Math.min(itemsOffset + AGING_ITEMS_LIMIT, itemsTotal)} {t('catalog.of', 'de')} {itemsTotal}</span>
                   <div className="flex gap-2">
                     <button onClick={() => setItemsOffset(o => Math.max(0, o - AGING_ITEMS_LIMIT))} disabled={itemsOffset === 0}
-                      className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                      className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                       ← {t('catalog.previous', 'Anterior')}
                     </button>
                     <button onClick={() => setItemsOffset(o => o + AGING_ITEMS_LIMIT)} disabled={itemsOffset + AGING_ITEMS_LIMIT >= itemsTotal}
-                      className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                      className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                       {t('catalog.next', 'Següent')} →
                     </button>
                   </div>
@@ -783,7 +779,7 @@ function ImportCsvModal({ onClose, onDone }) {
 
   return (
     <Modal title={t('catalog.import.title', 'Importar canvis del catàleg')} onClose={onClose}>
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-secondary">
         {t('catalog.import.hint', "Puja el CSV exportat (amb canvis de preu, condició, grading, segell, format, any o gènere, o amb la columna")} <strong>{t('catalog.import.delete_column', 'eliminar')}</strong> {t('catalog.import.hint_rest', 'marcada amb una X per donar de baixa una còpia).')}
       </p>
 
@@ -791,7 +787,7 @@ function ImportCsvModal({ onClose, onDone }) {
         <form onSubmit={handleUpload} className="space-y-4">
           <input type="file" accept=".csv" required
             onChange={e => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm border border-zinc-300 rounded-lg px-3 py-2 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:text-zinc-700 file:text-sm" />
+            className="block w-full text-sm border border-outline-variant rounded-lg px-3 py-2 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-surface-container-high file:text-on-surface-variant file:text-sm" />
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
@@ -834,7 +830,7 @@ function ExpandedPanel({ release, onRefresh }) {
       <div className="flex gap-1 border-b border-amber-200/60 pb-0">
         {[{ id: 'copies', label: t('catalog.copies', 'Còpies') }, { id: 'gallery', label: t('catalog.gallery_tags', 'Galeria & Etiquetes') }].map(({ id, label }) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors ${tab === id ? 'bg-white border border-b-white border-amber-200/60 text-amber-700' : 'text-zinc-500 hover:text-zinc-700'}`}>
+            className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors ${tab === id ? 'bg-card border border-b-white border-amber-200/60 text-amber-700' : 'text-secondary hover:text-on-surface-variant'}`}>
             {label}
           </button>
         ))}
@@ -967,20 +963,20 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
   return (
     <div className="space-y-6">
       {/* Aparició a la portada */}
-      <div className="border-b border-zinc-100 pb-4">
-        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">
-          {t('catalog.homepage_appearance', 'Aparició a la portada')} {savingFlag && <span className="normal-case font-normal text-zinc-400">· {t('catalog.saving_lower', 'desant...')}</span>}
+      <div className="border-b border-outline-variant pb-4">
+        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-3">
+          {t('catalog.homepage_appearance', 'Aparició a la portada')} {savingFlag && <span className="normal-case font-normal text-secondary">· {t('catalog.saving_lower', 'desant...')}</span>}
         </div>
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={estaSonant} onChange={handleToggleEstaSonant}
-              className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" />
-            <span className="text-sm text-zinc-700">{t('catalog.now_playing', 'Sonant')} <span className="text-zinc-400">{t('catalog.now_playing_hint', '(targeta del hero, només un disc alhora)')}</span></span>
+              className="w-4 h-4 rounded border-outline-variant text-on-surface focus:ring-primary" />
+            <span className="text-sm text-on-surface-variant">{t('catalog.now_playing', 'Sonant')} <span className="text-secondary">{t('catalog.now_playing_hint', '(targeta del hero, només un disc alhora)')}</span></span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={isRecomanat} onChange={handleToggleRecomanat}
-              className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" />
-            <span className="text-sm text-zinc-700">{t('catalog.recommended', 'Recomanats')} <span className="text-zinc-400">{t('catalog.recommended_hint', '(Selecció del curador)')}</span></span>
+              className="w-4 h-4 rounded border-outline-variant text-on-surface focus:ring-primary" />
+            <span className="text-sm text-on-surface-variant">{t('catalog.recommended', 'Recomanats')} <span className="text-secondary">{t('catalog.recommended_hint', '(Selecció del curador)')}</span></span>
           </label>
         </div>
       </div>
@@ -988,41 +984,41 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Galeria */}
       <div>
-        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
+        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">
           {t('catalog.image_gallery', "Galeria d'imatges")} ({images.length})
         </div>
         <div className="flex flex-wrap gap-2 mb-3">
           {images.map(img => (
             <div key={img.id} className="relative group">
-              <img src={img.url} alt="" className="w-16 h-16 object-cover rounded-lg border border-zinc-200 bg-zinc-100" />
+              <img src={img.url} alt="" className="w-16 h-16 object-cover rounded-lg border border-outline-variant bg-surface-container-high" />
               <button onClick={() => deleteImage(img.id)}
                 className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <X size={10} />
+                <MIcon name="close" size={10} />
               </button>
               {img.font && (
                 <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-black/50 text-white rounded px-1">{img.font}</span>
               )}
             </div>
           ))}
-          {images.length === 0 && <p className="text-sm text-zinc-400">{t('catalog.no_image', 'Cap imatge.')}</p>}
+          {images.length === 0 && <p className="text-sm text-secondary">{t('catalog.no_image', 'Cap imatge.')}</p>}
         </div>
         <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
         <button onClick={() => fileRef.current?.click()} disabled={uploading}
           className="flex items-center gap-1.5 text-xs text-violet-700 border border-violet-200 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60">
-          {uploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+          {uploading ? <MIcon name="progress_activity" size={11} className="animate-spin" /> : <MIcon name="upload" size={11} />}
           {t('catalog.upload_image', 'Pujar imatge')}
         </button>
       </div>
 
       {/* Etiquetes */}
       <div>
-        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">{t('catalog.tags', 'Etiquetes')}</div>
+        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">{t('catalog.tags', 'Etiquetes')}</div>
         <div className="flex flex-wrap gap-2 mb-3">
           {allEtiquetes.filter(et => et.slug !== 'recomanat').map(et => {
             const active = etiquetes.some(e => e.id === et.id);
             return (
               <button key={et.id} type="button" onClick={() => toggleEtiqueta(et.id)}
-                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${active ? 'text-white border-transparent' : 'text-zinc-600 bg-white border-zinc-300 hover:border-zinc-400'}`}
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${active ? 'text-white border-transparent' : 'text-on-surface-variant bg-card border-outline-variant hover:border-outline'}`}
                 style={active ? { backgroundColor: et.color || '#94a3b8', borderColor: et.color || '#94a3b8' } : {}}>
                 {et.name_ca}
               </button>
@@ -1030,7 +1026,7 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
           })}
         </div>
         <button onClick={saveEtiquetes} disabled={savingEt}
-          className="text-xs font-medium bg-primary hover:bg-zinc-800 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60">
+          className="text-xs font-medium bg-primary hover:opacity-90 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60">
           {savingEt ? t('common.saving') : t('catalog.save_tags', 'Desar etiquetes')}
         </button>
       </div>
@@ -1041,12 +1037,12 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
 
 // ---- CopiesPanel -----------------------------------------------------------
 
-const condicionColor = { nou: 'bg-blue-100 text-blue-700', segona_ma: 'bg-zinc-100 text-zinc-600' };
+const condicionColor = { nou: 'bg-blue-100 text-blue-700', segona_ma: 'bg-surface-container-high text-on-surface-variant' };
 const statusColor = {
   disponible: 'bg-green-100 text-green-700',
   reservado:  'bg-yellow-100 text-yellow-700',
   vendido:    'bg-blue-100 text-blue-700',
-  retirado:   'bg-zinc-100 text-zinc-500',
+  retirado:   'bg-surface-container-high text-secondary',
 };
 const statusKey = {
   disponible: 'status.available',
@@ -1170,16 +1166,16 @@ function CopiesPanel({ release, items, onRefresh }) {
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+      <div className="text-xs font-semibold text-secondary uppercase tracking-wide">
         {t('catalog.copies', 'Còpies')} ({items.length})
       </div>
-      {items.length === 0 && <div className="text-sm text-zinc-400">{t('catalog.no_copies_period', 'Cap còpia.')}</div>}
+      {items.length === 0 && <div className="text-sm text-secondary">{t('catalog.no_copies_period', 'Cap còpia.')}</div>}
       <div className="space-y-1.5">
         {items.map(item => editingId === item.id ? (
-          <form key={item.id} onSubmit={saveEdit} className="flex flex-wrap items-end gap-3 p-3 bg-white rounded-xl border border-amber-200 shadow-sm">
+          <form key={item.id} onSubmit={saveEdit} className="flex flex-wrap items-end gap-3 p-3 bg-card rounded-xl border border-amber-200 shadow-sm">
             <Field label={t('common.condition')}>
               <select value={editForm.condicion} onChange={e => setEditForm(f => ({ ...f, condicion: e.target.value }))}
-                className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+                className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                 <option value="segona_ma">{t('common.condition.used')}</option>
                 <option value="nou">{t('common.condition.new')}</option>
               </select>
@@ -1187,13 +1183,13 @@ function CopiesPanel({ release, items, onRefresh }) {
             <Field label={t('purchases.pvp_short', 'PVP') + ' (€)'}>
               <input type="number" step="0.01" min="0" required value={editForm.precio}
                 onChange={e => setEditForm(f => ({ ...f, precio: e.target.value }))}
-                className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </Field>
             <Field label={t('purchases.cost_short', 'Cost') + ' (€)'}>
               <input type="number" step="0.01" min="0" value={editForm.coste_adquisicion}
                 onChange={e => setEditForm(f => ({ ...f, coste_adquisicion: e.target.value }))}
                 placeholder="—"
-                className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </Field>
             {editForm.condicion === 'segona_ma' ? (
               <>
@@ -1210,7 +1206,7 @@ function CopiesPanel({ release, items, onRefresh }) {
                   onChange={e => setEditForm(f => ({ ...f, alerta_stock_minimo: e.target.value }))}
                   placeholder={t('catalog.min_stock_alert_placeholder', 'Cap')}
                   title={t('catalog.min_stock_alert_hint', "Avisa quan l'estoc disponible baixi d'aquest llindar")}
-                  className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                  className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </Field>
             )}
             <div className="flex gap-2 pb-0.5">
@@ -1226,9 +1222,9 @@ function CopiesPanel({ release, items, onRefresh }) {
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${condicionColor[item.condicion] ?? condicionColor.segona_ma}`}>
               {item.condicion === 'nou' ? t('common.condition.new') : t('common.condition.used')}
             </span>
-            <span className="font-semibold text-zinc-900">{item.precio} €</span>
+            <span className="font-semibold text-on-surface">{item.precio} €</span>
             {item.condicion === 'nou' && (
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-secondary">
                 {item.cantidad} {t('catalog.units', 'unitats')}
                 {item.cantidad_reservada > 0 && ` (${item.cantidad_reservada} ${t('catalog.reserved_lower', 'reservades')})`}
               </span>
@@ -1237,7 +1233,7 @@ function CopiesPanel({ release, items, onRefresh }) {
               && (item.cantidad - item.cantidad_reservada) <= item.alerta_stock_minimo && (
               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700"
                 title={t('catalog.low_stock_hint', 'Estoc disponible per sota del llindar configurat')}>
-                <AlertTriangle size={10} /> {t('catalog.low_stock', 'Estoc baix')}
+                <MIcon name="warning" size={10} /> {t('catalog.low_stock', 'Estoc baix')}
               </span>
             )}
             {item.coste_adquisicion != null && (() => {
@@ -1246,13 +1242,13 @@ function CopiesPanel({ release, items, onRefresh }) {
               const marge = pvp - cost;
               const pct = pvp > 0 ? Math.round((marge / pvp) * 100) : 0;
               return (
-                <span className="text-xs text-zinc-400" title={`${t('purchases.cost_short', 'Cost')}: ${cost.toFixed(2)} € · ${t('purchases.margin_capitalized', 'Marge')}: ${marge.toFixed(2)} € (${pct}%)`}>
+                <span className="text-xs text-secondary" title={`${t('purchases.cost_short', 'Cost')}: ${cost.toFixed(2)} € · ${t('purchases.margin_capitalized', 'Marge')}: ${marge.toFixed(2)} € (${pct}%)`}>
                   {t('purchases.cost_short', 'Cost').toLowerCase()} {cost.toFixed(2)} € · <span className={marge >= 0 ? 'text-emerald-600' : 'text-red-500'}>{marge >= 0 ? '+' : ''}{marge.toFixed(2)} €</span>
                 </span>
               );
             })()}
-            {item.estado_disco && <span className="text-zinc-500 text-xs">{item.estado_disco}</span>}
-            {item.estado_funda && <span className="text-zinc-400 text-xs">/ {item.estado_funda}</span>}
+            {item.estado_disco && <span className="text-secondary text-xs">{item.estado_disco}</span>}
+            {item.estado_funda && <span className="text-secondary text-xs">/ {item.estado_funda}</span>}
 
             {/* Discogs sync */}
             <div className="flex items-center gap-1 ml-1">
@@ -1260,22 +1256,22 @@ function CopiesPanel({ release, items, onRefresh }) {
               {syncStatus(item, release) === 'pending' && (
                 <button onClick={() => handlePush(item)} disabled={!!actionId} title={t('catalog.push_to_discogs', 'Pujar a Discogs')}
                   className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
-                  {actionId === item.id + '_push' ? <Loader2 size={9} className="animate-spin" /> : <Upload size={9} />}
+                  {actionId === item.id + '_push' ? <MIcon name="progress_activity" size={9} className="animate-spin" /> : <MIcon name="upload" size={9} />}
                   {t('catalog.push', 'Pujar')}
                 </button>
               )}
               {syncStatus(item, release) === 'listed' && (
                 <button onClick={() => handleRemove(item)} disabled={!!actionId} title={t('catalog.delete_listing', 'Eliminar listing')}
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-500 border border-zinc-200 hover:border-red-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
-                  {actionId === item.id + '_remove' ? <Loader2 size={9} className="animate-spin" /> : <Trash2 size={9} />}
+                  className="flex items-center gap-1 text-xs text-secondary hover:text-red-500 border border-outline-variant hover:border-red-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
+                  {actionId === item.id + '_remove' ? <MIcon name="progress_activity" size={9} className="animate-spin" /> : <MIcon name="delete" size={9} />}
                   {t('catalog.remove', 'Treure')}
                 </button>
               )}
               {(item.codi_discogs || release.discogs_release_id) && (
                 <button onClick={() => handleEnrichImage(item)} disabled={!!actionId}
                   title={release.imagen_url ? t('catalog.update_cover', 'Actualitzar caràtula') : t('catalog.get_cover_from_discogs', 'Obtenir caràtula de Discogs')}
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-700 border border-zinc-200 hover:border-violet-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
-                  {actionId === item.id + '_img' ? <Loader2 size={9} className="animate-spin" /> : <Image size={9} />}
+                  className="flex items-center gap-1 text-xs text-secondary hover:text-violet-700 border border-outline-variant hover:border-violet-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
+                  {actionId === item.id + '_img' ? <MIcon name="progress_activity" size={9} className="animate-spin" /> : <MIcon name="image" size={9} />}
                   {release.imagen_url ? `↑ ${t('catalog.art', 'Art')}` : t('catalog.art', 'Art')}
                 </button>
               )}
@@ -1284,12 +1280,12 @@ function CopiesPanel({ release, items, onRefresh }) {
             {item.status !== 'vendido' && (
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => startEdit(item)} title={t('catalog.edit')}
-                  className="p-1 text-zinc-400 hover:text-zinc-700 rounded-md hover:bg-zinc-100">
-                  <Pencil size={12} />
+                  className="p-1 text-secondary hover:text-on-surface-variant rounded-md hover:bg-surface-container-high">
+                  <MIcon name="edit" size={12} />
                 </button>
                 <button onClick={() => deleteItem(item)} title={t('catalog.delete')}
-                  className="p-1 text-zinc-300 hover:text-red-500 rounded-md hover:bg-red-50">
-                  <Trash2 size={12} />
+                  className="p-1 text-secondary hover:text-red-500 rounded-md hover:bg-red-50">
+                  <MIcon name="delete" size={12} />
                 </button>
               </div>
             )}
@@ -1302,10 +1298,10 @@ function CopiesPanel({ release, items, onRefresh }) {
           + {t('catalog.add_copy')}
         </button>
       ) : (
-        <form onSubmit={save} className="flex flex-wrap items-end gap-3 mt-2 p-4 bg-white rounded-xl border border-amber-200 shadow-sm">
+        <form onSubmit={save} className="flex flex-wrap items-end gap-3 mt-2 p-4 bg-card rounded-xl border border-amber-200 shadow-sm">
           <Field label={t('common.condition')}>
             <select value={form.condicion} onChange={e => setForm(f => ({ ...f, condicion: e.target.value }))}
-              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+              className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
               <option value="segona_ma">{t('common.condition.used')}</option>
               <option value="nou">{t('common.condition.new')}</option>
             </select>
@@ -1314,12 +1310,12 @@ function CopiesPanel({ release, items, onRefresh }) {
             <input type="number" step="0.01" min="0" value={form.coste_adquisicion}
               onChange={e => setForm(f => ({ ...f, coste_adquisicion: e.target.value }))}
               placeholder="0.00"
-              className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </Field>
           <Field label={t('purchases.pvp_short', 'PVP') + ' (€)'}>
             <input type="number" step="0.01" min="0" required value={form.precio}
               onChange={e => setForm(f => ({ ...f, precio: e.target.value }))}
-              className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </Field>
           {form.condicion === 'nou' ? (
             <>
@@ -1327,14 +1323,14 @@ function CopiesPanel({ release, items, onRefresh }) {
                 <input type="number" step="1" min="1" required value={form.cantidad}
                   onChange={e => setForm(f => ({ ...f, cantidad: e.target.value }))}
                   title={t('catalog.units_hint', "Si ja hi ha estoc nou d'aquest disc, se sumarà a la línia existent")}
-                  className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                  className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </Field>
               <Field label={t('catalog.min_stock_alert', "Alerta d'estoc mínim")}>
                 <input type="number" step="1" min="0" value={form.alerta_stock_minimo}
                   onChange={e => setForm(f => ({ ...f, alerta_stock_minimo: e.target.value }))}
                   placeholder={t('catalog.min_stock_alert_placeholder', 'Cap')}
                   title={t('catalog.min_stock_alert_hint', "Avisa quan l'estoc disponible baixi d'aquest llindar")}
-                  className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                  className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </Field>
             </>
           ) : (
@@ -1362,7 +1358,7 @@ function CopiesPanel({ release, items, onRefresh }) {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="block text-xs text-zinc-500 mb-1">{label}</label>
+      <label className="block text-xs text-secondary mb-1">{label}</label>
       {children}
     </div>
   );
@@ -1371,7 +1367,7 @@ function Field({ label, children }) {
 function GradingSelect({ value, onChange }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
-      className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+      className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
       <option value="">—</option>
       {GRADINGS.map(g => <option key={g} value={g}>{g.split(' (')[0]}</option>)}
     </select>
@@ -1596,7 +1592,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
     <Modal title={title} onClose={onClose}>
       {dupMatches.length > 0 && (
         <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl flex gap-3 text-sm">
-          <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <MIcon name="warning" size={16} className="text-amber-600 shrink-0 mt-0.5" />
           <div>
             <div className="font-medium text-amber-800">{t('catalog.modal.dup_warning', 'Ja existeix un disc semblant al catàleg:')}</div>
             <ul className="mt-1 space-y-0.5">
@@ -1611,15 +1607,15 @@ function DiscModal({ mode, release, onClose, onSaved }) {
       )}
 
       {!isEdit && showDiscogs && (
-        <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 space-y-3">
-          <div className="text-sm font-medium text-zinc-700">{t('catalog.modal.discogs')}</div>
+        <div className="p-4 bg-surface-container-high rounded-xl border border-outline-variant space-y-3">
+          <div className="text-sm font-medium text-on-surface-variant">{t('catalog.modal.discogs')}</div>
           <DiscogsSearchField onPick={pick} variant="panel" placeholder={t('catalog.modal.discogs_ph')} />
         </div>
       )}
 
       {isEdit && showDiscogs && (
-        <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
-          <div className="text-sm font-medium text-zinc-700">
+        <div className="p-4 bg-surface-container-high rounded-xl border border-outline-variant space-y-2">
+          <div className="text-sm font-medium text-on-surface-variant">
             {t('catalog.modal.discogs_id', 'ID de Discogs')}
           </div>
           <div className="flex gap-2">
@@ -1627,13 +1623,13 @@ function DiscModal({ mode, release, onClose, onSaved }) {
               value={form.discogs_release_id}
               onChange={e => f('discogs_release_id', e.target.value.replace(/\D/g, ''))}
               placeholder={t('catalog.modal.discogs_id_ph', 'p.ex. 1234567 (discogs.com/release/1234567-...)')}
-              className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <Button type="button" variant="secondary" onClick={refreshFromDiscogs} disabled={saving || !form.discogs_release_id}>
               {t('catalog.modal.discogs_refresh', 'Actualitzar des de Discogs')}
             </Button>
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-secondary">
             {t('catalog.modal.discogs_id_help', 'Vincula aquest disc a un release de Discogs (per a discos donats d\'alta a mà que ara ja hi estan catalogats). En actualitzar es desa l\'ID i es porten tracklist, crèdits i altres dades.')}
           </p>
         </div>
@@ -1646,50 +1642,50 @@ function DiscModal({ mode, release, onClose, onSaved }) {
             ['titulo', t('catalog.modal.title_field'), true],
           ].map(([k, lbl, req]) => (
             <div key={k}>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{lbl}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{lbl}</label>
               <input value={form[k]} onChange={e => f(k, e.target.value)} onBlur={scheduleDupCheck} required={req}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           ))}
           {!isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.label')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.label')}</label>
             <input value={form.sello} onChange={e => f('sello', e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.ean', 'EAN / codi de barres')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.ean', 'EAN / codi de barres')}</label>
             <input value={form.ean} onChange={e => f('ean', e.target.value)} onBlur={scheduleDupCheck}
               placeholder={t('catalog.modal.ean_ph', 'p.ex. 0888072345678')}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           {!isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.format')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.format')}</label>
             <select value={form.formato} onChange={e => f('formato', e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
               {['LP', 'EP', '7"', '12"', 'CD', 'Cassette', 'Altre'].map(x => <option key={x}>{x}</option>)}
             </select>
           </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.year')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.year')}</label>
             <input type="number" value={form.anio} onChange={e => f('anio', e.target.value)} min="1900" max="2030"
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           {!isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.genre')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.genre')}</label>
             <input value={form.genero} onChange={e => f('genero', e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           )}
           {!isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.section', 'Secció (cubeta)')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.section', 'Secció (cubeta)')}</label>
             <select value={form.seccio_id} onChange={e => f('seccio_id', e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
               <option value="">{t('catalog.modal.unclassified', 'Sense classificar')}</option>
               {allSeccions.map(s => <option key={s.id} value={s.id}>{s.name_ca}</option>)}
             </select>
@@ -1697,11 +1693,11 @@ function DiscModal({ mode, release, onClose, onSaved }) {
           )}
           {!isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.weight', 'Pes (grams)')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.weight', 'Pes (grams)')}</label>
             <input type="number" min="1" value={form.pes_g} onChange={e => f('pes_g', e.target.value)}
               placeholder={pesPerFormat[form.formato] != null ? String(pesPerFormat[form.formato]) : ''}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-            <p className="text-xs text-zinc-400 mt-1">
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <p className="text-xs text-secondary mt-1">
               {t('catalog.modal.weight_hint_1', 'Nomes per a casos especials. Buit = pes per defecte del format')}{' '}
               {pesPerFormat[form.formato] != null ? `(${pesPerFormat[form.formato]} g, ` : '('}
               {t('catalog.modal.weight_hint_2', 'configurable a Configuració → Enviaments).')}
@@ -1710,42 +1706,42 @@ function DiscModal({ mode, release, onClose, onSaved }) {
           )}
           {isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.color', 'Color')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.color', 'Color')}</label>
             <input value={form.color} onChange={e => f('color', e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           )}
           {isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.flower_type', 'Tipus de flor')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.flower_type', 'Tipus de flor')}</label>
             <input value={form.tipus_flor} onChange={e => f('tipus_flor', e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           )}
           {isFloristeria && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.durability', 'Durabilitat (dies)')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.durability', 'Durabilitat (dies)')}</label>
             <input type="number" min="1" value={form.durabilitat_dies} onChange={e => f('durabilitat_dies', e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('catalog.modal.image_url')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.image_url')}</label>
           <input value={form.imagen_url} onChange={e => f('imagen_url', e.target.value)}
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
 
         {/* Etiquetes */}
         {allEtiquetes.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">{t('catalog.tags', 'Etiquetes')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-2">{t('catalog.tags', 'Etiquetes')}</label>
             <div className="flex flex-wrap gap-2">
               {allEtiquetes.map(et => {
                 const active = form.etiqueta_ids.includes(et.id);
                 return (
                   <button key={et.id} type="button" onClick={() => toggleEtiqueta(et.id)}
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${active ? 'text-white border-transparent' : 'text-zinc-600 bg-white border-zinc-300 hover:border-zinc-400'}`}
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border transition-all ${active ? 'text-white border-transparent' : 'text-on-surface-variant bg-card border-outline-variant hover:border-outline'}`}
                     style={active ? { backgroundColor: et.color || '#94a3b8', borderColor: et.color || '#94a3b8' } : {}}>
                     {et.name_ca}
                   </button>
@@ -1759,44 +1755,44 @@ function DiscModal({ mode, release, onClose, onSaved }) {
         <div className="flex items-start gap-4">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={form.properament} onChange={e => f('properament', e.target.checked)}
-              className="w-4 h-4 rounded border-zinc-300 text-violet-600 focus:ring-violet-500" />
-            <span className="text-sm font-medium text-zinc-700">{t('catalog.modal.coming_soon', 'Properament (pre-venda)')}</span>
+              className="w-4 h-4 rounded border-outline-variant text-violet-600 focus:ring-violet-500" />
+            <span className="text-sm font-medium text-on-surface-variant">{t('catalog.modal.coming_soon', 'Properament (pre-venda)')}</span>
           </label>
           {form.properament && (
             <div>
-              <label className="block text-xs text-zinc-500 mb-1">{t('catalog.modal.availability_date', 'Data disponibilitat (opcional)')}</label>
+              <label className="block text-xs text-secondary mb-1">{t('catalog.modal.availability_date', 'Data disponibilitat (opcional)')}</label>
               <input type="date" value={form.data_disponibilitat} onChange={e => f('data_disponibilitat', e.target.value)}
-                className="border border-zinc-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
           )}
         </div>
 
         {!isEdit && (
-          <div className="border-t border-zinc-200 pt-4">
-            <div className="text-sm font-semibold text-zinc-700 mb-3">{t('catalog.modal.first_copy')}</div>
+          <div className="border-t border-outline-variant pt-4">
+            <div className="text-sm font-semibold text-on-surface-variant mb-3">{t('catalog.modal.first_copy')}</div>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('common.condition')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('common.condition')}</label>
                 <select value={form.condicion} onChange={e => f('condicion', e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                   <option value="segona_ma">{t('common.condition.used')}</option>
                   <option value="nou">{t('common.condition.new')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('common.price')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('common.price')}</label>
                 <input type="number" step="0.01" min="0" value={form.precio} onChange={e => f('precio', e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>
             {!isFloristeria && form.condicion === 'segona_ma' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">{t('catalog.disc_grade')}</label>
+                  <label className="block text-xs text-secondary mb-1">{t('catalog.disc_grade')}</label>
                   <GradingSelect value={form.estado_disco} onChange={v => f('estado_disco', v)} />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">{t('catalog.sleeve_grade')}</label>
+                  <label className="block text-xs text-secondary mb-1">{t('catalog.sleeve_grade')}</label>
                   <GradingSelect value={form.estado_funda} onChange={v => f('estado_funda', v)} />
                 </div>
               </div>
@@ -1818,11 +1814,11 @@ function DiscModal({ mode, release, onClose, onSaved }) {
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{title}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100">
-            <X size={20} />
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{title}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high">
+            <MIcon name="close" size={20} />
           </button>
         </div>
         <div className="p-6 space-y-5">{children}</div>

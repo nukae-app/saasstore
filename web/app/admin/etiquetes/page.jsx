@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
-import { Plus, Pencil, Trash2, Check, X, GripVertical } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 
 const DEFAULT_COLORS = [
   '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
@@ -83,9 +83,9 @@ export default function EtiquetesPage() {
   return (
     <div className="space-y-5 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">Etiquetes</h2>
+        <h2 className="text-2xl font-bold text-on-surface">Etiquetes</h2>
         <Button size="sm" onClick={openNew}>
-          <Plus size={15} /> Nova etiqueta
+          <MIcon name="add" size={15} /> Nova etiqueta
         </Button>
       </div>
 
@@ -101,15 +101,15 @@ export default function EtiquetesPage() {
         />
       )}
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-secondary text-sm">Carregant...</div>
         ) : etiquetes.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Encara no hi ha etiquetes. Crea'n una!</div>
+          <div className="p-12 text-center text-secondary text-sm">Encara no hi ha etiquetes. Crea'n una!</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium w-6" />
                 <th className="px-4 py-3 text-left font-medium">Etiqueta</th>
@@ -119,11 +119,11 @@ export default function EtiquetesPage() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {etiquetes.map(et => (
-                <tr key={et.id} className="hover:bg-zinc-50 transition-colors">
-                  <td className="px-4 py-3 text-zinc-300">
-                    <GripVertical size={14} />
+                <tr key={et.id} className="hover:bg-surface-container-high transition-colors">
+                  <td className="px-4 py-3 text-secondary">
+                    <MIcon name="drag_indicator" size={14} />
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -133,29 +133,29 @@ export default function EtiquetesPage() {
                       {et.name_ca}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-zinc-500 text-xs">{et.slug}</td>
-                  <td className="px-4 py-3 text-zinc-500">{et.name_es || '—'}</td>
+                  <td className="px-4 py-3 font-mono text-secondary text-xs">{et.slug}</td>
+                  <td className="px-4 py-3 text-secondary">{et.name_es || '—'}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => toggleActiva(et)}
-                      className={`w-8 h-4 rounded-full transition-colors relative ${et.active ? 'bg-green-500' : 'bg-zinc-300'}`}
+                      className={`w-8 h-4 rounded-full transition-colors relative ${et.active ? 'bg-green-500' : 'bg-muted'}`}
                     >
-                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${et.active ? 'left-4' : 'left-0.5'}`} />
+                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-card shadow transition-all ${et.active ? 'left-4' : 'left-0.5'}`} />
                     </button>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => openEdit(et)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                        className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
                       >
-                        <Pencil size={14} />
+                        <MIcon name="edit" size={14} />
                       </button>
                       <button
                         onClick={() => del(et)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors"
                       >
-                        <Trash2 size={14} />
+                        <MIcon name="delete" size={14} />
                       </button>
                     </div>
                   </td>
@@ -174,60 +174,60 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5 space-y-4">
-      <h3 className="font-semibold text-zinc-900">{isNew ? 'Nova etiqueta' : 'Editar etiqueta'}</h3>
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-5 space-y-4">
+      <h3 className="font-semibold text-on-surface">{isNew ? 'Nova etiqueta' : 'Editar etiqueta'}</h3>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Slug <span className="text-red-500">*</span></label>
+          <label className="block text-xs font-medium text-secondary mb-1">Slug <span className="text-red-500">*</span></label>
           <input
             value={form.slug}
             onChange={e => f('slug', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="novetat"
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 font-mono"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary font-mono"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Posició</label>
+          <label className="block text-xs font-medium text-secondary mb-1">Posició</label>
           <input
             type="number" value={form.position}
             onChange={e => f('position', parseInt(e.target.value) || 0)}
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Nom català <span className="text-red-500">*</span></label>
+          <label className="block text-xs font-medium text-secondary mb-1">Nom català <span className="text-red-500">*</span></label>
           <input
             value={form.name_ca} onChange={e => f('name_ca', e.target.value)}
             placeholder="Novetat"
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Nom castellà</label>
+          <label className="block text-xs font-medium text-secondary mb-1">Nom castellà</label>
           <input
             value={form.name_es} onChange={e => f('name_es', e.target.value)}
             placeholder="Novedad"
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-zinc-500 mb-2">Color</label>
+        <label className="block text-xs font-medium text-secondary mb-2">Color</label>
         <div className="flex items-center gap-2 flex-wrap">
           {DEFAULT_COLORS.map(c => (
             <button
               key={c}
               onClick={() => f('color', c)}
-              className={`w-7 h-7 rounded-full transition-transform ${form.color === c ? 'ring-2 ring-offset-2 ring-zinc-400 scale-110' : ''}`}
+              className={`w-7 h-7 rounded-full transition-transform ${form.color === c ? 'ring-2 ring-offset-2 ring-on-surface scale-110' : ''}`}
               style={{ backgroundColor: c }}
             />
           ))}
           <input
             type="color" value={form.color || '#94a3b8'}
             onChange={e => f('color', e.target.value)}
-            className="w-7 h-7 rounded-full border border-zinc-200 cursor-pointer"
+            className="w-7 h-7 rounded-full border border-outline-variant cursor-pointer"
             title="Color personalitzat"
           />
           <span
@@ -243,10 +243,10 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
 
       <div className="flex gap-2 pt-1">
         <Button size="sm" onClick={onSave} disabled={saving}>
-          <Check size={14} /> {saving ? 'Desant...' : 'Desar'}
+          <MIcon name="check" size={14} /> {saving ? 'Desant...' : 'Desar'}
         </Button>
-        <button onClick={onCancel} className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700">
-          <X size={14} className="inline mr-1" />Cancel·lar
+        <button onClick={onCancel} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
+          <MIcon name="close" size={14} className="inline mr-1" />Cancel·lar
         </button>
       </div>
     </div>

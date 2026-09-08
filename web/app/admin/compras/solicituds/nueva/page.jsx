@@ -8,7 +8,7 @@ import { resolveOrCreateRelease } from '../../../../lib/discogs';
 import { useDiscogsEnabled } from '../../../../../components/store/useDiscogsEnabled';
 import { Button } from '../../../../../components/ui/button';
 import DiscogsSearchField from '../../../../../components/admin/discogs/DiscogsSearchField';
-import { Trash2 } from 'lucide-react';
+import MIcon from '../../../../../components/ui/m-icon';
 
 // Pantalla dedicada per crear una sol·licitud manual, separada del llistat
 // (veure /admin/compras/solicituds): un formulari necessita més espai que un
@@ -103,21 +103,21 @@ export default function NovaSolicitudPage() {
   return (
     <div className="space-y-5 max-w-3xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('purchases.add_to_pool_page.title', 'Afegir discos al pool')}</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{t('purchases.add_to_pool_page.title', 'Afegir discos al pool')}</h2>
       </div>
 
-      <form onSubmit={save} className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-5">
-        <p className="text-xs text-zinc-400">
+      <form onSubmit={save} className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-5">
+        <p className="text-xs text-secondary">
           {t('purchases.add_to_pool_page.hint', 'Afegeix els discos que vols comprar. Més endavant, des de la pestanya "Sol·licituds", els seleccionaràs per crear-ne una sol·licitud numerada i, quan calgui, la comanda a proveïdor.')}
         </p>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.notes')}</label>
           <input value={notas} onChange={e => setNotas(e.target.value)}
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
 
-        <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
-          <div className="text-sm font-semibold text-zinc-700">{t('purchases.request_modal.wanted_records', 'Discos volguts')}</div>
+        <div className="border border-outline-variant rounded-xl p-4 space-y-3">
+          <div className="text-sm font-semibold text-on-surface-variant">{t('purchases.request_modal.wanted_records', 'Discos volguts')}</div>
           {discogsEnabled && (
             <DiscogsSearchField onPick={pickDiscogs} disabled={resolving} />
           )}
@@ -130,25 +130,25 @@ export default function NovaSolicitudPage() {
           )}
 
           {(!discogsEnabled || manualMode) && (
-            <div className="p-3 bg-white rounded-xl border border-zinc-200 space-y-2">
+            <div className="p-3 bg-card rounded-xl border border-outline-variant space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <input value={manualForm.artista} onChange={e => setManualForm(f => ({ ...f, artista: e.target.value }))}
                   placeholder={t('purchases.manual.artist_ph', 'Artista')}
-                  className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                  className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                 <input value={manualForm.titulo} onChange={e => setManualForm(f => ({ ...f, titulo: e.target.value }))}
                   placeholder={t('purchases.manual.title_ph', 'Títol')}
-                  className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                  className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                 <input value={manualForm.sello} onChange={e => setManualForm(f => ({ ...f, sello: e.target.value }))}
                   placeholder={t('purchases.manual.label_ph', 'Segell')}
-                  className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                  className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                 <select value={manualForm.formato} onChange={e => setManualForm(f => ({ ...f, formato: e.target.value }))}
-                  className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                  className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   {['LP', 'EP', '7"', '12"', 'CD', 'Cassette'].map(x => <option key={x}>{x}</option>)}
                   <option>{t('purchases.manual.format_other', 'Altre')}</option>
                 </select>
                 <input type="number" value={manualForm.anio} onChange={e => setManualForm(f => ({ ...f, anio: e.target.value }))}
                   placeholder={t('purchases.manual.year_ph', 'Any')} min="1900" max="2030"
-                  className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                  className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
               <Button type="button" size="sm" onClick={addManual}
                 disabled={resolving || !manualForm.titulo.trim()}>
@@ -158,36 +158,36 @@ export default function NovaSolicitudPage() {
           )}
 
           {lineas.length === 0 && (
-            <div className="text-sm text-zinc-400 text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
+            <div className="text-sm text-secondary text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
           )}
 
           <div className="space-y-2">
             {lineas.map((l, idx) => (
-              <div key={idx} className="p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+              <div key={idx} className="p-3 bg-surface-container-high rounded-xl border border-outline-variant">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-zinc-900">{l.artista} — {l.titulo}</span>
+                    <span className="text-sm font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
                     {l.existing && (
-                      <span className="text-[10px] uppercase tracking-wide text-zinc-400 bg-zinc-100 rounded-full px-2 py-0.5">
+                      <span className="text-[10px] uppercase tracking-wide text-secondary bg-surface-container-high rounded-full px-2 py-0.5">
                         {t('purchases.modal.already_in_catalog', 'Ja al catàleg')}
                       </span>
                     )}
                   </div>
                   <button type="button" onClick={() => setLineas(p => p.filter((_, i) => i !== idx))}
-                    className="text-zinc-400 hover:text-red-500 transition-colors">
-                    <Trash2 size={15} />
+                    className="text-secondary hover:text-red-500 transition-colors">
+                    <MIcon name="delete" size={15} />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <div>
-                    <label className="block text-xs text-zinc-500 mb-1">{t('purchases.quantity', 'Quantitat')}</label>
+                    <label className="block text-xs text-secondary mb-1">{t('purchases.quantity', 'Quantitat')}</label>
                     <input type="number" min="1" value={l.cantidad} onChange={e => upd(idx, 'cantidad', e.target.value)}
-                      className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                      className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-500 mb-1">{t('purchases.suggested_supplier', 'Proveïdor suggerit')}</label>
+                    <label className="block text-xs text-secondary mb-1">{t('purchases.suggested_supplier', 'Proveïdor suggerit')}</label>
                     <select value={l.proveedor_sugerido_id} onChange={e => upd(idx, 'proveedor_sugerido_id', e.target.value)}
-                      className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                      className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                       <option value="">—</option>
                       {proveedores.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>

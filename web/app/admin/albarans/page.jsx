@@ -5,7 +5,7 @@ import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
-import { Plus, X, Download } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { useT } from '../../lib/i18n';
 
 function fmtDate(d) {
@@ -61,21 +61,21 @@ export default function AlbaransPage() {
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('nav.albarans', 'Albarans')}</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{t('nav.albarans', 'Albarans')}</h2>
         <Button onClick={() => setShowModal(true)}>
-          <Plus size={16} /> {t('albarans.new', 'Nou albarà')}
+          <MIcon name="add" size={16} /> {t('albarans.new', 'Nou albarà')}
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : llista.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('albarans.empty', 'Cap albarà trobat')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('albarans.empty', 'Cap albarà trobat')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <SortableTh label={t('pressupostos.col.number', 'Número')} sortKey="numero" sort={sort} onSort={toggleSort} />
                 <SortableTh label={t('pressupostos.client', 'Client')} sortKey="client" sort={sort} onSort={toggleSort} />
@@ -85,21 +85,21 @@ export default function AlbaransPage() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {llista.map(a => {
                 const order = ordersById[a.order_id];
                 return (
-                  <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-500">{a.fiscal_year}/{String(a.number).padStart(4, '0')}</td>
-                    <td className="px-4 py-3 font-medium text-zinc-900">{order?.email || '—'}</td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">#{a.order_id.slice(0, 8)}</td>
-                    <td className="px-4 py-3 text-zinc-600">{fmtDate(a.delivery_date)}</td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs max-w-xs truncate">{a.notes || '—'}</td>
+                  <tr key={a.id} className="hover:bg-surface-container-high transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs text-secondary">{a.fiscal_year}/{String(a.number).padStart(4, '0')}</td>
+                    <td className="px-4 py-3 font-medium text-on-surface">{order?.email || '—'}</td>
+                    <td className="px-4 py-3 text-secondary text-xs">#{a.order_id.slice(0, 8)}</td>
+                    <td className="px-4 py-3 text-on-surface-variant">{fmtDate(a.delivery_date)}</td>
+                    <td className="px-4 py-3 text-secondary text-xs max-w-xs truncate">{a.notes || '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <button title={t('pressupostos.download_pdf', 'Descarregar PDF')}
                         onClick={() => downloadPdf(`/admin/albarans/${a.id}/pdf`, `albara_${a.fiscal_year}_${a.number}.pdf`)}
-                        className="text-zinc-400 hover:text-zinc-700 p-1.5 rounded hover:bg-zinc-100 transition-colors">
-                        <Download size={14} />
+                        className="text-secondary hover:text-on-surface-variant p-1.5 rounded hover:bg-surface-container-high transition-colors">
+                        <MIcon name="download" size={14} />
                       </button>
                     </td>
                   </tr>
@@ -146,34 +146,34 @@ function AlbaraModal({ orders, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="font-bold text-zinc-900">{t('albarans.new', 'Nou albarà')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600"><X size={18} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="font-bold text-on-surface">{t('albarans.new', 'Nou albarà')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('albarans.col.order', 'Comanda')} *</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('albarans.col.order', 'Comanda')} *</label>
             <select value={orderId} onChange={e => setOrderId(e.target.value)} required
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
               <option value="">{t('albarans.select_order', 'Selecciona una comanda...')}</option>
               {orders.map(o => (
                 <option key={o.id} value={o.id}>#{o.id.slice(0, 8)} — {o.email} — {parseFloat(o.total).toFixed(2)} €</option>
               ))}
             </select>
             {orders.length === 0 && (
-              <p className="text-xs text-zinc-400 mt-1">{t('albarans.no_pending_orders', 'Totes les comandes ja tenen albarà')}</p>
+              <p className="text-xs text-secondary mt-1">{t('albarans.no_pending_orders', 'Totes les comandes ja tenen albarà')}</p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('albarans.col.delivery_date', 'Data entrega')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('albarans.col.delivery_date', 'Data entrega')}</label>
             <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes', 'Notes')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.notes', 'Notes')}</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">

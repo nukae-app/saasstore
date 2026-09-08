@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Bold, Italic, Underline, Link2, Image as ImageIcon, List, ListOrdered, Heading2, Undo2, Redo2, Loader2 } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { authFetch } from '../../lib/auth';
 
 const BUTTONS = [
-  { cmd: 'bold', icon: Bold, title: 'Negreta' },
-  { cmd: 'italic', icon: Italic, title: 'Cursiva' },
-  { cmd: 'underline', icon: Underline, title: 'Subratllat' },
-  { cmd: 'formatBlock', arg: 'h2', icon: Heading2, title: 'Títol' },
-  { cmd: 'insertUnorderedList', icon: List, title: 'Llista' },
-  { cmd: 'insertOrderedList', icon: ListOrdered, title: 'Llista numerada' },
+  { cmd: 'bold', icon: 'format_bold', title: 'Negreta' },
+  { cmd: 'italic', icon: 'format_italic', title: 'Cursiva' },
+  { cmd: 'underline', icon: 'format_underlined', title: 'Subratllat' },
+  { cmd: 'formatBlock', arg: 'h2', icon: 'title', title: 'Títol' },
+  { cmd: 'insertUnorderedList', icon: 'format_list_bulleted', title: 'Llista' },
+  { cmd: 'insertOrderedList', icon: 'format_list_numbered', title: 'Llista numerada' },
 ];
 
 // Editor WYSIWYG senzill (contentEditable + execCommand): sense dependències noves,
@@ -90,18 +90,18 @@ export default function RichTextEditor({ value, onChange }) {
   }
 
   return (
-    <div className="border border-zinc-200 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-zinc-200 bg-zinc-50 flex-wrap">
-        {BUTTONS.map(({ cmd, arg, icon: Icon, title }) => (
+    <div className="border border-outline-variant rounded-xl overflow-hidden">
+      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-outline-variant bg-surface-container-high flex-wrap">
+        {BUTTONS.map(({ cmd, arg, icon, title }) => (
           <button
             key={cmd + (arg || '')}
             type="button"
             title={title}
             onMouseDown={e => e.preventDefault()}
             onClick={() => exec(cmd, arg)}
-            className="p-1.5 rounded text-zinc-600 hover:bg-zinc-200 transition-colors"
+            className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-highest transition-colors"
           >
-            <Icon size={14} />
+            <MIcon name={icon} size={14} />
           </button>
         ))}
         <button
@@ -109,9 +109,9 @@ export default function RichTextEditor({ value, onChange }) {
           title="Enllaç"
           onMouseDown={e => e.preventDefault()}
           onClick={handleLink}
-          className="p-1.5 rounded text-zinc-600 hover:bg-zinc-200 transition-colors"
+          className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-highest transition-colors"
         >
-          <Link2 size={14} />
+          <MIcon name="link" size={14} />
         </button>
         <button
           type="button"
@@ -119,9 +119,9 @@ export default function RichTextEditor({ value, onChange }) {
           disabled={uploading}
           onMouseDown={e => e.preventDefault()}
           onClick={openImagePicker}
-          className="p-1.5 rounded text-zinc-600 hover:bg-zinc-200 transition-colors disabled:opacity-50"
+          className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-highest transition-colors disabled:opacity-50"
         >
-          {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+          {uploading ? <MIcon name="progress_activity" size={14} className="animate-spin" /> : <MIcon name="image" size={14} />}
         </button>
         <input
           ref={fileRef}
@@ -130,24 +130,24 @@ export default function RichTextEditor({ value, onChange }) {
           onChange={handleImageFile}
           className="hidden"
         />
-        <span className="w-px h-4 bg-zinc-300 mx-1" />
+        <span className="w-px h-4 bg-outline-variant mx-1" />
         <button
           type="button"
           title="Desfer"
           onMouseDown={e => e.preventDefault()}
           onClick={() => exec('undo')}
-          className="p-1.5 rounded text-zinc-600 hover:bg-zinc-200 transition-colors"
+          className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-highest transition-colors"
         >
-          <Undo2 size={14} />
+          <MIcon name="undo" size={14} />
         </button>
         <button
           type="button"
           title="Refer"
           onMouseDown={e => e.preventDefault()}
           onClick={() => exec('redo')}
-          className="p-1.5 rounded text-zinc-600 hover:bg-zinc-200 transition-colors"
+          className="p-1.5 rounded text-on-surface-variant hover:bg-surface-container-highest transition-colors"
         >
-          <Redo2 size={14} />
+          <MIcon name="redo" size={14} />
         </button>
       </div>
       <div
@@ -155,7 +155,7 @@ export default function RichTextEditor({ value, onChange }) {
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
-        className="blog-content min-h-[350px] max-h-[600px] overflow-auto bg-white px-5 py-4 text-sm focus:outline-none"
+        className="blog-content min-h-[350px] max-h-[600px] overflow-auto bg-card px-5 py-4 text-sm focus:outline-none"
       />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { authFetch } from '../../lib/auth';
-import { AlertTriangle } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { useT } from '../../lib/i18n';
 
 function fmtEur(v) {
@@ -65,33 +65,33 @@ export default function IVAPage() {
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('nav.iva', 'IVA')}</h2>
-        <div className="text-xs text-zinc-400">{t('iva.subtitle', 'Model 303 — previsió fiscal')}</div>
+        <h2 className="text-2xl font-bold text-on-surface">{t('nav.iva', 'IVA')}</h2>
+        <div className="text-xs text-secondary">{t('iva.subtitle', 'Model 303 — previsió fiscal')}</div>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
         <select value={year} onChange={e => setYear(Number(e.target.value))}
-          className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+          className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
           {[2023, 2024, 2025, 2026].map(y => <option key={y}>{y}</option>)}
         </select>
         <div className="flex gap-2">
           {TRIMESTRES.map(tr => (
             <button key={tr.value} onClick={() => setTrim(tr.value)}
-              className={`px-4 py-1.5 rounded-lg text-sm border transition-colors ${trim === tr.value ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'}`}>
+              className={`px-4 py-1.5 rounded-lg text-sm border transition-colors ${trim === tr.value ? 'bg-primary text-white border-primary' : 'bg-card text-on-surface-variant border-outline-variant hover:border-outline'}`}>
               {tr.value}T
             </button>
           ))}
         </div>
-        <span className="text-sm text-zinc-400">{TRIMESTRES.find(tr => tr.value === trim)?.label} {year}</span>
+        <span className="text-sm text-secondary">{TRIMESTRES.find(tr => tr.value === trim)?.label} {year}</span>
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>
+        <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
       ) : !data ? null : (
         <div className="space-y-4">
           {data.nota_rebu && (
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <AlertTriangle size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+              <MIcon name="warning" size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="font-semibold text-amber-800">{t('iva.rebu_warning_title', 'Atenció: vendes REBU detectades')}</p>
                 <p className="text-amber-700 mt-0.5">
@@ -127,7 +127,7 @@ export default function IVAPage() {
           {/* IVA Repercutit */}
           <IVASection title={t('iva.output_vat_sales', 'IVA repercutit — vendes')} total={totalRepercutit} sign="+" colorClass="bg-red-50 border-red-100 text-red-800">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500">
+              <thead className="bg-surface-container-high text-xs text-secondary">
                 <tr>
                   <th className="px-5 py-2 text-left font-medium">{t('iva.col.channel_concept', 'Canal / Concepte')}</th>
                   <th className="px-5 py-2 text-right font-medium">{t('despeses.taxable_base', 'Base imposable')}</th>
@@ -135,21 +135,21 @@ export default function IVAPage() {
                   <th className="px-5 py-2 text-right font-medium">{t('iva.col.vat_amount', 'Quota IVA')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {ivaRepercutit.length === 0 ? (
-                  <tr><td colSpan={4} className="px-5 py-4 text-zinc-400 text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+                  <tr><td colSpan={4} className="px-5 py-4 text-secondary text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
                 ) : ivaRepercutit.map((l, i) => (
-                  <tr key={i} className="hover:bg-zinc-50">
-                    <td className="px-5 py-2.5 text-zinc-700">{CATEGORIA_LABELS[l.categoria] || l.categoria}</td>
-                    <td className="px-5 py-2.5 text-right text-zinc-600">{fmtEur(l.base)}</td>
-                    <td className="px-5 py-2.5 text-right text-zinc-500">{parseFloat(l.iva_pct).toFixed(0)}%</td>
+                  <tr key={i} className="hover:bg-surface-container-high">
+                    <td className="px-5 py-2.5 text-on-surface-variant">{CATEGORIA_LABELS[l.categoria] || l.categoria}</td>
+                    <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(l.base)}</td>
+                    <td className="px-5 py-2.5 text-right text-secondary">{parseFloat(l.iva_pct).toFixed(0)}%</td>
                     <td className="px-5 py-2.5 text-right font-medium text-red-600">+{fmtEur(l.iva_import)}</td>
                   </tr>
                 ))}
                 {ivaRepercutit.length > 0 && (
-                  <tr className="bg-zinc-50 font-semibold text-xs">
-                    <td className="px-5 py-2 text-zinc-500">{t('iva.total_base', 'Base total')}</td>
-                    <td className="px-5 py-2 text-right text-zinc-700">{fmtEur(data.total_base_repercutit)}</td>
+                  <tr className="bg-surface-container-high font-semibold text-xs">
+                    <td className="px-5 py-2 text-secondary">{t('iva.total_base', 'Base total')}</td>
+                    <td className="px-5 py-2 text-right text-on-surface-variant">{fmtEur(data.total_base_repercutit)}</td>
                     <td />
                     <td className="px-5 py-2 text-right text-red-700">+{fmtEur(totalRepercutit)}</td>
                   </tr>
@@ -161,7 +161,7 @@ export default function IVAPage() {
           {/* IVA Suportat */}
           <IVASection title={t('iva.input_vat_expenses', 'IVA suportat — despeses')} total={totalSuportat} sign="–" colorClass="bg-green-50 border-green-100 text-green-800">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500">
+              <thead className="bg-surface-container-high text-xs text-secondary">
                 <tr>
                   <th className="px-5 py-2 text-left font-medium">{t('actius.col.category', 'Categoria')}</th>
                   <th className="px-5 py-2 text-right font-medium">{t('despeses.taxable_base', 'Base imposable')}</th>
@@ -169,21 +169,21 @@ export default function IVAPage() {
                   <th className="px-5 py-2 text-right font-medium">{t('iva.col.vat_amount', 'Quota IVA')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {ivaSuportat.length === 0 ? (
-                  <tr><td colSpan={4} className="px-5 py-4 text-zinc-400 text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+                  <tr><td colSpan={4} className="px-5 py-4 text-secondary text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
                 ) : ivaSuportat.map((l, i) => (
-                  <tr key={i} className="hover:bg-zinc-50">
-                    <td className="px-5 py-2.5 text-zinc-700">{CATEGORIA_LABELS[l.categoria] || l.categoria}</td>
-                    <td className="px-5 py-2.5 text-right text-zinc-600">{fmtEur(l.base)}</td>
-                    <td className="px-5 py-2.5 text-right text-zinc-500">{parseFloat(l.iva_pct).toFixed(0)}%</td>
+                  <tr key={i} className="hover:bg-surface-container-high">
+                    <td className="px-5 py-2.5 text-on-surface-variant">{CATEGORIA_LABELS[l.categoria] || l.categoria}</td>
+                    <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(l.base)}</td>
+                    <td className="px-5 py-2.5 text-right text-secondary">{parseFloat(l.iva_pct).toFixed(0)}%</td>
                     <td className="px-5 py-2.5 text-right font-medium text-green-600">–{fmtEur(l.iva_import)}</td>
                   </tr>
                 ))}
                 {ivaSuportat.length > 0 && (
-                  <tr className="bg-zinc-50 font-semibold text-xs">
-                    <td className="px-5 py-2 text-zinc-500">{t('iva.total_base', 'Base total')}</td>
-                    <td className="px-5 py-2 text-right text-zinc-700">{fmtEur(data.total_base_suportat)}</td>
+                  <tr className="bg-surface-container-high font-semibold text-xs">
+                    <td className="px-5 py-2 text-secondary">{t('iva.total_base', 'Base total')}</td>
+                    <td className="px-5 py-2 text-right text-on-surface-variant">{fmtEur(data.total_base_suportat)}</td>
                     <td />
                     <td className="px-5 py-2 text-right text-green-700">–{fmtEur(totalSuportat)}</td>
                   </tr>
@@ -210,7 +210,7 @@ export default function IVAPage() {
 
 function IVASection({ title, total, sign, colorClass, children }) {
   return (
-    <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm">
+    <div className="bg-card border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
       <div className={`flex items-center justify-between px-5 py-3 border-b ${colorClass}`}>
         <span className="font-semibold">{title}</span>
         <span className="font-bold">{sign}{total != null ? fmtEur(total) : '—'}</span>

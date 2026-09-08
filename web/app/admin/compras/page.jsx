@@ -17,7 +17,7 @@ export default function ComprasResumPage() {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold text-zinc-900">{t('purchases.title')}</h2>
+      <h2 className="text-2xl font-bold text-on-surface">{t('purchases.title')}</h2>
       <ResumTab proveedores={proveedores} />
     </div>
   );
@@ -56,10 +56,10 @@ function ResumTab({ proveedores }) {
   }, []);
 
   if (loading) {
-    return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>;
+    return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
   }
   if (!stats) {
-    return <div className="p-12 text-center text-zinc-400 text-sm">{t('purchases.resum.load_error', "No s'han pogut carregar les dades.")}</div>;
+    return <div className="p-12 text-center text-secondary text-sm">{t('purchases.resum.load_error', "No s'han pogut carregar les dades.")}</div>;
   }
 
   const maxProveidor = stats.top_proveidors[0]?.total ?? 0;
@@ -76,23 +76,23 @@ function ResumTab({ proveedores }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-zinc-200">
-            <div className="text-sm font-semibold text-zinc-700">{t('purchases.resum.orders_pending', 'Comandes pendents de rebre')}</div>
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-outline-variant">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('purchases.resum.orders_pending', 'Comandes pendents de rebre')}</div>
           </div>
           {comandesPendents.length === 0 ? (
-            <div className="p-5 text-sm text-zinc-400">{t('purchases.resum.no_pending_orders', 'Cap comanda pendent de rebre.')}</div>
+            <div className="p-5 text-sm text-secondary">{t('purchases.resum.no_pending_orders', 'Cap comanda pendent de rebre.')}</div>
           ) : (
-            <div className="divide-y divide-zinc-100 max-h-72 overflow-y-auto">
+            <div className="divide-y divide-outline-variant max-h-72 overflow-y-auto">
               {comandesPendents.map(c => (
                 <div key={c.id} className="px-5 py-2.5 text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-zinc-900 truncate">{c.proveedor_nombre}</span>
+                    <span className="font-medium text-on-surface truncate">{c.proveedor_nombre}</span>
                     <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${COMANDA_STATUS_COLOR[c.status]}`}>
                       {comandaStatusLabel(t, c.status)}
                     </span>
                   </div>
-                  <div className="text-xs text-zinc-400 mt-0.5">
+                  <div className="text-xs text-secondary mt-0.5">
                     {new Date(c.date).toLocaleDateString()}
                     {c.order_number ? ` · ${c.order_number}` : ''} · {pendentQty(c)} {t('purchases.resum.pending_records', 'discs pendents')}
                   </div>
@@ -102,24 +102,24 @@ function ResumTab({ proveedores }) {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-zinc-200 flex items-center justify-between">
-            <div className="text-sm font-semibold text-zinc-700">{t('purchases.resum.receptions_pending_invoice', 'Recepcions pendents de facturar')}</div>
-            <span className="text-xs text-zinc-400">{fmtEur(stats.sense_facturar_import)}</span>
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-outline-variant flex items-center justify-between">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('purchases.resum.receptions_pending_invoice', 'Recepcions pendents de facturar')}</div>
+            <span className="text-xs text-secondary">{fmtEur(stats.sense_facturar_import)}</span>
           </div>
           {comprasPendents.length === 0 ? (
-            <div className="p-5 text-sm text-zinc-400">{t('purchases.resum.no_pending_receptions', 'Cap recepció pendent de facturar.')}</div>
+            <div className="p-5 text-sm text-secondary">{t('purchases.resum.no_pending_receptions', 'Cap recepció pendent de facturar.')}</div>
           ) : (
-            <div className="divide-y divide-zinc-100 max-h-72 overflow-y-auto">
+            <div className="divide-y divide-outline-variant max-h-72 overflow-y-auto">
               {comprasPendents.map(c => (
                 <div key={c.id} className="px-5 py-2.5 text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-zinc-900 truncate">
+                    <span className="font-medium text-on-surface truncate">
                       {c.proveedor_id ? (proveedorNom[c.proveedor_id] ?? '—') : (c.individual_name ?? '—')}
                     </span>
-                    <span className="shrink-0 font-medium text-zinc-900">{fmtEur(costCompra(c))}</span>
+                    <span className="shrink-0 font-medium text-on-surface">{fmtEur(costCompra(c))}</span>
                   </div>
-                  <div className="text-xs text-zinc-400 mt-0.5">
+                  <div className="text-xs text-secondary mt-0.5">
                     {new Date(c.date).toLocaleDateString()}
                     {' · '}{c.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${c.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}
                     {' · '}{c.items?.length ?? 0} {t('purchases.copies', 'exemplars')}
@@ -130,21 +130,21 @@ function ResumTab({ proveedores }) {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
-          <div className="text-sm font-semibold text-zinc-700 mb-3">{t('purchases.resum.top_suppliers', 'Top proveïdors (últims 12 mesos)')}</div>
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-5">
+          <div className="text-sm font-semibold text-on-surface-variant mb-3">{t('purchases.resum.top_suppliers', 'Top proveïdors (últims 12 mesos)')}</div>
           {stats.top_proveidors.length === 0 ? (
-            <div className="text-sm text-zinc-400">{t('purchases.resum.no_data', 'Encara no hi ha dades.')}</div>
+            <div className="text-sm text-secondary">{t('purchases.resum.no_data', 'Encara no hi ha dades.')}</div>
           ) : (
             <div className="space-y-2.5">
               {stats.top_proveidors.map(p => {
                 const pct = maxProveidor > 0 ? (parseFloat(p.total) / parseFloat(maxProveidor)) * 100 : 0;
                 return (
                   <div key={p.proveedor_id}>
-                    <div className="flex items-center justify-between text-xs text-zinc-600 mb-1 gap-2">
+                    <div className="flex items-center justify-between text-xs text-on-surface-variant mb-1 gap-2">
                       <span className="font-medium truncate">{p.nombre}</span>
-                      <span className="text-zinc-400 shrink-0">{fmtEur(p.total)}</span>
+                      <span className="text-secondary shrink-0">{fmtEur(p.total)}</span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-surface-container-high overflow-hidden">
                       <div className="h-full rounded-full bg-amber-500" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
@@ -162,9 +162,9 @@ function ResumTab({ proveedores }) {
 
 function StatTile({ label, value, accent }) {
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
-      <div className="text-xs font-medium text-zinc-500 mb-1">{label}</div>
-      <div className={`text-2xl font-bold ${accent ? 'text-amber-600' : 'text-zinc-900'}`}>{value}</div>
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-5">
+      <div className="text-xs font-medium text-secondary mb-1">{label}</div>
+      <div className={`text-2xl font-bold ${accent ? 'text-amber-600' : 'text-on-surface'}`}>{value}</div>
     </div>
   );
 }
@@ -193,10 +193,10 @@ function DespesaMensualChart({ serie }) {
   const fmtTick = v => (v >= 1000 ? `${(v / 1000).toFixed(1)}k€` : `${Math.round(v)}€`);
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-5">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div className="text-sm font-semibold text-zinc-700">{t('purchases.resum.monthly_spend', 'Despesa mensual (últims 12 mesos)')}</div>
-        <div className="flex items-center gap-4 text-xs text-zinc-500">
+        <div className="text-sm font-semibold text-on-surface-variant">{t('purchases.resum.monthly_spend', 'Despesa mensual (últims 12 mesos)')}</div>
+        <div className="flex items-center gap-4 text-xs text-secondary">
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> {t('purchases.type.supplier')}</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> {t('purchases.type.individual')}</span>
         </div>
@@ -230,8 +230,8 @@ function DespesaMensualChart({ serie }) {
         })}
       </svg>
       {hover !== null && (
-        <div className="text-xs text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2 inline-flex items-center gap-3">
-          <span className="font-semibold text-zinc-900">{data[hover].mes}</span>
+        <div className="text-xs text-on-surface-variant bg-surface-container-high rounded-lg px-3 py-2 inline-flex items-center gap-3">
+          <span className="font-semibold text-on-surface">{data[hover].mes}</span>
           <span>{t('purchases.type.supplier')}: {fmtEur(data[hover].proveidor)}</span>
           <span>{t('purchases.type.individual')}: {fmtEur(data[hover].particular)}</span>
         </div>

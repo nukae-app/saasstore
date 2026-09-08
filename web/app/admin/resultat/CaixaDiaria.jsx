@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { authFetch } from '../../lib/auth';
-import { Download, Save, Lock, RefreshCw } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { Button } from '../../../components/ui/button';
 import { useT } from '../../lib/i18n';
 
@@ -144,7 +144,7 @@ export default function CaixaDiaria({ year, mes }) {
     }
   }
 
-  if (loading) return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>;
+  if (loading) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>;
 
   return (
     <div className="space-y-3">
@@ -152,14 +152,14 @@ export default function CaixaDiaria({ year, mes }) {
         <div className="flex items-center gap-2">
           {periodeTancat && (
             <span className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200">
-              <Lock size={13} /> {t('resultat.caixa.period_closed_not_editable', 'Període tancat — no editable')}
+              <MIcon name="lock" size={13} /> {t('resultat.caixa.period_closed_not_editable', 'Període tancat — no editable')}
             </span>
           )}
           {dirty && !periodeTancat && (
             <span className="text-xs text-amber-600">{t('resultat.caixa.unsaved_changes', 'Canvis sense desar')}</span>
           )}
           {!periodeTancat && (
-            <span className="text-xs text-zinc-400">
+            <span className="text-xs text-secondary">
               <span className="inline-block w-2 h-2 rounded-sm bg-blue-100 border border-blue-200 align-[1px] mr-1" />
               {t('resultat.caixa.autofill_hint', 'Targeta / Efectiu / Bizum / Bono cultural es poden omplir automàticament — Paypal i Transfer, a mà')}
             </span>
@@ -170,26 +170,26 @@ export default function CaixaDiaria({ year, mes }) {
             <Button variant="secondary" size="sm" disabled={omplint}
               onClick={omplirAmbVendesReals} className="flex items-center gap-1.5"
               title={t('resultat.caixa.autofill_tooltip', 'Recalcula Targeta, Efectiu, Bizum i Bono cultural a partir de les vendes web (Redsys) i de mostrador (TPV). Paypal i Transfer no es registren enlloc: cal seguir omplint-los a mà.')}>
-              <RefreshCw size={14} /> {omplint ? t('resultat.caixa.calculating', 'Calculant...') : t('resultat.caixa.autofill_button', 'Omplir amb vendes reals')}
+              <MIcon name="refresh" size={14} /> {omplint ? t('resultat.caixa.calculating', 'Calculant...') : t('resultat.caixa.autofill_button', 'Omplir amb vendes reals')}
             </Button>
           )}
           <Button variant="secondary" size="sm" disabled={exporting === 'excel'}
             onClick={() => exportar('excel')} className="flex items-center gap-1.5">
-            <Download size={14} /> Excel
+            <MIcon name="download" size={14} /> Excel
           </Button>
           <Button variant="secondary" size="sm" disabled={exporting === 'pdf'}
             onClick={() => exportar('pdf')} className="flex items-center gap-1.5">
-            <Download size={14} /> PDF
+            <MIcon name="download" size={14} /> PDF
           </Button>
           {!periodeTancat && (
             <Button size="sm" disabled={saving || !dirty} onClick={guardar} className="flex items-center gap-1.5">
-              <Save size={14} /> {saving ? t('common.saving', 'Desant...') : t('common.save', 'Desar')}
+              <MIcon name="save" size={14} /> {saving ? t('common.saving', 'Desant...') : t('common.save', 'Desar')}
             </Button>
           )}
         </div>
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-2xl overflow-x-auto shadow-sm">
+      <div className="bg-card border border-outline-variant rounded-2xl overflow-x-auto shadow-sm">
         <table className="text-sm border-collapse">
           <thead>
             <tr className="bg-blue-700 text-white">
@@ -202,10 +202,10 @@ export default function CaixaDiaria({ year, mes }) {
               <th className="px-2 py-2 text-xs font-semibold whitespace-nowrap">{t('resultat.caixa.col.day_total', 'Total dia')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-outline-variant">
             {dies.map((dia, idx) => (
-              <tr key={dia.date} className="hover:bg-zinc-50">
-                <td className="px-2 py-1 text-xs text-zinc-600 sticky left-0 bg-white whitespace-nowrap">
+              <tr key={dia.date} className="hover:bg-surface-container-high">
+                <td className="px-2 py-1 text-xs text-on-surface-variant sticky left-0 bg-card whitespace-nowrap">
                   {fmtDia(dia.date)}
                 </td>
                 {CAMPS.map((c) => (
@@ -216,19 +216,19 @@ export default function CaixaDiaria({ year, mes }) {
                       disabled={periodeTancat}
                       value={num(dia[c.key]) === 0 ? '' : dia[c.key]}
                       onChange={(e) => updateCamp(idx, c.key, e.target.value)}
-                      className="w-20 text-right text-xs border border-zinc-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:bg-zinc-50 disabled:text-zinc-400"
+                      className="w-20 text-right text-xs border border-outline-variant rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary"
                       placeholder="0"
                     />
                   </td>
                 ))}
-                <td className="px-2 py-1 text-right text-xs font-medium text-zinc-700 whitespace-nowrap">
+                <td className="px-2 py-1 text-right text-xs font-medium text-on-surface-variant whitespace-nowrap">
                   {totalDia(dia).toFixed(2)} €
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-cyan-400 text-zinc-900 font-bold">
+            <tr className="bg-cyan-400 text-on-surface font-bold">
               <td className="px-2 py-2 text-xs sticky left-0 bg-cyan-400">{t('resultat.caixa.col.total', 'TOTAL')}</td>
               {CAMPS.map((c) => (
                 <td key={c.key} className="px-2 py-2 text-xs text-right whitespace-nowrap">

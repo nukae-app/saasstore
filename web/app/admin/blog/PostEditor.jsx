@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { authFetch } from '../../lib/auth';
 
 function slugify(text) {
@@ -89,27 +89,27 @@ export default function PostEditor({ initial = null }) {
           <button
             type="button"
             onClick={() => setPreview(v => !v)}
-            className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-600 px-3 py-2 rounded-lg hover:bg-zinc-50 transition-colors"
+            className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
           >
-            {preview ? <EyeOff size={13} /> : <Eye size={13} />}
+            {preview ? <MIcon name="visibility_off" size={13} /> : <MIcon name="visibility" size={13} />}
             {preview ? 'Editar' : 'Previsualitzar'}
           </button>
           {!form.published_at && (
             <button
               onClick={() => handleSave(false)}
               disabled={saving || !form.title || !form.slug}
-              className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-700 px-4 py-2 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant px-4 py-2 rounded-lg hover:bg-surface-container-high transition-colors disabled:opacity-50"
             >
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              {saving ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="save" size={13} />}
               Guardar esborrany
             </button>
           )}
           <button
             onClick={() => handleSave(true)}
             disabled={saving || !form.title || !form.slug || !form.content}
-            className="flex items-center gap-1.5 text-sm bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
+            className="flex items-center gap-1.5 text-sm bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
           >
-            {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+            {saving ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="save" size={13} />}
             {form.published_at ? 'Guardar canvis' : 'Publicar'}
           </button>
         </div>
@@ -117,7 +117,7 @@ export default function PostEditor({ initial = null }) {
 
       {error && (
         <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-          <AlertCircle size={14} /> {error}
+          <MIcon name="error" size={14} /> {error}
         </div>
       )}
 
@@ -126,26 +126,26 @@ export default function PostEditor({ initial = null }) {
         <div className="md:col-span-2 space-y-4">
           {/* Títol */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">Títol *</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Títol *</label>
             <input
               type="text"
               value={form.title}
               onChange={e => handleTitleChange(e.target.value)}
               placeholder="Títol del post…"
-              className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 font-medium"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary font-medium"
             />
           </div>
 
           {/* Contingut */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-zinc-600">Contingut HTML *</label>
-              <span className="text-xs text-zinc-400">{wordCount} paraules</span>
+              <label className="text-xs font-medium text-on-surface-variant">Contingut HTML *</label>
+              <span className="text-xs text-secondary">{wordCount} paraules</span>
             </div>
             {preview ? (
               <div
-                className="blog-content min-h-[400px] bg-white border border-zinc-200 rounded-xl p-5 overflow-auto"
-                dangerouslySetInnerHTML={{ __html: form.content || '<p class="text-zinc-300">Sense contingut…</p>' }}
+                className="blog-content min-h-[400px] bg-card border border-outline-variant rounded-xl p-5 overflow-auto"
+                dangerouslySetInnerHTML={{ __html: form.content || '<p class="text-secondary">Sense contingut…</p>' }}
               />
             ) : (
               <textarea
@@ -153,7 +153,7 @@ export default function PostEditor({ initial = null }) {
                 onChange={e => set('content', e.target.value)}
                 placeholder="<p>Contingut en HTML…</p>"
                 rows={20}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-y"
+                className="w-full border border-outline-variant rounded-xl px-3 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary resize-y"
               />
             )}
           </div>
@@ -163,20 +163,20 @@ export default function PostEditor({ initial = null }) {
         <div className="space-y-4">
           {/* Slug */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">Slug (URL) *</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Slug (URL) *</label>
             <input
               type="text"
               value={form.slug}
               onChange={e => { setAutoSlug(false); set('slug', e.target.value); }}
               placeholder="el-meu-post"
-              className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <p className="text-xs text-zinc-400 mt-1">/blog/{form.slug || '…'}</p>
+            <p className="text-xs text-secondary mt-1">/blog/{form.slug || '…'}</p>
           </div>
 
           {/* Idioma */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">Idioma</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Idioma</label>
             <div className="flex gap-2">
               {[{ code: 'ca', label: 'Català' }, { code: 'es', label: 'Castellano' }].map(({ code, label }) => (
                 <button
@@ -185,8 +185,8 @@ export default function PostEditor({ initial = null }) {
                   onClick={() => set('language', code)}
                   className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${
                     form.language === code
-                      ? 'border-zinc-900 bg-zinc-100 text-zinc-900 font-medium'
-                      : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                      ? 'border-primary bg-surface-container-high text-on-surface font-medium'
+                      : 'border-outline-variant text-secondary hover:border-outline-variant'
                   }`}
                 >
                   {label}
@@ -197,21 +197,21 @@ export default function PostEditor({ initial = null }) {
 
           {/* Data de publicació */}
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">
+            <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
               Data de publicació
-              <span className="text-zinc-400 font-normal ml-1">(buit = esborrany)</span>
+              <span className="text-secondary font-normal ml-1">(buit = esborrany)</span>
             </label>
             <input
               type="datetime-local"
               value={form.published_at}
               onChange={e => set('published_at', e.target.value)}
-              className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             {form.published_at && (
               <button
                 type="button"
                 onClick={() => set('published_at', '')}
-                className="text-xs text-zinc-400 hover:text-red-500 mt-1 transition-colors"
+                className="text-xs text-secondary hover:text-red-500 mt-1 transition-colors"
               >
                 Tornar a esborrany
               </button>
@@ -221,12 +221,12 @@ export default function PostEditor({ initial = null }) {
           {/* Pàgines */}
           {paginesDisponibles.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1.5">Apareix a</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Apareix a</label>
               <div className="flex flex-col gap-1.5">
                 {paginesDisponibles.map(p => {
                   const checked = form.pagina_ids.includes(p.id);
                   return (
-                    <label key={p.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${checked ? 'border-zinc-900 bg-zinc-100 text-zinc-900' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'}`}>
+                    <label key={p.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${checked ? 'border-primary bg-surface-container-high text-on-surface' : 'border-outline-variant text-on-surface-variant hover:border-outline-variant'}`}>
                       <input type="checkbox" checked={checked}
                         onChange={e => {
                           setForm(f => ({

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { authFetch } from '../../lib/auth';
 import { useTenantConfig } from '../../../components/store/useTenantConfig';
 import { Button } from '../../../components/ui/button';
-import { Plus, Pencil, Trash2, Check, X, AlertTriangle, RefreshCw, Search, Loader2 } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 
 const DISCOUNT_LABELS = { percentage: '%', fixed_amount: '€ fixos', fixed_price: 'Preu fixe' };
 
@@ -188,14 +188,14 @@ export default function OfertesPage() {
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold text-zinc-900">Ofertes</h2>
+        <h2 className="text-2xl font-bold text-on-surface">Ofertes</h2>
         <div className="flex items-center gap-2">
-          {recomputeMsg && <span className="text-xs text-zinc-500">{recomputeMsg}</span>}
+          {recomputeMsg && <span className="text-xs text-secondary">{recomputeMsg}</span>}
           <Button size="sm" variant="outline" onClick={recompute} disabled={recomputing}>
-            <RefreshCw size={14} className={recomputing ? 'animate-spin' : ''} /> Recalcular ara
+            <MIcon name="refresh" size={14} className={recomputing ? 'animate-spin' : ''} /> Recalcular ara
           </Button>
           <Button size="sm" onClick={openNew}>
-            <Plus size={15} /> Nova oferta
+            <MIcon name="add" size={15} /> Nova oferta
           </Button>
         </div>
       </div>
@@ -212,15 +212,15 @@ export default function OfertesPage() {
         />
       )}
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-secondary text-sm">Carregant...</div>
         ) : offers.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Encara no hi ha ofertes. Crea'n una!</div>
+          <div className="p-12 text-center text-secondary text-sm">Encara no hi ha ofertes. Crea'n una!</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">Oferta</th>
                   <th className="px-4 py-3 text-left font-medium">Descompte</th>
@@ -230,13 +230,13 @@ export default function OfertesPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {offers.map(o => (
-                  <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-zinc-900">{o.name}</td>
-                    <td className="px-4 py-3 text-zinc-600">{formatDiscount(o)}</td>
-                    <td className="px-4 py-3 text-zinc-500 tabular-nums">{o.priority}</td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">
+                  <tr key={o.id} className="hover:bg-surface-container-high transition-colors">
+                    <td className="px-4 py-3 font-medium text-on-surface">{o.name}</td>
+                    <td className="px-4 py-3 text-on-surface-variant">{formatDiscount(o)}</td>
+                    <td className="px-4 py-3 text-secondary tabular-nums">{o.priority}</td>
+                    <td className="px-4 py-3 text-secondary text-xs">
                       {o.starts_at ? new Date(o.starts_at).toLocaleDateString('ca-ES') : 'sempre'}
                       {' → '}
                       {o.ends_at ? new Date(o.ends_at).toLocaleDateString('ca-ES') : 'sense fi'}
@@ -244,18 +244,18 @@ export default function OfertesPage() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => toggleActive(o)}
-                        className={`w-8 h-4 rounded-full transition-colors relative ${o.active ? 'bg-green-500' : 'bg-zinc-300'}`}
+                        className={`w-8 h-4 rounded-full transition-colors relative ${o.active ? 'bg-green-500' : 'bg-muted'}`}
                       >
-                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${o.active ? 'left-4' : 'left-0.5'}`} />
+                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-card shadow transition-all ${o.active ? 'left-4' : 'left-0.5'}`} />
                       </button>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => openEdit(o)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors">
-                          <Pencil size={14} />
+                        <button onClick={() => openEdit(o)} className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                          <MIcon name="edit" size={14} />
                         </button>
-                        <button onClick={() => del(o)} className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                          <Trash2 size={14} />
+                        <button onClick={() => del(o)} className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors">
+                          <MIcon name="delete" size={14} />
                         </button>
                       </div>
                     </td>
@@ -309,31 +309,31 @@ function OfferForm({
   }, [criteriaKey, offerId]);
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5 space-y-5">
-      <h3 className="font-semibold text-zinc-900">{isNew ? 'Nova oferta' : 'Editar oferta'}</h3>
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-5 space-y-5">
+      <h3 className="font-semibold text-on-surface">{isNew ? 'Nova oferta' : 'Editar oferta'}</h3>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Nom <span className="text-red-500">*</span></label>
+          <label className="block text-xs font-medium text-secondary mb-1">Nom <span className="text-red-500">*</span></label>
           <input
             value={form.name} onChange={e => f('name', e.target.value)}
             placeholder="Rebaixes d'hivern"
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Descripció</label>
+          <label className="block text-xs font-medium text-secondary mb-1">Descripció</label>
           <input
             value={form.description} onChange={e => f('description', e.target.value)}
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Tipus de descompte</label>
+          <label className="block text-xs font-medium text-secondary mb-1">Tipus de descompte</label>
           <select
             value={form.discount_type} onChange={e => f('discount_type', e.target.value)}
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="percentage">Percentatge</option>
             <option value="fixed_amount">Import fix de descompte</option>
@@ -341,77 +341,77 @@ function OfferForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">
+          <label className="block text-xs font-medium text-secondary mb-1">
             Valor {form.discount_type === 'percentage' ? '(%)' : '(€)'} <span className="text-red-500">*</span>
           </label>
           <input
             type="number" step="0.01" value={form.discount_value}
             onChange={e => f('discount_value', e.target.value)}
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Comença (opcional)</label>
+          <label className="block text-xs font-medium text-secondary mb-1">Comença (opcional)</label>
           <input
             type="datetime-local" value={form.starts_at} onChange={e => f('starts_at', e.target.value)}
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Acaba (opcional)</label>
+          <label className="block text-xs font-medium text-secondary mb-1">Acaba (opcional)</label>
           <input
             type="datetime-local" value={form.ends_at} onChange={e => f('ends_at', e.target.value)}
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">
+          <label className="block text-xs font-medium text-secondary mb-1">
             Prioritat
-            <span className="text-zinc-400 font-normal"> (guanya la més alta en cas de solapament)</span>
+            <span className="text-secondary font-normal"> (guanya la més alta en cas de solapament)</span>
           </label>
           <input
             type="number" value={form.priority} onChange={e => f('priority', e.target.value)}
-            className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div className="flex items-end">
-          <label className="flex items-center gap-2 text-sm text-zinc-700 pb-2">
+          <label className="flex items-center gap-2 text-sm text-on-surface-variant pb-2">
             <input type="checkbox" checked={form.active} onChange={e => f('active', e.target.checked)} />
             Activa
           </label>
         </div>
       </div>
 
-      <div className="border-t border-zinc-100 pt-4">
-        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">Criteris (qui queda cobert per aquesta oferta)</p>
+      <div className="border-t border-outline-variant pt-4">
+        <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-3">Criteris (qui queda cobert per aquesta oferta)</p>
         <div className="grid md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Secció</label>
+            <label className="block text-xs text-secondary mb-1">Secció</label>
             <select
               value={form.criteria.seccio_id} onChange={e => fc('seccio_id', e.target.value)}
-              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Qualsevol</option>
               {seccions.map(s => <option key={s.id} value={s.id}>{s.name_ca}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Etiqueta</label>
+            <label className="block text-xs text-secondary mb-1">Etiqueta</label>
             <select
               value={form.criteria.etiqueta_id} onChange={e => fc('etiqueta_id', e.target.value)}
-              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Qualsevol</option>
               {etiquetes.map(e => <option key={e.id} value={e.id}>{e.name_ca}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Condició</label>
+            <label className="block text-xs text-secondary mb-1">Condició</label>
             <select
               value={form.criteria.condicion} onChange={e => fc('condicion', e.target.value)}
-              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Qualsevol</option>
               <option value="nou">Nou</option>
@@ -419,61 +419,61 @@ function OfferForm({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Preu mínim actual (€)</label>
+            <label className="block text-xs text-secondary mb-1">Preu mínim actual (€)</label>
             <input
               type="number" step="0.01" value={form.criteria.precio_min} onChange={e => fc('precio_min', e.target.value)}
-              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Preu màxim actual (€)</label>
+            <label className="block text-xs text-secondary mb-1">Preu màxim actual (€)</label>
             <input
               type="number" step="0.01" value={form.criteria.precio_max} onChange={e => fc('precio_max', e.target.value)}
-              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Antiguitat mínima (dies a catàleg)</label>
+            <label className="block text-xs text-secondary mb-1">Antiguitat mínima (dies a catàleg)</label>
             <input
               type="number" value={form.criteria.antiguedad_dias_min} onChange={e => fc('antiguedad_dias_min', e.target.value)}
-              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">Sense vendre des de fa (dies)</label>
+            <label className="block text-xs text-secondary mb-1">Sense vendre des de fa (dies)</label>
             <input
               type="number" value={form.criteria.sin_venta_dias_min} onChange={e => fc('sin_venta_dias_min', e.target.value)}
-              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           {isVinils && (
             <>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">Gènere</label>
+                <label className="block text-xs text-secondary mb-1">Gènere</label>
                 <input
                   value={form.criteria.genero} onChange={e => fc('genero', e.target.value)}
-                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                  className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">Artista</label>
+                <label className="block text-xs text-secondary mb-1">Artista</label>
                 <input
                   value={form.criteria.artista} onChange={e => fc('artista', e.target.value)}
-                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                  className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">Segell</label>
+                <label className="block text-xs text-secondary mb-1">Segell</label>
                 <input
                   value={form.criteria.sello} onChange={e => fc('sello', e.target.value)}
-                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                  className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">Format</label>
+                <label className="block text-xs text-secondary mb-1">Format</label>
                 <input
                   value={form.criteria.formato} onChange={e => fc('formato', e.target.value)}
-                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                  className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </>
@@ -482,13 +482,13 @@ function OfferForm({
       </div>
 
       {/* Previsualització */}
-      <div className="bg-zinc-50 rounded-xl p-4 space-y-2">
-        <p className="text-sm font-medium text-zinc-700 flex items-center gap-2">
-          {previewing ? <Loader2 size={13} className="animate-spin text-zinc-400" /> : null}
+      <div className="bg-surface-container-high rounded-xl p-4 space-y-2">
+        <p className="text-sm font-medium text-on-surface-variant flex items-center gap-2">
+          {previewing ? <MIcon name="progress_activity" size={13} className="animate-spin text-secondary" /> : null}
           {preview ? `${preview.total_items} article${preview.total_items === 1 ? '' : 's'} coincideixen amb aquests criteris` : 'Calculant...'}
         </p>
         {preview?.sample?.length > 0 && (
-          <ul className="text-xs text-zinc-500 space-y-0.5">
+          <ul className="text-xs text-secondary space-y-0.5">
             {preview.sample.slice(0, 8).map(it => (
               <li key={it.item_id}>
                 {[it.artista, it.title].filter(Boolean).join(' — ')} · {parseFloat(it.price).toFixed(2)} €
@@ -498,7 +498,7 @@ function OfferForm({
         )}
         {overlaps.length > 0 && (
           <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-            <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+            <MIcon name="warning" size={15} className="text-amber-600 shrink-0 mt-0.5" />
             <div className="text-xs text-amber-800">
               <p className="font-medium">Es solapa amb {overlaps.length} oferta{overlaps.length === 1 ? '' : 's'} activa{overlaps.length === 1 ? '' : 's'}:</p>
               <ul className="mt-1 space-y-0.5">
@@ -546,10 +546,10 @@ function OfferForm({
 
       <div className="flex gap-2 pt-1">
         <Button size="sm" onClick={onSave} disabled={saving}>
-          <Check size={14} /> {saving ? 'Desant...' : 'Desar'}
+          <MIcon name="check" size={14} /> {saving ? 'Desant...' : 'Desar'}
         </Button>
-        <button onClick={onCancel} className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700">
-          <X size={14} className="inline mr-1" />Tancar
+        <button onClick={onCancel} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
+          <MIcon name="close" size={14} className="inline mr-1" />Tancar
         </button>
       </div>
     </div>
@@ -609,29 +609,29 @@ function ManualItemsSection({ items, onAdd, onRemove }) {
   }
 
   return (
-    <div className="border-t border-zinc-100 pt-4">
-      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">
+    <div className="border-t border-outline-variant pt-4">
+      <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-1">
         Discos concrets (incloure/excloure a mà)
       </p>
-      <p className="text-xs text-zinc-400 mb-2">
+      <p className="text-xs text-secondary mb-2">
         Per fer una oferta que només afecti uns discos triats, deixa els criteris de dalt buits i afegeix'ls aquí.
       </p>
 
       {items.length > 0 && (
         <ul className="mb-3 space-y-1">
           {items.map(it => (
-            <li key={it.key} className="flex items-center justify-between gap-2 text-xs bg-zinc-50 rounded-lg px-3 py-1.5">
+            <li key={it.key} className="flex items-center justify-between gap-2 text-xs bg-surface-container-high rounded-lg px-3 py-1.5">
               <span className="truncate">
                 <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold mr-2 shrink-0 ${it.mode === 'include' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                   {it.mode === 'include' ? 'INCLÒS' : 'EXCLÒS'}
                 </span>
                 {[it.item_artista, it.item_title].filter(Boolean).join(' — ') || `Article ${it.item_id.slice(0, 8)}…`}
                 {it.item_price != null && (
-                  <span className="text-zinc-400"> · {parseFloat(it.item_price).toFixed(2)} €</span>
+                  <span className="text-secondary"> · {parseFloat(it.item_price).toFixed(2)} €</span>
                 )}
               </span>
-              <button onClick={() => handleRemove(it.item_id)} disabled={busy} className="text-zinc-400 hover:text-red-600 shrink-0">
-                <Trash2 size={13} />
+              <button onClick={() => handleRemove(it.item_id)} disabled={busy} className="text-secondary hover:text-red-600 shrink-0">
+                <MIcon name="delete" size={13} />
               </button>
             </li>
           ))}
@@ -639,21 +639,21 @@ function ManualItemsSection({ items, onAdd, onRemove }) {
       )}
 
       <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+        <MIcon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
         <input
           value={q} onChange={e => handleQ(e.target.value)}
           placeholder="Cerca un disc per afegir-lo o excloure'l a mà..."
-          className="w-full border border-zinc-200 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="w-full border border-outline-variant rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
-      {searching && <p className="text-xs text-zinc-400 mt-1">Cercant...</p>}
+      {searching && <p className="text-xs text-secondary mt-1">Cercant...</p>}
       {results.length > 0 && (
-        <ul className="mt-2 border border-zinc-200 rounded-xl divide-y divide-zinc-100 max-h-56 overflow-y-auto">
+        <ul className="mt-2 border border-outline-variant rounded-xl divide-y divide-outline-variant max-h-56 overflow-y-auto">
           {results.map(it => (
             <li key={it.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
               <span className="truncate">
                 {[it.artista, it.titulo].filter(Boolean).join(' — ')}
-                <span className="text-zinc-400"> · {parseFloat(it.price).toFixed(2)} € · {it.condition}</span>
+                <span className="text-secondary"> · {parseFloat(it.price).toFixed(2)} € · {it.condition}</span>
               </span>
               <div className="flex gap-1 shrink-0">
                 <button

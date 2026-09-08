@@ -5,7 +5,7 @@ import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
-import { Plus, X, AlertCircle, Clock, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { useT } from '../../lib/i18n';
 
 function fmtDate(d) {
@@ -19,15 +19,14 @@ function fmtEur(v) {
 
 function EstatBadge({ estat, t }) {
   const CONFIG = {
-    pendent: { label: t('despeses.status.pending', 'Pendent'), icon: Clock, cls: 'bg-amber-100 text-amber-700' },
-    pagat: { label: t('despeses.status.paid', 'Pagat'), icon: CheckCircle2, cls: 'bg-green-100 text-green-700' },
-    vencut: { label: t('despeses.status.overdue', 'Vençut'), icon: AlertCircle, cls: 'bg-red-100 text-red-700' },
+    pendent: { label: t('despeses.status.pending', 'Pendent'), icon: 'schedule', cls: 'bg-amber-100 text-amber-700' },
+    pagat: { label: t('despeses.status.paid', 'Pagat'), icon: 'check_circle', cls: 'bg-green-100 text-green-700' },
+    vencut: { label: t('despeses.status.overdue', 'Vençut'), icon: 'error', cls: 'bg-red-100 text-red-700' },
   };
   const cfg = CONFIG[estat] || CONFIG.pendent;
-  const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.cls}`}>
-      <Icon size={11} /> {cfg.label}
+      <MIcon name={cfg.icon} size={11} /> {cfg.label}
     </span>
   );
 }
@@ -107,9 +106,9 @@ export default function DespesesPage() {
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('despeses.title', 'Despeses i factures')}</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{t('despeses.title', 'Despeses i factures')}</h2>
         <Button onClick={() => { setEditDespesa(null); setShowModal(true); }}>
-          <Plus size={16} /> {t('despeses.new', 'Nova despesa')}
+          <MIcon name="add" size={16} /> {t('despeses.new', 'Nova despesa')}
         </Button>
       </div>
 
@@ -118,7 +117,7 @@ export default function DespesesPage() {
         <div className="grid grid-cols-2 gap-3">
           {totalVençut > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-              <AlertCircle className="text-red-500 shrink-0" size={22} />
+              <MIcon name="error" className="text-red-500 shrink-0" size={22} />
               <div>
                 <div className="text-xs text-red-600 font-medium uppercase tracking-wide">{t('despeses.overdue', 'Vençudes')}</div>
                 <div className="text-xl font-bold text-red-700">{totalVençut.toFixed(2)} €</div>
@@ -127,7 +126,7 @@ export default function DespesesPage() {
           )}
           {totalPendent > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-              <Clock className="text-amber-500 shrink-0" size={22} />
+              <MIcon name="schedule" className="text-amber-500 shrink-0" size={22} />
               <div>
                 <div className="text-xs text-amber-600 font-medium uppercase tracking-wide">{t('despeses.pending_payment', 'Pendents de pagament')}</div>
                 <div className="text-xl font-bold text-amber-700">{totalPendent.toFixed(2)} €</div>
@@ -139,10 +138,10 @@ export default function DespesesPage() {
 
       {/* Tabs + filtres */}
       <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
+        <div className="flex gap-1 bg-surface-container-high p-1 rounded-xl">
           {[['totes', t('despeses.tab.all', 'Totes')], ['pendents', `${t('despeses.tab.to_pay', 'Per pagar')} (${pendents.length})`]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === k ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'}`}>
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === k ? 'bg-card shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}>
               {l}
             </button>
           ))}
@@ -150,15 +149,15 @@ export default function DespesesPage() {
       </div>
 
       {/* Taula */}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : llista.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('despeses.empty', 'Cap despesa trobada')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('despeses.empty', 'Cap despesa trobada')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('despeses.col.invoice_date', 'Data factura')} sortKey="data_factura" sort={sort} onSort={toggleSort} />
@@ -173,51 +172,51 @@ export default function DespesesPage() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {llista.map(d => (
                 <>
                   <tr key={d.id}
                     onClick={() => setExpanded(expanded === d.id ? null : d.id)}
-                    className={`hover:bg-zinc-50 cursor-pointer transition-colors ${d.payment_status === 'vencut' ? 'bg-red-50/30' : ''}`}>
-                    <td className="px-4 py-3 text-zinc-400">
-                      {expanded === d.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    className={`hover:bg-surface-container-high cursor-pointer transition-colors ${d.payment_status === 'vencut' ? 'bg-red-50/30' : ''}`}>
+                    <td className="px-4 py-3 text-secondary">
+                      {expanded === d.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">{fmtDate(d.invoice_date)}</td>
+                    <td className="px-4 py-3 text-on-surface-variant">{fmtDate(d.invoice_date)}</td>
                     <td className="px-4 py-3">
                       {d.due_date ? (
-                        <span className={d.payment_status === 'vencut' ? 'text-red-600 font-medium' : 'text-zinc-600'}>
+                        <span className={d.payment_status === 'vencut' ? 'text-red-600 font-medium' : 'text-on-surface-variant'}>
                           {fmtDate(d.due_date)}
                         </span>
                       ) : '—'}
                     </td>
-                    <td className="px-4 py-3 font-medium text-zinc-900">{d.supplier_name}</td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">{CATEGORIES.find(c => c.value === d.category)?.label || d.category}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-zinc-900">{fmtEur(d.total)}</td>
+                    <td className="px-4 py-3 font-medium text-on-surface">{d.supplier_name}</td>
+                    <td className="px-4 py-3 text-secondary text-xs">{CATEGORIES.find(c => c.value === d.category)?.label || d.category}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-on-surface">{fmtEur(d.total)}</td>
                     <td className="px-4 py-3 text-center"><EstatBadge estat={d.payment_status} t={t} /></td>
                     <td className="px-4 py-3">
                       <button onClick={e => { e.stopPropagation(); setEditDespesa(d); setShowModal(true); }}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100 transition-colors">
+                        className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high transition-colors">
                         {t('despeses.edit', 'Editar')}
                       </button>
                     </td>
                   </tr>
                   {expanded === d.id && (
                     <tr key={`${d.id}-exp`}>
-                      <td colSpan={8} className="px-6 py-3 bg-zinc-50/80 border-b border-zinc-100">
+                      <td colSpan={8} className="px-6 py-3 bg-surface-container-high/80 border-b border-outline-variant">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div><span className="text-zinc-400 text-xs block">{t('llibres.concept', 'Concepte')}</span>{d.concept}</div>
-                          <div><span className="text-zinc-400 text-xs block">{t('despeses.invoice_number', 'Nº factura')}</span>{d.invoice_number || '—'}</div>
-                          <div><span className="text-zinc-400 text-xs block">{t('despeses.taxable_base', 'Base imposable')}</span>{fmtEur(d.taxable_base)}</div>
-                          <div><span className="text-zinc-400 text-xs block">IVA {d.vat_pct}%</span>{fmtEur(d.vat_amount)}</div>
+                          <div><span className="text-secondary text-xs block">{t('llibres.concept', 'Concepte')}</span>{d.concept}</div>
+                          <div><span className="text-secondary text-xs block">{t('despeses.invoice_number', 'Nº factura')}</span>{d.invoice_number || '—'}</div>
+                          <div><span className="text-secondary text-xs block">{t('despeses.taxable_base', 'Base imposable')}</span>{fmtEur(d.taxable_base)}</div>
+                          <div><span className="text-secondary text-xs block">IVA {d.vat_pct}%</span>{fmtEur(d.vat_amount)}</div>
                           {d.retencio_tipus && (
                             <>
-                              <div><span className="text-zinc-400 text-xs block">{t('despeses.retencio', 'Retenció IRPF')} ({d.retencio_tipus === 'professional' ? t('despeses.retencio.professional', 'Model 111') : t('despeses.retencio.lloguer', 'Model 115')}, {d.retencio_pct}%)</span>−{fmtEur(d.retencio_import)}</div>
-                              <div><span className="text-zinc-400 text-xs block">{t('despeses.net_a_pagar', 'Net a pagar')}</span><span className="font-semibold">{fmtEur(d.net_a_pagar)}</span></div>
+                              <div><span className="text-secondary text-xs block">{t('despeses.retencio', 'Retenció IRPF')} ({d.retencio_tipus === 'professional' ? t('despeses.retencio.professional', 'Model 111') : t('despeses.retencio.lloguer', 'Model 115')}, {d.retencio_pct}%)</span>−{fmtEur(d.retencio_import)}</div>
+                              <div><span className="text-secondary text-xs block">{t('despeses.net_a_pagar', 'Net a pagar')}</span><span className="font-semibold">{fmtEur(d.net_a_pagar)}</span></div>
                             </>
                           )}
-                          {d.payment_method && <div><span className="text-zinc-400 text-xs block">{t('despeses.payment_method_label', 'Mètode pagament')}</span>{METODES.find(m => m.value === d.payment_method)?.label || d.payment_method}</div>}
-                          {d.payment_date && <div><span className="text-zinc-400 text-xs block">{t('despeses.payment_date', 'Data pagament')}</span>{fmtDate(d.payment_date)}</div>}
-                          {d.notes && <div className="col-span-2"><span className="text-zinc-400 text-xs block">{t('common.notes', 'Notes')}</span>{d.notes}</div>}
+                          {d.payment_method && <div><span className="text-secondary text-xs block">{t('despeses.payment_method_label', 'Mètode pagament')}</span>{METODES.find(m => m.value === d.payment_method)?.label || d.payment_method}</div>}
+                          {d.payment_date && <div><span className="text-secondary text-xs block">{t('despeses.payment_date', 'Data pagament')}</span>{fmtDate(d.payment_date)}</div>}
+                          {d.notes && <div className="col-span-2"><span className="text-secondary text-xs block">{t('common.notes', 'Notes')}</span>{d.notes}</div>}
                         </div>
                       </td>
                     </tr>
@@ -341,117 +340,117 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('despeses.edit', 'Editar despesa') : t('despeses.new', 'Nova despesa')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{isEdit ? t('despeses.edit', 'Editar despesa') : t('despeses.new', 'Nova despesa')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('despeses.supplier_system', 'Proveïdor (del sistema)')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('despeses.supplier_system', 'Proveïdor (del sistema)')}</label>
               <select value={proveidorId} onChange={e => handleProveidorSelect(e.target.value)}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                 <option value="">{t('despeses.supplier_none', '— Cap (escriu el nom manualment) —')}</option>
                 {proveidors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('despeses.supplier_name', 'Nom proveïdor')} *</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('despeses.supplier_name', 'Nom proveïdor')} *</label>
               <input value={proveidorNom} onChange={e => setProveidorNom(e.target.value)} required
                 placeholder="Endesa, Gestor Roca..."
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('actius.col.category', 'Categoria')} *</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('actius.col.category', 'Categoria')} *</label>
               <select value={categoria} onChange={e => setCategoria(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                 {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('llibres.concept', 'Concepte')} *</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('llibres.concept', 'Concepte')} *</label>
               <input value={concepte} onChange={e => setConcepte(e.target.value)} required
                 placeholder={t('despeses.concept_placeholder', 'Factura llum octubre 2026')}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('despeses.invoice_number', 'Nº factura')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('despeses.invoice_number', 'Nº factura')}</label>
               <input value={numFactura} onChange={e => setNumFactura(e.target.value)}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('despeses.col.invoice_date', 'Data factura')} *</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('despeses.col.invoice_date', 'Data factura')} *</label>
               <input type="date" value={dataFactura} onChange={e => setDataFactura(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('despeses.col.due_date', 'Data venciment')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('despeses.col.due_date', 'Data venciment')}</label>
               <input type="date" value={dataVenciment} onChange={e => setDataVenciment(e.target.value)}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
 
           {/* Imports */}
-          <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
-            <div className="text-sm font-semibold text-zinc-700">{t('despeses.amounts', 'Imports')}</div>
+          <div className="border border-outline-variant rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('despeses.amounts', 'Imports')}</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.taxable_base', 'Base imposable')} *</label>
+                <label className="block text-xs text-secondary mb-1">{t('despeses.taxable_base', 'Base imposable')} *</label>
                 <input type="number" step="0.01" value={base} onChange={e => setBase(e.target.value)} required
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.vat_type', "Tipus d'IVA")}</label>
+                <label className="block text-xs text-secondary mb-1">{t('despeses.vat_type', "Tipus d'IVA")}</label>
                 <select value={tipusIvaId} onChange={e => handleTipusIvaSelect(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   <option value="">{t('despeses.vat_manual', '— Manual —')}</option>
                   {tipusIva.map(tv => <option key={tv.id} value={tv.id}>{tv.name} ({parseFloat(tv.percentage).toFixed(0)}%)</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">IVA %</label>
+                <label className="block text-xs text-secondary mb-1">IVA %</label>
                 <input type="number" step="0.01" value={ivaPct}
                   disabled={!!tipusIvaId}
                   onChange={e => setIvaPct(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:bg-zinc-100 disabled:text-zinc-500" />
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary" />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.col.total', 'Total')} (€)</label>
+                <label className="block text-xs text-secondary mb-1">{t('despeses.col.total', 'Total')} (€)</label>
                 <input type="number" step="0.01" value={total} onChange={e => setTotal(e.target.value)} required
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 font-semibold" />
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-semibold" />
               </div>
             </div>
           </div>
 
           {/* Retenció IRPF */}
-          <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
-            <div className="text-sm font-semibold text-zinc-700">{t('despeses.retencio', 'Retenció IRPF')}</div>
+          <div className="border border-outline-variant rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('despeses.retencio', 'Retenció IRPF')}</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.retencio.tipus', 'Tipus')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('despeses.retencio.tipus', 'Tipus')}</label>
                 <select value={retencioTipus} onChange={e => setRetencioTipus(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   <option value="">{t('despeses.retencio.cap', '— Cap —')}</option>
                   <option value="professional">{t('despeses.retencio.professional', 'Model 111 · Professionals')}</option>
                   <option value="lloguer">{t('despeses.retencio.lloguer', 'Model 115 · Lloguer')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.retencio.pct', 'Retenció %')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('despeses.retencio.pct', 'Retenció %')}</label>
                 <input type="number" step="0.01" value={retencioPct} onChange={e => setRetencioPct(e.target.value)}
                   disabled={!retencioTipus} placeholder={retencioTipus === 'lloguer' ? '19.00' : '15.00'}
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:bg-zinc-100 disabled:text-zinc-500" />
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary" />
               </div>
               {retencioTipus && retencioPct && (
                 <>
                   <div>
-                    <span className="block text-xs text-zinc-500 mb-1">{t('despeses.retencio.import', 'Import retingut')}</span>
-                    <div className="text-sm font-semibold text-zinc-900 py-1.5">−{retencioImport.toFixed(2)} €</div>
+                    <span className="block text-xs text-secondary mb-1">{t('despeses.retencio.import', 'Import retingut')}</span>
+                    <div className="text-sm font-semibold text-on-surface py-1.5">−{retencioImport.toFixed(2)} €</div>
                   </div>
                   <div>
-                    <span className="block text-xs text-zinc-500 mb-1">{t('despeses.net_a_pagar', 'Net a pagar')}</span>
-                    <div className="text-sm font-semibold text-zinc-900 py-1.5">{netAPagar.toFixed(2)} €</div>
+                    <span className="block text-xs text-secondary mb-1">{t('despeses.net_a_pagar', 'Net a pagar')}</span>
+                    <div className="text-sm font-semibold text-on-surface py-1.5">{netAPagar.toFixed(2)} €</div>
                   </div>
                 </>
               )}
@@ -459,13 +458,13 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
           </div>
 
           {/* Pagament */}
-          <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
-            <div className="text-sm font-semibold text-zinc-700">{t('despeses.payment', 'Pagament')}</div>
+          <div className="border border-outline-variant rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('despeses.payment', 'Pagament')}</div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.col.status', 'Estat')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('despeses.col.status', 'Estat')}</label>
                 <select value={estat} onChange={e => setEstat(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   <option value="pendent">{t('despeses.status.pending', 'Pendent')}</option>
                   <option value="pagat">{t('despeses.status.paid', 'Pagat')}</option>
                   <option value="vencut">{t('despeses.status.overdue', 'Vençut')}</option>
@@ -473,15 +472,15 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
               </div>
               {estat === 'pagat' && (
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1">{t('despeses.payment_date', 'Data pagament')}</label>
+                  <label className="block text-xs text-secondary mb-1">{t('despeses.payment_date', 'Data pagament')}</label>
                   <input type="date" value={dataPagament} onChange={e => setDataPagament(e.target.value)}
-                    className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                    className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
               )}
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.payment_method_label', 'Mètode pagament')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('despeses.payment_method_label', 'Mètode pagament')}</label>
                 <select value={metodePagament} onChange={e => setMetodePagament(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   <option value="">—</option>
                   {metodes.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
@@ -490,9 +489,9 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes', 'Notes')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.notes', 'Notes')}</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
           </div>
 
           {error && <p className="text-red-500 text-xs">{error}</p>}

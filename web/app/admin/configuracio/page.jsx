@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
-import { Plus, Star, Trash2, Pencil } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { Button } from '../../../components/ui/button';
 import { useTenantVertical } from '../../../components/store/useTenantVertical';
 
@@ -25,10 +25,10 @@ export default function ConfiguracioPage() {
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('config.title', 'Configuració')}</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{t('config.title', 'Configuració')}</h2>
       </div>
 
-      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-surface-container-high p-1 rounded-xl w-fit">
         {[
           ['fiscals', t('config.tab.fiscal', 'Dades fiscals')],
           ['contacte', t('config.tab.shop', 'Botiga')],
@@ -38,14 +38,14 @@ export default function ConfiguracioPage() {
           ['secrets', t('config.tab.secrets', 'Secrets')],
         ].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === k ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'}`}>
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === k ? 'bg-card shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}>
             {l}
           </button>
         ))}
       </div>
 
       {loading || !config ? (
-        <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+        <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
       ) : tab === 'fiscals' ? (
         <DadesFiscalsPanel config={config} onSaved={loadConfig} />
       ) : tab === 'contacte' ? (
@@ -94,26 +94,26 @@ function DadesFiscalsPanel({ config, onSaved }) {
   }
 
   return (
-    <form onSubmit={save} className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4 max-w-lg">
-      <p className="text-sm text-zinc-500">
+    <form onSubmit={save} className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4 max-w-lg">
+      <p className="text-sm text-secondary">
         {t('config.fiscal.hint', 'Dades fiscals de la botiga: apareixen a la capçalera dels PDF de comanda a proveïdor.')}
       </p>
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.fiscal.name', 'Nom / raó social *')}</label>
+        <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.fiscal.name', 'Nom / raó social *')}</label>
         <input value={nomFiscal} onChange={e => setNomFiscal(e.target.value)} required
-          className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.col.nif', 'NIF')}</label>
+        <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.col.nif', 'NIF')}</label>
         <input value={nif} onChange={e => setNif(e.target.value)}
-          className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.fiscal.address', 'Adreça fiscal *')}</label>
+        <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.fiscal.address', 'Adreça fiscal *')}</label>
         <textarea value={adreca} onChange={e => setAdreca(e.target.value)} required rows={3}
           placeholder={t('config.fiscal.address_ph', 'Carrer, número\nCodi postal, ciutat')}
-          className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-        <p className="text-xs text-zinc-400 mt-1">{t('config.fiscal.address_hint', 'Cada línia es mostra per separat al PDF.')}</p>
+          className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        <p className="text-xs text-secondary mt-1">{t('config.fiscal.address_hint', 'Cada línia es mostra per separat al PDF.')}</p>
       </div>
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex items-center gap-3">
@@ -250,65 +250,65 @@ function BotigaPanel({ config, onSaved }) {
 
   return (
     <form onSubmit={save} className="space-y-5 max-w-lg">
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
-        <p className="text-sm text-zinc-500">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
+        <p className="text-sm text-secondary">
           {t('config.shop.hint', 'Contacte i xarxes que es mostren al peu de la web pública.')}
         </p>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.col.phone', 'Telèfon')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.col.phone', 'Telèfon')}</label>
           <input value={telefon} onChange={e => setTelefon(e.target.value)}
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.contact_email', 'Email de contacte')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shop.contact_email', 'Email de contacte')}</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.email_from', 'Remitent dels emails ("From")')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shop.email_from', 'Remitent dels emails ("From")')}</label>
           <input type="email" value={emailFrom} onChange={e => setEmailFrom(e.target.value)}
             placeholder={t('config.shop.email_from_placeholder', 'botiga@exemple.com')}
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <p className="text-xs text-zinc-400 mt-1">
+            className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          <p className="text-xs text-secondary mt-1">
             {t('config.shop.email_from_hint', "Adreça amb la qual s'envien els emails transaccionals (confirmació de comanda, magic link...).")}
           </p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.instagram', 'Instagram (URL)')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shop.instagram', 'Instagram (URL)')}</label>
           <input value={instagram} onChange={e => setInstagram(e.target.value)}
             placeholder="https://instagram.com/..."
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.hours', 'Horari')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shop.hours', 'Horari')}</label>
           <textarea value={horari} onChange={e => setHorari(e.target.value)} rows={3}
             placeholder={'Dl–Dv: 11h–20h\nDs: 11h–14h / 17h–20h\nDg: tancat'}
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <p className="text-xs text-zinc-400 mt-1">{t('config.shop.hours_hint', 'Cada línia es mostra per separat al footer.')}</p>
+            className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          <p className="text-xs text-secondary mt-1">{t('config.shop.hours_hint', 'Cada línia es mostra per separat al footer.')}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-700">{t('config.favicon', 'Favicon')}</p>
-            <p className="text-xs text-zinc-400 mt-1 max-w-md">
+            <p className="text-sm font-medium text-on-surface-variant">{t('config.favicon', 'Favicon')}</p>
+            <p className="text-xs text-secondary mt-1 max-w-md">
               {t('config.favicon_hint', "La icona que es veu a la pestanya del navegador. Sense pujar-ne cap, s'utilitza la de per defecte.")}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {config.favicon_url && (
-              <img src={config.favicon_url} alt="" className="w-8 h-8 rounded border border-zinc-200 object-contain" />
+              <img src={config.favicon_url} alt="" className="w-8 h-8 rounded border border-outline-variant object-contain" />
             )}
-            <label className="text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-zinc-50">
+            <label className="text-sm font-medium text-on-surface-variant border border-outline-variant rounded-lg px-3 py-1.5 cursor-pointer hover:bg-surface-container-high">
               {uploadingFavicon ? t('common.loading') : t('config.favicon_upload', 'Pujar')}
               <input type="file" accept=".png,.ico,.jpg,.jpeg,.webp" className="hidden"
                 disabled={uploadingFavicon} onChange={uploadFavicon} />
             </label>
             {config.favicon_url && (
               <button type="button" onClick={removeFavicon} disabled={uploadingFavicon}
-                className="text-zinc-400 hover:text-red-500 transition-colors">
-                <Trash2 size={16} />
+                className="text-secondary hover:text-red-500 transition-colors">
+                <MIcon name="delete" size={16} />
               </button>
             )}
           </div>
@@ -316,27 +316,27 @@ function BotigaPanel({ config, onSaved }) {
         {faviconError && <p className="text-sm text-red-600">{faviconError}</p>}
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-700">{t('config.logo', 'Logo')}</p>
-            <p className="text-xs text-zinc-400 mt-1 max-w-md">
+            <p className="text-sm font-medium text-on-surface-variant">{t('config.logo', 'Logo')}</p>
+            <p className="text-xs text-secondary mt-1 max-w-md">
               {t('config.logo_hint', "El logo del capçal i del peu de la web pública. Sense pujar-ne cap, es mostra el nom de la botiga en text.")}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {config.logo_url && (
-              <img src={config.logo_url} alt="" className="h-8 w-auto max-w-[120px] rounded border border-zinc-200 object-contain bg-zinc-900 p-1" />
+              <img src={config.logo_url} alt="" className="h-8 w-auto max-w-[120px] rounded border border-outline-variant object-contain bg-primary p-1" />
             )}
-            <label className="text-sm font-medium text-zinc-700 border border-zinc-300 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-zinc-50">
+            <label className="text-sm font-medium text-on-surface-variant border border-outline-variant rounded-lg px-3 py-1.5 cursor-pointer hover:bg-surface-container-high">
               {uploadingLogo ? t('common.loading') : t('config.logo_upload', 'Pujar')}
               <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden"
                 disabled={uploadingLogo} onChange={uploadLogo} />
             </label>
             {config.logo_url && (
               <button type="button" onClick={removeLogo} disabled={uploadingLogo}
-                className="text-zinc-400 hover:text-red-500 transition-colors">
-                <Trash2 size={16} />
+                className="text-secondary hover:text-red-500 transition-colors">
+                <MIcon name="delete" size={16} />
               </button>
             )}
           </div>
@@ -344,67 +344,67 @@ function BotigaPanel({ config, onSaved }) {
         {logoError && <p className="text-sm text-red-600">{logoError}</p>}
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
-        <p className="text-sm text-zinc-500">{t('config.shop.checkout_params', 'Paràmetres operatius del checkout.')}</p>
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
+        <p className="text-sm text-secondary">{t('config.shop.checkout_params', 'Paràmetres operatius del checkout.')}</p>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shop.reserve_minutes', 'Minuts de reserva de stock')}</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shop.reserve_minutes', 'Minuts de reserva de stock')}</label>
           <input type="number" min="1" value={reservaMinuts} onChange={e => setReservaMinuts(e.target.value)}
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-          <p className="text-xs text-zinc-400 mt-1">
+            className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          <p className="text-xs text-secondary mt-1">
             {t('config.shop.reserve_minutes_hint', "Temps que es reserva un exemplar mentre un client fa el checkout abans d'alliberar-se.")}
           </p>
         </div>
       </div>
 
       {vertical === 'records' && (
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-700">{t('config.shop.record_club', 'Club del disc (subscripció)')}</p>
-            <p className="text-xs text-zinc-400 mt-1 max-w-md">
+            <p className="text-sm font-medium text-on-surface-variant">{t('config.shop.record_club', 'Club del disc (subscripció)')}</p>
+            <p className="text-xs text-secondary mt-1 max-w-md">
               {t('config.shop.record_club_hint', 'Activa o desactiva l\'opció de subscriure\'s al front públic. Els plans, els subscriptors i el cicle mensual es gestionen a "Club del disc" al menú.')}
             </p>
           </div>
           <button type="button" onClick={toggleSubscripcions}
-            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.subscripcions_actives ? 'bg-green-500' : 'bg-zinc-300'}`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${config.subscripcions_actives ? 'left-5' : 'left-0.5'}`} />
+            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.subscripcions_actives ? 'bg-green-500' : 'bg-muted'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${config.subscripcions_actives ? 'left-5' : 'left-0.5'}`} />
           </button>
         </div>
       </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-700">{t('config.shop.maintenance_mode', 'Mode manteniment (web en construcció)')}</p>
-            <p className="text-xs text-zinc-400 mt-1 max-w-md">
+            <p className="text-sm font-medium text-on-surface-variant">{t('config.shop.maintenance_mode', 'Mode manteniment (web en construcció)')}</p>
+            <p className="text-xs text-secondary mt-1 max-w-md">
               {t('config.shop.maintenance_mode_hint', 'Bloqueja el checkout a qualsevol client que no sigui admin i mostra un banner "en construcció" a tota la web pública. Un admin loguejat pot seguir comprant per provar el flux sencer.')}
             </p>
           </div>
           <button type="button" onClick={toggleManteniment}
-            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.maintenance_active ? 'bg-amber-500' : 'bg-zinc-300'}`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${config.maintenance_active ? 'left-5' : 'left-0.5'}`} />
+            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.maintenance_active ? 'bg-amber-500' : 'bg-muted'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${config.maintenance_active ? 'left-5' : 'left-0.5'}`} />
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-3">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-700">{t('config.shop.discogs_sync', 'Sincronització amb Discogs')}</p>
-            <p className="text-xs text-zinc-400 mt-1 max-w-md">
+            <p className="text-sm font-medium text-on-surface-variant">{t('config.shop.discogs_sync', 'Sincronització amb Discogs')}</p>
+            <p className="text-xs text-secondary mt-1 max-w-md">
               {t('config.shop.discogs_sync_hint', "Activa la cerca i sincronització d'estoc amb Discogs des del catàleg. Només té sentit si el negoci ven vinils via Discogs.")}
             </p>
           </div>
           <button type="button" onClick={toggleDiscogs}
-            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.discogs_habilitat ? 'bg-green-500' : 'bg-zinc-300'}`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${config.discogs_habilitat ? 'left-5' : 'left-0.5'}`} />
+            className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.discogs_habilitat ? 'bg-green-500' : 'bg-muted'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${config.discogs_habilitat ? 'left-5' : 'left-0.5'}`} />
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
-        <p className="text-sm text-zinc-500">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
+        <p className="text-sm text-secondary">
           {t('config.shop.catalog_features_hint', 'Funcions del catàleg públic que només tenen sentit per a vinils — es poden apagar individualment encara que el teu vertical les tingui disponibles.')}
         </p>
         {[
@@ -414,12 +414,12 @@ function BotigaPanel({ config, onSaved }) {
         ].map(({ key, label, hint }) => (
           <div key={key} className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-700">{label}</p>
-              <p className="text-xs text-zinc-400 mt-1 max-w-md">{hint}</p>
+              <p className="text-sm font-medium text-on-surface-variant">{label}</p>
+              <p className="text-xs text-secondary mt-1 max-w-md">{hint}</p>
             </div>
             <button type="button" onClick={() => toggleCatalogFeature(key)}
-              className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config[key] ? 'bg-green-500' : 'bg-zinc-300'}`}>
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${config[key] ? 'left-5' : 'left-0.5'}`} />
+              className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config[key] ? 'bg-green-500' : 'bg-muted'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${config[key] ? 'left-5' : 'left-0.5'}`} />
             </button>
           </div>
         ))}
@@ -486,20 +486,20 @@ function SecretsPanel() {
   }
 
   if (status === null) {
-    return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>;
+    return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-5 max-w-lg">
-      <p className="text-sm text-zinc-500">
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-5 max-w-lg">
+      <p className="text-sm text-secondary">
         {t('config.secrets.hint', 'Els valors no es mostren mai, ni tan sols els que ja estan configurats — només si hi ha alguna cosa desada o no. Escriu un valor nou només al camp que vulguis canviar.')}
       </p>
       <form onSubmit={handleSave} className="space-y-4">
         {SECRET_FIELDS.map(({ key, labelKey, label }) => (
           <div key={key}>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-zinc-700">{t(labelKey, label)}</label>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${status[key] ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+              <label className="block text-sm font-medium text-on-surface-variant">{t(labelKey, label)}</label>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${status[key] ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
                 {status[key] ? t('config.secrets.configured', 'Configurat') : t('config.secrets.not_configured', 'Sense configurar')}
               </span>
             </div>
@@ -509,11 +509,11 @@ function SecretsPanel() {
               value={drafts[key] || ''}
               onChange={e => setDrafts(d => ({ ...d, [key]: e.target.value }))}
               autoComplete="off"
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         ))}
-        {message && <p className="text-sm text-zinc-600">{message}</p>}
+        {message && <p className="text-sm text-on-surface-variant">{message}</p>}
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
         </div>
@@ -555,22 +555,22 @@ function TipusIvaPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500 max-w-xl">
+        <p className="text-sm text-secondary max-w-xl">
           {t('config.vat.hint', "Configura els percentatges d'IVA. Marca quin tipus s'aplica per defecte a les vendes de productes nous i quin a les de 2a mà (REBU) — a compra es tria sempre a mà.")}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> {t('config.vat.new', 'Nou tipus')}
+          <MIcon name="add" size={16} /> {t('config.vat.new', 'Nou tipus')}
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : tipus.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('tpv.no_iva_configured', "Cap tipus d'IVA configurat")}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('tpv.no_iva_configured', "Cap tipus d'IVA configurat")}</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('common.name')}</th>
                 <th className="px-4 py-3 text-right font-medium">%</th>
@@ -581,37 +581,37 @@ function TipusIvaPanel() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {tipus.map(row => (
-                <tr key={row.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
+                <tr key={row.id} className="hover:bg-surface-container-high">
+                  <td className="px-4 py-3 font-medium text-on-surface">{row.name}</td>
                   <td className="px-4 py-3 text-right">{parseFloat(row.percentage).toFixed(2)}%</td>
                   <td className="px-4 py-3 text-center">{row.is_rebu ? t('config.yes', 'Sí') : '—'}</td>
                   <td className="px-4 py-3 text-center">
                     {row.default_new ? (
-                      <Star size={16} className="inline text-amber-500 fill-amber-500" />
+                      <MIcon name="star" size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
                       <button onClick={() => marcarDefecte(row, 'default_new')}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">{t('config.use', 'Fer servir')}</button>
+                        className="text-xs text-secondary hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     {row.default_used ? (
-                      <Star size={16} className="inline text-amber-500 fill-amber-500" />
+                      <MIcon name="star" size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
                       <button onClick={() => marcarDefecte(row, 'default_used')}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 underline">{t('config.use', 'Fer servir')}</button>
+                        className="text-xs text-secondary hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiu(row)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
                       {row.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => { setEdit(row); setShowForm(true); }}
-                      className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100">
+                      className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
                       {t('catalog.edit')}
                     </button>
                   </td>
@@ -653,23 +653,23 @@ function TipusIvaForm({ tipus, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.vat.edit_title', "Editar tipus d'IVA") : t('config.vat.new_title', "Nou tipus d'IVA")}</h3>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{isEdit ? t('config.vat.edit_title', "Editar tipus d'IVA") : t('config.vat.new_title', "Nou tipus d'IVA")}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.name_required', 'Nom *')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.name_required', 'Nom *')}</label>
             <input value={name} onChange={e => setName(e.target.value)} required
               placeholder={t('config.vat.name_ph', 'General 21%, REBU 2a mà...')}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.percentage_required', 'Percentatge *')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.percentage_required', 'Percentatge *')}</label>
             <input type="number" step="0.01" value={percentage} onChange={e => setPercentage(e.target.value)} required
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
+          <label className="flex items-center gap-2 text-sm text-on-surface-variant">
             <input type="checkbox" checked={esRebu} onChange={e => setEsRebu(e.target.checked)} />
             {t('config.vat.rebu_checkbox', "Règim especial de béns usats (REBU) — l'IVA es calcula sobre el marge, no sobre el preu")}
           </label>
@@ -710,44 +710,44 @@ function PesFormatPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500 max-w-xl">
+        <p className="text-sm text-secondary max-w-xl">
           {t('config.weight.hint', "Pes per defecte segons el format del disc: s'usa per calcular el pes total d'una comanda (i per tant el tram d'enviament) quan una còpia no té un pes propi indicat al catàleg. Un LP no pesa el mateix que un CD o un 7\".")}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> {t('config.weight.new', 'Nou format')}
+          <MIcon name="add" size={16} /> {t('config.weight.new', 'Nou format')}
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : pesos.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">
+          <div className="p-12 text-center text-secondary text-sm">
             {t('config.weight.no_formats', "Cap format configurat — s'usarà un pes genèric per defecte.")}
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('catalog.col.format')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('config.weight.col_weight', 'Pes')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {pesos.map(p => (
-                <tr key={p.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-3 font-medium text-zinc-900">{p.formato}</td>
+                <tr key={p.id} className="hover:bg-surface-container-high">
+                  <td className="px-4 py-3 font-medium text-on-surface">{p.formato}</td>
                   <td className="px-4 py-3 text-right">{p.pes_g} g</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setEdit(p); setShowForm(true); }}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100">
+                        className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
                         {t('catalog.edit')}
                       </button>
                       <button onClick={() => eliminar(p)}
-                        className="text-zinc-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50">
-                        <Trash2 size={14} />
+                        className="text-secondary hover:text-red-600 p-1.5 rounded hover:bg-red-50">
+                        <MIcon name="delete" size={14} />
                       </button>
                     </div>
                   </td>
@@ -789,27 +789,27 @@ function PesFormatForm({ pes, existents, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.weight.edit_title', 'Editar pes') : t('config.weight.new_title', 'Nou pes per format')}</h3>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{isEdit ? t('config.weight.edit_title', 'Editar pes') : t('config.weight.new_title', 'Nou pes per format')}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.format_required', 'Format *')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.format_required', 'Format *')}</label>
             {isEdit ? (
               <input value={formato} disabled
-                className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm bg-zinc-50 text-zinc-500" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm bg-surface-container-high text-secondary" />
             ) : (
               <select value={formato} onChange={e => setFormato(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                 {disponibles.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.modal.weight_required', 'Pes (grams) *')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.modal.weight_required', 'Pes (grams) *')}</label>
             <input type="number" min="1" value={pesG} onChange={e => setPesG(e.target.value)} required
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">
@@ -859,24 +859,24 @@ function SeccionsPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500 max-w-xl">
+        <p className="text-sm text-secondary max-w-xl">
           {t('config.sections.hint', 'Cubetes físiques de la botiga (Nacional, Internacional, Alternatiu...). Cada disc pot viure en una sola cubeta — s\'assigna des de la fitxa del disc — i determinen les files del mode "Remena" del catàleg públic.')}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> {t('config.sections.new', 'Nova cubeta')}
+          <MIcon name="add" size={16} /> {t('config.sections.new', 'Nova cubeta')}
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : seccions.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">
+          <div className="p-12 text-center text-secondary text-sm">
             {t('config.sections.no_sections', "Encara no hi ha cap cubeta configurada. Crea'n una!")}
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('config.sections.col.section', 'Cubeta')}</th>
                 <th className="px-4 py-3 text-left font-medium">{t('config.sections.col.slug', 'Slug')}</th>
@@ -886,9 +886,9 @@ function SeccionsPanel() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {seccions.map(s => (
-                <tr key={s.id} className="hover:bg-zinc-50">
+                <tr key={s.id} className="hover:bg-surface-container-high">
                   <td className="px-4 py-3">
                     <span
                       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
@@ -897,24 +897,24 @@ function SeccionsPanel() {
                       {s.name_ca}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-zinc-500 text-xs">{s.slug}</td>
-                  <td className="px-4 py-3 text-zinc-500">{s.name_es || '—'}</td>
-                  <td className="px-4 py-3 text-center text-zinc-500">{s.position}</td>
+                  <td className="px-4 py-3 font-mono text-secondary text-xs">{s.slug}</td>
+                  <td className="px-4 py-3 text-secondary">{s.name_es || '—'}</td>
+                  <td className="px-4 py-3 text-center text-secondary">{s.position}</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiva(s)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
                       {s.active ? t('config.sections.active_fem', 'Activa') : t('config.sections.inactive_fem', 'Inactiva')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setEdit(s); setShowForm(true); }}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors">
-                        <Pencil size={14} />
+                        className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                        <MIcon name="edit" size={14} />
                       </button>
                       <button onClick={() => eliminar(s)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                        <Trash2 size={14} />
+                        className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <MIcon name="delete" size={14} />
                       </button>
                     </div>
                   </td>
@@ -959,44 +959,44 @@ function SeccioForm({ seccio, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.sections.edit_title', 'Editar cubeta') : t('config.sections.new_title', 'Nova cubeta')}</h3>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{isEdit ? t('config.sections.edit_title', 'Editar cubeta') : t('config.sections.new_title', 'Nova cubeta')}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.sections.slug_required', 'Slug *')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.sections.slug_required', 'Slug *')}</label>
               <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'))}
                 placeholder="nacional" required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.sections.col.position', 'Posició')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.sections.col.position', 'Posició')}</label>
               <input type="number" value={position} onChange={e => setPosition(e.target.value)}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.sections.name_ca_required', 'Nom català *')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.sections.name_ca_required', 'Nom català *')}</label>
             <input value={nomCa} onChange={e => setNomCa(e.target.value)} placeholder="Nacional" required
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.sections.name_es', 'Nom castellà')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.sections.name_es', 'Nom castellà')}</label>
             <input value={nomEs} onChange={e => setNomEs(e.target.value)} placeholder="Nacional"
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">{t('catalog.modal.color', 'Color')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-2">{t('catalog.modal.color', 'Color')}</label>
             <div className="flex items-center gap-2 flex-wrap">
               {SECCIO_COLORS.map(c => (
                 <button type="button" key={c} onClick={() => setColor(c)}
-                  className={`w-7 h-7 rounded-full transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-zinc-400 scale-110' : ''}`}
+                  className={`w-7 h-7 rounded-full transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-on-surface scale-110' : ''}`}
                   style={{ backgroundColor: c }} />
               ))}
               <input type="color" value={color} onChange={e => setColor(e.target.value)}
-                className="w-7 h-7 rounded-full border border-zinc-200 cursor-pointer" title={t('config.sections.custom_color', 'Color personalitzat')} />
+                className="w-7 h-7 rounded-full border border-outline-variant cursor-pointer" title={t('config.sections.custom_color', 'Color personalitzat')} />
               <span className="ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
                 style={{ backgroundColor: color }}>
                 {nomCa || t('config.sections.preview', 'Previsualització')}
@@ -1043,24 +1043,24 @@ function TramsEnviamentPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500 max-w-xl">
+        <p className="text-sm text-secondary max-w-xl">
           {t('config.shipping.hint', 'Tarifa pròpia d\'enviament per país i tram de pes: cada comanda es cobra amb el tram actiu més barat del país de destí que cobreixi el pes total dels discos. Es fa servir quan el client tria "Enviament" al checkout; la recollida a botiga sempre és gratuïta. Un país només és venedor si té algun tram actiu — per vendre a un país nou, només cal afegir-hi un tram aquí.')}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
-          <Plus size={16} /> {t('config.shipping.new', 'Nou tram')}
+          <MIcon name="add" size={16} /> {t('config.shipping.new', 'Nou tram')}
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : trams.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">
+          <div className="p-12 text-center text-secondary text-sm">
             {t('config.shipping.no_tiers', 'Cap tram configurat — sense trams no es pot triar "Enviament" a cap país al checkout.')}
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('config.shipping.col.country', 'País')}</th>
                 <th className="px-4 py-3 text-left font-medium">{t('config.shipping.col.up_to_weight', 'Fins a (pes)')}</th>
@@ -1069,33 +1069,33 @@ function TramsEnviamentPanel() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {trams.map(tram => (
-                <tr key={tram.id} className="hover:bg-zinc-50">
+                <tr key={tram.id} className="hover:bg-surface-container-high">
                   <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
                       {tram.country}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-medium text-zinc-900">
+                  <td className="px-4 py-3 font-medium text-on-surface">
                     {tram.max_weight_g >= 1000 ? `${(tram.max_weight_g / 1000).toFixed(2).replace(/\.?0+$/, '')} kg` : `${tram.max_weight_g} g`}
                   </td>
                   <td className="px-4 py-3 text-right">{parseFloat(tram.price).toFixed(2)} €</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiu(tram)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${tram.active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${tram.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
                       {tram.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setEdit(tram); setShowForm(true); }}
-                        className="text-xs text-zinc-400 hover:text-zinc-700 font-medium px-2 py-1 rounded hover:bg-zinc-100">
+                        className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
                         {t('catalog.edit')}
                       </button>
                       <button onClick={() => eliminar(tram)}
-                        className="text-zinc-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50">
-                        <Trash2 size={14} />
+                        className="text-secondary hover:text-red-600 p-1.5 rounded hover:bg-red-50">
+                        <MIcon name="delete" size={14} />
                       </button>
                     </div>
                   </td>
@@ -1137,31 +1137,31 @@ function TramEnviamentForm({ tram, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{isEdit ? t('config.shipping.edit_title', 'Editar tram') : t('config.shipping.new_title', 'Nou tram')}</h3>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{isEdit ? t('config.shipping.edit_title', 'Editar tram') : t('config.shipping.new_title', 'Nou tram')}</h3>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shipping.max_weight_required', 'Pes màxim (grams) *')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shipping.max_weight_required', 'Pes màxim (grams) *')}</label>
             <input type="number" min="1" value={pesMaxim} onChange={e => setPesMaxim(e.target.value)} required
               placeholder="500"
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-            <p className="text-xs text-zinc-400 mt-1">
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <p className="text-xs text-secondary mt-1">
               {t('config.shipping.max_weight_hint', "Aquest tram s'aplica a comandes de fins a aquest pes (inclusiu).")}
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shipping.price_required', 'Preu *')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shipping.price_required', 'Preu *')}</label>
             <input type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('config.shipping.country_required', 'País *')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shipping.country_required', 'País *')}</label>
             <input type="text" maxLength={2} value={country} onChange={e => setCountry(e.target.value.toUpperCase())} required
               placeholder="ES, FR, IT…"
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-            <p className="text-xs text-zinc-400 mt-1">
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-primary" />
+            <p className="text-xs text-secondary mt-1">
               {t('config.shipping.country_hint', 'Codi de 2 lletres (ISO 3166-1). Un país només és venedor si té algun tram actiu: per afegir-hi un de nou, crea aquí el primer tram amb el seu codi.')}
             </p>
           </div>

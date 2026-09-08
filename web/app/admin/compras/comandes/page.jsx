@@ -10,10 +10,7 @@ import { Button } from '../../../../components/ui/button';
 import DiscogsSearchField from '../../../../components/admin/discogs/DiscogsSearchField';
 import { useSortFilter } from '../../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../../components/admin/table/SortableTh';
-import {
-  Plus, ChevronDown, ChevronRight, X, Trash2, FileSpreadsheet, Download,
-  FileText, Send, Ban, PackageCheck, Loader2, Receipt,
-} from 'lucide-react';
+import MIcon from '../../../../components/ui/m-icon';
 import {
   despesaEstatLabel, DESPESA_ESTAT_COLOR, comandaStatusLabel, COMANDA_STATUS_COLOR, GRADINGS, costCompra,
 } from '../../../../components/admin/compras/shared';
@@ -141,14 +138,14 @@ export default function ComandesPage() {
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('purchases.tab.orders', 'Comandes')}</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{t('purchases.tab.orders', 'Comandes')}</h2>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowFacturarModal(true)}
-            className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 px-3 py-2 rounded-lg transition-colors">
-            <Receipt size={13} /> {t('purchases.btn.invoice_receptions', 'Facturar recepcions')}
+            className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors">
+            <MIcon name="receipt_long" size={13} /> {t('purchases.btn.invoice_receptions', 'Facturar recepcions')}
           </button>
           <Button onClick={() => setShowModal(true)}>
-            <Plus size={16} /> {t('purchases.btn.new_order', 'Nova comanda')}
+            <MIcon name="add" size={16} /> {t('purchases.btn.new_order', 'Nova comanda')}
           </Button>
         </div>
       </div>
@@ -156,31 +153,31 @@ export default function ComandesPage() {
       <div className="flex items-center gap-2 flex-wrap">
         <input value={filters.q} onChange={e => setFilters(f => ({ ...f, q: e.target.value }))}
           placeholder={t('purchases.filter.search_ph', 'Cerca per proveïdor, particular, núm. comanda o albarà...')}
-          className="flex-1 min-w-[260px] border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          className="flex-1 min-w-[260px] border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         <input type="date" value={filters.desde} onChange={e => setFilters(f => ({ ...f, desde: e.target.value }))}
-          className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-        <span className="text-zinc-400 text-sm">–</span>
+          className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary" />
+        <span className="text-secondary text-sm">–</span>
         <input type="date" value={filters.hasta} onChange={e => setFilters(f => ({ ...f, hasta: e.target.value }))}
-          className="border border-zinc-300 rounded-lg px-3 py-2 text-sm text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary" />
         {hasFilters && (
           <button onClick={() => setFilters({ q: '', desde: '', hasta: '' })}
-            className="text-xs text-zinc-400 hover:text-zinc-600 px-1">
+            className="text-xs text-secondary hover:text-on-surface-variant px-1">
             {t('common.clear', 'Netejar')}
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : comandasSorted.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">
+          <div className="p-12 text-center text-secondary text-sm">
             {hasFilters ? t('purchases.order.no_results_filtered', 'Cap resultat amb aquests filtres.') : t('purchases.order.no_orders', 'Encara no hi ha comandes ni compres.')}
           </div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('common.date')} sortKey="fecha" sort={sort} onSort={toggleSort} />
@@ -191,7 +188,7 @@ export default function ComandesPage() {
                 <th className="px-4 py-3 text-right font-medium">{t('catalog.col.actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-outline-variant">
               {comandasSorted.map(c => (
                 <ComandaRow key={c.id} c={c} expanded={expanded} setExpanded={setExpanded}
                   recepcions={comprasProveedor.filter(cp => cp.comanda_id === c.id)}
@@ -231,17 +228,17 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
   return (
     <>
       <tr onClick={() => setExpanded(expanded === c.id ? null : c.id)}
-        className="hover:bg-zinc-50 cursor-pointer transition-colors">
-        <td className="px-4 py-3 text-zinc-400">
-          {expanded === c.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        className="hover:bg-surface-container-high cursor-pointer transition-colors">
+        <td className="px-4 py-3 text-secondary">
+          {expanded === c.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
         </td>
-        <td className="px-4 py-3 text-zinc-500">{new Date(c.date).toLocaleDateString()}</td>
+        <td className="px-4 py-3 text-secondary">{new Date(c.date).toLocaleDateString()}</td>
         <td className="px-4 py-3 font-medium">
           {c.proveedor_nombre}
-          {c.order_number && <span className="text-zinc-400 font-normal ml-1.5 text-xs">{c.order_number}</span>}
+          {c.order_number && <span className="text-secondary font-normal ml-1.5 text-xs">{c.order_number}</span>}
         </td>
         <td className="px-4 py-3 text-center">
-          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-700">
+          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-surface-container-high text-on-surface-variant">
             {c.lineas?.length ?? 0}
           </span>
         </td>
@@ -253,37 +250,37 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
         <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-end gap-1.5">
             <button onClick={() => downloadPdf(c)} title={t('purchases.action.download_pdf', 'Descarregar PDF')}
-              className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100">
-              <FileText size={14} />
+              className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high">
+              <MIcon name="newspaper" size={14} />
             </button>
             {c.status === 'esborrany' && (
               <button onClick={() => enviarPerEmail(c)} disabled={busyId === c.id + '_enviar'} title={t('purchases.action.send_email', 'Enviar per email')}
                 className="p-1.5 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50 disabled:opacity-50">
-                {busyId === c.id + '_enviar' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                {busyId === c.id + '_enviar' ? <MIcon name="progress_activity" size={14} className="animate-spin" /> : <MIcon name="send" size={14} />}
               </button>
             )}
             {c.status === 'esborrany' && (
               <button onClick={() => marcarEnviada(c)} disabled={busyId === c.id + '_marcar'} title={t('purchases.action.mark_sent', 'Marcar com a enviada (manual)')}
-                className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100 disabled:opacity-50">
-                {busyId === c.id + '_marcar' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} className="opacity-50" />}
+                className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high disabled:opacity-50">
+                {busyId === c.id + '_marcar' ? <MIcon name="progress_activity" size={14} className="animate-spin" /> : <MIcon name="send" size={14} className="opacity-50" />}
               </button>
             )}
             {(c.status === 'enviada' || c.status === 'rebuda_parcial') && (
               <button onClick={() => onRecepcio(c)} title={t('purchases.action.register_reception', 'Registrar recepció')}
                 className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-lg hover:bg-emerald-50">
-                <PackageCheck size={14} />
+                <MIcon name="local_shipping" size={14} />
               </button>
             )}
             {c.status !== 'rebuda' && c.status !== 'cancelada' && (
               <button onClick={() => cancelar(c)} disabled={busyId === c.id + '_cancelar'} title={t('common.cancel')}
-                className="p-1.5 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
-                <Ban size={14} />
+                className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                <MIcon name="block" size={14} />
               </button>
             )}
             {c.status === 'esborrany' && (
               <button onClick={() => eliminar(c)} disabled={busyId === c.id + '_eliminar'} title={t('catalog.delete')}
-                className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
-                <Trash2 size={14} />
+                className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                <MIcon name="delete" size={14} />
               </button>
             )}
           </div>
@@ -295,36 +292,36 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
             <div className="space-y-1">
               {(c.lineas ?? []).map(l => (
                 <div key={l.id} className="flex items-center gap-4 text-sm flex-wrap">
-                  <span className="font-semibold text-zinc-900">{l.artista} — {l.titulo}</span>
-                  <span className="text-zinc-500">{l.received_quantity}/{l.quantity} {t('purchases.received_suffix', 'rebudes')}</span>
+                  <span className="font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
+                  <span className="text-secondary">{l.received_quantity}/{l.quantity} {t('purchases.received_suffix', 'rebudes')}</span>
                   {l.estimated_unit_price && (
-                    <span className="text-zinc-400">{t('purchases.est_price', 'Preu est.')}: {l.estimated_unit_price} €</span>
+                    <span className="text-secondary">{t('purchases.est_price', 'Preu est.')}: {l.estimated_unit_price} €</span>
                   )}
                 </div>
               ))}
             </div>
             {recepcions.length > 0 && (
               <div className="mt-3 pt-3 border-t border-blue-100 space-y-1">
-                <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+                <div className="text-xs font-semibold text-secondary uppercase tracking-wide">
                   {t('purchases.receptions', 'Recepcions')} ({recepcions.length})
                 </div>
                 {recepcions.map(r => (
                   <div key={r.id} className="flex items-center gap-3 text-sm flex-wrap">
-                    <span className="text-zinc-500">{new Date(r.date).toLocaleDateString()}</span>
-                    <span className="text-zinc-400">{r.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${r.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}</span>
-                    <span className="text-zinc-400">· {r.items?.length ?? 0} {t('purchases.copies', 'exemplars')}</span>
+                    <span className="text-secondary">{new Date(r.date).toLocaleDateString()}</span>
+                    <span className="text-secondary">{r.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${r.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}</span>
+                    <span className="text-secondary">· {r.items?.length ?? 0} {t('purchases.copies', 'exemplars')}</span>
                     {r.despesa_estat ? (
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${DESPESA_ESTAT_COLOR[r.despesa_estat] ?? ''}`}>
                         {t('purchases.col.invoice')} {despesaEstatLabel(t, r.despesa_estat)}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500">
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary">
                         {t('purchases.not_invoiced', 'Sense facturar')}
                       </span>
                     )}
                     <button onClick={() => downloadRecepcioPdf(r)} title={t('purchases.action.download_reception_list', 'Descarregar llista de recepció (per etiquetes de preu)')}
-                      className="p-1 text-zinc-400 hover:text-zinc-700 rounded hover:bg-zinc-100">
-                      <FileText size={13} />
+                      className="p-1 text-secondary hover:text-on-surface-variant rounded hover:bg-surface-container-high">
+                      <MIcon name="newspaper" size={13} />
                     </button>
                   </div>
                 ))}
@@ -438,37 +435,37 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{t('purchases.btn.new_order', 'Nova comanda')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('purchases.btn.new_order', 'Nova comanda')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.type.supplier')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.type.supplier')}</label>
               <select value={proveedorId} onChange={e => setProveedorId(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                 <option value="">{t('common.select')}</option>
                 {proveedores.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.date')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.date')}</label>
               <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.notes')}</label>
               <input value={notas} onChange={e => setNotas(e.target.value)}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
-          <p className="text-xs text-zinc-400">{t('purchases.order_modal.auto_number_hint', 'El número de comanda es genera automàticament en crear-la.')}</p>
+          <p className="text-xs text-secondary">{t('purchases.order_modal.auto_number_hint', 'El número de comanda es genera automàticament en crear-la.')}</p>
 
-          <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
-            <div className="text-sm font-semibold text-zinc-700">{t('purchases.order_modal.records_requested', 'Discos demanats')}</div>
+          <div className="border border-outline-variant rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('purchases.order_modal.records_requested', 'Discos demanats')}</div>
             {discogsEnabled && (
               <DiscogsSearchField onPick={pickDiscogs} disabled={resolving} />
             )}
@@ -480,13 +477,13 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
                 {manualMode ? t('common.cancel') : t('purchases.add_manual_toggle', '+ Afegir disc a mà')}
               </button>
               <button type="button" onClick={() => csvInputRef.current?.click()} disabled={importingCsv}
-                className="flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-800 font-medium disabled:opacity-50">
-                {importingCsv ? <Loader2 size={12} className="animate-spin" /> : <FileSpreadsheet size={12} />}
+                className="flex items-center gap-1 text-xs text-on-surface-variant hover:text-on-surface font-medium disabled:opacity-50">
+                {importingCsv ? <MIcon name="progress_activity" size={12} className="animate-spin" /> : <MIcon name="table_chart" size={12} />}
                 {t('purchases.order_modal.import_csv', 'Importar CSV')}
               </button>
               <button type="button" onClick={handleDownloadTemplate}
-                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600">
-                <Download size={12} /> {t('purchases.order_modal.template', 'Plantilla')}
+                className="flex items-center gap-1 text-xs text-secondary hover:text-on-surface-variant">
+                <MIcon name="download" size={12} /> {t('purchases.order_modal.template', 'Plantilla')}
               </button>
               <input ref={csvInputRef} type="file" accept=".csv" className="hidden"
                 onChange={e => handleCsvFile(e.target.files?.[0])} />
@@ -500,25 +497,25 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
             )}
 
             {(!discogsEnabled || manualMode) && (
-              <div className="p-3 bg-white rounded-xl border border-zinc-200 space-y-2">
+              <div className="p-3 bg-card rounded-xl border border-outline-variant space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <input value={manualForm.artista} onChange={e => setManualForm(f => ({ ...f, artista: e.target.value }))}
                     placeholder={t('purchases.manual.artist_ph', 'Artista')}
-                    className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                   <input value={manualForm.titulo} onChange={e => setManualForm(f => ({ ...f, titulo: e.target.value }))}
                     placeholder={t('purchases.manual.title_ph', 'Títol')}
-                    className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                   <input value={manualForm.sello} onChange={e => setManualForm(f => ({ ...f, sello: e.target.value }))}
                     placeholder={t('purchases.manual.label_ph', 'Segell')}
-                    className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                   <select value={manualForm.formato} onChange={e => setManualForm(f => ({ ...f, formato: e.target.value }))}
-                    className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                     {['LP', 'EP', '7"', '12"', 'CD', 'Cassette'].map(x => <option key={x}>{x}</option>)}
                     <option>{t('purchases.manual.format_other', 'Altre')}</option>
                   </select>
                   <input type="number" value={manualForm.anio} onChange={e => setManualForm(f => ({ ...f, anio: e.target.value }))}
                     placeholder={t('purchases.manual.year_ph', 'Any')} min="1900" max="2030"
-                    className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <Button type="button" size="sm" onClick={addManual}
                   disabled={resolving || !manualForm.titulo.trim()}>
@@ -528,36 +525,36 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
             )}
 
             {lineas.length === 0 && (
-              <div className="text-sm text-zinc-400 text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
+              <div className="text-sm text-secondary text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
             )}
 
             <div className="space-y-2">
               {lineas.map((l, idx) => (
-                <div key={idx} className="p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+                <div key={idx} className="p-3 bg-surface-container-high rounded-xl border border-outline-variant">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-zinc-900">{l.artista} — {l.titulo}</span>
+                      <span className="text-sm font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
                       {l.existing && (
-                        <span className="text-[10px] uppercase tracking-wide text-zinc-400 bg-zinc-100 rounded-full px-2 py-0.5">
+                        <span className="text-[10px] uppercase tracking-wide text-secondary bg-surface-container-high rounded-full px-2 py-0.5">
                           {t('purchases.modal.already_in_catalog', 'Ja al catàleg')}
                         </span>
                       )}
                     </div>
                     <button type="button" onClick={() => setLineas(p => p.filter((_, i) => i !== idx))}
-                      className="text-zinc-400 hover:text-red-500 transition-colors">
-                      <Trash2 size={15} />
+                      className="text-secondary hover:text-red-500 transition-colors">
+                      <MIcon name="delete" size={15} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <div>
-                      <label className="block text-xs text-zinc-500 mb-1">{t('purchases.quantity', 'Quantitat')}</label>
+                      <label className="block text-xs text-secondary mb-1">{t('purchases.quantity', 'Quantitat')}</label>
                       <input type="number" min="1" step="1" value={l.cantidad} onChange={e => upd(idx, 'cantidad', e.target.value)} required
-                        className="w-20 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                        className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                     <div>
-                      <label className="block text-xs text-zinc-500 mb-1">{t('purchases.order_modal.estimated_unit_price', 'Preu unitari estimat')}</label>
+                      <label className="block text-xs text-secondary mb-1">{t('purchases.order_modal.estimated_unit_price', 'Preu unitari estimat')}</label>
                       <input type="number" step="0.01" min="0" value={l.precio_unitario_estimado} onChange={e => upd(idx, 'precio_unitario_estimado', e.target.value)}
-                        className="w-28 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                        className="w-28 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                   </div>
                 </div>
@@ -689,29 +686,29 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{t('purchases.reception_modal.title', 'Registrar recepció')} — {comanda.proveedor_nombre}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('purchases.reception_modal.title', 'Registrar recepció')} — {comanda.proveedor_nombre}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.reception_modal.albaran_date', "Data de l'albarà")}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.reception_modal.albaran_date', "Data de l'albarà")}</label>
               <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
-                {t('purchases.reception_modal.albaran_num', 'Núm. albarà')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">
+                {t('purchases.reception_modal.albaran_num', 'Núm. albarà')} <span className="text-secondary font-normal">{t('common.optional', '(opcional)')}</span>
               </label>
               <input value={numAlbaran} onChange={e => setNumAlbaran(e.target.value)}
                 placeholder={t('purchases.reception_modal.albaran_ph', 'Referència del proveïdor, no és la factura')}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
-          <p className="text-xs text-zinc-400 -mt-2">
+          <p className="text-xs text-secondary -mt-2">
             {t('purchases.reception_modal.invoice_hint', 'La factura es registra a part un cop arribi, des de "Facturar recepcions" — pot agrupar diverses recepcions.')}
           </p>
 
@@ -720,44 +717,44 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
               const copias = itemsPorLinea[linea.id] ?? [];
               const pendent = linea.quantity - linea.received_quantity;
               return (
-                <div key={linea.id} className="border border-zinc-200 rounded-xl p-4 space-y-2">
+                <div key={linea.id} className="border border-outline-variant rounded-xl p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-zinc-900">{linea.artista} — {linea.titulo}</span>
-                    <span className="text-xs text-zinc-500">{unitatsLinea(copias)}/{pendent} {t('purchases.pending', 'pendents')}</span>
+                    <span className="text-sm font-semibold text-on-surface">{linea.artista} — {linea.titulo}</span>
+                    <span className="text-xs text-secondary">{unitatsLinea(copias)}/{pendent} {t('purchases.pending', 'pendents')}</span>
                   </div>
                   {copias.map((c, idx) => (
-                    <div key={idx} className="flex flex-wrap items-end gap-3 p-2 bg-zinc-50 rounded-lg">
+                    <div key={idx} className="flex flex-wrap items-end gap-3 p-2 bg-surface-container-high rounded-lg">
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1">{t('common.condition')}</label>
+                        <label className="block text-xs text-secondary mb-1">{t('common.condition')}</label>
                         <select value={c.condicion} onChange={e => updCopia(linea.id, idx, 'condicion', e.target.value)}
-                          className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                          className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                           <option value="nou">{t('common.condition.new')}</option>
                           <option value="segona_ma">{t('purchases.condition.used', 'Segona mà')}</option>
                         </select>
                       </div>
                       {c.condicion === 'nou' && (
                         <div>
-                          <label className="block text-xs text-zinc-500 mb-1">{t('purchases.reception_modal.units', 'Unitats')}</label>
+                          <label className="block text-xs text-secondary mb-1">{t('purchases.reception_modal.units', 'Unitats')}</label>
                           <input type="number" step="1" min="1" max={pendent - unitatsLinea(copias.filter((_, i) => i !== idx))}
                             value={c.cantidad} onChange={e => updCopia(linea.id, idx, 'cantidad', e.target.value)}
                             title={t('purchases.reception_modal.units_hint', 'Aquesta entrada representa vàries unitats idèntiques (mateix cost i preu)')}
-                            className="w-16 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                            className="w-16 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                         </div>
                       )}
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1">{t('purchases.cost_short', 'Cost')} {c.condicion === 'nou' ? t('purchases.reception_modal.per_unit', '(per unitat)') : ''}</label>
+                        <label className="block text-xs text-secondary mb-1">{t('purchases.cost_short', 'Cost')} {c.condicion === 'nou' ? t('purchases.reception_modal.per_unit', '(per unitat)') : ''}</label>
                         <input type="number" step="0.01" min="0" value={c.coste_adquisicion} onChange={e => updCopia(linea.id, idx, 'coste_adquisicion', e.target.value)}
-                          className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                          className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                       </div>
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1">{t('purchases.reception_modal.sale_price', 'Preu venda')}</label>
+                        <label className="block text-xs text-secondary mb-1">{t('purchases.reception_modal.sale_price', 'Preu venda')}</label>
                         <div className="flex gap-1">
                           <input type="number" step="0.01" min="0" value={c.precio} onChange={e => updCopia(linea.id, idx, 'precio', e.target.value)} required
-                            className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                            className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                           <button type="button" onClick={() => calcularPreu(linea.id, idx, c)}
                             disabled={!defectesPreu[c.condicion] || !c.coste_adquisicion}
                             title={t('purchases.reception_modal.calculate_hint', 'Calcula el preu a partir del cost + marge i IVA per defecte')}
-                            className="text-xs text-zinc-400 hover:text-zinc-700 border border-zinc-300 rounded-lg px-2 disabled:opacity-30">
+                            className="text-xs text-secondary hover:text-on-surface-variant border border-outline-variant rounded-lg px-2 disabled:opacity-30">
                             {t('purchases.reception_modal.calculate', 'Calcular')}
                           </button>
                         </div>
@@ -765,7 +762,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                           const desglos = desglossPreu(c);
                           if (!desglos) return null;
                           return (
-                            <div className="text-[10px] text-zinc-400 mt-0.5 whitespace-nowrap">
+                            <div className="text-[10px] text-secondary mt-0.5 whitespace-nowrap">
                               {t('purchases.margin_capitalized', 'Marge')} {desglos.importMarge.toFixed(2)}€ · IVA {desglos.importIva.toFixed(2)}€
                             </div>
                           );
@@ -773,25 +770,25 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                       </div>
                       {c.condicion === 'segona_ma' && vertical === 'records' && <>
                         <div>
-                          <label className="block text-xs text-zinc-500 mb-1">{t('purchases.grading.disc', 'Grading disc')}</label>
+                          <label className="block text-xs text-secondary mb-1">{t('purchases.grading.disc', 'Grading disc')}</label>
                           <select value={c.estado_disco} onChange={e => updCopia(linea.id, idx, 'estado_disco', e.target.value)}
-                            className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                            className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                             <option value="">—</option>
                             {GRADINGS.map(g => <option key={g} value={g}>{g.split(' (')[0]}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs text-zinc-500 mb-1">{t('purchases.grading.sleeve', 'Grading funda')}</label>
+                          <label className="block text-xs text-secondary mb-1">{t('purchases.grading.sleeve', 'Grading funda')}</label>
                           <select value={c.estado_funda} onChange={e => updCopia(linea.id, idx, 'estado_funda', e.target.value)}
-                            className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                            className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                             <option value="">—</option>
                             {GRADINGS.map(g => <option key={g} value={g}>{g.split(' (')[0]}</option>)}
                           </select>
                         </div>
                       </>}
                       <button type="button" onClick={() => removeCopia(linea.id, idx)}
-                        className="text-zinc-400 hover:text-red-500 transition-colors pb-1.5">
-                        <Trash2 size={15} />
+                        className="text-secondary hover:text-red-500 transition-colors pb-1.5">
+                        <MIcon name="delete" size={15} />
                       </button>
                     </div>
                   ))}
@@ -875,37 +872,37 @@ function FacturarRecepcionsModal({ proveedores, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{t('purchases.btn.invoice_receptions', 'Facturar recepcions')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('purchases.btn.invoice_receptions', 'Facturar recepcions')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.type.supplier')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.type.supplier')}</label>
             <select value={proveedorId} onChange={e => handleProveedorChange(e.target.value)} required
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
               <option value="">{t('purchases.invoice_modal.select_supplier', 'Selecciona un proveïdor...')}</option>
               {proveedores.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
 
           {loadingCompras ? (
-            <div className="text-sm text-zinc-400 text-center py-4">{t('purchases.invoice_modal.loading_receptions', 'Carregant recepcions...')}</div>
+            <div className="text-sm text-secondary text-center py-4">{t('purchases.invoice_modal.loading_receptions', 'Carregant recepcions...')}</div>
           ) : proveedorId && compras.length === 0 ? (
-            <div className="text-sm text-zinc-400 text-center py-4">{t('purchases.invoice_modal.no_pending_receptions', 'Aquest proveïdor no té recepcions pendents de facturar.')}</div>
+            <div className="text-sm text-secondary text-center py-4">{t('purchases.invoice_modal.no_pending_receptions', 'Aquest proveïdor no té recepcions pendents de facturar.')}</div>
           ) : compras.length > 0 && (
-            <div className="border border-zinc-200 rounded-xl divide-y divide-zinc-100">
+            <div className="border border-outline-variant rounded-xl divide-y divide-outline-variant">
               {compras.map(c => (
-                <label key={c.id} className="flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer hover:bg-zinc-50">
+                <label key={c.id} className="flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer hover:bg-surface-container-high">
                   <input type="checkbox" checked={!!selected[c.id]}
                     onChange={e => setSelected(prev => ({ ...prev, [c.id]: e.target.checked }))}
-                    className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
-                  <span className="text-zinc-500">{new Date(c.date).toLocaleDateString()}</span>
-                  <span className="text-zinc-400">{c.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${c.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}</span>
-                  <span className="text-zinc-400">· {c.items?.length ?? 0} {t('purchases.copies', 'exemplars')}</span>
-                  <span className="ml-auto font-medium text-zinc-900">{costCompra(c).toFixed(2)} €</span>
+                    className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
+                  <span className="text-secondary">{new Date(c.date).toLocaleDateString()}</span>
+                  <span className="text-secondary">{c.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${c.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}</span>
+                  <span className="text-secondary">· {c.items?.length ?? 0} {t('purchases.copies', 'exemplars')}</span>
+                  <span className="ml-auto font-medium text-on-surface">{costCompra(c).toFixed(2)} €</span>
                 </label>
               ))}
             </div>
@@ -915,24 +912,24 @@ function FacturarRecepcionsModal({ proveedores, onClose, onSaved }) {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.invoice_modal.invoice_num', 'Núm. factura')}</label>
+                  <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.invoice_modal.invoice_num', 'Núm. factura')}</label>
                   <input value={numFactura} onChange={e => setNumFactura(e.target.value)}
-                    className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                    className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.invoice_modal.invoice_date', 'Data factura')}</label>
+                  <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.invoice_modal.invoice_date', 'Data factura')}</label>
                   <input type="date" value={dataFactura} onChange={e => setDataFactura(e.target.value)}
-                    className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                    className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes')}</label>
+                <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.notes')}</label>
                 <input value={notes} onChange={e => setNotes(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
-              <div className="flex items-center justify-between text-sm bg-zinc-50 rounded-lg px-4 py-2.5">
-                <span className="text-zinc-500">{t('purchases.resum.total', 'Total')} ({compraIds.length} {t('purchases.receptions', 'Recepcions').toLowerCase()})</span>
-                <span className="font-semibold text-zinc-900">{total.toFixed(2)} €</span>
+              <div className="flex items-center justify-between text-sm bg-surface-container-high rounded-lg px-4 py-2.5">
+                <span className="text-secondary">{t('purchases.resum.total', 'Total')} ({compraIds.length} {t('purchases.receptions', 'Recepcions').toLowerCase()})</span>
+                <span className="font-semibold text-on-surface">{total.toFixed(2)} €</span>
               </div>
             </>
           )}

@@ -6,7 +6,7 @@ import { useT } from '../../../lib/i18n';
 import { Button } from '../../../../components/ui/button';
 import { useSortFilter } from '../../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../../components/admin/table/SortableTh';
-import { ChevronDown, ChevronRight, Plus, PackageCheck, X } from 'lucide-react';
+import MIcon from '../../../../components/ui/m-icon';
 
 // Vista per defecte (sense necessitat de cercar) de l'històric de compres:
 // llista de proveïdors desplegable (quants discos, quan la darrera) i un
@@ -127,16 +127,16 @@ export default function HistorialPage() {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold text-zinc-900">{t('purchases.tab.history', 'Historial')}</h2>
+      <h2 className="text-2xl font-bold text-on-surface">{t('purchases.tab.history', 'Historial')}</h2>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5 space-y-3">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-5 space-y-3">
         <input
           value={q}
           onChange={e => handleQ(e.target.value)}
           placeholder={t('purchases.search_history.search_ph', 'Cerca per artista, títol, segell... (opcional, per filtrar)')}
-          className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-secondary">
           {t('purchases.search_history.hint', "Combina l'històric importat dels fulls de càlcul antics amb les comandes reals (enviada/rebuda) fetes des d'aquí — creix amb cada comanda nova. No indica estoc actual del proveïdor, només que se li ha comprat abans. Desplega un proveïdor per veure'n els discos.")}
         </p>
       </div>
@@ -151,7 +151,7 @@ export default function HistorialPage() {
           ).map(grup => (
             <div key={grup.proveedor_id} className="bg-blue-50/60 rounded-2xl border border-blue-100 shadow-sm overflow-hidden">
               <div className="px-5 py-3 flex items-center justify-between border-b border-blue-100">
-                <span className="text-sm font-semibold text-zinc-700">
+                <span className="text-sm font-semibold text-on-surface-variant">
                   {grup.proveedor_nombre} · {grup.items.length} {grup.items.length === 1 ? t('purchases.record_singular', 'disc') : t('purchases.record_plural', 'discos')}
                 </span>
                 <Button onClick={() => afegirAlPool(grup.proveedor_id, grup.proveedor_nombre)} disabled={creantProveidor === grup.proveedor_id}>
@@ -161,12 +161,12 @@ export default function HistorialPage() {
               <div className="divide-y divide-blue-100/70">
                 {grup.items.map(c => (
                   <div key={c.key} className="flex items-center gap-3 text-sm px-5 py-2 flex-wrap">
-                    <span className="font-medium text-zinc-900 flex-1 min-w-[200px]">{c.artista} — {c.titulo}</span>
+                    <span className="font-medium text-on-surface flex-1 min-w-[200px]">{c.artista} — {c.titulo}</span>
                     <input type="number" min="1" value={c.cantidad}
                       onChange={e => updateQuantitat(c.key, Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-16 border border-zinc-300 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-                    <button onClick={() => treureDeCistella(c.key)} className="text-zinc-400 hover:text-red-500 p-1 rounded hover:bg-red-50">
-                      <X size={14} />
+                      className="w-16 border border-outline-variant rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary" />
+                    <button onClick={() => treureDeCistella(c.key)} className="text-secondary hover:text-red-500 p-1 rounded hover:bg-red-50">
+                      <MIcon name="close" size={14} />
                     </button>
                   </div>
                 ))}
@@ -177,35 +177,35 @@ export default function HistorialPage() {
       )}
 
       {loading ? (
-        <div className="text-sm text-zinc-400 text-center py-6">{t('common.loading')}</div>
+        <div className="text-sm text-secondary text-center py-6">{t('common.loading')}</div>
       ) : (
         <>
           {resum.length === 0 ? (
-            <div className="text-sm text-zinc-400 text-center py-6">{t('purchases.search_history.no_matches', "Cap coincidència a l'històric.")}</div>
+            <div className="text-sm text-secondary text-center py-6">{t('purchases.search_history.no_matches', "Cap coincidència a l'històric.")}</div>
           ) : (
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 text-sm font-semibold text-zinc-700 border-b border-zinc-100">
+            <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+              <div className="px-5 py-3 text-sm font-semibold text-on-surface-variant border-b border-outline-variant">
                 {t('purchases.tab.suppliers')} ({resum.length})
               </div>
-              <div className="divide-y divide-zinc-100">
+              <div className="divide-y divide-outline-variant">
                 {resum.map(p => (
                   <div key={p.proveedor_id}>
                     <button
                       onClick={() => toggleProveidor(p.proveedor_id)}
-                      className="w-full flex items-center justify-between px-5 py-3 text-sm hover:bg-zinc-50 transition-colors text-left"
+                      className="w-full flex items-center justify-between px-5 py-3 text-sm hover:bg-surface-container-high transition-colors text-left"
                     >
                       <div className="flex items-center gap-2">
-                        {expandedProv === p.proveedor_id ? <ChevronDown size={14} className="text-zinc-400" /> : <ChevronRight size={14} className="text-zinc-400" />}
-                        <span className="font-medium text-zinc-900">{p.proveedor_nombre}</span>
+                        {expandedProv === p.proveedor_id ? <MIcon name="expand_more" size={14} className="text-secondary" /> : <MIcon name="chevron_right" size={14} className="text-secondary" />}
+                        <span className="font-medium text-on-surface">{p.proveedor_nombre}</span>
                       </div>
-                      <span className="text-zinc-500">
+                      <span className="text-secondary">
                         {p.count} {p.count === 1 ? t('purchases.search_history.purchase', 'compra') : t('purchases.search_history.purchases', 'compres')} · {t('purchases.search_history.last', 'última')} {new Date(p.ultima_compra).toLocaleDateString()}
                       </span>
                     </button>
                     {expandedProv === p.proveedor_id && (
-                      <div className="bg-zinc-50/60 border-t border-zinc-100 px-5 py-3">
+                      <div className="bg-surface-container-high/60 border-t border-outline-variant px-5 py-3">
                         {loadingExpanded ? (
-                          <div className="text-sm text-zinc-400 py-2">{t('common.loading')}</div>
+                          <div className="text-sm text-secondary py-2">{t('common.loading')}</div>
                         ) : (
                           <div className="space-y-1.5">
                             {expandedLineas.map(l => {
@@ -213,19 +213,19 @@ export default function HistorialPage() {
                               const selected = cistella.some(c => c.key === l.id);
                               return (
                                 <div key={l.id} className="flex items-center gap-3 text-sm flex-wrap">
-                                  <span className="text-zinc-400 w-20 shrink-0">{new Date(l.date).toLocaleDateString()}</span>
-                                  <span className="font-medium text-zinc-900">
+                                  <span className="text-secondary w-20 shrink-0">{new Date(l.date).toLocaleDateString()}</span>
+                                  <span className="font-medium text-on-surface">
                                     {l.artist ? `${l.artist}${l.title ? ` — ${l.title}` : ''}` : (l.notes ?? '—')}
                                   </span>
                                   {l.ean && <span className="text-[10px] uppercase tracking-wide text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5">EAN</span>}
-                                  {l.cost_price != null && <span className="text-zinc-400 ml-auto">{l.cost_price} €</span>}
+                                  {l.cost_price != null && <span className="text-secondary ml-auto">{l.cost_price} €</span>}
                                   {addable && (
                                     <button
                                       onClick={() => toggleCistella(l, p.proveedor_id, p.proveedor_nombre)}
                                       title={selected ? t('purchases.search_history.remove_from_request', 'Treure del pool') : t('purchases.search_history.add_to_request', 'Afegir al pool')}
-                                      className={`p-1 rounded-lg ${selected ? 'text-emerald-600 hover:bg-emerald-50' : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'} ${l.cost_price == null ? 'ml-auto' : ''}`}
+                                      className={`p-1 rounded-lg ${selected ? 'text-emerald-600 hover:bg-emerald-50' : 'text-secondary hover:text-on-surface-variant hover:bg-surface-container-high'} ${l.cost_price == null ? 'ml-auto' : ''}`}
                                     >
-                                      {selected ? <PackageCheck size={15} /> : <Plus size={15} />}
+                                      {selected ? <MIcon name="local_shipping" size={15} /> : <MIcon name="add" size={15} />}
                                     </button>
                                   )}
                                 </div>
@@ -242,13 +242,13 @@ export default function HistorialPage() {
           )}
 
           {detalle.length > 0 && (
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 text-sm font-semibold text-zinc-700 border-b border-zinc-100">
+            <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+              <div className="px-5 py-3 text-sm font-semibold text-on-surface-variant border-b border-outline-variant">
                 {t('purchases.search_history.detail', 'Detall')} {q.trim().length >= 2 ? t('purchases.search_history.filtered', '(filtrat)') : t('purchases.search_history.most_recent', '(més recents)')}
               </div>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+                <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                   <tr>
                     <SortableTh label={t('common.date')} sortKey="fecha" sort={detalleSort} onSort={toggleDetalleSort} />
                     <SortableTh label={t('purchases.type.supplier')} sortKey="proveedor_nombre" sort={detalleSort} onSort={toggleDetalleSort} />
@@ -257,14 +257,14 @@ export default function HistorialPage() {
                     <SortableTh label={t('purchases.cost_short', 'Cost')} sortKey="precio_coste" sort={detalleSort} onSort={toggleDetalleSort} align="right" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-outline-variant">
                   {detalleSorted.map(r => (
                     <tr key={r.id}>
-                      <td className="px-4 py-3 text-zinc-500">{new Date(r.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-secondary">{new Date(r.date).toLocaleDateString()}</td>
                       <td className="px-4 py-3 font-medium">{r.proveedor_nombre}</td>
                       <td className="px-4 py-3">{r.artist ? `${r.artist}${r.title ? ` — ${r.title}` : ''}` : (r.notes ?? '—')}</td>
-                      <td className="px-4 py-3 text-zinc-400">{r.label ?? '—'}</td>
-                      <td className="px-4 py-3 text-right text-zinc-500">{r.cost_price != null ? `${r.cost_price} €` : '—'}</td>
+                      <td className="px-4 py-3 text-secondary">{r.label ?? '—'}</td>
+                      <td className="px-4 py-3 text-right text-secondary">{r.cost_price != null ? `${r.cost_price} €` : '—'}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -8,7 +8,7 @@ import ReturnSaleModal from '../../../components/admin/ReturnSaleModal';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
 import { useTenantConfig } from '../../../components/store/useTenantConfig';
-import { Search, X, Disc3, RotateCcw, ChevronDown, ChevronRight, Clock, Bell, Printer, Check, User as UserIcon, UserPlus } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 
 // No hi ha sistema de pujada de logo per tenant (fora d'abast, ver plan) —
 // mentrestant, la imatge compartida només es mostra per al tenant real
@@ -18,7 +18,7 @@ const TENANT_AMB_LOGO = 'recordstore';
 const CANAL_COLOR = {
   mostrador: 'bg-amber-100 text-amber-700',
   discogs:   'bg-blue-100 text-blue-700',
-  otro:      'bg-zinc-100 text-zinc-700',
+  otro:      'bg-surface-container-high text-on-surface-variant',
 };
 const CANAL_KEY = {
   mostrador: 'tpv.canal.counter',
@@ -77,11 +77,11 @@ export default function TpvPage() {
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('tpv.title')}</h2>
-        <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
+        <h2 className="text-2xl font-bold text-on-surface">{t('tpv.title')}</h2>
+        <div className="flex gap-1 bg-surface-container-high p-1 rounded-xl">
           {TABS.map(({ key, label }) => (
             <button key={key} onClick={() => setTab(key)}
-              className={`px-5 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>
+              className={`px-5 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-card text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`}>
               {label}
             </button>
           ))}
@@ -268,40 +268,40 @@ function VendaTab() {
       )}
 
       {/* Search */}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 space-y-4">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
         <div className="relative">
-          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <MIcon name="search" size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary" />
           <input ref={searchRef} value={q} onChange={e => handleQ(e.target.value)}
             placeholder={t('tpv.search_ph')}
-            className="w-full pl-12 pr-4 py-4 border-2 border-zinc-200 rounded-xl text-base focus:outline-none focus:border-zinc-900 transition-colors" />
+            className="w-full pl-12 pr-4 py-4 border-2 border-outline-variant rounded-xl text-base focus:outline-none focus:border-primary transition-colors" />
         </div>
 
-        {searching && <div className="text-center text-sm text-zinc-400 py-2">{t('common.searching')}</div>}
+        {searching && <div className="text-center text-sm text-secondary py-2">{t('common.searching')}</div>}
 
         {results.length > 0 && (
           <div className="space-y-2">
             {results.map(item => (
               <button key={item.id} onClick={() => addToCart(item)}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-zinc-100 hover:border-zinc-300 hover:bg-zinc-50 transition-all text-left">
+                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-outline-variant hover:border-outline-variant hover:bg-surface-container-high transition-all text-left">
                 {item.imagen_url
                   ? <img src={item.imagen_url} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
-                  : <div className="w-14 h-14 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-400 shrink-0"><Disc3 size={24} /></div>
+                  : <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center text-secondary shrink-0"><MIcon name="album" size={24} /></div>
                 }
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-zinc-900 text-base">{item.artista}</div>
-                  <div className="text-zinc-600">{item.titulo}</div>
+                  <div className="font-bold text-on-surface text-base">{item.artista}</div>
+                  <div className="text-on-surface-variant">{item.titulo}</div>
                   <div className="flex items-center gap-2 mt-0.5">
                     {item.condicion === 'nou'
                       ? <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">{t('common.condition.new')}</span>
-                      : <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-600">{t('common.condition.used')}</span>
+                      : <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-on-surface-variant">{t('common.condition.used')}</span>
                     }
                     {item.condicion !== 'nou' && (
-                      <span className="text-xs text-zinc-400">{[item.estado_disco, item.estado_funda].filter(Boolean).join(' / ')}</span>
+                      <span className="text-xs text-secondary">{[item.estado_disco, item.estado_funda].filter(Boolean).join(' / ')}</span>
                     )}
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-2xl font-bold text-zinc-900">{item.precio} €</div>
+                  <div className="text-2xl font-bold text-on-surface">{item.precio} €</div>
                   <div className="text-xs text-green-600 font-semibold mt-0.5">{t('tpv.available')}</div>
                 </div>
               </button>
@@ -310,27 +310,27 @@ function VendaTab() {
         )}
 
         {q && !searching && results.length === 0 && (
-          <div className="text-center text-sm text-zinc-400 py-4">{t('tpv.no_results')}</div>
+          <div className="text-center text-sm text-secondary py-4">{t('tpv.no_results')}</div>
         )}
 
         {/* Article manual (no ve del catàleg: llibres, samarretes, merxandatge...) */}
         {!manualOpen ? (
           <button onClick={() => setManualOpen(true)}
-            className="text-sm text-zinc-500 hover:text-zinc-900 font-medium">
+            className="text-sm text-secondary hover:text-on-surface font-medium">
             + {t('tpv.manual_item', 'Article manual')}
           </button>
         ) : (
-          <div className="bg-zinc-50 rounded-xl p-4 space-y-3">
-            <div className="text-sm font-semibold text-zinc-700">{t('tpv.manual_item', 'Article manual')}</div>
+          <div className="bg-surface-container-high rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('tpv.manual_item', 'Article manual')}</div>
             <input value={manualDesc} onChange={e => setManualDesc(e.target.value)}
               placeholder={t('tpv.manual_item_ph', 'Descripció (p.ex. Samarreta talla M)')}
-              className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
             <div className="flex gap-2">
               <input type="number" step="0.01" min="0" value={manualPrecio} onChange={e => setManualPrecio(e.target.value)}
                 placeholder={t('tpv.manual_item_price_ph', 'Preu final (€)')}
-                className="flex-1 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
+                className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary" />
               <select value={manualTipusIvaId} onChange={e => setManualTipusIvaId(e.target.value)}
-                className="flex-1 border border-zinc-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-zinc-900">
+                className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm bg-card focus:outline-none focus:border-primary">
                 {tiposIva.length === 0 && <option value="">{t('tpv.no_iva_configured', "Cap tipus d'IVA configurat")}</option>}
                 {tiposIva.map(tp => (
                   <option key={tp.id} value={tp.id}>{tp.name} ({parseFloat(tp.percentage)}%)</option>
@@ -343,7 +343,7 @@ function VendaTab() {
                 {t('tpv.add_to_cart', 'Afegir a la cistella')}
               </Button>
               <button type="button" onClick={() => { setManualOpen(false); setManualDesc(''); setManualPrecio(''); }}
-                className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700">
+                className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
                 {t('common.cancel')}
               </button>
             </div>
@@ -353,63 +353,63 @@ function VendaTab() {
 
       {/* Cistella */}
       {cart.length > 0 && (
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
-            <span className="text-sm font-semibold text-zinc-700">
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-outline-variant flex items-center justify-between">
+            <span className="text-sm font-semibold text-on-surface-variant">
               {t('tpv.cart', 'Cistella')} · {cart.length} {cart.length === 1 ? t('tpv.item_singular', 'article') : t('tpv.item_plural', 'articles')}
             </span>
-            <button onClick={() => setCart([])} className="text-xs text-zinc-400 hover:text-red-600 font-medium">
+            <button onClick={() => setCart([])} className="text-xs text-secondary hover:text-red-600 font-medium">
               {t('tpv.clear_cart', 'Buidar')}
             </button>
           </div>
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-outline-variant">
             {cart.map(l => (
               <div key={l.key} className="flex items-center gap-3 p-3">
                 {l.manual
                   ? <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 shrink-0 text-xs font-bold">M</div>
                   : l.imagen_url
                     ? <img src={l.imagen_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                    : <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400 shrink-0"><Disc3 size={16} /></div>
+                    : <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary shrink-0"><MIcon name="album" size={16} /></div>
                 }
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-zinc-900 text-sm truncate">
+                  <div className="font-medium text-on-surface text-sm truncate">
                     {l.manual ? l.descripcion : `${l.artista} — ${l.titulo}`}
                   </div>
                   {l.manual
-                    ? <div className="text-xs text-zinc-400 truncate">IVA {l.tipus_iva_nom}</div>
-                    : l.estado_disco && <div className="text-xs text-zinc-400 truncate">{l.estado_disco}</div>
+                    ? <div className="text-xs text-secondary truncate">IVA {l.tipus_iva_nom}</div>
+                    : l.estado_disco && <div className="text-xs text-secondary truncate">{l.estado_disco}</div>
                   }
                 </div>
                 {!l.manual && l.condicion === 'nou' && l.disponible > 1 && (
-                  <div className="flex items-center border border-zinc-200 rounded-lg shrink-0">
+                  <div className="flex items-center border border-outline-variant rounded-lg shrink-0">
                     <button type="button" onClick={() => updateCartCantidad(l.key, -1)} disabled={l.cantidad <= 1}
-                      className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-900 disabled:opacity-40">−</button>
+                      className="w-7 h-7 flex items-center justify-center text-secondary hover:text-on-surface disabled:opacity-40">−</button>
                     <span className="w-6 text-center text-sm font-medium tabular-nums">{l.cantidad}</span>
                     <button type="button" onClick={() => updateCartCantidad(l.key, 1)} disabled={l.cantidad >= l.disponible}
-                      className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-900 disabled:opacity-40">+</button>
+                      className="w-7 h-7 flex items-center justify-center text-secondary hover:text-on-surface disabled:opacity-40">+</button>
                   </div>
                 )}
                 <div className="flex items-center gap-1 shrink-0">
                   <input type="number" step="0.01" min="0" value={l.precio}
                     onChange={e => updateCartPrecio(l.key, e.target.value)}
-                    className="w-20 border border-zinc-200 rounded-lg px-2 py-1 text-sm text-right font-semibold focus:outline-none focus:border-zinc-900" />
-                  <span className="text-xs text-zinc-400">€</span>
+                    className="w-20 border border-outline-variant rounded-lg px-2 py-1 text-sm text-right font-semibold focus:outline-none focus:border-primary" />
+                  <span className="text-xs text-secondary">€</span>
                   {l.cantidad > 1 && (
-                    <span className="text-xs text-zinc-400 whitespace-nowrap">
+                    <span className="text-xs text-secondary whitespace-nowrap">
                       = {((parseFloat(l.precio) || 0) * l.cantidad).toFixed(2)} €
                     </span>
                   )}
                 </div>
-                <button onClick={() => removeFromCart(l.key)} className="text-zinc-300 hover:text-red-600 shrink-0">
-                  <X size={16} />
+                <button onClick={() => removeFromCart(l.key)} className="text-secondary hover:text-red-600 shrink-0">
+                  <MIcon name="close" size={16} />
                 </button>
               </div>
             ))}
           </div>
-          <div className="px-5 py-4 bg-zinc-50 flex items-center justify-between">
+          <div className="px-5 py-4 bg-surface-container-high flex items-center justify-between">
             <div>
-              <div className="text-xs text-zinc-500">{t('tpv.resum.total')}</div>
-              <div className="text-2xl font-bold text-zinc-900">{cartTotal.toFixed(2)} €</div>
+              <div className="text-xs text-secondary">{t('tpv.resum.total')}</div>
+              <div className="text-2xl font-bold text-on-surface">{cartTotal.toFixed(2)} €</div>
             </div>
             <Button onClick={() => setCheckoutOpen(true)}>{t('tpv.confirm.sell')}</Button>
           </div>
@@ -461,7 +461,7 @@ function ReservesWebTab() {
       <OrdersTiendaSection />
 
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-zinc-700">{t('tpv.customer_requests', 'Peticions de client')}</h3>
+        <h3 className="text-sm font-semibold text-on-surface-variant">{t('tpv.customer_requests', 'Peticions de client')}</h3>
         <ReservesList reserves={reserves} loading={loading} confirmReserva={confirmReserva}
           setConfirmReserva={setConfirmReserva} onSold={load} />
       </div>
@@ -495,42 +495,42 @@ function ReservesList({ reserves, loading, confirmReserva, setConfirmReserva, on
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-secondary">
         {t('tpv.reserves.hint', 'Ja disponibles a botiga, pendents de recollir i pagar. Es reserven 72 hores.')}
       </p>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-10 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : reserves.length === 0 ? (
-          <div className="p-10 text-center text-zinc-400 text-sm">
-            <Bell size={28} className="text-zinc-200 mx-auto mb-3" />
+          <div className="p-10 text-center text-secondary text-sm">
+            <MIcon name="notifications" size={28} className="text-secondary mx-auto mb-3" />
             {t('tpv.reserves.no_pending', 'Cap reserva pendent de recollir.')}
           </div>
         ) : (
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-outline-variant">
             {reserves.map(r => {
               const restant = r.reserved_until ? horesRestants(r.reserved_until) : null;
               return (
                 <div key={r.peticion_id} className="flex items-center gap-4 p-4">
                   {r.imagen_url
                     ? <img src={r.imagen_url} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
-                    : <div className="w-14 h-14 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-400 shrink-0"><Disc3 size={24} /></div>
+                    : <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center text-secondary shrink-0"><MIcon name="album" size={24} /></div>
                   }
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-zinc-900 text-base">{r.artista}</div>
-                    <div className="text-zinc-600">{r.titulo}</div>
-                    <div className="text-xs text-zinc-400 mt-0.5">{r.user_nombre || r.user_email}</div>
+                    <div className="font-bold text-on-surface text-base">{r.artista}</div>
+                    <div className="text-on-surface-variant">{r.titulo}</div>
+                    <div className="text-xs text-secondary mt-0.5">{r.user_nombre || r.user_email}</div>
                   </div>
                   {restant && (
-                    <div className={`flex items-center gap-1 text-xs font-medium shrink-0 ${restant.urgent ? 'text-red-600' : 'text-zinc-400'}`}>
-                      <Clock size={12} /> {restant.h}h {restant.m}m
+                    <div className={`flex items-center gap-1 text-xs font-medium shrink-0 ${restant.urgent ? 'text-red-600' : 'text-secondary'}`}>
+                      <MIcon name="schedule" size={12} /> {restant.h}h {restant.m}m
                     </div>
                   )}
                   <div className="text-right shrink-0">
-                    <div className="text-xl font-bold text-zinc-900 mb-1">{r.precio} €</div>
+                    <div className="text-xl font-bold text-on-surface mb-1">{r.precio} €</div>
                     <button onClick={() => setConfirmReserva(r)}
-                      className="bg-primary hover:bg-zinc-800 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
+                      className="bg-primary hover:opacity-90 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
                       {t('tpv.sell_verb', 'Vendre')}
                     </button>
                   </div>
@@ -590,15 +590,15 @@ function OrdersTiendaSection() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-zinc-700">{t('tpv.web_orders_pickup', 'Comandes web · paga en recollir')}</h3>
+      <h3 className="text-sm font-semibold text-on-surface-variant">{t('tpv.web_orders_pickup', 'Comandes web · paga en recollir')}</h3>
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-2.5">{error}</div>
       )}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-10 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : (
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-outline-variant">
             {orders.map(o => {
               const restant = o.reserved_until ? horesRestants(o.reserved_until) : null;
               return (
@@ -606,21 +606,21 @@ function OrdersTiendaSection() {
                   <div className="flex-1 min-w-0">
                     {o.items.map((it, idx) => (
                       <div key={it.item_id || idx} className="text-sm">
-                        <span className="font-bold text-zinc-900">{it.artista}</span>
-                        <span className="text-zinc-600"> — {it.titulo}</span>
+                        <span className="font-bold text-on-surface">{it.artista}</span>
+                        <span className="text-on-surface-variant"> — {it.titulo}</span>
                       </div>
                     ))}
-                    <div className="text-xs text-zinc-400 mt-0.5">{o.email}</div>
+                    <div className="text-xs text-secondary mt-0.5">{o.email}</div>
                   </div>
                   {restant && (
-                    <div className={`flex items-center gap-1 text-xs font-medium shrink-0 ${restant.urgent ? 'text-red-600' : 'text-zinc-400'}`}>
-                      <Clock size={12} /> {restant.h}h {restant.m}m
+                    <div className={`flex items-center gap-1 text-xs font-medium shrink-0 ${restant.urgent ? 'text-red-600' : 'text-secondary'}`}>
+                      <MIcon name="schedule" size={12} /> {restant.h}h {restant.m}m
                     </div>
                   )}
                   <div className="text-right shrink-0">
-                    <div className="text-xl font-bold text-zinc-900 mb-1">{parseFloat(o.total).toFixed(2)} €</div>
+                    <div className="text-xl font-bold text-on-surface mb-1">{parseFloat(o.total).toFixed(2)} €</div>
                     <button onClick={() => setPayOrder(o)}
-                      className="bg-primary hover:bg-zinc-800 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
+                      className="bg-primary hover:opacity-90 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors">
                       {t('tpv.confirm.sell')}
                     </button>
                   </div>
@@ -670,32 +670,32 @@ function OrderPaymentModal({ order, onConfirm, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200">
-          <h3 className="font-bold text-zinc-900">{t('tpv.charge_order', 'Cobrar comanda')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
+          <h3 className="font-bold text-on-surface">{t('tpv.charge_order', 'Cobrar comanda')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="bg-zinc-50 rounded-xl p-4 space-y-1">
+          <div className="bg-surface-container-high rounded-xl p-4 space-y-1">
             {order.items.map((it, idx) => (
-              <div key={it.item_id || idx} className="text-sm text-zinc-700">
+              <div key={it.item_id || idx} className="text-sm text-on-surface-variant">
                 <span className="font-medium">{it.artista}</span> — {it.titulo}
               </div>
             ))}
-            <div className="text-xs text-zinc-400">{order.email}</div>
+            <div className="text-xs text-secondary">{order.email}</div>
           </div>
-          <div className="text-center text-3xl font-bold text-zinc-900">
+          <div className="text-center text-3xl font-bold text-on-surface">
             {parseFloat(order.total).toFixed(2)} €
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">{t('tpv.confirm.pago')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-2">{t('tpv.confirm.pago')}</label>
             <div className="grid grid-cols-2 gap-2">
               {[['efectivo', t('tpv.pago.cash'), 'bg-green-500'], ['tarjeta', t('tpv.pago.card'), 'bg-indigo-500']].map(([val, label, color]) => (
                 <button key={val} type="button" onClick={() => setPago(val)}
                   className={`py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
                     pago === val
                       ? `${color} text-white border-transparent shadow-md`
-                      : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
+                      : 'bg-card text-on-surface-variant border-outline-variant hover:border-outline-variant'
                   }`}>
                   {label}
                 </button>
@@ -796,20 +796,20 @@ function LinkUserModal({ ticket, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200">
-          <h3 className="font-bold text-zinc-900">{t('tpv.link_user_modal.title', 'Vincular a usuari')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
+          <h3 className="font-bold text-on-surface">{t('tpv.link_user_modal.title', 'Vincular a usuari')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="text-sm text-zinc-500">{t('tpv.link_user_modal.ticket', 'Tiquet')} #{ticket.ticket_id.slice(0, 8)} · {ticket.total.toFixed(2)} €</div>
+          <div className="text-sm text-secondary">{t('tpv.link_user_modal.ticket', 'Tiquet')} #{ticket.ticket_id.slice(0, 8)} · {ticket.total.toFixed(2)} €</div>
 
           {actual && (
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
               <div className="w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
                 {(actual.name || '?')[0].toUpperCase()}
               </div>
-              <div className="flex-1 min-w-0 text-sm font-medium text-zinc-900 truncate">{actual.name ?? t('tpv.link_user_modal.linked_user', 'Usuari vinculat')}</div>
+              <div className="flex-1 min-w-0 text-sm font-medium text-on-surface truncate">{actual.name ?? t('tpv.link_user_modal.linked_user', 'Usuari vinculat')}</div>
               <button type="button" disabled={saving} onClick={() => desar(null)}
                 className="text-xs text-red-600 hover:underline shrink-0 disabled:opacity-50">
                 {t('tpv.link_user_modal.unlink', 'Desvincular')}
@@ -820,18 +820,18 @@ function LinkUserModal({ ticket, onClose, onSaved }) {
           <div className="relative">
             <input value={userQ} onChange={e => handleUserQ(e.target.value)}
               placeholder={actual ? t('tpv.link_user_modal.search_to_change_ph', "Cerca per canviar d'usuari...") : t('tpv.search_user_ph', 'Cerca per nom o email...')} autoFocus
-              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
+              className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary" />
             {userResults.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden max-h-56 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-card border border-outline-variant rounded-xl shadow-lg overflow-hidden max-h-56 overflow-y-auto">
                 {userResults.map(u => (
                   <button key={u.id} type="button" onClick={() => { setSelected(u); setUserQ(u.name || u.email); setUserResults([]); }}
-                    className="w-full text-left px-3 py-2.5 hover:bg-zinc-50 flex items-center gap-2 border-b border-zinc-50 last:border-0">
+                    className="w-full text-left px-3 py-2.5 hover:bg-surface-container-high flex items-center gap-2 border-b border-outline-variant/40 last:border-0">
                     <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0">
                       {(u.name || u.email)[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm text-zinc-900 truncate">{u.name || u.email}</div>
-                      {u.name && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
+                      <div className="text-sm text-on-surface truncate">{u.name || u.email}</div>
+                      {u.name && <div className="text-xs text-secondary truncate">{u.email}</div>}
                     </div>
                   </button>
                 ))}
@@ -916,20 +916,20 @@ function ResumTab() {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
+        <div className="flex gap-1 bg-surface-container-high p-1 rounded-xl">
           {DATE_FILTERS.map(({ key, label }) => (
             <button key={key} onClick={() => setDateFilter(key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${dateFilter === key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}>
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${dateFilter === key ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface'}`}>
               {label(t)}
             </button>
           ))}
         </div>
-        <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
+        <div className="flex gap-1 bg-surface-container-high p-1 rounded-xl">
           {[['all', '—'], ...Object.keys(CANAL_KEY)
             .filter(k => k !== 'discogs' || shopConfig?.discogs_habilitat)
             .map(k => [k, t(CANAL_KEY[k])])].map(([key, label]) => (
             <button key={key} onClick={() => setCanalFilter(key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${canalFilter === key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}>
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${canalFilter === key ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface'}`}>
               {label}
             </button>
           ))}
@@ -937,29 +937,29 @@ function ResumTab() {
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+        <MIcon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
         <input value={q} onChange={e => setQ(e.target.value)}
           placeholder={t('tpv.resum.search_ph')}
-          className="w-full pl-9 pr-4 py-2 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white" />
+          className="w-full pl-9 pr-4 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card" />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-10 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : tickets.length === 0 ? (
-          <div className="p-10 text-center text-zinc-400 text-sm">{t('tpv.resum.no_sales')}</div>
+          <div className="p-10 text-center text-secondary text-sm">{t('tpv.resum.no_sales')}</div>
         ) : (
           <>
-            <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
-              <span className="text-sm text-zinc-500">
+            <div className="px-5 py-3 border-b border-outline-variant flex items-center justify-between">
+              <span className="text-sm text-secondary">
                 {ticketsSorted.length} {t('tpv.resum.tickets_count')} · {sales.length} {t('tpv.resum.sales_count')}
               </span>
-              <span className="font-bold text-zinc-900 whitespace-nowrap">{t('tpv.resum.total')}: {ticketsSorted.reduce((s, tk) => s + tk.total, 0).toFixed(2)} €</span>
+              <span className="font-bold text-on-surface whitespace-nowrap">{t('tpv.resum.total')}: {ticketsSorted.reduce((s, tk) => s + tk.total, 0).toFixed(2)} €</span>
             </div>
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-100">
+              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                 <tr>
                   <th className="px-2 py-2.5 w-8" />
                   <SortableTh label={t('tpv.col.datetime')} sortKey="fecha" sort={sort} onSort={toggleSort} />
@@ -973,40 +973,40 @@ function ResumTab() {
                   <th className="px-2 py-2.5 w-10" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {ticketsSorted.flatMap(tk => {
                   const isOpen = expanded.has(tk.ticket_id);
                   const rows = [
-                    <tr key={tk.ticket_id} className="hover:bg-zinc-50 cursor-pointer" onClick={() => toggleExpand(tk.ticket_id)}>
-                      <td className="px-2 py-2.5 text-zinc-400">
-                        {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    <tr key={tk.ticket_id} className="hover:bg-surface-container-high cursor-pointer" onClick={() => toggleExpand(tk.ticket_id)}>
+                      <td className="px-2 py-2.5 text-secondary">
+                        {isOpen ? <MIcon name="expand_more" size={16} /> : <MIcon name="chevron_right" size={16} />}
                       </td>
-                      <td className="px-4 py-2.5 text-zinc-500 whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-secondary whitespace-nowrap">
                         {new Date(tk.fecha).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-xs text-zinc-400">#{tk.ticket_id.slice(0, 8)}</td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-secondary">#{tk.ticket_id.slice(0, 8)}</td>
                       <td className="px-4 py-2.5">
                         {tk.lines.length === 1 ? (
                           tk.lines[0].artista ? (
                             <>
-                              <span className="font-medium text-zinc-900">{tk.lines[0].artista}</span>
-                              <span className="text-zinc-500"> — {tk.lines[0].titulo}</span>
+                              <span className="font-medium text-on-surface">{tk.lines[0].artista}</span>
+                              <span className="text-secondary"> — {tk.lines[0].titulo}</span>
                             </>
                           ) : (
-                            <span className="text-zinc-900">{tk.lines[0].description ?? '—'}</span>
+                            <span className="text-on-surface">{tk.lines[0].description ?? '—'}</span>
                           )
                         ) : (
-                          <span className="text-zinc-900">{tk.lines.length} {t('tpv.resum.articles')}</span>
+                          <span className="text-on-surface">{tk.lines.length} {t('tpv.resum.articles')}</span>
                         )}
                         {tk.retornades > 0 && (
                           <span className="ml-2 text-xs text-amber-600">· {tk.retornades} {t('return.returned').toLowerCase()}</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-zinc-500">
+                      <td className="px-4 py-2.5 text-secondary">
                         <div>{tk.nombre_cliente ?? '—'}</div>
                         <button onClick={(e) => { e.stopPropagation(); setLinkTicket(tk); }}
-                          className={`mt-0.5 inline-flex items-center gap-1 text-xs hover:underline ${tk.user_nom ? 'text-amber-700' : 'text-zinc-400'}`}>
-                          {tk.user_nom ? <><UserIcon size={11} /> {tk.user_nom}</> : <><UserPlus size={11} /> {t('tpv.link_user_modal.link', 'Vincular')}</>}
+                          className={`mt-0.5 inline-flex items-center gap-1 text-xs hover:underline ${tk.user_nom ? 'text-amber-700' : 'text-secondary'}`}>
+                          {tk.user_nom ? <><MIcon name="person" size={11} /> {tk.user_nom}</> : <><MIcon name="person_add" size={11} /> {t('tpv.link_user_modal.link', 'Vincular')}</>}
                         </button>
                       </td>
                       <td className="px-4 py-2.5">
@@ -1023,8 +1023,8 @@ function ResumTab() {
                       <td className="px-2 py-2.5 text-right">
                         <button onClick={(e) => { e.stopPropagation(); setPrintSale({ items: tk.lines, metodo_pago: tk.metodo_pago, nombre_cliente: tk.nombre_cliente, fecha: tk.fecha }); }}
                           title={t('tpv.print_ticket', 'Imprimir tiquet')}
-                          className="text-zinc-400 hover:text-zinc-700 p-1 rounded-lg hover:bg-zinc-100">
-                          <Printer size={14} />
+                          className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high">
+                          <MIcon name="print" size={14} />
                         </button>
                       </td>
                     </tr>,
@@ -1032,31 +1032,31 @@ function ResumTab() {
                   if (isOpen) {
                     rows.push(
                       <tr key={`${tk.ticket_id}-detail`}>
-                        <td colSpan={9} className="bg-zinc-50/70 p-0">
+                        <td colSpan={9} className="bg-surface-container-high/70 p-0">
                           <table className="w-full text-sm">
-                            <tbody className="divide-y divide-zinc-100">
+                            <tbody className="divide-y divide-outline-variant">
                               {tk.lines.map(v => (
                                 <tr key={v.id}>
                                   <td className="pl-12 pr-4 py-2 w-1/2">
                                     {v.artista ? (
                                       <>
-                                        <span className="font-medium text-zinc-900">{v.artista}</span>
-                                        <span className="text-zinc-500"> — {v.titulo}</span>
+                                        <span className="font-medium text-on-surface">{v.artista}</span>
+                                        <span className="text-secondary"> — {v.titulo}</span>
                                       </>
                                     ) : (
-                                      <span className="text-zinc-900">{v.description ?? '—'}</span>
+                                      <span className="text-on-surface">{v.description ?? '—'}</span>
                                     )}
                                   </td>
-                                  <td className="px-4 py-2 text-right font-medium text-zinc-700 whitespace-nowrap">{v.sale_price} €</td>
+                                  <td className="px-4 py-2 text-right font-medium text-on-surface-variant whitespace-nowrap">{v.sale_price} €</td>
                                   <td className="px-4 py-2 text-right w-32">
                                     {v.devuelta ? (
-                                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500">
+                                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary">
                                         {t('return.returned')}
                                       </span>
                                     ) : v.item_id ? (
                                       <button onClick={(e) => { e.stopPropagation(); setReturnVenta(v); }}
                                         className="flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700 border border-amber-200 rounded-lg px-2 py-1 hover:bg-amber-50 transition-colors ml-auto">
-                                        <RotateCcw size={12} /> {t('return.btn')}
+                                        <MIcon name="undo" size={12} /> {t('return.btn')}
                                       </button>
                                     ) : null}
                                   </td>
@@ -1229,7 +1229,7 @@ function CaixaTab() {
   }
 
   if (activa === undefined) {
-    return <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>;
+    return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
   }
 
   return (
@@ -1240,38 +1240,38 @@ function CaixaTab() {
 
       {/* Sessió activa o formulari d'obertura */}
       {activa === null ? (
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">
-          <div className="text-sm text-zinc-500 mb-4">{t('caixa.no_session')}</div>
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6">
+          <div className="text-sm text-secondary mb-4">{t('caixa.no_session')}</div>
           <form onSubmit={obrir} className="space-y-4 max-w-xs">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('caixa.fondo_inicial')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('caixa.fondo_inicial')}</label>
               <input type="number" step="0.01" min="0" required value={fondo} onChange={e => setFondo(e.target.value)}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.notes')}</label>
               <input value={notas} onChange={e => setNotas(e.target.value)}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <Button type="submit" disabled={saving}>{saving ? t('caixa.opening') : t('caixa.open')}</Button>
           </form>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
           {/* Capçalera sessió */}
           <div className="px-5 py-4 bg-green-50 border-b border-green-100 flex items-center justify-between">
             <div>
               <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-700 mr-2">
                 {t('caixa.status.open')}
               </span>
-              <span className="text-sm text-zinc-600">
+              <span className="text-sm text-on-surface-variant">
                 {t('caixa.opened_at')} {new Date(activa.opened_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="p-5 grid grid-cols-2 sm:grid-cols-5 gap-3 border-b border-zinc-100">
+          <div className="p-5 grid grid-cols-2 sm:grid-cols-5 gap-3 border-b border-outline-variant">
             <CaixaStat label={t('caixa.col.fondo')} value={`${parseFloat(activa.opening_float).toFixed(2)} €`} />
             <CaixaStat label={t('caixa.total_ventas')} value={`${totalEfectiu.toFixed(2)} €`} highlight />
             <CaixaStat label={t('caixa.col.entrades')} value={`+${totalEntrades.toFixed(2)} €`} color="green" />
@@ -1282,16 +1282,16 @@ function CaixaTab() {
           {/* Vendes d'aquesta sessió */}
           {ventesHui.length > 0 && (
             <div className="px-5 pb-1">
-              <div className="text-xs text-zinc-400 font-medium pt-3 pb-2 uppercase tracking-wide">
+              <div className="text-xs text-secondary font-medium pt-3 pb-2 uppercase tracking-wide">
                 {ventesHui.length} {t('tpv.resum.sales_count')}
               </div>
               <div className="space-y-0.5">
                 {ventesHui.map(v => (
                   <div key={v.id} className="flex items-center gap-3 text-sm py-1">
-                    <span className="text-zinc-400 w-12 shrink-0 text-xs">{new Date(v.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
-                    <span className="font-medium text-zinc-900 flex-1 truncate">{v.artista ? `${v.artista} — ${v.titulo}` : v.description}</span>
-                    {v.client_name && <span className="text-zinc-400 text-xs truncate max-w-[100px]">{v.client_name}</span>}
-                    <span className="font-semibold text-zinc-900 shrink-0">{parseFloat(v.sale_price).toFixed(2)} €</span>
+                    <span className="text-secondary w-12 shrink-0 text-xs">{new Date(v.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="font-medium text-on-surface flex-1 truncate">{v.artista ? `${v.artista} — ${v.titulo}` : v.description}</span>
+                    {v.client_name && <span className="text-secondary text-xs truncate max-w-[100px]">{v.client_name}</span>}
+                    <span className="font-semibold text-on-surface shrink-0">{parseFloat(v.sale_price).toFixed(2)} €</span>
                   </div>
                 ))}
               </div>
@@ -1299,9 +1299,9 @@ function CaixaTab() {
           )}
 
           {/* Moviments de caixa */}
-          <div className="px-5 py-4 border-t border-zinc-100">
+          <div className="px-5 py-4 border-t border-outline-variant">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{t('caixa.mov.title')}</div>
+              <div className="text-xs font-semibold text-secondary uppercase tracking-wide">{t('caixa.mov.title')}</div>
               {!showMovForm && (
                 <button onClick={() => setShowMovForm(true)}
                   className="text-xs text-amber-600 hover:text-amber-700 font-medium">
@@ -1311,7 +1311,7 @@ function CaixaTab() {
             </div>
 
             {showMovForm && (
-              <form onSubmit={addMoviment} className="bg-zinc-50 rounded-xl p-4 mb-3 space-y-3">
+              <form onSubmit={addMoviment} className="bg-surface-container-high rounded-xl p-4 mb-3 space-y-3">
                 {/* Tipus entrada/sortida */}
                 <div className="flex gap-2">
                   {['entrada', 'salida'].map(tipo => (
@@ -1322,7 +1322,7 @@ function CaixaTab() {
                           ? tipo === 'entrada'
                             ? 'bg-green-50 border-green-400 text-green-700'
                             : 'bg-red-50 border-red-400 text-red-700'
-                          : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                          : 'border-outline-variant text-secondary hover:border-outline-variant'
                       }`}>
                       {t(`caixa.mov.${tipo}`)}
                     </button>
@@ -1332,17 +1332,17 @@ function CaixaTab() {
                   <input
                     placeholder={t('caixa.mov.concepto_ph')}
                     required value={movConcepto} onChange={e => setMovConcepto(e.target.value)}
-                    className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                    className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                   <input type="number" step="0.01" min="0.01" required placeholder="0.00"
                     value={movImporte} onChange={e => setMovImporte(e.target.value)}
-                    className="w-28 border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                    className="w-28 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={savingMov}>
                     {savingMov ? t('caixa.mov.adding') : t('caixa.mov.add')}
                   </Button>
                   <button type="button" onClick={() => { setShowMovForm(false); setMovConcepto(''); setMovImporte(''); }}
-                    className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700">
+                    className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
                     {t('common.cancel')}
                   </button>
                 </div>
@@ -1350,7 +1350,7 @@ function CaixaTab() {
             )}
 
             {moviments.length === 0 && !showMovForm ? (
-              <div className="text-xs text-zinc-400 py-1">{t('caixa.mov.no_movements')}</div>
+              <div className="text-xs text-secondary py-1">{t('caixa.mov.no_movements')}</div>
             ) : (
               <div className="space-y-1">
                 {moviments.map(m => (
@@ -1360,8 +1360,8 @@ function CaixaTab() {
                     }`}>
                       {t(`caixa.mov.${m.type}`)}
                     </span>
-                    <span className="flex-1 text-zinc-700">{m.concept}</span>
-                    <span className="text-xs text-zinc-400 shrink-0">
+                    <span className="flex-1 text-on-surface-variant">{m.concept}</span>
+                    <span className="text-xs text-secondary shrink-0">
                       {new Date(m.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <span className={`font-semibold shrink-0 ${m.type === 'entrada' ? 'text-green-700' : 'text-red-600'}`}>
@@ -1374,18 +1374,18 @@ function CaixaTab() {
           </div>
 
           {/* Formulari de tancament */}
-          <div className="px-5 py-4 bg-zinc-50 border-t border-zinc-100">
-            <div className="text-sm font-semibold text-zinc-700 mb-3">{t('caixa.close')}</div>
+          <div className="px-5 py-4 bg-surface-container-high border-t border-outline-variant">
+            <div className="text-sm font-semibold text-on-surface-variant mb-3">{t('caixa.close')}</div>
             <form onSubmit={tancar} className="flex items-end gap-3 flex-wrap">
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('caixa.conteo_real')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('caixa.conteo_real')}</label>
                 <input type="number" step="0.01" min="0" required value={conteo} onChange={e => setConteo(e.target.value)}
-                  className="border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 w-36" />
+                  className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary w-36" />
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">{t('common.notes')}</label>
+                <label className="block text-xs text-secondary mb-1">{t('common.notes')}</label>
                 <input value={notas} onChange={e => setNotas(e.target.value)}
-                  className="border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 w-48" />
+                  className="border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary w-48" />
               </div>
               <Button type="submit" variant="danger" disabled={saving}>
                 {saving ? t('caixa.closing') : t('caixa.close')}
@@ -1396,18 +1396,18 @@ function CaixaTab() {
       )}
 
       {/* Historial */}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-100">
-          <h3 className="font-semibold text-zinc-900 text-sm">{t('caixa.history')}</h3>
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-outline-variant">
+          <h3 className="font-semibold text-on-surface text-sm">{t('caixa.history')}</h3>
         </div>
         {loadingSessions ? (
-          <div className="p-8 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-8 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : sessionsTancades.length === 0 ? (
-          <div className="p-8 text-center text-zinc-400 text-sm">{t('caixa.no_history')}</div>
+          <div className="p-8 text-center text-secondary text-sm">{t('caixa.no_history')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
-              <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-100">
+              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                 <tr>
                   <SortableTh label={t('caixa.col.date')} sortKey="opened_at" sort={sessionsSort} onSort={toggleSessionsSort} />
                   <SortableTh label={t('caixa.col.fondo')} sortKey="opening_float" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
@@ -1418,14 +1418,14 @@ function CaixaTab() {
                   <SortableTh label={t('caixa.col.diferencia')} sortKey="diferencia" sort={sessionsSort} onSort={toggleSessionsSort} align="right" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {sessionsSorted.map(s => {
                   const difNum = s.diferencia !== null ? parseFloat(s.diferencia) : null;
                   return (
-                    <tr key={s.id} className="hover:bg-zinc-50">
-                      <td className="px-4 py-2.5 text-zinc-500">
+                    <tr key={s.id} className="hover:bg-surface-container-high">
+                      <td className="px-4 py-2.5 text-secondary">
                         {new Date(s.opened_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                        <span className="text-zinc-400 ml-1 text-xs">
+                        <span className="text-secondary ml-1 text-xs">
                           {new Date(s.opened_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </td>
@@ -1454,11 +1454,11 @@ function CaixaTab() {
 }
 
 function CaixaStat({ label, value, highlight, color }) {
-  const bg = highlight ? 'bg-amber-50' : color === 'green' ? 'bg-green-50' : color === 'red' ? 'bg-red-50' : 'bg-zinc-50';
-  const text = highlight ? 'text-amber-700' : color === 'green' ? 'text-green-700' : color === 'red' ? 'text-red-600' : 'text-zinc-900';
+  const bg = highlight ? 'bg-amber-50' : color === 'green' ? 'bg-green-50' : color === 'red' ? 'bg-red-50' : 'bg-surface-container-high';
+  const text = highlight ? 'text-amber-700' : color === 'green' ? 'text-green-700' : color === 'red' ? 'text-red-600' : 'text-on-surface';
   return (
     <div className={`rounded-xl p-3 ${bg}`}>
-      <div className="text-xs text-zinc-500 mb-1 truncate">{label}</div>
+      <div className="text-xs text-secondary mb-1 truncate">{label}</div>
       <div className={`text-lg font-bold ${text}`}>{value}</div>
     </div>
   );
@@ -1520,34 +1520,34 @@ function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200">
-          <h3 className="font-bold text-zinc-900">{t('tpv.confirm.title')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant">
+          <h3 className="font-bold text-on-surface">{t('tpv.confirm.title')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="flex items-center gap-4 p-4 bg-zinc-50 rounded-xl">
+          <div className="flex items-center gap-4 p-4 bg-surface-container-high rounded-xl">
             {item.imagen_url
               ? <img src={item.imagen_url} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0" />
-              : <div className="w-16 h-16 rounded-xl bg-zinc-200 flex items-center justify-center text-zinc-400 shrink-0"><Disc3 size={28} /></div>
+              : <div className="w-16 h-16 rounded-xl bg-surface-container-high flex items-center justify-center text-secondary shrink-0"><MIcon name="album" size={28} /></div>
             }
             <div>
-              <div className="font-bold text-zinc-900">{item.artista}</div>
-              <div className="text-zinc-600 text-sm">{item.titulo}</div>
-              <div className="text-xs text-zinc-400 mt-1">{item.estado_disco ?? '—'}</div>
+              <div className="font-bold text-on-surface">{item.artista}</div>
+              <div className="text-on-surface-variant text-sm">{item.titulo}</div>
+              <div className="text-xs text-secondary mt-1">{item.estado_disco ?? '—'}</div>
             </div>
           </div>
           <form onSubmit={handle} className="space-y-4">
             {/* Mètode de pagament */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">{t('tpv.confirm.pago')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-2">{t('tpv.confirm.pago')}</label>
               <div className="grid grid-cols-2 gap-2">
                 {METODES_PAGAMENT.map(({ val, key, color }) => (
                   <button key={val} type="button" onClick={() => setPago(val)}
                     className={`py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
                       pago === val
                         ? `${color} text-white border-transparent shadow-md`
-                        : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
+                        : 'bg-card text-on-surface-variant border-outline-variant hover:border-outline-variant'
                     }`}>
                     {t(key)}
                   </button>
@@ -1556,42 +1556,42 @@ function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
             </div>
             {/* Preu */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">{t('tpv.confirm.price')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-2">{t('tpv.confirm.price')}</label>
               <input type="number" step="0.01" min="0" required value={precio} onChange={e => setPrecio(e.target.value)}
-                className="w-full border-2 border-zinc-200 rounded-xl px-4 py-3 text-xl font-bold text-center focus:outline-none focus:border-zinc-900" />
+                className="w-full border-2 border-outline-variant rounded-xl px-4 py-3 text-xl font-bold text-center focus:outline-none focus:border-primary" />
             </div>
             {/* Vinclar a usuari registrat */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.individual_modal.registered_user', 'Usuari registrat')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span></label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.individual_modal.registered_user', 'Usuari registrat')} <span className="text-secondary font-normal">{t('common.optional', '(opcional)')}</span></label>
               {linkedUser ? (
                 <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                   <div className="w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
                     {(linkedUser.name || linkedUser.email)[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 truncate">{linkedUser.name || linkedUser.email}</div>
-                    {linkedUser.name && <div className="text-xs text-zinc-400 truncate">{linkedUser.email}</div>}
+                    <div className="text-sm font-medium text-on-surface truncate">{linkedUser.name || linkedUser.email}</div>
+                    {linkedUser.name && <div className="text-xs text-secondary truncate">{linkedUser.email}</div>}
                   </div>
-                  <button type="button" onClick={clearUser} className="text-zinc-400 hover:text-zinc-600 shrink-0">
-                    <X size={14} />
+                  <button type="button" onClick={clearUser} className="text-secondary hover:text-on-surface-variant shrink-0">
+                    <MIcon name="close" size={14} />
                   </button>
                 </div>
               ) : (
                 <div className="relative">
                   <input value={userQ} onChange={e => handleUserQ(e.target.value)}
                     placeholder={t('tpv.search_user_ph', 'Cerca per nom o email...')}
-                    className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
+                    className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                   {userResults.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
+                    <div className="absolute z-10 w-full mt-1 bg-card border border-outline-variant rounded-xl shadow-lg overflow-hidden">
                       {userResults.map(u => (
                         <button key={u.id} type="button" onClick={() => selectUser(u)}
-                          className="w-full text-left px-3 py-2.5 hover:bg-zinc-50 flex items-center gap-2 border-b border-zinc-50 last:border-0">
+                          className="w-full text-left px-3 py-2.5 hover:bg-surface-container-high flex items-center gap-2 border-b border-outline-variant/40 last:border-0">
                           <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0">
                             {(u.name || u.email)[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm text-zinc-900 truncate">{u.name || u.email}</div>
-                            {u.name && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
+                            <div className="text-sm text-on-surface truncate">{u.name || u.email}</div>
+                            {u.name && <div className="text-xs text-secondary truncate">{u.email}</div>}
                           </div>
                         </button>
                       ))}
@@ -1602,10 +1602,10 @@ function ConfirmModal({ item, onConfirm, onClose, initialUser = null }) {
             </div>
             {/* Nom client manual */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('tpv.confirm.client')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span></label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('tpv.confirm.client')} <span className="text-secondary font-normal">{t('common.optional', '(opcional)')}</span></label>
               <input value={client} onChange={e => setClient(e.target.value)}
                 placeholder={t('tpv.confirm.client_ph')}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary" />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <div className="flex gap-3 pt-1">
@@ -1674,20 +1674,20 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 shrink-0">
-          <h3 className="font-bold text-zinc-900">{t('tpv.checkout_cart_title', 'Cobrar cistella')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant shrink-0">
+          <h3 className="font-bold text-on-surface">{t('tpv.checkout_cart_title', 'Cobrar cistella')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <div className="p-5 space-y-4 overflow-y-auto">
-          <div className="bg-zinc-50 rounded-xl p-4 space-y-2">
+          <div className="bg-surface-container-high rounded-xl p-4 space-y-2">
             {cart.map(l => (
               <div key={l.key} className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-zinc-700 truncate">{l.manual ? l.descripcion : `${l.artista} — ${l.titulo}`}</span>
-                <span className="font-semibold text-zinc-900 shrink-0">{(parseFloat(l.precio) || 0).toFixed(2)} €</span>
+                <span className="text-on-surface-variant truncate">{l.manual ? l.descripcion : `${l.artista} — ${l.titulo}`}</span>
+                <span className="font-semibold text-on-surface shrink-0">{(parseFloat(l.precio) || 0).toFixed(2)} €</span>
               </div>
             ))}
-            <div className="border-t border-zinc-200 pt-2 flex items-center justify-between font-bold text-zinc-900">
+            <div className="border-t border-outline-variant pt-2 flex items-center justify-between font-bold text-on-surface">
               <span>{t('tpv.resum.total')} · {cart.length} {cart.length === 1 ? t('tpv.item_singular', 'article') : t('tpv.item_plural', 'articles')}</span>
               <span>{total.toFixed(2)} €</span>
             </div>
@@ -1695,14 +1695,14 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
           <form onSubmit={handle} className="space-y-4">
             {/* Mètode de pagament */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">{t('tpv.confirm.pago')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-2">{t('tpv.confirm.pago')}</label>
               <div className="grid grid-cols-2 gap-2">
                 {METODES_PAGAMENT.map(({ val, key, color }) => (
                   <button key={val} type="button" onClick={() => setPago(val)}
                     className={`py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
                       pago === val
                         ? `${color} text-white border-transparent shadow-md`
-                        : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
+                        : 'bg-card text-on-surface-variant border-outline-variant hover:border-outline-variant'
                     }`}>
                     {t(key)}
                   </button>
@@ -1711,36 +1711,36 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
             </div>
             {/* Vinclar a usuari registrat */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.individual_modal.registered_user', 'Usuari registrat')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span></label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.individual_modal.registered_user', 'Usuari registrat')} <span className="text-secondary font-normal">{t('common.optional', '(opcional)')}</span></label>
               {linkedUser ? (
                 <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                   <div className="w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">
                     {(linkedUser.name || linkedUser.email)[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 truncate">{linkedUser.name || linkedUser.email}</div>
-                    {linkedUser.name && <div className="text-xs text-zinc-400 truncate">{linkedUser.email}</div>}
+                    <div className="text-sm font-medium text-on-surface truncate">{linkedUser.name || linkedUser.email}</div>
+                    {linkedUser.name && <div className="text-xs text-secondary truncate">{linkedUser.email}</div>}
                   </div>
-                  <button type="button" onClick={clearUser} className="text-zinc-400 hover:text-zinc-600 shrink-0">
-                    <X size={14} />
+                  <button type="button" onClick={clearUser} className="text-secondary hover:text-on-surface-variant shrink-0">
+                    <MIcon name="close" size={14} />
                   </button>
                 </div>
               ) : (
                 <div className="relative">
                   <input value={userQ} onChange={e => handleUserQ(e.target.value)}
                     placeholder={t('tpv.search_user_ph', 'Cerca per nom o email...')}
-                    className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
+                    className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary" />
                   {userResults.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
+                    <div className="absolute z-10 w-full mt-1 bg-card border border-outline-variant rounded-xl shadow-lg overflow-hidden">
                       {userResults.map(u => (
                         <button key={u.id} type="button" onClick={() => selectUser(u)}
-                          className="w-full text-left px-3 py-2.5 hover:bg-zinc-50 flex items-center gap-2 border-b border-zinc-50 last:border-0">
+                          className="w-full text-left px-3 py-2.5 hover:bg-surface-container-high flex items-center gap-2 border-b border-outline-variant/40 last:border-0">
                           <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold shrink-0">
                             {(u.name || u.email)[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm text-zinc-900 truncate">{u.name || u.email}</div>
-                            {u.name && <div className="text-xs text-zinc-400 truncate">{u.email}</div>}
+                            <div className="text-sm text-on-surface truncate">{u.name || u.email}</div>
+                            {u.name && <div className="text-xs text-secondary truncate">{u.email}</div>}
                           </div>
                         </button>
                       ))}
@@ -1751,10 +1751,10 @@ function CartCheckoutModal({ cart, total, onConfirm, onClose }) {
             </div>
             {/* Nom client manual */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('tpv.confirm.client')} <span className="text-zinc-400 font-normal">{t('common.optional', '(opcional)')}</span></label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('tpv.confirm.client')} <span className="text-secondary font-normal">{t('common.optional', '(opcional)')}</span></label>
               <input value={client} onChange={e => setClient(e.target.value)}
                 placeholder={t('tpv.confirm.client_ph')}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-zinc-900" />
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary" />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <div className="flex gap-3 pt-1">
@@ -1872,13 +1872,13 @@ function SaleDoneModal({ sale, shopConfig, onClose }) {
   return (
     <>
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
+        <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto">
-            <Check size={24} />
+            <MIcon name="check" size={24} />
           </div>
           <div>
-            <h3 className="font-bold text-zinc-900 text-lg">{t('tpv.sale_done.title', 'Venda registrada')}</h3>
-            <p className="text-sm text-zinc-500 mt-1">
+            <h3 className="font-bold text-on-surface text-lg">{t('tpv.sale_done.title', 'Venda registrada')}</h3>
+            <p className="text-sm text-secondary mt-1">
               {items.length === 1
                 ? (items[0].artista ? `${items[0].artista} — ${items[0].titulo}` : items[0].description)
                 : `${items.length} ${t('tpv.item_plural', 'articles')} · ${total.toFixed(2)} €`}
@@ -1886,11 +1886,11 @@ function SaleDoneModal({ sale, shopConfig, onClose }) {
           </div>
           <div className="flex gap-3">
             <button onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-zinc-600 border border-zinc-200 hover:bg-zinc-50">
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-on-surface-variant border border-outline-variant hover:bg-surface-container-high">
               {t('tpv.sale_done.close', 'Tancar')}
             </button>
             <Button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-2">
-              <Printer size={16} /> {t('tpv.print_ticket', 'Imprimir tiquet')}
+              <MIcon name="print" size={16} /> {t('tpv.print_ticket', 'Imprimir tiquet')}
             </Button>
           </div>
         </div>

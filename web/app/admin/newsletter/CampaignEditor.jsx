@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Code, PenLine, Loader2, AlertCircle, Send, Mail } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { authFetch } from '../../lib/auth';
 import RichTextEditor from './RichTextEditor';
 
@@ -121,17 +121,17 @@ export default function CampaignEditor({ initial = null }) {
             <button
               type="button"
               onClick={() => setShowHtml(v => !v)}
-              className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-600 px-3 py-2 rounded-lg hover:bg-zinc-50 transition-colors"
+              className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors"
             >
-              {showHtml ? <PenLine size={13} /> : <Code size={13} />}
+              {showHtml ? <MIcon name="edit_note" size={13} /> : <MIcon name="code" size={13} />}
               {showHtml ? 'Editor visual' : 'Veure HTML'}
             </button>
             <button
               onClick={handleSave}
               disabled={saving || !form.subject || !form.content_html}
-              className="flex items-center gap-1.5 text-sm bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
+              className="flex items-center gap-1.5 text-sm bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
             >
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              {saving ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="save" size={13} />}
               {isEdit ? 'Desar canvis' : 'Crear esborrany'}
             </button>
           </div>
@@ -140,7 +140,7 @@ export default function CampaignEditor({ initial = null }) {
 
       {error && (
         <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-          <AlertCircle size={14} /> {error}
+          <MIcon name="error" size={14} /> {error}
         </div>
       )}
       {notice && (
@@ -152,26 +152,26 @@ export default function CampaignEditor({ initial = null }) {
       <div className="grid md:grid-cols-3 gap-5">
         <div className="md:col-span-2 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">Assumpte *</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Assumpte *</label>
             <input
               type="text"
               value={form.subject}
               onChange={e => set('subject', e.target.value)}
               disabled={!isDraft}
               placeholder="Novetats de la setmana…"
-              className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 font-medium disabled:bg-zinc-50 disabled:text-zinc-500"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary font-medium disabled:bg-surface-container-high disabled:text-secondary"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-zinc-600">Contingut *</label>
-              <span className="text-xs text-zinc-400">{wordCount} paraules</span>
+              <label className="text-xs font-medium text-on-surface-variant">Contingut *</label>
+              <span className="text-xs text-secondary">{wordCount} paraules</span>
             </div>
             {!isDraft ? (
               <div
-                className="blog-content min-h-[400px] bg-white border border-zinc-200 rounded-xl p-5 overflow-auto"
-                dangerouslySetInnerHTML={{ __html: form.content_html || '<p class="text-zinc-300">Sense contingut…</p>' }}
+                className="blog-content min-h-[400px] bg-card border border-outline-variant rounded-xl p-5 overflow-auto"
+                dangerouslySetInnerHTML={{ __html: form.content_html || '<p class="text-secondary">Sense contingut…</p>' }}
               />
             ) : showHtml ? (
               <textarea
@@ -179,7 +179,7 @@ export default function CampaignEditor({ initial = null }) {
                 onChange={e => set('content_html', e.target.value)}
                 placeholder="<p>Contingut en HTML…</p>"
                 rows={20}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-y"
+                className="w-full border border-outline-variant rounded-xl px-3 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary resize-y"
               />
             ) : (
               <RichTextEditor value={form.content_html} onChange={v => set('content_html', v)} />
@@ -190,7 +190,7 @@ export default function CampaignEditor({ initial = null }) {
         <div className="space-y-4">
           {isDraft && (
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1.5">Idioma</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Idioma</label>
               <div className="flex gap-2">
                 {[{ code: 'ca', label: 'Català' }, { code: 'es', label: 'Castellano' }].map(({ code, label }) => (
                   <button
@@ -199,8 +199,8 @@ export default function CampaignEditor({ initial = null }) {
                     onClick={() => set('language', code)}
                     className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${
                       form.language === code
-                        ? 'border-zinc-900 bg-zinc-100 text-zinc-900 font-medium'
-                        : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                        ? 'border-primary bg-surface-container-high text-on-surface font-medium'
+                        : 'border-outline-variant text-secondary hover:border-outline-variant'
                     }`}
                   >
                     {label}
@@ -221,15 +221,15 @@ export default function CampaignEditor({ initial = null }) {
           </div>
 
           {campaign && total > 0 && (
-            <div className="border border-zinc-200 rounded-xl p-4 space-y-2">
-              <p className="text-xs font-medium text-zinc-600">Progrés</p>
-              <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+            <div className="border border-outline-variant rounded-xl p-4 space-y-2">
+              <p className="text-xs font-medium text-on-surface-variant">Progrés</p>
+              <div className="h-2 bg-surface-container-high rounded-full overflow-hidden">
                 <div
                   className="h-full bg-emerald-500 transition-all"
                   style={{ width: `${((counts.enviat + counts.error) / total) * 100}%` }}
                 />
               </div>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-secondary">
                 {counts.enviat} enviats · {counts.pendent} pendents{counts.error > 0 ? ` · ${counts.error} errors` : ''}
               </p>
               {campaign.errors?.length > 0 && (
@@ -246,27 +246,27 @@ export default function CampaignEditor({ initial = null }) {
           )}
 
           {isDraft && isEdit && (
-            <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
-              <p className="text-xs font-medium text-zinc-600 flex items-center gap-1.5">
-                <Mail size={13} /> {recipients === null ? '…' : recipients} subscriptors actius
+            <div className="border border-outline-variant rounded-xl p-4 space-y-3">
+              <p className="text-xs font-medium text-on-surface-variant flex items-center gap-1.5">
+                <MIcon name="mail" size={13} /> {recipients === null ? '…' : recipients} subscriptors actius
               </p>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-zinc-600">Enviar prova a</label>
+                <label className="block text-xs font-medium text-on-surface-variant">Enviar prova a</label>
                 <div className="flex gap-1.5">
                   <input
                     type="email"
                     value={testEmail}
                     onChange={e => setTestEmail(e.target.value)}
                     placeholder="tu@exemple.com"
-                    className="flex-1 min-w-0 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                    className="flex-1 min-w-0 border border-outline-variant rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <button
                     onClick={handleSendTest}
                     disabled={sendingTest || !testEmail}
-                    className="px-3 py-1.5 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 text-xs border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-50 transition-colors"
                   >
-                    {sendingTest ? <Loader2 size={12} className="animate-spin" /> : 'Provar'}
+                    {sendingTest ? <MIcon name="progress_activity" size={12} className="animate-spin" /> : 'Provar'}
                   </button>
                 </div>
               </div>
@@ -274,9 +274,9 @@ export default function CampaignEditor({ initial = null }) {
               <button
                 onClick={handleSendAll}
                 disabled={sending || !form.subject || !form.content_html}
-                className="w-full flex items-center justify-center gap-1.5 text-sm bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
+                className="w-full flex items-center justify-center gap-1.5 text-sm bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
               >
-                {sending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                {sending ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="send" size={13} />}
                 Enviar a tothom
               </button>
             </div>

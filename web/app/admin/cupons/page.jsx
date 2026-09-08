@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
-import { Plus, Pencil, Trash2, Check, X, History } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 
 const EMPTY = {
   code: '', discount_type: 'percentage', discount_value: '', starts_at: '', ends_at: '',
@@ -116,90 +116,90 @@ export default function CuponsPage() {
   return (
     <div className="space-y-5 max-w-3xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">Cupons</h2>
+        <h2 className="text-2xl font-bold text-on-surface">Cupons</h2>
         <Button size="sm" onClick={openNew}>
-          <Plus size={15} /> Nou cupó
+          <MIcon name="add" size={15} /> Nou cupó
         </Button>
       </div>
 
       {editing && (
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5 space-y-4">
-          <h3 className="font-semibold text-zinc-900">{editing === 'new' ? 'Nou cupó' : 'Editar cupó'}</h3>
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-5 space-y-4">
+          <h3 className="font-semibold text-on-surface">{editing === 'new' ? 'Nou cupó' : 'Editar cupó'}</h3>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Codi <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-secondary mb-1">Codi <span className="text-red-500">*</span></label>
               <input
                 value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
                 placeholder="BENVINGUDA10"
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Tipus</label>
+              <label className="block text-xs font-medium text-secondary mb-1">Tipus</label>
               <select
                 value={form.discount_type} onChange={e => setForm(p => ({ ...p, discount_type: e.target.value }))}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="percentage">Percentatge</option>
                 <option value="fixed_amount">Import fix</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">
+              <label className="block text-xs font-medium text-secondary mb-1">
                 Valor {form.discount_type === 'percentage' ? '(%)' : '(€)'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number" step="0.01" value={form.discount_value}
                 onChange={e => setForm(p => ({ ...p, discount_value: e.target.value }))}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Import mínim de comanda (€)</label>
+              <label className="block text-xs font-medium text-secondary mb-1">Import mínim de comanda (€)</label>
               <input
                 type="number" step="0.01" value={form.min_order_amount}
                 onChange={e => setForm(p => ({ ...p, min_order_amount: e.target.value }))}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Comença (opcional)</label>
+              <label className="block text-xs font-medium text-secondary mb-1">Comença (opcional)</label>
               <input
                 type="datetime-local" value={form.starts_at} onChange={e => setForm(p => ({ ...p, starts_at: e.target.value }))}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Acaba (opcional)</label>
+              <label className="block text-xs font-medium text-secondary mb-1">Acaba (opcional)</label>
               <input
                 type="datetime-local" value={form.ends_at} onChange={e => setForm(p => ({ ...p, ends_at: e.target.value }))}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Usos màxims (total)</label>
+              <label className="block text-xs font-medium text-secondary mb-1">Usos màxims (total)</label>
               <input
                 type="number" value={form.max_uses} onChange={e => setForm(p => ({ ...p, max_uses: e.target.value }))}
                 placeholder="Il·limitats"
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Usos màxims per client</label>
+              <label className="block text-xs font-medium text-secondary mb-1">Usos màxims per client</label>
               <input
                 type="number" value={form.max_uses_per_user} onChange={e => setForm(p => ({ ...p, max_uses_per_user: e.target.value }))}
                 placeholder="Il·limitats"
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm text-zinc-700">
+            <label className="flex items-center gap-2 text-sm text-on-surface-variant">
               <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} />
               Actiu
             </label>
-            <label className="flex items-center gap-2 text-sm text-zinc-700">
+            <label className="flex items-center gap-2 text-sm text-on-surface-variant">
               <input
                 type="checkbox" checked={form.combinable_with_offers}
                 onChange={e => setForm(p => ({ ...p, combinable_with_offers: e.target.checked }))}
@@ -212,24 +212,24 @@ export default function CuponsPage() {
 
           <div className="flex gap-2 pt-1">
             <Button size="sm" onClick={save} disabled={saving}>
-              <Check size={14} /> {saving ? 'Desant...' : 'Desar'}
+              <MIcon name="check" size={14} /> {saving ? 'Desant...' : 'Desar'}
             </Button>
-            <button onClick={cancel} className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700">
-              <X size={14} className="inline mr-1" />Cancel·lar
+            <button onClick={cancel} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
+              <MIcon name="close" size={14} className="inline mr-1" />Cancel·lar
             </button>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Carregant...</div>
+          <div className="p-12 text-center text-secondary text-sm">Carregant...</div>
         ) : coupons.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">Encara no hi ha cupons. Crea'n un!</div>
+          <div className="p-12 text-center text-secondary text-sm">Encara no hi ha cupons. Crea'n un!</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">Codi</th>
                   <th className="px-4 py-3 text-left font-medium">Descompte</th>
@@ -239,16 +239,16 @@ export default function CuponsPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {coupons.map(c => (
-                  <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 font-mono font-medium text-zinc-900">{c.code}</td>
-                    <td className="px-4 py-3 text-zinc-600">{formatDiscount(c)}</td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">
+                  <tr key={c.id} className="hover:bg-surface-container-high transition-colors">
+                    <td className="px-4 py-3 font-mono font-medium text-on-surface">{c.code}</td>
+                    <td className="px-4 py-3 text-on-surface-variant">{formatDiscount(c)}</td>
+                    <td className="px-4 py-3 text-secondary text-xs">
                       {c.max_uses != null ? `màx. ${c.max_uses}` : 'il·limitats'}
                       {c.max_uses_per_user != null && ` (${c.max_uses_per_user}/client)`}
                     </td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">
+                    <td className="px-4 py-3 text-secondary text-xs">
                       {c.starts_at ? new Date(c.starts_at).toLocaleDateString('ca-ES') : 'sempre'}
                       {' → '}
                       {c.ends_at ? new Date(c.ends_at).toLocaleDateString('ca-ES') : 'sense fi'}
@@ -256,21 +256,21 @@ export default function CuponsPage() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => toggleActive(c)}
-                        className={`w-8 h-4 rounded-full transition-colors relative ${c.active ? 'bg-green-500' : 'bg-zinc-300'}`}
+                        className={`w-8 h-4 rounded-full transition-colors relative ${c.active ? 'bg-green-500' : 'bg-muted'}`}
                       >
-                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${c.active ? 'left-4' : 'left-0.5'}`} />
+                        <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-card shadow transition-all ${c.active ? 'left-4' : 'left-0.5'}`} />
                       </button>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => showRedemptions(c)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors" title="Veure usos">
-                          <History size={14} />
+                        <button onClick={() => showRedemptions(c)} className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Veure usos">
+                          <MIcon name="history" size={14} />
                         </button>
-                        <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors">
-                          <Pencil size={14} />
+                        <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                          <MIcon name="edit" size={14} />
                         </button>
-                        <button onClick={() => del(c)} className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                          <Trash2 size={14} />
+                        <button onClick={() => del(c)} className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors">
+                          <MIcon name="delete" size={14} />
                         </button>
                       </div>
                     </td>
@@ -284,19 +284,19 @@ export default function CuponsPage() {
 
       {redemptions && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setRedemptions(null)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 space-y-3" onClick={e => e.stopPropagation()}>
+          <div className="bg-card rounded-2xl shadow-xl max-w-md w-full p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-zinc-900">Usos de {redemptions.coupon.code}</h3>
-              <button onClick={() => setRedemptions(null)} className="text-zinc-400 hover:text-zinc-700"><X size={16} /></button>
+              <h3 className="font-semibold text-on-surface">Usos de {redemptions.coupon.code}</h3>
+              <button onClick={() => setRedemptions(null)} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={16} /></button>
             </div>
             {redemptions.rows.length === 0 ? (
-              <p className="text-sm text-zinc-400">Encara no s'ha fet servir.</p>
+              <p className="text-sm text-secondary">Encara no s'ha fet servir.</p>
             ) : (
-              <ul className="divide-y divide-zinc-100 max-h-80 overflow-y-auto">
+              <ul className="divide-y divide-outline-variant max-h-80 overflow-y-auto">
                 {redemptions.rows.map(row => (
                   <li key={row.id} className="py-2 text-xs flex items-center justify-between">
-                    <span className="text-zinc-500">{new Date(row.created_at).toLocaleString('ca-ES')}</span>
-                    <span className="font-medium text-zinc-800">-{parseFloat(row.discount_amount).toFixed(2)} €</span>
+                    <span className="text-secondary">{new Date(row.created_at).toLocaleString('ca-ES')}</span>
+                    <span className="font-medium text-on-surface">-{parseFloat(row.discount_amount).toFixed(2)} €</span>
                   </li>
                 ))}
               </ul>

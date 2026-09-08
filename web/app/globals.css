@@ -60,6 +60,35 @@
 
   --color-cream: #faf9f6;
 
+  /* Rols addicionals de Material Design 3, només amb valor real sota
+     [data-admin-theme="m3"] (ver més avall) — la resta de l'app no els fa
+     servir, així que fora d'aquest scope cauen en el buit sense efecte. */
+  --color-surface: var(--m3-surface);
+  --color-surface-dim: var(--m3-surface-dim);
+  --color-surface-bright: var(--m3-surface-bright);
+  --color-surface-container-lowest: var(--m3-surface-container-lowest);
+  --color-surface-container-low: var(--m3-surface-container-low);
+  --color-surface-container: var(--m3-surface-container);
+  --color-surface-container-high: var(--m3-surface-container-high);
+  --color-surface-container-highest: var(--m3-surface-container-highest);
+  --color-surface-variant: var(--m3-surface-variant);
+  --color-on-surface: var(--m3-on-surface);
+  --color-on-surface-variant: var(--m3-on-surface-variant);
+  --color-outline: var(--m3-outline);
+  --color-outline-variant: var(--m3-outline-variant);
+  --color-tertiary: var(--m3-tertiary);
+  --color-tertiary-container: var(--m3-tertiary-container);
+  --color-tertiary-fixed: var(--m3-tertiary-fixed);
+  --color-on-tertiary-fixed: var(--m3-on-tertiary-fixed);
+  --color-primary-fixed: var(--m3-primary-fixed);
+  --color-on-primary-fixed: var(--m3-on-primary-fixed);
+  --color-primary-container: var(--m3-primary-container);
+  --color-on-primary-container: var(--m3-on-primary-container);
+  --color-secondary-container: var(--m3-secondary-container);
+  --color-on-secondary-container: var(--m3-on-secondary-container);
+  --color-error-container: var(--m3-error-container);
+  --color-on-error-container: var(--m3-on-error-container);
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -156,6 +185,73 @@
     :root {
       --spacing-density: 8rem;
     }
+  }
+
+  /* Tema d'admin (Material Design 3, generat amb Stitch) — escopat per no
+     tocar mai la marca de botiga (negre/crema, Bodoni Moda) que porten el
+     storefront i el seu :root. Sobreescriu els mateixos noms de variable que
+     ja consumeixen els primitives de components/ui/*.jsx (bg-primary,
+     bg-card, etc.) més els rols exclusius de M3 declarats a dalt. */
+  [data-admin-theme='m3'] {
+    /* font-family s'hereta com a valor ja resolt, no com a referència a la
+       variable: cal reafirmar-lo aquí perquè els descendents (que no
+       declaren font-family propi) agafin Nunito Sans en comptes del valor
+       ja calculat a <body> (Hanken Grotesk). h1/h2/h3 no ho necessiten
+       perquè la regla global els fa un var(--font-headline) propi, que sí
+       es reavalua en aquest punt de l'arbre. */
+    font-family: var(--font-body);
+
+    --background: #faf6f0;
+    --foreground: #2e3230;
+    --card: #ffffff;
+    --card-foreground: #2e3230;
+    --popover: #ffffff;
+    --popover-foreground: #2e3230;
+    /* Terracotta/rust en comptes del verd salvia original de Stitch —
+       lliga amb l'accent ja real del marketing de NukaeStore (/nukaestore),
+       no és una tria arbitrària nova. Decidit per l'usuari 2026-09-08. */
+    --primary: #b8563a;
+    --primary-foreground: #ffffff;
+    --secondary: #f0e8db;
+    --secondary-foreground: #6b6358;
+    --muted: #e4e0d8;
+    --muted-foreground: #4a4e4a;
+    --accent: #eae6de;
+    --accent-foreground: #2e3230;
+    --destructive: #b83230;
+    --destructive-foreground: #ffffff;
+    --border: #c4c8bc;
+    --input: #c4c8bc;
+    --ring: #b8563a;
+
+    --font-headline: 'Literata', Georgia, serif;
+    --font-body: 'Nunito Sans', system-ui, sans-serif;
+
+    --m3-surface: #faf6f0;
+    --m3-surface-dim: #dbd7cf;
+    --m3-surface-bright: #faf6f0;
+    --m3-surface-container-lowest: #ffffff;
+    --m3-surface-container-low: #f5f1ea;
+    --m3-surface-container: #f0ece4;
+    --m3-surface-container-high: #eae6de;
+    --m3-surface-container-highest: #e4e0d8;
+    --m3-surface-variant: #e4e0d8;
+    --m3-on-surface: #2e3230;
+    --m3-on-surface-variant: #4a4e4a;
+    --m3-outline: #74796e;
+    --m3-outline-variant: #c4c8bc;
+    --m3-tertiary: #705c30;
+    --m3-tertiary-container: #c4a66a;
+    --m3-tertiary-fixed: #f8e0a8;
+    --m3-on-tertiary-fixed: #221a05;
+    --m3-primary-fixed: #f3c9b3;
+    --m3-on-primary-fixed: #3d1200;
+    --m3-primary-container: #e0a488;
+    --m3-on-primary-container: #3d1200;
+    --m3-secondary-container: #f0e8db;
+    --m3-on-secondary-container: #5e5548;
+    --m3-error-container: #ffdad8;
+    --m3-on-error-container: #690005;
   }
 
   .hero-featured-image {

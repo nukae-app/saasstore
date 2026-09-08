@@ -10,9 +10,7 @@ import { Button } from '../../../../components/ui/button';
 import { useSortFilter } from '../../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../../components/admin/table/SortableTh';
 import DiscogsSearchField from '../../../../components/admin/discogs/DiscogsSearchField';
-import {
-  Plus, X, Trash2, PackageCheck, ArrowRight, Sparkles, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight, Ban,
-} from 'lucide-react';
+import MIcon from '../../../../components/ui/m-icon';
 import {
   poolLineaEstat, poolLineaEstatLabel, POOL_LINEA_ESTAT_COLOR, origenSolicitudLabel, origenesSolicitudLabel,
   ORIGEN_SOLICITUD_COLOR, solicitudStatusLabel, SOLICITUD_STATUS_COLOR,
@@ -109,26 +107,26 @@ export default function SolicitudsPage() {
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('purchases.tab.requests', 'Sol·licituds')}</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{t('purchases.tab.requests', 'Sol·licituds')}</h2>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowRefillModal(true)}
-            className="flex items-center gap-1.5 text-sm border border-zinc-200 text-zinc-600 hover:bg-zinc-50 px-3 py-2 rounded-lg transition-colors">
-            <Sparkles size={13} /> {t('purchases.btn.generate_suggestions', 'Generar suggeriments')}
+            className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors">
+            <MIcon name="auto_awesome" size={13} /> {t('purchases.btn.generate_suggestions', 'Generar suggeriments')}
           </button>
           <Link href="/admin/compras/solicituds/nueva"
-            className="flex items-center gap-1.5 bg-primary hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <Plus size={15} /> {t('purchases.btn.add_to_pool', 'Afegir al pool')}
+            className="flex items-center gap-1.5 bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <MIcon name="add" size={15} /> {t('purchases.btn.add_to_pool', 'Afegir al pool')}
           </Link>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-zinc-200">
+      <div className="flex items-center gap-1 border-b border-outline-variant">
         <button onClick={() => setVista('pool')}
-          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'pool' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}>
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'pool' ? 'border-primary text-on-surface' : 'border-transparent text-secondary hover:text-on-surface-variant'}`}>
           {t('purchases.view.pool', 'Pool de compra')}
         </button>
         <button onClick={() => setVista('llistat')}
-          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'llistat' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}>
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'llistat' ? 'border-primary text-on-surface' : 'border-transparent text-secondary hover:text-on-surface-variant'}`}>
           {t('purchases.view.list', 'Registre de sol·licituds')}
         </button>
       </div>
@@ -138,29 +136,29 @@ export default function SolicitudsPage() {
       {vista === 'pool' && (
       <>
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-surface-container-high rounded-lg p-1">
           {ESTAT_TABS.map(tab => (
             <button key={tab} onClick={() => setEstado(tab)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface-variant'}`}>
               {t(`purchases.pool.tab.${tab}`, tab)}
             </button>
           ))}
         </div>
         <select value={origen} onChange={e => setOrigen(e.target.value)}
-          className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+          className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">{t('purchases.pool.filter.origin_all', 'Tots els orígens')}</option>
           <option value="manual">{origenSolicitudLabel(t, 'manual')}</option>
           <option value="refill_stock">{origenSolicitudLabel(t, 'refill_stock')}</option>
           <option value="peticion_cliente">{origenSolicitudLabel(t, 'peticion_cliente')}</option>
         </select>
         <select value={proveedorId} onChange={e => setProveedorId(e.target.value)}
-          className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+          className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">{t('purchases.pool.filter.supplier_all', 'Tots els proveïdors')}</option>
           {proveedores.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         <input value={qInput} onChange={e => handleQInput(e.target.value)}
           placeholder={t('purchases.pool.search_ph', 'Cerca per artista o títol...')}
-          className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+          className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-primary" />
       </div>
 
       {seleccio.size > 0 && (
@@ -169,31 +167,31 @@ export default function SolicitudsPage() {
             {seleccio.size} {seleccio.size !== 1 ? t('purchases.request.records_selected_plural', 'discs seleccionats') : t('purchases.request.records_selected', 'disc seleccionat')}
           </span>
           <div className="flex items-center gap-3">
-            <button onClick={() => setSeleccio(new Map())} className="text-xs text-zinc-500 hover:text-zinc-700">
+            <button onClick={() => setSeleccio(new Map())} className="text-xs text-secondary hover:text-on-surface-variant">
               {t('purchases.request.clear_selection', 'Netejar selecció')}
             </button>
             <Button size="sm" onClick={() => setGeneratingLineas([...seleccio.values()])}>
-              <ArrowRight size={13} /> {t('purchases.request.generate_request', 'Crear sol·licitud')}
+              <MIcon name="arrow_forward" size={13} /> {t('purchases.request.generate_request', 'Crear sol·licitud')}
             </Button>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : rows.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('purchases.pool.empty', 'No hi ha cap disc en aquest filtre.')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('purchases.pool.empty', 'No hi ha cap disc en aquest filtre.')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                 <tr>
                   <th className="w-8 px-4 py-3">
                     <input type="checkbox"
                       checked={rows.some(r => poolLineaEstat(r) === 'pendent') && rows.filter(r => poolLineaEstat(r) === 'pendent').every(r => seleccio.has(r.id))}
                       onChange={toggleAllVisible}
-                      className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
+                      className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
                   </th>
                   <th className="px-4 py-3 text-left font-medium">{t('tpv.col.record')}</th>
                   <th className="px-4 py-3 text-center font-medium">{t('purchases.quantity', 'Quantitat')}</th>
@@ -204,37 +202,37 @@ export default function SolicitudsPage() {
                   <th className="px-4 py-3 text-right font-medium">{t('catalog.col.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {rows.map(row => {
                   const estat = poolLineaEstat(row);
                   return (
-                    <tr key={row.id} className="hover:bg-zinc-50">
+                    <tr key={row.id} className="hover:bg-surface-container-high">
                       <td className="px-4 py-3">
                         <input type="checkbox" checked={seleccio.has(row.id)} disabled={estat !== 'pendent'}
                           onChange={() => toggleLinea(row)}
-                          className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900 disabled:opacity-30" />
+                          className="rounded border-outline-variant text-amber-600 focus:ring-primary disabled:opacity-30" />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-zinc-900">{row.artist} — {row.title}</div>
-                        {row.label && <div className="text-xs text-zinc-400">{row.label}</div>}
-                        {row.notes && <div className="text-xs text-zinc-400">{row.notes}</div>}
+                        <div className="font-medium text-on-surface">{row.artist} — {row.title}</div>
+                        {row.label && <div className="text-xs text-secondary">{row.label}</div>}
+                        {row.notes && <div className="text-xs text-secondary">{row.notes}</div>}
                       </td>
-                      <td className="px-4 py-3 text-center text-zinc-600">{row.quantity}x</td>
+                      <td className="px-4 py-3 text-center text-on-surface-variant">{row.quantity}x</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ORIGEN_SOLICITUD_COLOR[row.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ORIGEN_SOLICITUD_COLOR[row.origen] ?? 'bg-surface-container-high text-on-surface-variant'}`}>
                           {origenSolicitudLabel(t, row.origen)}
                         </span>
                         {row.origen === 'peticion_cliente' && (
-                          <div className="text-xs text-zinc-400 mt-0.5">{row.cliente_nombre || row.cliente_email}</div>
+                          <div className="text-xs text-secondary mt-0.5">{row.cliente_nombre || row.cliente_email}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-zinc-600">{row.proveedor_sugerido_nombre ?? <span className="text-zinc-300">—</span>}</td>
+                      <td className="px-4 py-3 text-on-surface-variant">{row.proveedor_sugerido_nombre ?? <span className="text-secondary">—</span>}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${POOL_LINEA_ESTAT_COLOR[estat]}`}>
                           {poolLineaEstatLabel(t, row)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-zinc-500">{new Date(row.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-secondary">{new Date(row.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-right">
                         {estat === 'pendent' && (
                           <div className="flex items-center justify-end gap-1.5">
@@ -242,13 +240,13 @@ export default function SolicitudsPage() {
                               <button onClick={() => setResolvingEstocLinea(row)}
                                 title={t('purchases.action.resolve_from_stock', "Resoldre d'estoc")}
                                 className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg px-2 py-1 hover:bg-emerald-50 transition-colors">
-                                <PackageCheck size={12} />
+                                <MIcon name="local_shipping" size={12} />
                               </button>
                             )}
                             <button onClick={() => eliminarLinia(row)} disabled={busyId === row.id}
                               title={t('purchases.action.remove_from_request', 'Treure aquest disc de la sol·licitud')}
-                              className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
-                              <Trash2 size={14} />
+                              className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                              <MIcon name="delete" size={14} />
                             </button>
                           </div>
                         )}
@@ -261,15 +259,15 @@ export default function SolicitudsPage() {
           </div>
         )}
         {total > PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
             <span>{from}–{to} {t('common.of', 'de')} {total}</span>
             <div className="flex gap-2">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                 ← {t('common.previous', 'Anterior')}
               </button>
               <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= total}
-                className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                 {t('common.next', 'Següent')} →
               </button>
             </div>
@@ -327,33 +325,33 @@ function GenerarSolicitudModal({ lineas, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{t('purchases.generate_request_modal.title', 'Crear sol·licitud')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('purchases.generate_request_modal.title', 'Crear sol·licitud')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-secondary">
             {t('purchases.generate_request_modal.hint', 'Aquestes línies (poden venir de diversos orígens) es consolidaran en una sol·licitud numerada. Podràs triar proveïdor i crear-ne la comanda més endavant, des del registre.')}
           </p>
-          <div className="border border-zinc-200 rounded-xl divide-y divide-zinc-100 max-h-64 overflow-y-auto">
+          <div className="border border-outline-variant rounded-xl divide-y divide-outline-variant max-h-64 overflow-y-auto">
             {lineas.map(l => (
               <div key={l.id} className="px-4 py-2.5 text-sm flex items-center gap-2 flex-wrap">
-                <span className="font-medium text-zinc-900">{l.artist} — {l.title}</span>
-                <span className="text-zinc-400">{l.quantity}x</span>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                <span className="font-medium text-on-surface">{l.artist} — {l.title}</span>
+                <span className="text-secondary">{l.quantity}x</span>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-surface-container-high text-on-surface-variant'}`}>
                   {origenSolicitudLabel(t, l.origen)}
                 </span>
                 {l.origen === 'peticion_cliente' && (
-                  <span className="text-zinc-400 text-xs">{l.cliente_nombre || l.cliente_email}</span>
+                  <span className="text-secondary text-xs">{l.cliente_nombre || l.cliente_email}</span>
                 )}
               </div>
             ))}
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.notes')}</label>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.notes')}</label>
             <input value={notas} onChange={e => setNotas(e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <div className="flex justify-end gap-3">
@@ -440,16 +438,16 @@ function SolicitudsLlistatView({ proveedores }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-surface-container-high rounded-lg p-1">
           {LLISTAT_ESTAT_TABS.map(tab => (
             <button key={tab} onClick={() => setEstado(tab)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface-variant'}`}>
               {tab === 'totes' ? t('purchases.pool.tab.totes', 'Totes') : solicitudStatusLabel(t, tab)}
             </button>
           ))}
         </div>
         <select value={origen} onChange={e => setOrigen(e.target.value)}
-          className="border border-zinc-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+          className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">{t('purchases.pool.filter.origin_all', 'Tots els orígens')}</option>
           <option value="manual">{origenSolicitudLabel(t, 'manual')}</option>
           <option value="refill_stock">{origenSolicitudLabel(t, 'refill_stock')}</option>
@@ -457,15 +455,15 @@ function SolicitudsLlistatView({ proveedores }) {
         </select>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
         ) : solicitudes.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400 text-sm">{t('purchases.request.no_requests', 'Encara no hi ha cap sol·licitud de compra.')}</div>
+          <div className="p-12 text-center text-secondary text-sm">{t('purchases.request.no_requests', 'Encara no hi ha cap sol·licitud de compra.')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                 <tr>
                   <th className="w-8 px-4 py-3" />
                   <th className="px-4 py-3 text-left font-medium">{t('purchases.col.number', 'Número')}</th>
@@ -476,26 +474,26 @@ function SolicitudsLlistatView({ proveedores }) {
                   <th className="px-4 py-3 text-right font-medium">{t('catalog.col.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {solicitudes.map(s => {
                   const pendents = s.lineas.filter(l => !l.resuelta).length;
                   return (
                     <Fragment key={s.id}>
                       <tr onClick={() => setExpanded(expanded === s.id ? null : s.id)}
-                        className="hover:bg-zinc-50 cursor-pointer transition-colors">
-                        <td className="px-4 py-3 text-zinc-400">
-                          {expanded === s.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        className="hover:bg-surface-container-high cursor-pointer transition-colors">
+                        <td className="px-4 py-3 text-secondary">
+                          {expanded === s.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-zinc-700">{s.numero}</td>
-                        <td className="px-4 py-3 text-zinc-500">{new Date(s.created_at).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-on-surface-variant">{s.numero}</td>
+                        <td className="px-4 py-3 text-secondary">{new Date(s.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${s.origenes.length === 1 ? (ORIGEN_SOLICITUD_COLOR[s.origenes[0]] ?? 'bg-zinc-100 text-zinc-600') : 'bg-fuchsia-100 text-fuchsia-700'}`}>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${s.origenes.length === 1 ? (ORIGEN_SOLICITUD_COLOR[s.origenes[0]] ?? 'bg-surface-container-high text-on-surface-variant') : 'bg-fuchsia-100 text-fuchsia-700'}`}>
                             {origenesSolicitudLabel(t, s.origenes)}
                           </span>
-                          {s.user_nom && <span className="text-zinc-400 text-xs"> · {s.user_nom}</span>}
+                          {s.user_nom && <span className="text-secondary text-xs"> · {s.user_nom}</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-700">
+                          <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-surface-container-high text-on-surface-variant">
                             {s.lineas.length}{pendents > 0 && pendents < s.lineas.length ? ` (${pendents} ${t('purchases.pending', 'pendents')})` : ''}
                           </span>
                         </td>
@@ -509,19 +507,19 @@ function SolicitudsLlistatView({ proveedores }) {
                             {s.estado === 'oberta' && pendents > 0 && (
                               <button onClick={() => setResolvingLineas(s.lineas.filter(l => !l.resuelta))} title={t('purchases.action.resolve_to_order', 'Resoldre cap a una comanda')}
                                 className="flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700 border border-amber-200 rounded-lg px-2 py-1 hover:bg-amber-50 transition-colors">
-                                <ArrowRight size={12} /> {t('purchases.action.resolve', 'Resoldre')}
+                                <MIcon name="arrow_forward" size={12} /> {t('purchases.action.resolve', 'Resoldre')}
                               </button>
                             )}
                             {s.estado === 'oberta' && (
                               <button onClick={() => cancelar(s)} disabled={busyId === s.id + '_cancelar'} title={t('common.cancel')}
-                                className="p-1.5 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
-                                <Ban size={14} />
+                                className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                                <MIcon name="block" size={14} />
                               </button>
                             )}
                             {pendents === s.lineas.length && (
                               <button onClick={() => eliminar(s)} disabled={busyId === s.id + '_eliminar'} title={t('catalog.delete')}
-                                className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
-                                <Trash2 size={14} />
+                                className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                                <MIcon name="delete" size={14} />
                               </button>
                             )}
                           </div>
@@ -533,17 +531,17 @@ function SolicitudsLlistatView({ proveedores }) {
                             <div className="space-y-1">
                               {s.lineas.map(l => (
                                 <div key={l.id} className="flex items-center gap-3 text-sm flex-wrap">
-                                  <span className="font-semibold text-zinc-900">{l.artist} — {l.title}</span>
-                                  <span className="text-zinc-500">{l.quantity}x</span>
-                                  {l.label && <span className="text-zinc-400">{l.label}</span>}
-                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                                  <span className="font-semibold text-on-surface">{l.artist} — {l.title}</span>
+                                  <span className="text-secondary">{l.quantity}x</span>
+                                  {l.label && <span className="text-secondary">{l.label}</span>}
+                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-surface-container-high text-on-surface-variant'}`}>
                                     {origenSolicitudLabel(t, l.origen)}
                                   </span>
                                   {l.origen === 'peticion_cliente' && (
-                                    <span className="text-zinc-400">{l.cliente_nombre || l.cliente_email}</span>
+                                    <span className="text-secondary">{l.cliente_nombre || l.cliente_email}</span>
                                   )}
                                   {l.proveedor_sugerido_nombre && (
-                                    <span className="text-zinc-400">{t('purchases.suggested', 'Suggerit')}: {l.proveedor_sugerido_nombre}</span>
+                                    <span className="text-secondary">{t('purchases.suggested', 'Suggerit')}: {l.proveedor_sugerido_nombre}</span>
                                   )}
                                   {l.resuelta ? (
                                     <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700">
@@ -551,26 +549,26 @@ function SolicitudsLlistatView({ proveedores }) {
                                     </span>
                                   ) : (
                                     <>
-                                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500">
+                                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary">
                                         {t('purchases.pending', 'Pendent')}
                                       </span>
                                       {l.release_id && (
                                         <button onClick={() => setResolvingEstocLinea(l)}
                                           className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg px-2 py-0.5 hover:bg-emerald-50 transition-colors">
-                                          <PackageCheck size={11} /> {t('purchases.action.resolve_from_stock', "Resoldre d'estoc")}
+                                          <MIcon name="local_shipping" size={11} /> {t('purchases.action.resolve_from_stock', "Resoldre d'estoc")}
                                         </button>
                                       )}
                                       <button onClick={() => eliminarLinia(s, l)} disabled={busyId === l.id + '_eliminar_linia'}
                                         title={t('purchases.action.remove_from_request', 'Treure aquest disc de la sol·licitud')}
-                                        className="p-1 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50 ml-auto">
-                                        <Trash2 size={13} />
+                                        className="p-1 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50 ml-auto">
+                                        <MIcon name="delete" size={13} />
                                       </button>
                                     </>
                                   )}
                                 </div>
                               ))}
                             </div>
-                            {s.notes && <div className="mt-2 text-xs text-zinc-400">{s.notes}</div>}
+                            {s.notes && <div className="mt-2 text-xs text-secondary">{s.notes}</div>}
                           </td>
                         </tr>
                       )}
@@ -582,15 +580,15 @@ function SolicitudsLlistatView({ proveedores }) {
           </div>
         )}
         {total > LLISTAT_PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
             <span>{from}–{to} {t('common.of', 'de')} {total}</span>
             <div className="flex gap-2">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                 ← {t('common.previous', 'Anterior')}
               </button>
               <button onClick={() => setPage(p => p + 1)} disabled={page * LLISTAT_PAGE_SIZE >= total}
-                className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition-colors">
+                className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
                 {t('common.next', 'Següent')} →
               </button>
             </div>
@@ -643,30 +641,30 @@ function ResoldreEstocModal({ linea, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-sm w-full p-6">
+      <div className="bg-card rounded-xl max-w-sm w-full p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-zinc-900">{t('purchases.action.resolve_from_stock', "Resoldre d'estoc")}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600"><X size={18} /></button>
+          <h2 className="text-lg font-bold text-on-surface">{t('purchases.action.resolve_from_stock', "Resoldre d'estoc")}</h2>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
-        <p className="text-sm text-zinc-500 mb-4">{linea.artist} — {linea.title}</p>
-        <p className="text-xs text-zinc-400 mb-4">
+        <p className="text-sm text-secondary mb-4">{linea.artist} — {linea.title}</p>
+        <p className="text-xs text-secondary mb-4">
           {t('purchases.resolve_stock_modal.hint', "Tria l'exemplar que ja hi ha a estoc per tancar aquesta línia sense fer-ne una comanda a proveïdor.")}
         </p>
         {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
         {items === null ? (
-          <div className="animate-pulse bg-zinc-100 rounded-lg h-16" />
+          <div className="animate-pulse bg-surface-container-high rounded-lg h-16" />
         ) : items.length === 0 ? (
-          <p className="text-sm text-zinc-400 text-center py-6">{t('purchases.resolve_stock_modal.no_items', 'Aquest disc no té cap exemplar disponible a estoc ara mateix.')}</p>
+          <p className="text-sm text-secondary text-center py-6">{t('purchases.resolve_stock_modal.no_items', 'Aquest disc no té cap exemplar disponible a estoc ara mateix.')}</p>
         ) : (
           <div className="space-y-1.5">
             {items.map(i => (
               <button key={i.id} disabled={saving} onClick={() => resoldre(i)}
                 className="w-full flex items-center justify-between p-2.5 rounded-lg shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors text-sm disabled:opacity-50">
-                <span className="text-zinc-700">
+                <span className="text-on-surface-variant">
                   {i.condition} {i.estado_disco ? `· ${i.estado_disco}` : ''}
                   {i.condition === 'nou' && ` · ${i.quantity - i.reserved_quantity} ${t('purchases.units_free', 'lliures')}`}
                 </span>
-                <span className="font-medium text-zinc-900">{Number(i.price).toFixed(2)} €</span>
+                <span className="font-medium text-on-surface">{Number(i.price).toFixed(2)} €</span>
               </button>
             ))}
           </div>
@@ -762,51 +760,51 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{t('purchases.resolve_request_modal.title', 'Crear comanda des de sol·licituds')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('purchases.resolve_request_modal.title', 'Crear comanda des de sol·licituds')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-secondary">
             {t('purchases.resolve_request_modal.hint', 'Tria quines línies (poden venir de sol·licituds diferents) van a la mateixa comanda. Les que no seleccionis queden pendents per resoldre-les després (cap a un altre proveïdor, per exemple).')}
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.type.supplier')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.type.supplier')}</label>
               <select value={proveedorId} onChange={e => setProveedorId(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white">
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                 <option value="">{t('common.select')}</option>
                 {proveedores.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('common.date')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('common.date')}</label>
               <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} required
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('purchases.order_notes', 'Notes de la comanda')}</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('purchases.order_notes', 'Notes de la comanda')}</label>
               <input value={notas} onChange={e => setNotas(e.target.value)}
-                className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
 
-          <div className="border border-zinc-200 rounded-xl divide-y divide-zinc-100">
+          <div className="border border-outline-variant rounded-xl divide-y divide-outline-variant">
             {pendents.map(l => {
               const resolved = resolvedReleases[l.id];
               const catalogat = !!l.release_id || !!resolved;
               return (
                 <Fragment key={l.id}>
-                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
+                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-surface-container-high">
                     <input type="checkbox" checked={seleccio.has(l.id)} disabled={!catalogat} onChange={() => toggle(l.id)}
-                      className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900 disabled:opacity-40" />
+                      className="rounded border-outline-variant text-amber-600 focus:ring-primary disabled:opacity-40" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 truncate">
+                      <div className="text-sm font-medium text-on-surface truncate">
                         {resolved ? `${resolved.artista} — ${resolved.titulo}` : `${l.artist} — ${l.title}`}
                       </div>
-                      <div className="text-xs text-zinc-400 flex items-center gap-1.5">
+                      <div className="text-xs text-secondary flex items-center gap-1.5">
                         {l.quantity}x{l.label ? ` · ${l.label}` : ''}
                         {!catalogat && (
                           <span className="text-sky-600 font-medium">
@@ -823,7 +821,7 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
                     {catalogat ? (
                       <input type="number" step="0.01" min="0" placeholder={t('purchases.est_price', 'Preu est.')} value={preus[l.id] ?? ''}
                         onChange={e => setPreus(prev => ({ ...prev, [l.id]: e.target.value }))}
-                        className="w-24 border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                        className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     ) : (
                       <Button type="button" variant="secondary" size="sm" onClick={() => openResolver(l)}
                         disabled={resolvingLineaId === l.id}>
@@ -844,25 +842,25 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
                         </button>
                       )}
                       {(!discogsEnabled || manualMode) && (
-                        <div className="p-3 bg-white rounded-xl border border-zinc-200 space-y-2">
+                        <div className="p-3 bg-card rounded-xl border border-outline-variant space-y-2">
                           <div className="grid grid-cols-2 gap-2">
                             <input value={manualForm.artista} onChange={e => setManualForm(f => ({ ...f, artista: e.target.value }))}
                               placeholder={t('purchases.manual.artist_ph', 'Artista')}
-                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                              className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                             <input value={manualForm.titulo} onChange={e => setManualForm(f => ({ ...f, titulo: e.target.value }))}
                               placeholder={t('purchases.manual.title_ph', 'Títol')}
-                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                              className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                             <input value={manualForm.sello} onChange={e => setManualForm(f => ({ ...f, sello: e.target.value }))}
                               placeholder={t('purchases.manual.label_ph', 'Segell')}
-                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                              className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                             <select value={manualForm.formato} onChange={e => setManualForm(f => ({ ...f, formato: e.target.value }))}
-                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                              className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                               {['LP', 'EP', '7"', '12"', 'CD', 'Cassette'].map(x => <option key={x}>{x}</option>)}
                               <option>{t('purchases.manual.format_other', 'Altre')}</option>
                             </select>
                             <input type="number" value={manualForm.anio} onChange={e => setManualForm(f => ({ ...f, anio: e.target.value }))}
                               placeholder={t('purchases.manual.year_ph', 'Any')} min="1900" max="2030"
-                              className="border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                              className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                           </div>
                           <div className="flex gap-2">
                             <Button type="button" size="sm" onClick={addManual} disabled={resolvingRelease || !manualForm.titulo.trim()}>
@@ -894,8 +892,8 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
   );
 }
 
-const TENDENCIA_ICON = { accelerant: TrendingUp, frenant: TrendingDown, estable: Minus };
-const TENDENCIA_COLOR = { accelerant: 'text-emerald-600', frenant: 'text-red-500', estable: 'text-zinc-400' };
+const TENDENCIA_ICON = { accelerant: 'trending_up', frenant: 'trending_down', estable: 'remove' };
+const TENDENCIA_COLOR = { accelerant: 'text-emerald-600', frenant: 'text-red-500', estable: 'text-secondary' };
 
 // Previsualització dels candidats a reposició (estoc baix + es venen + sense
 // comanda oberta). No crea res fins que es confirma: llavors genera una
@@ -977,34 +975,34 @@ function RefillSugerenciesModal({ onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-          <h3 className="text-lg font-bold text-zinc-900">{t('purchases.btn.generate_suggestions_title', 'Suggeriments de reposició')}</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 rounded-lg hover:bg-zinc-100"><X size={20} /></button>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('purchases.btn.generate_suggestions_title', 'Suggeriments de reposició')}</h3>
+          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <div className="p-6 space-y-4">
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-secondary">
             {t('purchases.refill_modal.hint', "Discos amb estoc nou baix que es continuen venent (vendes dels últims 60 dies), amb menys de 21 dies d'estoc restant al ritme actual. No inclou discos amb una comanda ja oberta. La quantitat i el proveïdor són editables abans de crear la sol·licitud.")}
           </p>
 
           {loading ? (
-            <div className="text-sm text-zinc-400 text-center py-8">{t('purchases.refill_modal.calculating', 'Calculant...')}</div>
+            <div className="text-sm text-secondary text-center py-8">{t('purchases.refill_modal.calculating', 'Calculant...')}</div>
           ) : candidats.length === 0 ? (
-            <div className="text-sm text-zinc-400 text-center py-8">
+            <div className="text-sm text-secondary text-center py-8">
               {t('purchases.refill_modal.no_candidates', 'Ara mateix no hi ha cap disc que compleixi els criteris de reposició.')}
             </div>
           ) : (
-            <div className="border border-zinc-200 rounded-xl overflow-hidden">
+            <div className="border border-outline-variant rounded-xl overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-200">
+                <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
                   <tr>
                     <th className="w-8 px-3 py-2">
                       <input type="checkbox"
                         checked={candidatsSorted.length > 0 && candidatsSorted.every(c => selected.has(c.release_id))}
                         onChange={() => toggleAllVisible(candidatsSorted)}
                         title={candidatsSorted.every(c => selected.has(c.release_id)) ? t('purchases.refill_modal.unselect_all', 'Desmarcar-ho tot') : t('purchases.refill_modal.select_all', 'Seleccionar-ho tot')}
-                        className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
+                        className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
                     </th>
                     <SortableTh label={t('tpv.col.record')} sortKey="disc" sort={candSort} onSort={toggleCandSort} className="px-3 py-2" />
                     <SortableTh label={t('catalog.col.stock')} sortKey="stock_actual" sort={candSort} onSort={toggleCandSort} align="center" className="px-3 py-2" />
@@ -1016,34 +1014,34 @@ function RefillSugerenciesModal({ onClose, onSaved }) {
                     <th className="px-3 py-2 text-center font-medium">{t('purchases.quantity', 'Quantitat')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-outline-variant">
                   {candidatsSorted.map(c => {
-                    const TendIcon = TENDENCIA_ICON[c.tendencia];
+                    const tendIcon = TENDENCIA_ICON[c.tendencia];
                     return (
                       <tr key={c.release_id} className={selected.has(c.release_id) ? '' : 'opacity-40'}>
                         <td className="px-3 py-2.5">
                           <input type="checkbox" checked={selected.has(c.release_id)} onChange={() => toggle(c.release_id)}
-                            className="rounded border-zinc-300 text-amber-600 focus:ring-zinc-900" />
+                            className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
                         </td>
                         <td className="px-3 py-2.5">
-                          <div className="font-medium text-zinc-900">{c.artista} — {c.titulo}</div>
+                          <div className="font-medium text-on-surface">{c.artista} — {c.titulo}</div>
                           {c.devolucions_recents > 0 && (
                             <div className="text-[11px] text-red-500">⚠ {c.devolucions_recents} {c.devolucions_recents > 1 ? t('purchases.refill_modal.recent_returns_plural', 'devolucions recents') : t('purchases.refill_modal.recent_returns', 'devolució recent')}</div>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 text-center text-zinc-600">{c.stock_actual}</td>
+                        <td className="px-3 py-2.5 text-center text-on-surface-variant">{c.stock_actual}</td>
                         <td className="px-3 py-2.5 text-center">
                           <span className={`inline-flex items-center gap-1 ${TENDENCIA_COLOR[c.tendencia]}`}>
-                            {c.vendes_periode} <TendIcon size={12} />
+                            {c.vendes_periode} <MIcon name={tendIcon} size={12} />
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 text-center text-zinc-600">{c.dies_estoc}</td>
-                        <td className="px-3 py-2.5 text-right text-zinc-600">{c.marge_mitja != null ? `${parseFloat(c.marge_mitja).toFixed(2)} €` : '—'}</td>
-                        <td className="px-3 py-2.5 text-zinc-600">{c.proveedor_sugerido_nombre ?? <span className="text-zinc-300">—</span>}</td>
+                        <td className="px-3 py-2.5 text-center text-on-surface-variant">{c.dies_estoc}</td>
+                        <td className="px-3 py-2.5 text-right text-on-surface-variant">{c.marge_mitja != null ? `${parseFloat(c.marge_mitja).toFixed(2)} €` : '—'}</td>
+                        <td className="px-3 py-2.5 text-on-surface-variant">{c.proveedor_sugerido_nombre ?? <span className="text-secondary">—</span>}</td>
                         <td className="px-3 py-2.5">
                           <input type="number" min="1" value={cantidades[c.release_id] ?? 1}
                             onChange={e => setCantidades(prev => ({ ...prev, [c.release_id]: e.target.value }))}
-                            className="w-16 border border-zinc-300 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-zinc-900" />
+                            className="w-16 border border-outline-variant rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary" />
                         </td>
                       </tr>
                     );

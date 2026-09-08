@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import MIcon from '../../../../components/ui/m-icon';
 import { authFetch } from '../../../lib/auth';
 import CampaignEditor from '../CampaignEditor';
 
@@ -23,12 +23,12 @@ export default function EditCampaignPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 size={20} className="animate-spin text-zinc-400" />
+        <MIcon name="progress_activity" size={20} className="animate-spin text-secondary" />
       </div>
     );
   }
   if (notFound) {
-    return <p className="text-zinc-400 p-6">Campanya no trobada.</p>;
+    return <p className="text-secondary p-6">Campanya no trobada.</p>;
   }
   return <CampaignEditor initial={campaign} />;
 }

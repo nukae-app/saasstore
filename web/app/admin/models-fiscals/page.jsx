@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { authFetch } from '../../lib/auth';
-import { AlertTriangle } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { useT } from '../../lib/i18n';
 
 function fmtEur(v) {
@@ -14,10 +14,10 @@ const NOW = new Date();
 
 function Casella({ num, label, value, sign }) {
   return (
-    <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3">
-      <div className="text-[10px] font-mono text-zinc-400 mb-0.5">Casella {num}</div>
-      <div className="text-xs text-zinc-500 mb-1">{label}</div>
-      <div className="text-base font-semibold text-zinc-900">{sign}{fmtEur(value)}</div>
+    <div className="bg-surface-container-high border border-outline-variant rounded-lg p-3">
+      <div className="text-[10px] font-mono text-secondary mb-0.5">Casella {num}</div>
+      <div className="text-xs text-secondary mb-1">{label}</div>
+      <div className="text-base font-semibold text-on-surface">{sign}{fmtEur(value)}</div>
     </div>
   );
 }
@@ -26,7 +26,7 @@ function ForaAbast({ items, t }) {
   if (!items?.length) return null;
   return (
     <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs">
-      <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+      <MIcon name="warning" size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
       <div className="text-amber-800">
         <span className="font-semibold">{t('models_fiscals.fora_abast', 'Fora d’abast d’aquest informe')}:</span> {items.join(' · ')}
       </div>
@@ -93,16 +93,16 @@ export default function ModelsFiscalsPage() {
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-900">{t('nav.models_fiscals', 'Models AEAT')}</h2>
-        <p className="text-sm text-zinc-500 mt-1">
+        <h2 className="text-2xl font-bold text-on-surface">{t('nav.models_fiscals', 'Models AEAT')}</h2>
+        <p className="text-sm text-secondary mt-1">
           {t('models_fiscals.subtitle', 'Caselles per copiar a la seu electrònica o passar a la gestoria — cap d’aquests informes es presenta telemàticament des d’aquí.')}
         </p>
       </div>
 
-      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-surface-container-high p-1 rounded-xl w-fit">
         {MODELS.map(m => (
           <button key={m.key} onClick={() => setModel(m.key)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${model === m.key ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'}`}>
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${model === m.key ? 'bg-card shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}>
             {m.label}
           </button>
         ))}
@@ -110,14 +110,14 @@ export default function ModelsFiscalsPage() {
 
       <div className="flex items-center gap-3 flex-wrap">
         <select value={year} onChange={e => setYear(Number(e.target.value))}
-          className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+          className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
           {[2023, 2024, 2025, 2026].map(y => <option key={y}>{y}</option>)}
         </select>
         {!['390', '190', '180', '200', '202'].includes(model) && (
           <div className="flex gap-2">
             {TRIMESTRES.map(tr => (
               <button key={tr.value} onClick={() => setTrim(tr.value)}
-                className={`px-4 py-1.5 rounded-lg text-sm border transition-colors ${trim === tr.value ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'}`}>
+                className={`px-4 py-1.5 rounded-lg text-sm border transition-colors ${trim === tr.value ? 'bg-primary text-white border-primary' : 'bg-card text-on-surface-variant border-outline-variant hover:border-outline'}`}>
                 {tr.value}T
               </button>
             ))}
@@ -127,56 +127,56 @@ export default function ModelsFiscalsPage() {
           <div className="flex gap-2">
             {PERIODES_202.map(p => (
               <button key={p.value} onClick={() => setPeriode202(p.value)}
-                className={`px-4 py-1.5 rounded-lg text-sm border transition-colors ${periode202 === p.value ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'}`}>
+                className={`px-4 py-1.5 rounded-lg text-sm border transition-colors ${periode202 === p.value ? 'bg-primary text-white border-primary' : 'bg-card text-on-surface-variant border-outline-variant hover:border-outline'}`}>
                 {p.label}
               </button>
             ))}
           </div>
         )}
         {model === '130' && (
-          <label className="flex items-center gap-1.5 text-sm text-zinc-600 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 text-sm text-on-surface-variant cursor-pointer select-none">
             <input type="checkbox" checked={reduccio5pct} onChange={e => setReduccio5pct(e.target.checked)}
-              className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900" />
+              className="rounded border-outline-variant text-on-surface focus:ring-primary" />
             {t('models_fiscals.130.reduccio_toggle', 'Aplicar reducció 5% (estimació directa simplificada)')}
           </label>
         )}
-        <span className="text-sm text-zinc-400">{MODELS.find(m => m.key === model)?.sub}</span>
+        <span className="text-sm text-secondary">{MODELS.find(m => m.key === model)?.sub}</span>
       </div>
 
       {model === '200' && (
-        <div className="flex items-end gap-4 flex-wrap bg-zinc-50 border border-zinc-200 rounded-xl p-4">
+        <div className="flex items-end gap-4 flex-wrap bg-surface-container-high border border-outline-variant rounded-xl p-4">
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">{t('models_fiscals.200.tipus_pct', 'Tipus impositiu *')}</label>
+            <label className="block text-xs text-secondary mb-1">{t('models_fiscals.200.tipus_pct', 'Tipus impositiu *')}</label>
             <select value={tipusPct} onChange={e => setTipusPct(e.target.value)}
-              className="border border-zinc-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+              className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="">{t('models_fiscals.200.tipus_pct_choose', "— Tria'n un —")}</option>
               <option value="25.00">{t('models_fiscals.200.tipus_general', 'General 25%')}</option>
               <option value="15.00">{t('models_fiscals.200.tipus_nova_creacio', 'Reduït 15% (entitat de nova creació)')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">{t('models_fiscals.200.pagaments_fraccionats', 'Pagaments fraccionats (202) ja satisfets')}</label>
+            <label className="block text-xs text-secondary mb-1">{t('models_fiscals.200.pagaments_fraccionats', 'Pagaments fraccionats (202) ja satisfets')}</label>
             <input type="number" step="0.01" value={pagamentsFraccionats} onChange={e => setPagamentsFraccionats(e.target.value)}
-              className="border border-zinc-300 rounded-lg px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
         </div>
       )}
 
       {model === '202' && (
-        <div className="flex items-end gap-4 flex-wrap bg-zinc-50 border border-zinc-200 rounded-xl p-4">
+        <div className="flex items-end gap-4 flex-wrap bg-surface-container-high border border-outline-variant rounded-xl p-4">
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">{t('models_fiscals.202.cuota_anterior', "Quota íntegra de l'exercici anterior *")}</label>
+            <label className="block text-xs text-secondary mb-1">{t('models_fiscals.202.cuota_anterior', "Quota íntegra de l'exercici anterior *")}</label>
             <input type="number" step="0.01" value={cuotaAnterior202} onChange={e => setCuotaAnterior202(e.target.value)}
               placeholder="0.00"
-              className="border border-zinc-300 rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
         </div>
       )}
 
       {loading ? (
-        <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>
+        <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
       ) : !data ? (
-        <div className="p-12 text-center text-zinc-400 text-sm">
+        <div className="p-12 text-center text-secondary text-sm">
           {model === '200' && !tipusPct ? t('models_fiscals.200.tria_tipus', 'Tria un tipus impositiu per calcular.')
             : model === '202' && !cuotaAnterior202 ? t('models_fiscals.202.introdueix_cuota', "Introdueix la quota de l'exercici anterior per calcular.")
             : t('iva.no_data', 'Sense dades')}
@@ -205,7 +205,7 @@ function Model303View({ data, t }) {
     <div className="space-y-4">
       {data.nota_rebu && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <AlertTriangle size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <MIcon name="warning" size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-amber-800">
             {t('iva.rebu_warning_body', "Hi ha vendes de discos de 2a mà (REBU) en aquest trimestre. Sota el règim especial de béns usats, l'IVA s'aplica només al marge de benefici. Consulta el teu gestor per al càlcul correcte del model 303.")}
           </p>
@@ -213,7 +213,7 @@ function Model303View({ data, t }) {
       )}
 
       <div>
-        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">{t('models_fiscals.303.repercutit', 'IVA repercutit')}</div>
+        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">{t('models_fiscals.303.repercutit', 'IVA repercutit')}</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {data.repercutit_general && <Casella num="01-03" label={`General (${data.repercutit_general.pct}%)`} value={data.repercutit_general.cuota} sign="+" />}
           {data.repercutit_reduit && <Casella num="04-06" label={`Reduït (${data.repercutit_reduit.pct}%)`} value={data.repercutit_reduit.cuota} sign="+" />}
@@ -223,7 +223,7 @@ function Model303View({ data, t }) {
       </div>
 
       <div>
-        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">{t('models_fiscals.303.suportat', 'IVA suportat')}</div>
+        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">{t('models_fiscals.303.suportat', 'IVA suportat')}</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <Casella num="28" label={t('models_fiscals.303.casella_28', 'Base corrent')} value={data.casella_28_base_corrent} sign="" />
           <Casella num="29" label={t('models_fiscals.303.casella_29', 'Quota corrent')} value={data.casella_29_cuota_corrent} sign="–" />
@@ -234,8 +234,8 @@ function Model303View({ data, t }) {
       </div>
 
       <div className={`rounded-xl p-4 border ${parseFloat(data.casella_64_resultat_liquidacio) >= 0 ? 'bg-orange-50 border-orange-200' : 'bg-emerald-50 border-emerald-200'}`}>
-        <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.303.casella_64', 'Casella 64 · Resultat de la liquidació')}</div>
-        <div className="text-xl font-bold text-zinc-900">{fmtEur(data.casella_64_resultat_liquidacio)}</div>
+        <div className="text-xs text-secondary mb-1">{t('models_fiscals.303.casella_64', 'Casella 64 · Resultat de la liquidació')}</div>
+        <div className="text-xl font-bold text-on-surface">{fmtEur(data.casella_64_resultat_liquidacio)}</div>
       </div>
 
       <ForaAbast items={data.fora_abast} t={t} />
@@ -246,9 +246,9 @@ function Model303View({ data, t }) {
 function Model390View({ data, t }) {
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-xs text-zinc-500">
+          <thead className="bg-surface-container-high text-xs text-secondary">
             <tr>
               <th className="px-5 py-2 text-left font-medium">{t('models_fiscals.390.trimestre', 'Trimestre')}</th>
               <th className="px-5 py-2 text-right font-medium">{t('models_fiscals.303.casella_27', 'Quota meritada')}</th>
@@ -256,29 +256,29 @@ function Model390View({ data, t }) {
               <th className="px-5 py-2 text-right font-medium">{t('iva.result', 'Resultat')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-outline-variant">
             {data.trimestres.map(tr => (
-              <tr key={tr.trimestre} className="hover:bg-zinc-50">
-                <td className="px-5 py-2.5 font-medium text-zinc-700">{tr.trimestre}T</td>
-                <td className="px-5 py-2.5 text-right text-zinc-600">+{fmtEur(tr.casella_27_cuota_meritada)}</td>
-                <td className="px-5 py-2.5 text-right text-zinc-600">–{fmtEur(tr.casella_45_total_a_deduir)}</td>
-                <td className="px-5 py-2.5 text-right font-semibold text-zinc-900">{fmtEur(tr.resultat)}</td>
+              <tr key={tr.trimestre} className="hover:bg-surface-container-high">
+                <td className="px-5 py-2.5 font-medium text-on-surface-variant">{tr.trimestre}T</td>
+                <td className="px-5 py-2.5 text-right text-on-surface-variant">+{fmtEur(tr.casella_27_cuota_meritada)}</td>
+                <td className="px-5 py-2.5 text-right text-on-surface-variant">–{fmtEur(tr.casella_45_total_a_deduir)}</td>
+                <td className="px-5 py-2.5 text-right font-semibold text-on-surface">{fmtEur(tr.resultat)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-zinc-50 font-semibold text-sm border-t border-zinc-200">
-              <td className="px-5 py-3 text-zinc-700">{t('models_fiscals.390.total_anual', 'Total anual')}</td>
-              <td className="px-5 py-3 text-right text-zinc-700">+{fmtEur(data.casella_27_cuota_meritada_anual)}</td>
-              <td className="px-5 py-3 text-right text-zinc-700">–{fmtEur(data.casella_45_total_a_deduir_anual)}</td>
-              <td className="px-5 py-3 text-right text-zinc-900">{fmtEur(data.resultat_anual)}</td>
+            <tr className="bg-surface-container-high font-semibold text-sm border-t border-outline-variant">
+              <td className="px-5 py-3 text-on-surface-variant">{t('models_fiscals.390.total_anual', 'Total anual')}</td>
+              <td className="px-5 py-3 text-right text-on-surface-variant">+{fmtEur(data.casella_27_cuota_meritada_anual)}</td>
+              <td className="px-5 py-3 text-right text-on-surface-variant">–{fmtEur(data.casella_45_total_a_deduir_anual)}</td>
+              <td className="px-5 py-3 text-right text-on-surface">{fmtEur(data.resultat_anual)}</td>
             </tr>
           </tfoot>
         </table>
       </div>
       {data.nota_rebu && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <AlertTriangle size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <MIcon name="warning" size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-amber-800">
             {t('models_fiscals.390.rebu_warning', "Algun trimestre de l'any inclou vendes REBU (règim de béns usats). Consulta el teu gestor per al càlcul correcte.")}
           </p>
@@ -294,13 +294,13 @@ function Model130View({ data, t }) {
     <div className="space-y-4">
       {data.forma_juridica_nota && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <AlertTriangle size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <MIcon name="warning" size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-amber-800">{data.forma_juridica_nota}</p>
         </div>
       )}
 
       <div>
-        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
+        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">
           {t('models_fiscals.130.acumulat', "Acumulat des de l'1 de gener")}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -318,18 +318,18 @@ function Model130View({ data, t }) {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3">
-          <div className="text-[10px] font-mono text-zinc-400 mb-0.5">Casella 04</div>
-          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.130.casella_04', 'Percentatge')}</div>
-          <div className="text-base font-semibold text-zinc-900">{parseFloat(data.casella_04_pct).toFixed(0)}%</div>
+        <div className="bg-surface-container-high border border-outline-variant rounded-lg p-3">
+          <div className="text-[10px] font-mono text-secondary mb-0.5">Casella 04</div>
+          <div className="text-xs text-secondary mb-1">{t('models_fiscals.130.casella_04', 'Percentatge')}</div>
+          <div className="text-base font-semibold text-on-surface">{parseFloat(data.casella_04_pct).toFixed(0)}%</div>
         </div>
         <Casella num="05" label={t('models_fiscals.130.casella_05', 'Import (03 × 20%)')} value={data.casella_05_import} sign="+" />
         <Casella num="07" label={t('models_fiscals.130.casella_07', 'Pagaments fraccionats anteriors')} value={data.casella_07_pagaments_anteriors} sign="–" />
       </div>
 
-      <div className={`rounded-xl p-4 border ${parseFloat(data.resultat) > 0 ? 'bg-orange-50 border-orange-200' : 'bg-zinc-50 border-zinc-200'}`}>
-        <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.130.resultat', 'Resultat · A ingressar aquest trimestre')}</div>
-        <div className="text-xl font-bold text-zinc-900">{fmtEur(data.resultat)}</div>
+      <div className={`rounded-xl p-4 border ${parseFloat(data.resultat) > 0 ? 'bg-orange-50 border-orange-200' : 'bg-surface-container-high border-outline-variant'}`}>
+        <div className="text-xs text-secondary mb-1">{t('models_fiscals.130.resultat', 'Resultat · A ingressar aquest trimestre')}</div>
+        <div className="text-xl font-bold text-on-surface">{fmtEur(data.resultat)}</div>
       </div>
 
       <ForaAbast items={data.fora_abast} t={t} />
@@ -342,13 +342,13 @@ function Model200View({ data, t }) {
     <div className="space-y-4">
       {data.forma_juridica_nota && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <AlertTriangle size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <MIcon name="warning" size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-amber-800">{data.forma_juridica_nota}</p>
         </div>
       )}
 
       <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800">
-        <AlertTriangle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
+        <MIcon name="warning" size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
         {t('models_fiscals.200.disclaimer', 'Estimació de suport, no un càlcul fiscal complet: assumeix zero ajustos extracomptables. No presentar sense revisar-ho amb la gestoria.')}
       </div>
 
@@ -359,19 +359,19 @@ function Model200View({ data, t }) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3">
-          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.200.tipus_pct', 'Tipus impositiu')}</div>
-          <div className="text-base font-semibold text-zinc-900">{parseFloat(data.tipus_pct).toFixed(0)}%</div>
+        <div className="bg-surface-container-high border border-outline-variant rounded-lg p-3">
+          <div className="text-xs text-secondary mb-1">{t('models_fiscals.200.tipus_pct', 'Tipus impositiu')}</div>
+          <div className="text-base font-semibold text-on-surface">{parseFloat(data.tipus_pct).toFixed(0)}%</div>
         </div>
         <Casella num="—" label={t('models_fiscals.200.quota_integra', 'Quota íntegra')} value={data.quota_integra} sign="" />
         <Casella num="—" label={t('models_fiscals.200.pagaments_fraccionats', 'Pagaments fraccionats satisfets')} value={data.pagaments_fraccionats_satisfets} sign="–" />
       </div>
 
       <div className={`rounded-xl p-4 border ${parseFloat(data.resultat) >= 0 ? 'bg-orange-50 border-orange-200' : 'bg-emerald-50 border-emerald-200'}`}>
-        <div className="text-xs text-zinc-500 mb-1">
+        <div className="text-xs text-secondary mb-1">
           {parseFloat(data.resultat) >= 0 ? t('models_fiscals.200.resultat_a_ingressar', 'Resultat · A ingressar') : t('models_fiscals.200.resultat_a_retornar', 'Resultat · A retornar')}
         </div>
-        <div className="text-xl font-bold text-zinc-900">{fmtEur(Math.abs(parseFloat(data.resultat)))}</div>
+        <div className="text-xl font-bold text-on-surface">{fmtEur(Math.abs(parseFloat(data.resultat)))}</div>
       </div>
 
       <ForaAbast items={data.fora_abast} t={t} />
@@ -384,22 +384,22 @@ function Model202View({ data, t }) {
     <div className="space-y-4">
       {data.forma_juridica_nota && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <AlertTriangle size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <MIcon name="warning" size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-amber-800">{data.forma_juridica_nota}</p>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Casella num="—" label={t('models_fiscals.202.cuota_anterior', "Quota íntegra exercici anterior")} value={data.cuota_integra_exercici_anterior} sign="" />
-        <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3">
-          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.202.pct', 'Percentatge')}</div>
-          <div className="text-base font-semibold text-zinc-900">{parseFloat(data.pct).toFixed(0)}%</div>
+        <div className="bg-surface-container-high border border-outline-variant rounded-lg p-3">
+          <div className="text-xs text-secondary mb-1">{t('models_fiscals.202.pct', 'Percentatge')}</div>
+          <div className="text-base font-semibold text-on-surface">{parseFloat(data.pct).toFixed(0)}%</div>
         </div>
       </div>
 
       <div className="rounded-xl p-4 border bg-orange-50 border-orange-200">
-        <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.202.import', 'Import a ingressar')} · {data.periode_nom}</div>
-        <div className="text-xl font-bold text-zinc-900">{fmtEur(data.import_pagament)}</div>
+        <div className="text-xs text-secondary mb-1">{t('models_fiscals.202.import', 'Import a ingressar')} · {data.periode_nom}</div>
+        <div className="text-xl font-bold text-on-surface">{fmtEur(data.import_pagament)}</div>
       </div>
 
       <ForaAbast items={data.fora_abast} t={t} />
@@ -411,13 +411,13 @@ function ModelRetencioAnualView({ data, t }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4">
-          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
-          <div className="text-xl font-bold text-zinc-900">{data.num_perceptors}</div>
+        <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
+          <div className="text-xs text-secondary mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
+          <div className="text-xl font-bold text-on-surface">{data.num_perceptors}</div>
         </div>
-        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4">
-          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
-          <div className="text-xl font-bold text-zinc-900">{fmtEur(data.base_total)}</div>
+        <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
+          <div className="text-xs text-secondary mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
+          <div className="text-xl font-bold text-on-surface">{fmtEur(data.base_total)}</div>
         </div>
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
           <div className="text-xs text-orange-600 mb-1">{t('models_fiscals.retencio.total', 'Retenció a ingressar')}</div>
@@ -425,33 +425,33 @@ function ModelRetencioAnualView({ data, t }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-xs text-zinc-500">
+          <thead className="bg-surface-container-high text-xs text-secondary">
             <tr>
               <th className="px-5 py-2 text-left font-medium">{t('models_fiscals.390.trimestre', 'Trimestre')}</th>
               <th className="px-5 py-2 text-right font-medium">{t('despeses.taxable_base', 'Base imposable')}</th>
               <th className="px-5 py-2 text-right font-medium">{t('models_fiscals.retencio.import', 'Retenció')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-outline-variant">
             {data.trimestres.map(tr => (
-              <tr key={tr.trimestre} className="hover:bg-zinc-50">
-                <td className="px-5 py-2.5 font-medium text-zinc-700">{tr.trimestre}T</td>
-                <td className="px-5 py-2.5 text-right text-zinc-600">{fmtEur(tr.base_total)}</td>
+              <tr key={tr.trimestre} className="hover:bg-surface-container-high">
+                <td className="px-5 py-2.5 font-medium text-on-surface-variant">{tr.trimestre}T</td>
+                <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(tr.base_total)}</td>
                 <td className="px-5 py-2.5 text-right font-medium text-orange-700">{fmtEur(tr.retencio_total)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-secondary">
         {t('models_fiscals.190_180.nota_trimestres', 'Els totals per trimestre poden sumar més que el total anual si un mateix proveïdor apareix en diversos trimestres — el nombre de perceptors de dalt és el recompte correcte, sobre tot l’any.')}
       </p>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-xs text-zinc-500">
+          <thead className="bg-surface-container-high text-xs text-secondary">
             <tr>
               <th className="px-5 py-2 text-left font-medium">{t('nav.proveidors', 'Proveïdor')}</th>
               <th className="px-5 py-2 text-left font-medium">NIF</th>
@@ -459,14 +459,14 @@ function ModelRetencioAnualView({ data, t }) {
               <th className="px-5 py-2 text-right font-medium">{t('models_fiscals.retencio.import', 'Retenció')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-outline-variant">
             {data.desglossat.length === 0 ? (
-              <tr><td colSpan={4} className="px-5 py-4 text-zinc-400 text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+              <tr><td colSpan={4} className="px-5 py-4 text-secondary text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
             ) : data.desglossat.map((d, i) => (
-              <tr key={i} className="hover:bg-zinc-50">
-                <td className="px-5 py-2.5 text-zinc-700">{d.nom}</td>
-                <td className="px-5 py-2.5 text-zinc-500 font-mono text-xs">{d.nif || '—'}</td>
-                <td className="px-5 py-2.5 text-right text-zinc-600">{fmtEur(d.base)}</td>
+              <tr key={i} className="hover:bg-surface-container-high">
+                <td className="px-5 py-2.5 text-on-surface-variant">{d.nom}</td>
+                <td className="px-5 py-2.5 text-secondary font-mono text-xs">{d.nif || '—'}</td>
+                <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(d.base)}</td>
                 <td className="px-5 py-2.5 text-right font-medium text-orange-700">{fmtEur(d.retencio)}</td>
               </tr>
             ))}
@@ -483,13 +483,13 @@ function ModelRetencioView({ data, t }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4">
-          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
-          <div className="text-xl font-bold text-zinc-900">{data.num_perceptors}</div>
+        <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
+          <div className="text-xs text-secondary mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
+          <div className="text-xl font-bold text-on-surface">{data.num_perceptors}</div>
         </div>
-        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4">
-          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
-          <div className="text-xl font-bold text-zinc-900">{fmtEur(data.base_total)}</div>
+        <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
+          <div className="text-xs text-secondary mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
+          <div className="text-xl font-bold text-on-surface">{fmtEur(data.base_total)}</div>
         </div>
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
           <div className="text-xs text-orange-600 mb-1">{t('models_fiscals.retencio.total', 'Retenció a ingressar')}</div>
@@ -497,9 +497,9 @@ function ModelRetencioView({ data, t }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-xs text-zinc-500">
+          <thead className="bg-surface-container-high text-xs text-secondary">
             <tr>
               <th className="px-5 py-2 text-left font-medium">{t('nav.proveidors', 'Proveïdor')}</th>
               <th className="px-5 py-2 text-left font-medium">NIF</th>
@@ -507,14 +507,14 @@ function ModelRetencioView({ data, t }) {
               <th className="px-5 py-2 text-right font-medium">{t('models_fiscals.retencio.import', 'Retenció')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-outline-variant">
             {data.desglossat.length === 0 ? (
-              <tr><td colSpan={4} className="px-5 py-4 text-zinc-400 text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+              <tr><td colSpan={4} className="px-5 py-4 text-secondary text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
             ) : data.desglossat.map((d, i) => (
-              <tr key={i} className="hover:bg-zinc-50">
-                <td className="px-5 py-2.5 text-zinc-700">{d.nom}</td>
-                <td className="px-5 py-2.5 text-zinc-500 font-mono text-xs">{d.nif || '—'}</td>
-                <td className="px-5 py-2.5 text-right text-zinc-600">{fmtEur(d.base)}</td>
+              <tr key={i} className="hover:bg-surface-container-high">
+                <td className="px-5 py-2.5 text-on-surface-variant">{d.nom}</td>
+                <td className="px-5 py-2.5 text-secondary font-mono text-xs">{d.nif || '—'}</td>
+                <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(d.base)}</td>
                 <td className="px-5 py-2.5 text-right font-medium text-orange-700">{fmtEur(d.retencio)}</td>
               </tr>
             ))}

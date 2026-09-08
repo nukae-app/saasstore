@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { authFetch } from '../../lib/auth';
-import { Plus, Pencil, Trash2, Eye, EyeOff, GripVertical, Globe, FileText, CalendarDays, List } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 
 const TIPUS_OPTIONS = [
-  { value: 'llista-posts', label: 'Llista de posts', icon: List, desc: 'Mostra entrades de blog filtrades per aquesta pàgina' },
-  { value: 'estatica',     label: 'Pàgina estàtica', icon: FileText, desc: 'Contingut HTML lliure, editable des de l\'admin' },
-  { value: 'agenda',       label: 'Agenda',           icon: CalendarDays, desc: 'Mostra els events programats' },
+  { value: 'llista-posts', label: 'Llista de posts', icon: 'list', desc: 'Mostra entrades de blog filtrades per aquesta pàgina' },
+  { value: 'estatica',     label: 'Pàgina estàtica', icon: 'newspaper', desc: 'Contingut HTML lliure, editable des de l\'admin' },
+  { value: 'agenda',       label: 'Agenda',           icon: 'event', desc: 'Mostra els events programats' },
 ];
 
 const TIPUS_MAP = Object.fromEntries(TIPUS_OPTIONS.map(t => [t.value, t]));
@@ -15,8 +15,7 @@ const TIPUS_MAP = Object.fromEntries(TIPUS_OPTIONS.map(t => [t.value, t]));
 function TipusIcon({ type, size = 14 }) {
   const opt = TIPUS_MAP[type];
   if (!opt) return null;
-  const Icon = opt.icon;
-  return <Icon size={size} />;
+  return <MIcon name={opt.icon} size={size} />;
 }
 
 const EMPTY_FORM = { slug: '', name: '', type: 'llista-posts', position: 0, menu_visible: true, content: '' };
@@ -97,31 +96,31 @@ export default function AdminPaginesPage() {
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-zinc-900">Pàgines</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Gestiona les seccions del menú principal</p>
+          <h1 className="text-xl font-semibold text-on-surface">Pàgines</h1>
+          <p className="text-sm text-secondary mt-0.5">Gestiona les seccions del menú principal</p>
         </div>
         <button onClick={openNew}
-          className="flex items-center gap-1.5 bg-zinc-900 text-white text-sm px-4 py-2 rounded-xl hover:bg-zinc-700 transition-colors">
-          <Plus size={15} /> Nova pàgina
+          className="flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl hover:opacity-90 transition-colors">
+          <MIcon name="add" size={15} /> Nova pàgina
         </button>
       </div>
 
       {/* Formulari */}
       {editing && (
-        <div className="bg-white rounded-2xl border border-zinc-200 p-6 mb-6 shadow-sm">
-          <h2 className="font-semibold text-zinc-800 mb-4">{editId ? 'Editar pàgina' : 'Nova pàgina'}</h2>
+        <div className="bg-card rounded-2xl border border-outline-variant p-6 mb-6 shadow-sm">
+          <h2 className="font-semibold text-on-surface mb-4">{editId ? 'Editar pàgina' : 'Nova pàgina'}</h2>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Nom *</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Nom *</label>
               <input value={editing.name}
                 onChange={e => setEditing(v => ({ ...v, name: e.target.value, slug: editId ? v.slug : slugify(e.target.value) }))}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Ex: Totes les Cançons" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Slug (URL) *</label>
-              <div className="flex items-center border border-zinc-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-zinc-300">
-                <span className="px-2 text-zinc-400 text-xs border-r border-zinc-100 bg-zinc-50 py-2">/</span>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Slug (URL) *</label>
+              <div className="flex items-center border border-outline-variant rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary">
+                <span className="px-2 text-secondary text-xs border-r border-outline-variant bg-surface-container-high py-2">/</span>
                 <input value={editing.slug}
                   onChange={e => setEditing(v => ({ ...v, slug: e.target.value }))}
                   className="flex-1 px-3 py-2 text-sm focus:outline-none"
@@ -132,19 +131,18 @@ export default function AdminPaginesPage() {
 
           {/* Tipus */}
           <div className="mb-4">
-            <label className="block text-xs font-medium text-zinc-600 mb-2">Tipus de pàgina</label>
+            <label className="block text-xs font-medium text-on-surface-variant mb-2">Tipus de pàgina</label>
             <div className="grid grid-cols-3 gap-2">
               {TIPUS_OPTIONS.map(opt => {
-                const Icon = opt.icon;
                 const sel = editing.type === opt.value;
                 return (
                   <button key={opt.value} onClick={() => setEditing(v => ({ ...v, type: opt.value }))}
                     className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border text-left transition-colors ${
-                      sel ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:border-zinc-300 text-zinc-700'
+                      sel ? 'border-primary bg-primary text-white' : 'border-outline-variant hover:border-outline-variant text-on-surface-variant'
                     }`}>
-                    <Icon size={16} />
+                    <MIcon name={opt.icon} size={16} />
                     <span className="text-xs font-semibold">{opt.label}</span>
-                    <span className={`text-[10px] leading-tight ${sel ? 'text-zinc-300' : 'text-zinc-400'}`}>{opt.desc}</span>
+                    <span className={`text-[10px] leading-tight ${sel ? 'text-white/75' : 'text-secondary'}`}>{opt.desc}</span>
                   </button>
                 );
               })}
@@ -154,11 +152,11 @@ export default function AdminPaginesPage() {
           {/* Contingut per estàtiques */}
           {editing.type === 'estatica' && (
             <div className="mb-4">
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Contingut (HTML)</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Contingut (HTML)</label>
               <textarea value={editing.content}
                 onChange={e => setEditing(v => ({ ...v, content: e.target.value }))}
                 rows={8}
-                className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="<p>Contingut de la pàgina...</p>" />
             </div>
           )}
@@ -168,13 +166,13 @@ export default function AdminPaginesPage() {
               <input type="checkbox" id="visible_menu" checked={editing.menu_visible}
                 onChange={e => setEditing(v => ({ ...v, menu_visible: e.target.checked }))}
                 className="accent-zinc-900" />
-              <label htmlFor="visible_menu" className="text-sm text-zinc-600">Visible al menú</label>
+              <label htmlFor="visible_menu" className="text-sm text-on-surface-variant">Visible al menú</label>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs text-zinc-500">Posició:</label>
+              <label className="text-xs text-secondary">Posició:</label>
               <input type="number" value={editing.position} min={0}
                 onChange={e => setEditing(v => ({ ...v, position: Number(e.target.value) }))}
-                className="w-16 border border-zinc-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300" />
+                className="w-16 border border-outline-variant rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
 
@@ -182,11 +180,11 @@ export default function AdminPaginesPage() {
 
           <div className="flex gap-2">
             <button onClick={save} disabled={saving}
-              className="bg-zinc-900 text-white text-sm px-5 py-2 rounded-xl hover:bg-zinc-700 disabled:opacity-50 transition-colors">
+              className="bg-primary text-white text-sm px-5 py-2 rounded-xl hover:opacity-90 disabled:opacity-50 transition-colors">
               {saving ? 'Guardant…' : editId ? 'Guardar canvis' : 'Crear pàgina'}
             </button>
             <button onClick={cancelEdit}
-              className="text-sm px-4 py-2 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-colors">
+              className="text-sm px-4 py-2 rounded-xl border border-outline-variant hover:bg-surface-container-high transition-colors">
               Cancel·lar
             </button>
           </div>
@@ -195,48 +193,48 @@ export default function AdminPaginesPage() {
 
       {/* Llista */}
       {loading ? (
-        <p className="text-zinc-400 text-sm">Carregant…</p>
+        <p className="text-secondary text-sm">Carregant…</p>
       ) : (
         <div className="flex flex-col gap-2">
           {pagines.map(p => (
-            <div key={p.id} className="flex items-center gap-3 bg-white rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] px-4 py-3 hover:border-zinc-200 transition-colors">
-              <GripVertical size={16} className="text-zinc-300 shrink-0" />
+            <div key={p.id} className="flex items-center gap-3 bg-card rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] px-4 py-3 hover:border-outline-variant transition-colors">
+              <MIcon name="drag_indicator" size={16} className="text-secondary shrink-0" />
 
-              <div className="flex items-center gap-2 shrink-0 text-zinc-400">
+              <div className="flex items-center gap-2 shrink-0 text-secondary">
                 <TipusIcon type={p.type} />
               </div>
 
               <div className="flex-1 min-w-0">
-                <span className="font-medium text-zinc-900 text-sm">{p.name}</span>
-                <span className="ml-2 text-xs text-zinc-400">/{p.slug}</span>
-                <span className="ml-2 text-[10px] bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-full">
+                <span className="font-medium text-on-surface text-sm">{p.name}</span>
+                <span className="ml-2 text-xs text-secondary">/{p.slug}</span>
+                <span className="ml-2 text-[10px] bg-surface-container-high text-secondary px-1.5 py-0.5 rounded-full">
                   {TIPUS_MAP[p.type]?.label || p.type}
                 </span>
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
                 <a href={`/${p.slug}`} target="_blank" rel="noopener"
-                  className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors">
-                  <Globe size={14} />
+                  className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                  <MIcon name="language" size={14} />
                 </a>
                 <button onClick={() => toggleVisible(p)}
-                  className={`p-1.5 rounded-lg hover:bg-zinc-50 transition-colors ${p.menu_visible ? 'text-zinc-900' : 'text-zinc-300'}`}
+                  className={`p-1.5 rounded-lg hover:bg-surface-container-high transition-colors ${p.menu_visible ? 'text-on-surface' : 'text-secondary'}`}
                   title={p.menu_visible ? 'Visible al menú' : 'Ocult del menú'}>
-                  {p.menu_visible ? <Eye size={14} /> : <EyeOff size={14} />}
+                  {p.menu_visible ? <MIcon name="visibility" size={14} /> : <MIcon name="visibility_off" size={14} />}
                 </button>
                 <button onClick={() => openEdit(p)}
-                  className="p-1.5 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors">
-                  <Pencil size={14} />
+                  className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                  <MIcon name="edit" size={14} />
                 </button>
                 <button onClick={() => deletePagina(p.id)} disabled={deleting === p.id}
-                  className="p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
-                  <Trash2 size={14} />
+                  className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
+                  <MIcon name="delete" size={14} />
                 </button>
               </div>
             </div>
           ))}
           {pagines.length === 0 && (
-            <p className="text-zinc-400 text-sm py-8 text-center">Cap pàgina creada. Afegeix-ne una!</p>
+            <p className="text-secondary text-sm py-8 text-center">Cap pàgina creada. Afegeix-ne una!</p>
           )}
         </div>
       )}

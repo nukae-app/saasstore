@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth';
-import { ChevronDown, ChevronRight, Lock, Unlock } from 'lucide-react';
+import MIcon from '../../../components/ui/m-icon';
 import { Button } from '../../../components/ui/button';
 import { useT } from '../../lib/i18n';
 import CaixaDiaria from './CaixaDiaria';
@@ -76,20 +76,20 @@ export default function ResultatPage() {
   return (
     <div className={`space-y-5 ${tab === 'resum' ? 'max-w-4xl mx-auto' : 'max-w-6xl mx-auto'}`}>
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-zinc-900">{t('resultat.title', 'Resultat mensual')}</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{t('resultat.title', 'Resultat mensual')}</h2>
         {tab === 'resum' && data && (
           <Button variant={data.periode_tancat ? 'secondary' : 'default'} onClick={togglePeriode}
             className="flex items-center gap-1.5">
-            {data.periode_tancat ? <><Unlock size={14} /> {t('resultat.open_period', 'Obrir període')}</> : <><Lock size={14} /> {t('resultat.close_month', 'Tancar mes')}</>}
+            {data.periode_tancat ? <><MIcon name="lock_open" size={14} /> {t('resultat.open_period', 'Obrir període')}</> : <><MIcon name="lock" size={14} /> {t('resultat.close_month', 'Tancar mes')}</>}
           </Button>
         )}
       </div>
 
       {/* Pestanyes */}
-      <div className="inline-flex gap-1 p-1 bg-zinc-100 rounded-lg">
+      <div className="inline-flex gap-1 p-1 bg-surface-container-high rounded-lg">
         {[['resum', t('resultat.tab.summary', 'Resum mensual')], ['caixa', t('resultat.tab.cash', 'Control de caixa')]].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === id ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === id ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface-variant'}`}>
             {label}
           </button>
         ))}
@@ -98,7 +98,7 @@ export default function ResultatPage() {
       {/* Selector any / mes */}
       <div className="flex items-center gap-3 flex-wrap">
         <select value={year} onChange={e => setYear(Number(e.target.value))}
-          className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
+          className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
           {[2023, 2024, 2025, 2026].map(y => <option key={y}>{y}</option>)}
         </select>
         <div className="flex flex-wrap gap-1.5">
@@ -106,7 +106,7 @@ export default function ResultatPage() {
             const n = i + 1;
             return (
               <button key={n} onClick={() => setMes(n)}
-                className={`px-3 py-1 rounded-lg text-sm border transition-colors relative ${mes === n ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'}`}>
+                className={`px-3 py-1 rounded-lg text-sm border transition-colors relative ${mes === n ? 'bg-primary text-white border-primary' : 'bg-card text-on-surface-variant border-outline-variant hover:border-outline'}`}>
                 {mesLabel(t, i).slice(0, 3)}
                 {mesosTancats.has(n) && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-400 border border-white" title={t('resultat.closed', 'Tancat')} />
@@ -119,14 +119,14 @@ export default function ResultatPage() {
 
       {tab === 'resum' && data?.periode_tancat && (
         <div className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200">
-          <Lock size={13} /> {t('resultat.period_closed', 'Període tancat')}
+          <MIcon name="lock" size={13} /> {t('resultat.period_closed', 'Període tancat')}
         </div>
       )}
 
       {tab === 'caixa' && <CaixaDiaria year={year} mes={mes} />}
 
       {tab !== 'resum' ? null : loading ? (
-        <div className="p-12 text-center text-zinc-400 text-sm">{t('common.loading', 'Carregant...')}</div>
+        <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
       ) : !data ? null : (
         <div className="space-y-4">
           {/* Targes resum */}
@@ -152,58 +152,58 @@ export default function ResultatPage() {
           </div>
 
           {/* Ingressos detall */}
-          <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-card border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
             <div className="flex items-center justify-between px-5 py-3 bg-green-50 border-b border-green-100">
               <span className="font-semibold text-green-800">{t('resultat.income', 'Ingressos')}</span>
               <span className="font-bold text-green-700">+{fmtEur(data.total_ingressos)}</span>
             </div>
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500">
+              <thead className="bg-surface-container-high text-xs text-secondary">
                 <tr>
                   <th className="px-5 py-2 text-left font-medium">{t('resultat.col.channel', 'Canal')}</th>
                   <th className="px-5 py-2 text-right font-medium">{t('resultat.col.total', 'Total')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {[
                   { label: t('resultat.channel.web', 'Vendes web'), val: data.vendes_web },
                   { label: t('resultat.channel.counter', 'Vendes mostrador (TPV)'), val: data.vendes_mostrador },
                   { label: t('resultat.channel.discogs', 'Vendes Discogs'), val: data.vendes_discogs },
                 ].filter(r => parseFloat(r.val) > 0).map(r => (
-                  <tr key={r.label} className="hover:bg-zinc-50">
-                    <td className="px-5 py-2.5 text-zinc-700">{r.label}</td>
+                  <tr key={r.label} className="hover:bg-surface-container-high">
+                    <td className="px-5 py-2.5 text-on-surface-variant">{r.label}</td>
                     <td className="px-5 py-2.5 text-right font-medium text-green-600">+{fmtEur(r.val)}</td>
                   </tr>
                 ))}
                 {parseFloat(data.total_ingressos) === 0 && (
-                  <tr><td colSpan={2} className="px-5 py-4 text-zinc-400 text-center text-xs">{t('resultat.no_income', 'Sense ingressos')}</td></tr>
+                  <tr><td colSpan={2} className="px-5 py-4 text-secondary text-center text-xs">{t('resultat.no_income', 'Sense ingressos')}</td></tr>
                 )}
               </tbody>
             </table>
           </div>
 
           {/* Cost de vendes (COGS) */}
-          <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-card border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
             <div className="flex items-center justify-between px-5 py-3 bg-orange-50 border-b border-orange-100">
               <span className="font-semibold text-orange-800">{t('resultat.cogs', 'Cost de les vendes (COGS)')}</span>
               <span className="font-bold text-orange-700">−{fmtEur(data.total_cogs)}</span>
             </div>
             <table className="w-full text-sm">
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-outline-variant">
                 {parseFloat(data.cogs_web) > 0 && (
-                  <tr className="hover:bg-zinc-50">
-                    <td className="px-5 py-2.5 text-zinc-700">{t('resultat.cogs_web', 'Cost vendes web')}</td>
+                  <tr className="hover:bg-surface-container-high">
+                    <td className="px-5 py-2.5 text-on-surface-variant">{t('resultat.cogs_web', 'Cost vendes web')}</td>
                     <td className="px-5 py-2.5 text-right font-medium text-orange-600">−{fmtEur(data.cogs_web)}</td>
                   </tr>
                 )}
                 {parseFloat(data.cogs_extern) > 0 && (
-                  <tr className="hover:bg-zinc-50">
-                    <td className="px-5 py-2.5 text-zinc-700">{t('resultat.cogs_extern', 'Cost vendes TPV / Discogs')}</td>
+                  <tr className="hover:bg-surface-container-high">
+                    <td className="px-5 py-2.5 text-on-surface-variant">{t('resultat.cogs_extern', 'Cost vendes TPV / Discogs')}</td>
                     <td className="px-5 py-2.5 text-right font-medium text-orange-600">−{fmtEur(data.cogs_extern)}</td>
                   </tr>
                 )}
                 {parseFloat(data.total_cogs) === 0 && (
-                  <tr><td colSpan={2} className="px-5 py-4 text-zinc-400 text-center text-xs">{t('resultat.no_sales_month', 'Sense vendes aquest mes')}</td></tr>
+                  <tr><td colSpan={2} className="px-5 py-4 text-secondary text-center text-xs">{t('resultat.no_sales_month', 'Sense vendes aquest mes')}</td></tr>
                 )}
                 {data.items_sense_cost > 0 && (
                   <tr>
@@ -225,37 +225,37 @@ export default function ResultatPage() {
           </div>
 
           {/* Despeses operatives per categoria */}
-          <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-card border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
             <button className="w-full flex items-center justify-between px-5 py-3 bg-red-50 border-b border-red-100"
               onClick={() => setExpandedDespeses(e => !e)}>
               <span className="font-semibold text-red-800 flex items-center gap-2">
-                {expandedDespeses ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                {expandedDespeses ? <MIcon name="expand_more" size={16} /> : <MIcon name="chevron_right" size={16} />}
                 {t('resultat.operating_expenses', 'Despeses operatives')}
               </span>
               <span className="font-bold text-red-700">−{fmtEur(data.total_despeses_operatives)}</span>
             </button>
             {expandedDespeses && (
               <table className="w-full text-sm">
-                <thead className="bg-zinc-50 text-xs text-zinc-500">
+                <thead className="bg-surface-container-high text-xs text-secondary">
                   <tr>
                     <th className="px-5 py-2 text-left font-medium">{t('resultat.col.category', 'Categoria')}</th>
                     <th className="px-5 py-2 text-right font-medium">{t('resultat.col.invoices', 'Factures')}</th>
                     <th className="px-5 py-2 text-right font-medium">{t('resultat.col.total', 'Total')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-outline-variant">
                   {data.despeses.filter(d => d.categoria !== 'compres_material').length === 0 ? (
-                    <tr><td colSpan={3} className="px-5 py-4 text-zinc-400 text-center text-xs">{t('resultat.no_operating_expenses', 'Sense despeses operatives')}</td></tr>
+                    <tr><td colSpan={3} className="px-5 py-4 text-secondary text-center text-xs">{t('resultat.no_operating_expenses', 'Sense despeses operatives')}</td></tr>
                   ) : data.despeses.filter(d => d.categoria !== 'compres_material').map((d, i) => (
-                    <tr key={i} className="hover:bg-zinc-50">
-                      <td className="px-5 py-2.5 text-zinc-700">{categoriaLabel(t, d.categoria)}</td>
-                      <td className="px-5 py-2.5 text-right text-zinc-500">{d.num_factures}</td>
+                    <tr key={i} className="hover:bg-surface-container-high">
+                      <td className="px-5 py-2.5 text-on-surface-variant">{categoriaLabel(t, d.categoria)}</td>
+                      <td className="px-5 py-2.5 text-right text-secondary">{d.num_factures}</td>
                       <td className="px-5 py-2.5 text-right font-medium text-red-600">−{fmtEur(d.total)}</td>
                     </tr>
                   ))}
                   {data.despeses.find(d => d.categoria === 'compres_material') && (
-                    <tr className="bg-zinc-50">
-                      <td colSpan={3} className="px-5 py-2 text-xs text-zinc-400 italic">
+                    <tr className="bg-surface-container-high">
+                      <td colSpan={3} className="px-5 py-2 text-xs text-secondary italic">
                         {t('resultat.material_purchases_note', 'Compres de material no incloses aquí (reflectides al COGS per venda)')}
                       </td>
                     </tr>
