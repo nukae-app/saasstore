@@ -186,16 +186,16 @@ function AdminShell({ children }) {
 
   if (!devBypass && loading) {
     return (
-      <div data-admin-theme="m3" className="min-h-screen bg-primary flex items-center justify-center">
+      <div data-admin-theme="m3" className="min-h-screen bg-sidebar flex items-center justify-center">
         <AdminHead />
-        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div data-admin-theme="m3" className="min-h-screen bg-primary flex items-center justify-center p-4">
+      <div data-admin-theme="m3" className="min-h-screen bg-sidebar flex items-center justify-center p-4">
         <AdminHead />
         <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
           <h1 className="font-headline font-bold text-2xl text-on-surface mb-1">{config.nombre || 'Admin'}</h1>
@@ -213,7 +213,7 @@ function AdminShell({ children }) {
 
   if (user.role !== 'admin') {
     return (
-      <div data-admin-theme="m3" className="min-h-screen bg-primary flex items-center justify-center p-4">
+      <div data-admin-theme="m3" className="min-h-screen bg-sidebar flex items-center justify-center p-4">
         <AdminHead />
         <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
           <h1 className="font-headline font-bold text-2xl text-on-surface mb-1">Sense accés</h1>
@@ -248,10 +248,10 @@ function AdminShell({ children }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 w-72 ${collapsed ? 'md:w-16' : 'md:w-64'} flex flex-col bg-surface-container-low shrink-0 transform transition-transform md:transition-[width] duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.06)] ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+        className={`fixed md:static inset-y-0 left-0 z-40 w-72 ${collapsed ? 'md:w-16' : 'md:w-64'} flex flex-col bg-sidebar shrink-0 transform transition-transform md:transition-[width] duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         {/* Brand */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-outline-variant/50 shrink-0">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-white/10 shrink-0">
           {showLabels && (
             <div className="flex items-center gap-2.5 min-w-0">
               {config.logo_url ? (
@@ -262,13 +262,13 @@ function AdminShell({ children }) {
                   <MIcon name="storefront" size={16} />
                 </span>
               )}
-              <span className="font-headline font-bold text-sm text-on-surface truncate">{config.nombre || 'Admin'}</span>
+              <span className="font-headline font-bold text-sm text-white truncate">{config.nombre || 'Admin'}</span>
             </div>
           )}
-          <button onClick={() => setCollapsed(!collapsed)} className="hidden md:block text-on-surface-variant hover:text-on-surface p-1 rounded-full ml-auto">
+          <button onClick={() => setCollapsed(!collapsed)} className="hidden md:block text-sidebar-foreground hover:text-white p-1 rounded-full ml-auto">
             <MIcon name={collapsed ? 'menu' : 'close'} size={18} />
           </button>
-          <button onClick={() => setMobileOpen(false)} className="md:hidden text-on-surface-variant hover:text-on-surface p-1 rounded-full ml-auto">
+          <button onClick={() => setMobileOpen(false)} className="md:hidden text-sidebar-foreground hover:text-white p-1 rounded-full ml-auto">
             <MIcon name="close" size={18} />
           </button>
         </div>
@@ -285,19 +285,19 @@ function AdminShell({ children }) {
               {group.label && showLabels && group.collapsible && (
                 <button
                   onClick={() => setOpenGroups(g => ({ ...g, [group.label]: !g[group.label] }))}
-                  className="w-full flex items-center justify-between px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-secondary-foreground hover:text-on-surface"
+                  className="w-full flex items-center justify-between px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-sidebar-muted hover:text-sidebar-foreground"
                 >
                   {group.label}
                   <MIcon name="expand_more" size={14} className={`transition-transform ${isCollapsibleOpen ? '' : '-rotate-90'}`} />
                 </button>
               )}
               {group.label && showLabels && !group.collapsible && (
-                <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-secondary-foreground">
+                <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">
                   {group.label}
                 </p>
               )}
               {group.label && !showLabels && gi > 0 && (
-                <div className="border-t border-outline-variant/50 mb-1 mx-2" />
+                <div className="border-t border-white/10 mb-1 mx-2" />
               )}
               {isCollapsibleOpen && (
                 <div className="space-y-0.5">
@@ -311,8 +311,8 @@ function AdminShell({ children }) {
                         title={collapsed && !mobileOpen ? label : undefined}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                           active
-                            ? 'bg-primary text-primary-foreground font-semibold shadow-[0_2px_8px_rgba(74,124,89,0.2)]'
-                            : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+                            ? 'bg-sidebar-active text-sidebar-active-foreground font-semibold shadow-[0_2px_8px_rgba(18,179,160,0.35)]'
+                            : 'text-sidebar-foreground hover:bg-white/5 hover:text-white'
                         }`}
                       >
                         <MIcon name={icon} size={20} className="shrink-0" />
@@ -328,22 +328,22 @@ function AdminShell({ children }) {
         </nav>
 
         {/* User + logout */}
-        <div className="p-4 bg-surface-container rounded-t-xl shrink-0">
+        <div className="p-4 border-t border-white/10 shrink-0">
           <div className="flex items-center gap-2 mb-3 min-w-0">
             <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs shrink-0">
               {initials}
             </div>
             {showLabels && (
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-on-surface truncate">{user.email}</p>
-                <p className="text-[11px] text-secondary-foreground">Administrador</p>
+                <p className="text-xs font-semibold text-white truncate">{user.email}</p>
+                <p className="text-[11px] text-sidebar-muted">Administrador</p>
               </div>
             )}
           </div>
           <button
             onClick={logout}
             title={collapsed && !mobileOpen ? t('nav.logout') : undefined}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-surface-container-high text-xs font-semibold text-on-surface-variant hover:text-error hover:bg-error-container transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/5 text-xs font-semibold text-sidebar-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
           >
             <MIcon name="logout" size={16} />
             {showLabels && <span>{t('nav.logout')}</span>}

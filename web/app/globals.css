@@ -99,6 +99,16 @@
   --color-error-container: var(--m3-error-container);
   --color-on-error-container: var(--m3-on-error-container);
 
+  /* Registrats només perquè Tailwind generi les utilities bg-sidebar/
+     text-sidebar-*; el valor real només existeix sota
+     [data-admin-theme="m3"] (sobreescrit directament allà, no via
+     indirecció — mateix motiu que la resta d'aquest bloc). */
+  --color-sidebar: #171717;
+  --color-sidebar-foreground: #a1a1aa;
+  --color-sidebar-muted: #71717a;
+  --color-sidebar-active: var(--primary);
+  --color-sidebar-active-foreground: var(--primary-foreground);
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -197,11 +207,14 @@
     }
   }
 
-  /* Tema d'admin (Material Design 3, generat amb Stitch) — escopat per no
-     tocar mai la marca de botiga (negre/crema, Bodoni Moda) que porten el
-     storefront i el seu :root. Sobreescriu els mateixos noms de variable que
-     ja consumeixen els primitives de components/ui/*.jsx (bg-primary,
-     bg-card, etc.) més els rols exclusius de M3 declarats a dalt. */
+  /* Tema d'admin — escopat per no tocar mai la marca de botiga (negre/crema,
+     Bodoni Moda) que porten el storefront i el seu :root. Sobreescriu els
+     mateixos noms de variable que ja consumeixen els primitives de
+     components/ui/*.jsx (bg-primary, bg-card, etc.) més els rols exclusius
+     declarats a dalt. Direcció visual "Rasket" (referència de l'usuari
+     2026-09-08): sidebar fosc, accent teal, fons gris fred, gràfics reals —
+     recreat amb els nostres propis tokens/components, no codi del tema
+     comercial. */
   [data-admin-theme='m3'] {
     /* font-family s'hereta com a valor ja resolt, no com a referència a la
        variable: cal reafirmar-lo aquí perquè els descendents (que no
@@ -212,70 +225,69 @@
     font-family: var(--font-body);
 
     /* IMPORTANT — sobreescriu sempre --color-<nom> (el que genera Tailwind
-       a @theme), MAI el nom intermedi propi (--background, --primary...).
-       Motiu (bug real, detectat 2026-09-08, confirmat present a producció
-       amb un build real, no només en dev): Tailwind registra
-       `--color-primary: var(--primary)` un sol cop a :root; quan una
-       utility (bg-primary) consumeix --color-primary, la resolució de la
-       referència var(--primary) niada es "congela" amb el valor de
-       --primary A :ROOT, ignorant que aquest scope el sobreescriu més
-       avall — encara que --primary AQUÍ es llegeixi correctament si es
-       consulta directament. Sobreescriure --color-X aquí (una sola
-       indirecció, no niada) ho evita completament. Verificat amb
-       getComputedStyle en un build de producció real: bg-primary amb
-       --primary sobreescrit donava #171717 (negre de botiga, INCORRECTE);
-       amb --color-primary sobreescrit dona el color correcte. */
-    --color-background: #faf6f0;
-    --color-foreground: #2e3230;
+       a @theme), MAI un nom intermedi propi. Motiu (bug real, detectat
+       2026-09-08, confirmat present a producció amb un build real, no
+       només en dev): Tailwind registra `--color-X: var(--X)` un sol cop a
+       :root; quan una utility (bg-primary) consumeix --color-X en
+       producció, la referència niada var(--X) es resol amb el valor de
+       --X A :ROOT, ignorant que aquest scope el sobreescriu més avall —
+       encara que --X es llegeixi correctament si es consulta directament.
+       Sobreescriure --color-X aquí (indirecció única, no niada) ho evita. */
+    --color-background: #f4f6f9;
+    --color-foreground: #1e2337;
     --color-card: #ffffff;
-    --color-card-foreground: #2e3230;
+    --color-card-foreground: #1e2337;
     --color-popover: #ffffff;
-    --color-popover-foreground: #2e3230;
-    /* Terracotta/rust en comptes del verd salvia original de Stitch —
-       lliga amb l'accent ja real del marketing de NukaeStore (/nukaestore),
-       no és una tria arbitrària nova. Decidit per l'usuari 2026-09-08. */
-    --color-primary: #b8563a;
+    --color-popover-foreground: #1e2337;
+    --color-primary: #12b3a0;
     --color-primary-foreground: #ffffff;
-    --color-secondary: #f0e8db;
-    --color-secondary-foreground: #6b6358;
-    --color-muted: #e4e0d8;
-    --color-muted-foreground: #4a4e4a;
-    --color-accent: #eae6de;
-    --color-accent-foreground: #2e3230;
-    --color-destructive: #b83230;
+    --color-secondary: #eef2f6;
+    --color-secondary-foreground: #475569;
+    --color-muted: #eef1f5;
+    --color-muted-foreground: #64748b;
+    --color-accent: #eef2f6;
+    --color-accent-foreground: #1e2337;
+    --color-destructive: #e5484d;
     --color-destructive-foreground: #ffffff;
-    --color-border: #c4c8bc;
-    --color-input: #c4c8bc;
-    --color-ring: #b8563a;
+    --color-border: #e2e8f0;
+    --color-input: #e2e8f0;
+    --color-ring: #12b3a0;
 
     --font-headline: 'Literata', Georgia, serif;
     --font-body: 'Nunito Sans', system-ui, sans-serif;
 
-    --color-surface: #faf6f0;
-    --color-surface-dim: #dbd7cf;
-    --color-surface-bright: #faf6f0;
+    --color-surface: #f4f6f9;
+    --color-surface-dim: #dde3ea;
+    --color-surface-bright: #ffffff;
     --color-surface-container-lowest: #ffffff;
-    --color-surface-container-low: #f5f1ea;
-    --color-surface-container: #f0ece4;
-    --color-surface-container-high: #eae6de;
-    --color-surface-container-highest: #e4e0d8;
-    --color-surface-variant: #e4e0d8;
-    --color-on-surface: #2e3230;
-    --color-on-surface-variant: #4a4e4a;
-    --color-outline: #74796e;
-    --color-outline-variant: #c4c8bc;
-    --color-tertiary: #705c30;
-    --color-tertiary-container: #c4a66a;
-    --color-tertiary-fixed: #f8e0a8;
-    --color-on-tertiary-fixed: #221a05;
-    --color-primary-fixed: #f3c9b3;
-    --color-on-primary-fixed: #3d1200;
-    --color-primary-container: #e0a488;
-    --color-on-primary-container: #3d1200;
-    --color-secondary-container: #f0e8db;
-    --color-on-secondary-container: #5e5548;
-    --color-error-container: #ffdad8;
-    --color-on-error-container: #690005;
+    --color-surface-container-low: #f8fafc;
+    --color-surface-container: #eef1f5;
+    --color-surface-container-high: #e8ecf1;
+    --color-surface-container-highest: #dde3ea;
+    --color-surface-variant: #e2e8f0;
+    --color-on-surface: #1e2337;
+    --color-on-surface-variant: #64748b;
+    --color-outline: #94a3b8;
+    --color-outline-variant: #e2e8f0;
+    --color-tertiary: #7c3aed;
+    --color-tertiary-container: #ddd6fe;
+    --color-tertiary-fixed: #ede9fe;
+    --color-on-tertiary-fixed: #4c1d95;
+    --color-primary-fixed: #99f6e9;
+    --color-on-primary-fixed: #003e37;
+    --color-primary-container: #ccf5ee;
+    --color-on-primary-container: #0f4a43;
+    --color-secondary-container: #eef2f6;
+    --color-on-secondary-container: #475569;
+    --color-error-container: #fde2e1;
+    --color-on-error-container: #7f1d1d;
+
+    /* Sidebar fosc — zona pròpia, no forma part de l'escala "surface". */
+    --color-sidebar: #171b2c;
+    --color-sidebar-foreground: #94a0bd;
+    --color-sidebar-muted: #5b6685;
+    --color-sidebar-active: #12b3a0;
+    --color-sidebar-active-foreground: #ffffff;
   }
 
   .hero-featured-image {

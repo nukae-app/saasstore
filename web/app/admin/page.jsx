@@ -1,7 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell,
+} from 'recharts';
 import { authFetch } from '../lib/auth';
 import { useT } from '../lib/i18n';
 import MIcon from '../../components/ui/m-icon';
@@ -22,6 +26,8 @@ const STATUS_KEY = {
 };
 
 const VENDA_ESTATS_REALS = ['pagado', 'enviado', 'entregado'];
+const COLOR_WEB = '#12b3a0';
+const COLOR_TPV = '#f59e0b';
 
 function fmtEur(n) {
   return `${parseFloat(n || 0).toLocaleString('ca-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -98,6 +104,34 @@ export default function AdminDashboard() {
   const vendesSetmana = resumVendes(dSetmana);
   const vendesMes = resumVendes(dMes);
 
+  // Vendes per dia del mes en curs (només el rang que realment tenim carregat
+  // — ventasExternas es demana des de l'1 del mes, mai abans, així que un
+  // gràfic de "últims 14 dies" tindria forats abans del dia 1 si el mes és
+  // jove; per això el rang és sempre "des de l'1 fins avui", mai inventat).
+  const dailyData = useMemo(() => {
+    const days = [];
+    for (let d = new Date(dMes); d <= dAvui; d.setDate(d.getDate() + 1)) {
+      days.push(new Date(d));
+    }
+    return days.map(d => {
+      const key = d.toDateString();
+      const web = vendesRealsOrders
+        .filter(o => new Date(o.created_at).toDateString() === key)
+        .reduce((s, o) => s + parseFloat(o.total || 0), 0);
+      const tpv = ventasExternas
+        .filter(v => new Date(v.date).toDateString() === key)
+        .reduce((s, v) => s + parseFloat(v.sale_price || 0), 0);
+      return { dia: d.getDate(), web: +web.toFixed(2), tpv: +tpv.toFixed(2) };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, ventasExternas]);
+
+  const splitData = [
+    { name: t('dashboard.sales.web_label'), value: vendesMes.web },
+    { name: t('dashboard.sales.tpv_label'), value: vendesMes.mostrador },
+  ];
+  const hasSplitData = vendesMes.total > 0;
+
   const alertRows = [
     { label: t('dashboard.alert.peticiones_precio'), value: peticionsPendentPreu, icon: 'sell', href: '/admin/peticions' },
     { label: t('dashboard.alert.peticiones_comanda'), value: peticionsPendentComanda, icon: 'check_circle', href: '/admin/peticions' },
@@ -111,7 +145,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex items-baseline justify-between">
         <h2 className="font-headline font-bold text-2xl text-on-surface">{t('dashboard.title')}</h2>
         <span className="text-xs text-secondary-foreground uppercase tracking-wide">
@@ -119,7 +153,7 @@ export default function AdminDashboard() {
         </span>
       </div>
 
-      {/* Register — same metric-strip language as the catalog screen */}
+      {/* Stat cards */}
       <StatStrip
         entries={[
           { label: t('dashboard.pending_orders'), value: pending, icon: 'schedule', href: '/admin/vendes-web' },
@@ -129,30 +163,72 @@ export default function AdminDashboard() {
         ]}
       />
 
-      {/* Sales summary */}
-      <div>
-        <SectionLabel>{t('dashboard.section.sales_summary')}</SectionLabel>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {[
-            { label: t('dashboard.sales.today'), resum: vendesAvui },
-            { label: t('dashboard.sales.week'), resum: vendesSetmana },
-            { label: t('dashboard.sales.month'), resum: vendesMes },
-          ].map(({ label, resum }) => (
-            <div key={label} className="bg-surface-container-low p-4 rounded-xl shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
-              <div className="text-xs font-medium text-secondary-foreground mb-1">{label}</div>
-              <div className="text-2xl font-headline font-bold text-on-surface">{fmtEur(resum.total)}</div>
-              <div className="text-xs text-on-surface-variant mt-1">
-                {t('dashboard.sales.web_label')} {fmtEur(resum.web)} · {t('dashboard.sales.tpv_label')} {fmtEur(resum.mostrador)}
-              </div>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-card rounded-xl border border-border shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline font-bold text-base text-on-surface">{t('dashboard.chart.sales_by_day', 'Vendes del mes, per dia')}</h3>
+            <div className="flex items-center gap-3 text-xs text-secondary-foreground">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: COLOR_WEB }} /> {t('dashboard.sales.web_label')}</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: COLOR_TPV }} /> {t('dashboard.sales.tpv_label')}</span>
             </div>
-          ))}
+          </div>
+          {dailyData.length === 0 ? (
+            <div className="h-56 flex items-center justify-center text-secondary-foreground text-sm">{t('common.loading')}</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={dailyData} barGap={2}>
+                <CartesianGrid vertical={false} stroke="var(--border)" />
+                <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} width={40} />
+                <Tooltip
+                  formatter={(value) => fmtEur(value)}
+                  labelFormatter={(dia) => `${t('dashboard.chart.day', 'Dia')} ${dia}`}
+                  contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                />
+                <Bar dataKey="web" stackId="v" fill={COLOR_WEB} radius={[0, 0, 0, 0]} />
+                <Bar dataKey="tpv" stackId="v" fill={COLOR_TPV} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="bg-card rounded-xl border border-border shadow-sm p-5">
+          <h3 className="font-headline font-bold text-base text-on-surface mb-4">{t('dashboard.chart.web_vs_tpv', 'Web vs. TPV — mes')}</h3>
+          {hasSplitData ? (
+            <>
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie data={splitData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={70} paddingAngle={3}>
+                    <Cell fill={COLOR_WEB} />
+                    <Cell fill={COLOR_TPV} />
+                  </Pie>
+                  <Tooltip formatter={(value) => fmtEur(value)} contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-1.5 mt-2">
+                {splitData.map((s, i) => (
+                  <div key={s.name} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-secondary-foreground">
+                      <span className="w-2 h-2 rounded-full" style={{ background: i === 0 ? COLOR_WEB : COLOR_TPV }} /> {s.name}
+                    </span>
+                    <span className="font-semibold text-on-surface tabular-nums">{fmtEur(s.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="h-56 flex items-center justify-center text-secondary-foreground text-sm text-center px-4">
+              {t('dashboard.no_sales_yet', 'Encara no hi ha vendes aquest mes.')}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Attention list */}
       <div>
         <SectionLabel>{t('dashboard.section.alerts')}</SectionLabel>
-        <div className="bg-surface-container-low rounded-xl shadow-[0_4px_20px_rgba(46,50,48,0.04)] divide-y divide-outline-variant/40 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm divide-y divide-border overflow-hidden">
           {alertRows.map((row, i) => (
             <Link
               key={i}
@@ -173,8 +249,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="bg-surface-container-low rounded-xl shadow-[0_4px_20px_rgba(46,50,48,0.04)] overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-outline-variant/40 flex items-center justify-between">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
           <h3 className="font-headline font-bold text-base text-on-surface">{t('dashboard.recent_orders')}</h3>
           <Link href="/admin/vendes-web" className="text-xs font-semibold text-primary hover:underline">
             {t('common.see_all')}
@@ -188,7 +264,7 @@ export default function AdminDashboard() {
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high/60 text-[11px] text-secondary-foreground uppercase tracking-wider">
+            <thead className="text-[11px] text-secondary-foreground uppercase tracking-wider">
               <tr>
                 <th className="px-5 py-2.5 text-left font-bold">{t('dashboard.col.date')}</th>
                 <th className="px-5 py-2.5 text-left font-bold">{t('dashboard.col.email')}</th>
@@ -197,7 +273,7 @@ export default function AdminDashboard() {
                 <th className="px-5 py-2.5 text-left font-bold">{t('dashboard.col.status')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/40">
+            <tbody className="divide-y divide-border">
               {orders.slice(0, 8).map(o => (
                 <tr key={o.id} className="hover:bg-surface-container-high/40 transition-colors">
                   <td className="px-5 py-3 text-on-surface-variant">
@@ -230,23 +306,18 @@ function SectionLabel({ children }) {
   );
 }
 
-// Franja de mètriques (mateix llenguatge visual que la "stat metrics strip"
-// del mockup del catàleg): targetes petites amb icona, no la franja de
-// tiquet/ledger de la iteració anterior.
 function StatStrip({ entries }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       {entries.map((e, i) => {
         const inner = (
-          <div className="bg-surface-container-low p-4 rounded-xl shadow-[0_4px_20px_rgba(46,50,48,0.04)] flex flex-col gap-2 h-full">
-            <div className="flex items-center justify-between">
-              <span className="w-8 h-8 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center">
-                <MIcon name={e.icon} size={16} />
-              </span>
-            </div>
-            <div>
-              <div className="text-xl font-headline font-bold text-on-surface">{e.value}</div>
-              <div className="text-xs text-secondary-foreground mt-0.5 truncate">{e.label}</div>
+          <div className="bg-card p-4 rounded-xl border border-border shadow-sm flex items-center gap-3 h-full">
+            <span className="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">
+              <MIcon name={e.icon} size={20} />
+            </span>
+            <div className="min-w-0">
+              <div className="text-xl font-headline font-bold text-on-surface leading-none">{e.value}</div>
+              <div className="text-xs text-secondary-foreground mt-1 truncate">{e.label}</div>
             </div>
           </div>
         );
