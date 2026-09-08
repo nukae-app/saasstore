@@ -120,13 +120,13 @@ export default function PressupostosPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : llista.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('pressupostos.empty', 'Cap pressupost trobat')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('pressupostos.empty', 'Cap pressupost trobat')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('pressupostos.col.number', 'Número')} sortKey="numero" sort={sort} onSort={toggleSort} />
@@ -147,10 +147,10 @@ export default function PressupostosPage() {
                   <>
                     <tr key={p.id} onClick={() => setExpanded(expanded === p.id ? null : p.id)}
                       className="hover:bg-surface-container-high cursor-pointer transition-colors">
-                      <td className="px-4 py-3 text-secondary">
+                      <td className="px-4 py-3 text-secondary-foreground">
                         {expanded === p.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-secondary">{p.fiscal_year}/{String(p.number).padStart(4, '0')}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-secondary-foreground">{p.fiscal_year}/{String(p.number).padStart(4, '0')}</td>
                       <td className="px-4 py-3 font-medium text-on-surface">{p.client_name}</td>
                       <td className="px-4 py-3 text-on-surface-variant">{fmtDate(p.issue_date)}</td>
                       <td className="px-4 py-3 text-right font-semibold text-on-surface">{fmtEur(totals.total)}</td>
@@ -163,7 +163,7 @@ export default function PressupostosPage() {
                         <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                           <button title={t('pressupostos.download_pdf', 'Descarregar PDF')} disabled={isBusy}
                             onClick={() => downloadPdf(`/admin/pressupostos/${p.id}/pdf`, `pressupost_${p.fiscal_year}_${p.number}.pdf`)}
-                            className="text-secondary hover:text-on-surface-variant p-1.5 rounded hover:bg-surface-container-high transition-colors">
+                            className="text-secondary-foreground hover:text-on-surface-variant p-1.5 rounded hover:bg-surface-container-high transition-colors">
                             <MIcon name="download" size={14} />
                           </button>
                           {(p.status === 'esborrany' || p.status === 'enviat') && (
@@ -189,11 +189,11 @@ export default function PressupostosPage() {
                             <>
                               <button title={t('common.edit', 'Editar')}
                                 onClick={() => { setEditPressupost(p); setShowModal(true); }}
-                                className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high transition-colors">
+                                className="text-xs text-secondary-foreground hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high transition-colors">
                                 {t('common.edit', 'Editar')}
                               </button>
                               <button title={t('common.delete', 'Eliminar')} onClick={() => eliminar(p)}
-                                className="text-secondary hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition-colors">
+                                className="text-secondary-foreground hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition-colors">
                                 <MIcon name="delete" size={14} />
                               </button>
                             </>
@@ -205,7 +205,7 @@ export default function PressupostosPage() {
                       <tr key={`${p.id}-exp`}>
                         <td colSpan={7} className="px-6 py-3 bg-surface-container-high/80 border-b border-outline-variant">
                           <table className="w-full text-xs">
-                            <thead className="text-secondary">
+                            <thead className="text-secondary-foreground">
                               <tr>
                                 <th className="text-left py-1 font-medium">{t('llibres.concept', 'Concepte')}</th>
                                 <th className="text-right py-1 font-medium">{t('pressupostos.col.quantity', 'Quant.')}</th>
@@ -227,8 +227,8 @@ export default function PressupostosPage() {
                             </tbody>
                           </table>
                           {p.notes && (
-                            <div className="mt-2 text-xs text-secondary">
-                              <span className="text-secondary">{t('common.notes', 'Notes')}: </span>{p.notes}
+                            <div className="mt-2 text-xs text-secondary-foreground">
+                              <span className="text-secondary-foreground">{t('common.notes', 'Notes')}: </span>{p.notes}
                             </div>
                           )}
                         </td>
@@ -310,7 +310,7 @@ function PressupostModal({ pressupost, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{isEdit ? t('pressupostos.edit', 'Editar pressupost') : t('pressupostos.new', 'Nou pressupost')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -333,7 +333,7 @@ function PressupostModal({ pressupost, onClose, onSaved }) {
 
           <div className="border border-outline-variant rounded-xl overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">{t('llibres.concept', 'Concepte')}</th>
                   <th className="px-3 py-2 text-right font-medium w-20">{t('pressupostos.col.quantity', 'Quant.')}</th>
@@ -364,7 +364,7 @@ function PressupostModal({ pressupost, onClose, onSaved }) {
                     </td>
                     <td className="px-1">
                       {lines.length > 1 && (
-                        <button type="button" onClick={() => removeLine(i)} className="text-secondary hover:text-red-500"><MIcon name="close" size={14} /></button>
+                        <button type="button" onClick={() => removeLine(i)} className="text-secondary-foreground hover:text-red-500"><MIcon name="close" size={14} /></button>
                       )}
                     </td>
                   </tr>
@@ -373,9 +373,9 @@ function PressupostModal({ pressupost, onClose, onSaved }) {
               <tfoot className="bg-surface-container-high border-t border-outline-variant">
                 <tr>
                   <td className="px-3 py-2" colSpan={2}>
-                    <button type="button" onClick={addLine} className="text-xs text-secondary hover:text-on-surface font-medium">+ {t('llibres.add_line', 'Afegir línia')}</button>
+                    <button type="button" onClick={addLine} className="text-xs text-secondary-foreground hover:text-on-surface font-medium">+ {t('llibres.add_line', 'Afegir línia')}</button>
                   </td>
-                  <td colSpan={3} className="px-3 py-2 text-right text-xs text-secondary">
+                  <td colSpan={3} className="px-3 py-2 text-right text-xs text-secondary-foreground">
                     {t('despeses.taxable_base', 'Base imposable')}: <span className="font-semibold text-on-surface-variant">{fmtEur(totals.base)}</span>
                     {' · '}IVA: <span className="font-semibold text-on-surface-variant">{fmtEur(totals.iva)}</span>
                     {' · '}{t('despeses.col.total', 'Total')}: <span className="font-bold text-on-surface">{fmtEur(totals.total)}</span>

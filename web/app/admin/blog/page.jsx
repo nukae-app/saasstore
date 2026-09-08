@@ -44,7 +44,7 @@ export default function AdminBlogPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Blog</h1>
-          <p className="text-sm text-secondary mt-0.5">{posts.length} posts · {drafts.length} esborranys</p>
+          <p className="text-sm text-secondary-foreground mt-0.5">{posts.length} posts · {drafts.length} esborranys</p>
         </div>
         <Link
           href="/admin/blog/nou"
@@ -56,7 +56,7 @@ export default function AdminBlogPage() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <MIcon name="search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
+        <MIcon name="search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-foreground" />
         <input
           type="text"
           placeholder="Cercar per títol…"
@@ -68,10 +68,10 @@ export default function AdminBlogPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <MIcon name="progress_activity" size={20} className="animate-spin text-secondary" />
+          <MIcon name="progress_activity" size={20} className="animate-spin text-secondary-foreground" />
         </div>
       ) : posts.length === 0 ? (
-        <div className="text-center py-20 text-secondary">
+        <div className="text-center py-20 text-secondary-foreground">
           <p className="mb-4">No hi ha posts encara.</p>
           <Link href="/admin/blog/nou" className="text-on-surface hover:text-on-surface-variant font-medium text-sm">
             Crea el primer post →
@@ -93,7 +93,7 @@ export default function AdminBlogPage() {
           {published.length > 0 && (
             <>
               {drafts.length > 0 && (
-                <div className="px-4 py-2 bg-surface-container-high border-b border-outline-variant text-xs font-semibold text-secondary uppercase tracking-wider">
+                <div className="px-4 py-2 bg-surface-container-high border-b border-outline-variant text-xs font-semibold text-secondary-foreground uppercase tracking-wider">
                   Publicats ({published.length})
                 </div>
               )}
@@ -115,17 +115,17 @@ function PostRow({ post, onDelete, deleting }) {
       <div className="shrink-0">
         {isPublished
           ? <MIcon name="visibility" size={14} className="text-emerald-500" />
-          : <MIcon name="visibility_off" size={14} className="text-secondary" />
+          : <MIcon name="visibility_off" size={14} className="text-secondary-foreground" />
         }
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm text-on-surface truncate">{post.title}</p>
         <div className="flex items-center gap-3 mt-0.5">
-          <span className="text-xs text-secondary font-mono">{post.slug}</span>
+          <span className="text-xs text-secondary-foreground font-mono">{post.slug}</span>
           {isPublished && (
-            <span className="text-xs text-secondary">{formatDate(post.published_at)}</span>
+            <span className="text-xs text-secondary-foreground">{formatDate(post.published_at)}</span>
           )}
-          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${post.language === 'ca' ? 'bg-surface-container-high text-secondary' : 'bg-blue-50 text-blue-600'}`}>
+          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${post.language === 'ca' ? 'bg-surface-container-high text-secondary-foreground' : 'bg-blue-50 text-blue-600'}`}>
             {post.language}
           </span>
         </div>
@@ -136,7 +136,7 @@ function PostRow({ post, onDelete, deleting }) {
             href={`/blog/${post.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
+            className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
             title="Veure al web"
           >
             <MIcon name="visibility" size={13} />
@@ -144,7 +144,7 @@ function PostRow({ post, onDelete, deleting }) {
         )}
         <Link
           href={`/admin/blog/${post.slug}`}
-          className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
+          className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
           title="Editar"
         >
           <MIcon name="edit" size={13} />
@@ -152,7 +152,7 @@ function PostRow({ post, onDelete, deleting }) {
         <button
           onClick={() => onDelete(post.slug, post.title)}
           disabled={deleting === post.slug}
-          className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+          className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
           title="Eliminar"
         >
           {deleting === post.slug

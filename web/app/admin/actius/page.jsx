@@ -58,7 +58,7 @@ export default function ActiusPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-on-surface">{t('actius.title', 'Actius fixos')}</h2>
-          <p className="text-sm text-secondary mt-1">{t('actius.subtitle', 'Immobilitzat material i amortitzacions.')}</p>
+          <p className="text-sm text-secondary-foreground mt-1">{t('actius.subtitle', 'Immobilitzat material i amortitzacions.')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setShowAmortitzacio(true)}>
@@ -72,13 +72,13 @@ export default function ActiusPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : llista.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('actius.empty', "Cap actiu donat d'alta encara")}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('actius.empty', "Cap actiu donat d'alta encara")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                 <tr>
                   <SortableTh label={t('common.name', 'Nom')} sortKey="nom" sort={sort} onSort={toggleSort} />
                   <SortableTh label={t('actius.col.category', 'Categoria')} sortKey="categoria" sort={sort} onSort={toggleSort}
@@ -93,10 +93,10 @@ export default function ActiusPage() {
                 {llista.map(a => (
                   <tr key={a.id} className={a.disposal_date ? 'opacity-50' : ''}>
                     <td className="px-4 py-3 font-medium text-on-surface">{a.name}</td>
-                    <td className="px-4 py-3 text-secondary text-xs">{CATEGORIES.find(c => c.value === a.category)?.label || a.category}</td>
+                    <td className="px-4 py-3 text-secondary-foreground text-xs">{CATEGORIES.find(c => c.value === a.category)?.label || a.category}</td>
                     <td className="px-4 py-3 text-on-surface-variant">{fmtDate(a.acquisition_date)}</td>
                     <td className="px-4 py-3 text-right text-on-surface">{fmtEur(a.acquisition_cost)}</td>
-                    <td className="px-4 py-3 text-right text-secondary">{fmtEur(a.accumulated_depreciation)}</td>
+                    <td className="px-4 py-3 text-right text-secondary-foreground">{fmtEur(a.accumulated_depreciation)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-on-surface">{fmtEur(a.book_value)}</td>
                   </tr>
                 ))}
@@ -155,7 +155,7 @@ function ActiuModal({ categories, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('actius.new', 'Nou actiu')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
@@ -182,12 +182,12 @@ function ActiuModal({ categories, onClose, onSaved }) {
             <div className="text-sm font-semibold text-on-surface-variant">{t('actius.cost_and_vat', 'Cost i IVA')}</div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('actius.cost_base', 'Cost (base, sense IVA)')} *</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('actius.cost_base', 'Cost (base, sense IVA)')} *</label>
                 <input type="number" step="0.01" value={cost} onChange={e => setCost(e.target.value)} required
                   className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('actius.vat_supported', 'IVA suportat')}</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('actius.vat_supported', 'IVA suportat')}</label>
                 <input type="number" step="0.01" value={vat} onChange={e => setVat(e.target.value)}
                   className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
@@ -243,20 +243,20 @@ function AmortitzacioModal({ onDone }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('actius.generate_depreciation', 'Generar amortitzacions')}</h3>
-          <button onClick={onDone} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onDone} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <div className="p-6 space-y-4">
-          <p className="text-sm text-secondary">
+          <p className="text-sm text-secondary-foreground">
             {t('actius.generate_help', "Genera la quota d'amortització d'aquest mes per a tots els actius vigents. És idempotent: si ja s'havia generat aquest mes, no duplica res.")}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-secondary mb-1">{t('common.year', 'Any')}</label>
+              <label className="block text-xs text-secondary-foreground mb-1">{t('common.year', 'Any')}</label>
               <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value, 10))}
                 className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div>
-              <label className="block text-xs text-secondary mb-1">{t('common.month', 'Mes')}</label>
+              <label className="block text-xs text-secondary-foreground mb-1">{t('common.month', 'Mes')}</label>
               <select value={mes} onChange={e => setMes(parseInt(e.target.value, 10))}
                 className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}</option>)}
@@ -268,7 +268,7 @@ function AmortitzacioModal({ onDone }) {
             <div className="bg-surface-container-high border border-outline-variant rounded-xl p-3 text-sm space-y-1">
               <p className="font-medium text-on-surface">{result.entrades_generades.length} {t('actius.generated', 'amortitzacions generades')}</p>
               {result.actius_saltats.length > 0 && (
-                <p className="text-secondary text-xs">{t('actius.skipped', 'Saltats (ja fets o no vigents)')}: {result.actius_saltats.join(', ')}</p>
+                <p className="text-secondary-foreground text-xs">{t('actius.skipped', 'Saltats (ja fets o no vigents)')}: {result.actius_saltats.join(', ')}</p>
               )}
             </div>
           )}

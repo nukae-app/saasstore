@@ -69,13 +69,13 @@ export default function AlbaransPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : llista.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('albarans.empty', 'Cap albarà trobat')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('albarans.empty', 'Cap albarà trobat')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <SortableTh label={t('pressupostos.col.number', 'Número')} sortKey="numero" sort={sort} onSort={toggleSort} />
                 <SortableTh label={t('pressupostos.client', 'Client')} sortKey="client" sort={sort} onSort={toggleSort} />
@@ -90,15 +90,15 @@ export default function AlbaransPage() {
                 const order = ordersById[a.order_id];
                 return (
                   <tr key={a.id} className="hover:bg-surface-container-high transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-secondary">{a.fiscal_year}/{String(a.number).padStart(4, '0')}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-secondary-foreground">{a.fiscal_year}/{String(a.number).padStart(4, '0')}</td>
                     <td className="px-4 py-3 font-medium text-on-surface">{order?.email || '—'}</td>
-                    <td className="px-4 py-3 text-secondary text-xs">#{a.order_id.slice(0, 8)}</td>
+                    <td className="px-4 py-3 text-secondary-foreground text-xs">#{a.order_id.slice(0, 8)}</td>
                     <td className="px-4 py-3 text-on-surface-variant">{fmtDate(a.delivery_date)}</td>
-                    <td className="px-4 py-3 text-secondary text-xs max-w-xs truncate">{a.notes || '—'}</td>
+                    <td className="px-4 py-3 text-secondary-foreground text-xs max-w-xs truncate">{a.notes || '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <button title={t('pressupostos.download_pdf', 'Descarregar PDF')}
                         onClick={() => downloadPdf(`/admin/albarans/${a.id}/pdf`, `albara_${a.fiscal_year}_${a.number}.pdf`)}
-                        className="text-secondary hover:text-on-surface-variant p-1.5 rounded hover:bg-surface-container-high transition-colors">
+                        className="text-secondary-foreground hover:text-on-surface-variant p-1.5 rounded hover:bg-surface-container-high transition-colors">
                         <MIcon name="download" size={14} />
                       </button>
                     </td>
@@ -149,7 +149,7 @@ function AlbaraModal({ orders, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="font-bold text-on-surface">{t('albarans.new', 'Nou albarà')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
@@ -162,7 +162,7 @@ function AlbaraModal({ orders, onClose, onSaved }) {
               ))}
             </select>
             {orders.length === 0 && (
-              <p className="text-xs text-secondary mt-1">{t('albarans.no_pending_orders', 'Totes les comandes ja tenen albarà')}</p>
+              <p className="text-xs text-secondary-foreground mt-1">{t('albarans.no_pending_orders', 'Totes les comandes ja tenen albarà')}</p>
             )}
           </div>
           <div>

@@ -162,7 +162,7 @@ export default function DissenyWebPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="text-xl font-semibold text-on-surface">{t('design.title', 'Disseny web')}</h1>
-          <p className="text-sm text-secondary mt-0.5">
+          <p className="text-sm text-secondary-foreground mt-0.5">
             {t('design.hint', 'Blocs, colors, tipografia i CSS de la teva botiga — amb previsualització en directe.')}
           </p>
         </div>
@@ -189,14 +189,14 @@ export default function DissenyWebPage() {
 
         <div className="xl:sticky xl:top-6">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium text-secondary uppercase tracking-wide">
+            <p className="text-xs font-medium text-secondary-foreground uppercase tracking-wide">
               {t('design.preview', 'Previsualització en directe')}
             </p>
             <div className="flex items-center gap-3">
-              <a href="/ca" target="_blank" rel="noopener" className="text-secondary hover:text-on-surface-variant transition-colors" title={t('design.open_new_tab', 'Obrir en una pestanya nova')}>
+              <a href="/ca" target="_blank" rel="noopener" className="text-secondary-foreground hover:text-on-surface-variant transition-colors" title={t('design.open_new_tab', 'Obrir en una pestanya nova')}>
                 <MIcon name="open_in_new" size={14} />
               </a>
-              <button onClick={reloadPreview} className="text-secondary hover:text-on-surface-variant transition-colors" title={t('design.reload', 'Recarregar')}>
+              <button onClick={reloadPreview} className="text-secondary-foreground hover:text-on-surface-variant transition-colors" title={t('design.reload', 'Recarregar')}>
                 <MIcon name="refresh" size={14} />
               </button>
             </div>
@@ -216,7 +216,7 @@ export default function DissenyWebPage() {
 }
 
 function Loading({ t }) {
-  return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
+  return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>;
 }
 
 function blockSummary(block) {
@@ -393,7 +393,7 @@ function BlocksPanel({ sendPreview }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 gap-3">
-        <p className="text-sm text-secondary">Arrossega per reordenar els blocs del home. La previsualització s&apos;actualitza en prémer &quot;Guardar canvis&quot;.</p>
+        <p className="text-sm text-secondary-foreground">Arrossega per reordenar els blocs del home. La previsualització s&apos;actualitza en prémer &quot;Guardar canvis&quot;.</p>
         <button
           onClick={() => { setErr(''); setAddOpen(true); }}
           className="flex items-center gap-1.5 bg-card border border-outline-variant text-on-surface-variant text-sm px-4 py-2 rounded-xl hover:bg-surface-container-high transition-colors shrink-0"
@@ -403,7 +403,7 @@ function BlocksPanel({ sendPreview }) {
       </div>
 
       {loading ? (
-        <p className="text-secondary text-sm">Carregant…</p>
+        <p className="text-secondary-foreground text-sm">Carregant…</p>
       ) : (
         <div className="flex flex-col gap-2">
           {draft.map((block) => {
@@ -417,15 +417,15 @@ function BlocksPanel({ sendPreview }) {
                 onDrop={() => onDrop(block.id)}
                 className={`flex items-center gap-3 bg-card rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] px-4 py-3 cursor-grab active:cursor-grabbing transition-opacity ${block.enabled ? '' : 'opacity-50'}`}
               >
-                <MIcon name="drag_indicator" size={16} className="text-secondary shrink-0" />
+                <MIcon name="drag_indicator" size={16} className="text-secondary-foreground shrink-0" />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-on-surface text-sm">{meta?.label || block.block_type}</span>
-                    <span className="text-[10px] bg-surface-container-high text-secondary px-1.5 py-0.5 rounded-full">{block.block_type}</span>
+                    <span className="text-[10px] bg-surface-container-high text-secondary-foreground px-1.5 py-0.5 rounded-full">{block.block_type}</span>
                     {block._new && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">nou</span>}
                   </div>
-                  <p className="text-xs text-secondary mt-0.5 truncate">{blockSummary(block)}</p>
+                  <p className="text-xs text-secondary-foreground mt-0.5 truncate">{blockSummary(block)}</p>
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
@@ -438,13 +438,13 @@ function BlocksPanel({ sendPreview }) {
                     <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${block.enabled ? 'left-5' : 'left-0.5'}`} />
                   </button>
                   {meta?.editable && (
-                    <button onClick={() => openEdit(block)} className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                    <button onClick={() => openEdit(block)} className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
                       <MIcon name="edit" size={14} />
                     </button>
                   )}
                   <button
                     onClick={() => deleteBlock(block)}
-                    className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                    className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
                   >
                     <MIcon name="delete" size={14} />
                   </button>
@@ -453,7 +453,7 @@ function BlocksPanel({ sendPreview }) {
             );
           })}
           {draft.length === 0 && (
-            <p className="text-secondary text-sm py-8 text-center">Cap bloc configurat. La pàgina d&apos;inici es mostrarà buida — afegeix-ne un!</p>
+            <p className="text-secondary-foreground text-sm py-8 text-center">Cap bloc configurat. La pàgina d&apos;inici es mostrarà buida — afegeix-ne un!</p>
           )}
         </div>
       )}
@@ -471,7 +471,7 @@ function BlocksPanel({ sendPreview }) {
         {dirty && !saving && (
           <>
             <span className="text-xs text-amber-600">Tens canvis sense desar</span>
-            <button onClick={discardChanges} className="text-xs text-secondary hover:text-on-surface-variant">
+            <button onClick={discardChanges} className="text-xs text-secondary-foreground hover:text-on-surface-variant">
               Descartar
             </button>
           </>
@@ -495,12 +495,12 @@ function BlocksPanel({ sendPreview }) {
                   className="flex flex-col items-start gap-0.5 p-3 rounded-xl border border-outline-variant hover:border-primary text-left transition-colors"
                 >
                   <span className="text-sm font-semibold text-on-surface">{meta.label}</span>
-                  <span className="text-xs text-secondary">{meta.description}</span>
+                  <span className="text-xs text-secondary-foreground">{meta.description}</span>
                 </button>
               );
             })}
             {availableToAdd.length === 0 && (
-              <p className="text-sm text-secondary text-center py-4">Ja tens tots els blocs disponibles configurats.</p>
+              <p className="text-sm text-secondary-foreground text-center py-4">Ja tens tots els blocs disponibles configurats.</p>
             )}
           </div>
         </DialogContent>
@@ -648,7 +648,7 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
   return (
     <form onSubmit={save} className="space-y-5">
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
-        <p className="text-sm text-secondary">
+        <p className="text-sm text-secondary-foreground">
           {t('config.design.hint', "Colors i tipografia propis de la teva botiga. Si has encarregat un disseny, pots copiar aquí els valors exactes (hex, nom de la font) que et doni el/la dissenyador/a.")}
         </p>
 
@@ -681,7 +681,7 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
       </div>
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
-        <p className="text-sm text-secondary">
+        <p className="text-sm text-secondary-foreground">
           {t('config.design.font_hint', "Cerca i tria una tipografia gratuïta (es descarrega i queda allotjada al teu servidor), o escriu-la a mà si ja saps que existeix (p. ex. una del sistema).")}
         </p>
         <div>
@@ -711,7 +711,7 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
       </div>
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-5">
-        <p className="text-sm text-secondary">
+        <p className="text-sm text-secondary-foreground">
           Forma i textura dels blocs: targetes, botons i amplada del contingut. Si no tries res, es manté l&apos;aspecte actual.
         </p>
         <PresetField label="Radi de les targetes i imatges" options={RADIUS_CARD_OPTIONS} value={extra.radius_card} onChange={(v) => setExtraField('radius_card', v)} />
@@ -721,7 +721,7 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-on-surface-variant">Vores a les targetes</p>
-            <p className="text-xs text-secondary mt-1 max-w-sm">Afegeix una vora fina (color &quot;Vores&quot; de la paleta) a les targetes que avui no en tenen.</p>
+            <p className="text-xs text-secondary-foreground mt-1 max-w-sm">Afegeix una vora fina (color &quot;Vores&quot; de la paleta) a les targetes que avui no en tenen.</p>
           </div>
           <button
             type="button"
@@ -747,7 +747,7 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={saving}>{saving ? t('common.saving') : t('config.save_changes', 'Desar canvis')}</Button>
-        <button type="button" onClick={resetDefaults} className="text-xs text-secondary hover:text-on-surface-variant">
+        <button type="button" onClick={resetDefaults} className="text-xs text-secondary-foreground hover:text-on-surface-variant">
           {t('config.design.reset', 'Restaurar valors per defecte')}
         </button>
         {saved && !saving && <span className="text-xs text-green-600">{t('subscriptions.config.saved', 'Desat')}</span>}
@@ -789,7 +789,7 @@ function CustomCssPanel({ config, onSaved, sendPreview }) {
   return (
     <form onSubmit={save} className="space-y-5">
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-3">
-        <p className="text-sm text-secondary">
+        <p className="text-sm text-secondary-foreground">
           {t('config.css.hint', "Per a retocs que els colors/tipografia de \"Colors i tipografia\" no cobreixin. Pensat per a qui sap CSS o per al/la dissenyador/a que hagis contractat — no s'accepten @import ni @media en aquesta primera versió.")}
         </p>
         <textarea

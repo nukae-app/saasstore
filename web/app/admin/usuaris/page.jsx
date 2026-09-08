@@ -120,13 +120,13 @@ export default function UsuarisPage() {
       {/* Filtres */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[220px]">
-          <MIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+          <MIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-foreground" />
           <input value={q} onChange={e => setQ(e.target.value)}
             placeholder="Nom, email o telèfon..."
             className="w-full pl-9 pr-8 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           {q && (
             <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <MIcon name="close" className="w-3.5 h-3.5 text-secondary" />
+              <MIcon name="close" className="w-3.5 h-3.5 text-secondary-foreground" />
             </button>
           )}
         </div>
@@ -141,7 +141,7 @@ export default function UsuarisPage() {
         ]} />
         {(q || filterActivo || filterNewsletter || filterRol) && (
           <button onClick={() => { setQ(''); setFilterActivo(''); setFilterNewsletter(''); setFilterRol(''); }}
-            className="px-3 py-2 text-sm text-secondary hover:text-on-surface-variant flex items-center gap-1">
+            className="px-3 py-2 text-sm text-secondary-foreground hover:text-on-surface-variant flex items-center gap-1">
             <MIcon name="close" className="w-3.5 h-3.5" /> Netejar
           </button>
         )}
@@ -150,15 +150,15 @@ export default function UsuarisPage() {
       {/* Taula */}
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">Carregant...</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">Carregant...</div>
         ) : users.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-secondary text-4xl mb-3">👤</div>
-            <div className="text-secondary text-sm">Cap usuari trobat</div>
+            <div className="text-secondary-foreground text-4xl mb-3">👤</div>
+            <div className="text-secondary-foreground text-sm">Cap usuari trobat</div>
           </div>
         ) : (
           <>
-            <div className="px-4 py-2.5 text-xs text-secondary border-b border-outline-variant flex items-center justify-between">
+            <div className="px-4 py-2.5 text-xs text-secondary-foreground border-b border-outline-variant flex items-center justify-between">
               <span>{total} usuaris</span>
               <label className="flex items-center gap-1.5">
                 Per pàgina
@@ -171,7 +171,7 @@ export default function UsuarisPage() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[750px]">
-                <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+                <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                   <tr>
                     <SortableTh label="Usuari" sortKey="nombre" sort={sort} onSort={toggleSort} className="w-[280px]" />
                     <SortableTh label="Accés" sortKey="rol" sort={sort} onSort={toggleSort} />
@@ -198,8 +198,8 @@ export default function UsuarisPage() {
                             </div>
                             <div className="min-w-0">
                               <div className="font-medium text-on-surface truncate">{displayName(u)}</div>
-                              {u.name && <div className="text-xs text-secondary truncate">{u.email}</div>}
-                              {u.phone && <div className="text-xs text-secondary">{u.phone}</div>}
+                              {u.name && <div className="text-xs text-secondary-foreground truncate">{u.email}</div>}
+                              {u.phone && <div className="text-xs text-secondary-foreground">{u.phone}</div>}
                             </div>
                           </div>
                         </td>
@@ -209,32 +209,32 @@ export default function UsuarisPage() {
                               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-purple-100 text-purple-700 font-medium">Admin</span>
                             )}
                             {(u.providers || []).map(p => (
-                              <span key={p} className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-surface-container-high text-secondary">
+                              <span key={p} className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-surface-container-high text-secondary-foreground">
                                 {PROVIDER_LABELS[p] || p}
                               </span>
                             ))}
-                            {!u.providers?.length && <span className="text-xs text-secondary">Manual</span>}
+                            {!u.providers?.length && <span className="text-xs text-secondary-foreground">Manual</span>}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-3">
                             {u.stats?.orders > 0 && (
-                              <span className="inline-flex items-center gap-1 text-xs text-secondary">
+                              <span className="inline-flex items-center gap-1 text-xs text-secondary-foreground">
                                 <MIcon name="shopping_bag" className="w-3 h-3" />{u.stats.orders}
                               </span>
                             )}
                             {u.stats?.vendes_tpv > 0 && (
-                              <span className="inline-flex items-center gap-1 text-xs text-secondary">
+                              <span className="inline-flex items-center gap-1 text-xs text-secondary-foreground">
                                 <MIcon name="album" className="w-3 h-3" />{u.stats.vendes_tpv}
                               </span>
                             )}
                             {u.stats?.compres_records > 0 && (
-                              <span className="inline-flex items-center gap-1 text-xs text-secondary">
+                              <span className="inline-flex items-center gap-1 text-xs text-secondary-foreground">
                                 <MIcon name="package_2" className="w-3 h-3" />{u.stats.compres_records}
                               </span>
                             )}
                             {!u.stats?.orders && !u.stats?.vendes_tpv && !u.stats?.compres_records && (
-                              <span className="text-secondary text-xs">—</span>
+                              <span className="text-secondary-foreground text-xs">—</span>
                             )}
                           </div>
                         </td>
@@ -256,17 +256,17 @@ export default function UsuarisPage() {
                             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                               u.active
                                 ? 'bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600'
-                                : 'bg-surface-container-high text-secondary hover:bg-green-50 hover:text-green-700'
+                                : 'bg-surface-container-high text-secondary-foreground hover:bg-green-50 hover:text-green-700'
                             }`}>
                             {u.active ? <MIcon name="how_to_reg" className="w-3 h-3" /> : <MIcon name="person_off" className="w-3 h-3" />}
                             {u.active ? 'Actiu' : 'Inactiu'}
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-right text-secondary text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-right text-secondary-foreground text-xs whitespace-nowrap">
                           {fmt(u.created_at)}
                         </td>
                         <td className="px-4 py-3">
-                          <MIcon name="chevron_right" className={`w-4 h-4 transition-transform ${isSelected ? 'rotate-90 text-on-surface' : 'text-secondary'}`} />
+                          <MIcon name="chevron_right" className={`w-4 h-4 transition-transform ${isSelected ? 'rotate-90 text-on-surface' : 'text-secondary-foreground'}`} />
                         </td>
                       </tr>
                     );
@@ -275,7 +275,7 @@ export default function UsuarisPage() {
               </table>
             </div>
             {total > pageSize && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary-foreground">
                 <span>{page * pageSize + 1}–{Math.min(page * pageSize + pageSize, total)} de {total}</span>
                 <div className="flex gap-2">
                   <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
@@ -386,7 +386,7 @@ function CreateUserModal({ onClose, onCreated }) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">Nou usuari</h3>
           <button onClick={onClose} className="p-1.5 hover:bg-surface-container-high rounded-lg">
-            <MIcon name="close" className="w-5 h-5 text-secondary" />
+            <MIcon name="close" className="w-5 h-5 text-secondary-foreground" />
           </button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
@@ -533,7 +533,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
   }
 
   if (!user) return (
-    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-8 text-center text-secondary text-sm animate-pulse">
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-8 text-center text-secondary-foreground text-sm animate-pulse">
       Carregant...
     </div>
   );
@@ -575,8 +575,8 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
               </span>
             )}
           </div>
-          {user.name && <div className="text-sm text-secondary mt-0.5">{user.email}</div>}
-          {user.phone && <div className="text-sm text-secondary">{user.phone}</div>}
+          {user.name && <div className="text-sm text-secondary-foreground mt-0.5">{user.email}</div>}
+          {user.phone && <div className="text-sm text-secondary-foreground">{user.phone}</div>}
           {/* Accions ràpides */}
           <div className="flex gap-2 mt-3 flex-wrap">
             <button onClick={toggleActivo}
@@ -591,19 +591,19 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium ${
                 user.consent_newsletter
                   ? 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
-                  : 'border-outline-variant text-secondary hover:bg-surface-container-high'
+                  : 'border-outline-variant text-secondary-foreground hover:bg-surface-container-high'
               }`}>
               <MIcon name="mail" className="w-3.5 h-3.5" />
               {user.consent_newsletter ? 'Donar de baixa NL' : 'Subscriure a NL'}
             </button>
             <button onClick={() => setShowSetPassword(true)}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-outline-variant text-secondary hover:bg-surface-container-high transition-colors font-medium">
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-outline-variant text-secondary-foreground hover:bg-surface-container-high transition-colors font-medium">
               Assignar contrasenya
             </button>
           </div>
         </div>
         <button onClick={onClose} className="p-2 hover:bg-surface-container-high rounded-lg shrink-0">
-          <MIcon name="close" className="w-5 h-5 text-secondary" />
+          <MIcon name="close" className="w-5 h-5 text-secondary-foreground" />
         </button>
       </div>
 
@@ -619,7 +619,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
         {TABS.map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-5 py-3 text-sm font-medium shrink-0 border-b-2 transition-colors ${
-              tab === key ? 'border-primary text-on-surface' : 'border-transparent text-secondary hover:text-on-surface-variant'
+              tab === key ? 'border-primary text-on-surface' : 'border-transparent text-secondary-foreground hover:text-on-surface-variant'
             }`}>
             {label}
           </button>
@@ -673,7 +673,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button onClick={save} disabled={saving}>{saving ? 'Guardant...' : 'Guardar canvis'}</Button>
-                  <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
+                  <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-secondary-foreground hover:text-on-surface-variant">
                     Cancel·lar
                   </button>
                 </div>
@@ -681,8 +681,8 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             ) : (
               <div className="space-y-3 max-w-md">
                 <ProfileRow label="Email" value={user.email} mono />
-                <ProfileRow label="Nom" value={user.name || <span className="text-secondary">—</span>} />
-                <ProfileRow label="Telèfon" value={user.phone || <span className="text-secondary">—</span>} />
+                <ProfileRow label="Nom" value={user.name || <span className="text-secondary-foreground">—</span>} />
+                <ProfileRow label="Telèfon" value={user.phone || <span className="text-secondary-foreground">—</span>} />
                 <ProfileRow label="Idioma" value={{ ca: 'Català', es: 'Castellà', en: 'Anglès' }[user.language] || user.language} />
                 <ProfileRow label="Rol" value={user.role} />
                 <ProfileRow label="Alta" value={new Date(user.created_at).toLocaleDateString('ca', { day: '2-digit', month: '2-digit', year: 'numeric' })} />
@@ -691,7 +691,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                 )}
                 {user.internal_notes && (
                   <div>
-                    <div className="text-xs text-secondary mb-1">Notes internes</div>
+                    <div className="text-xs text-secondary-foreground mb-1">Notes internes</div>
                     <div className="text-sm text-on-surface-variant bg-surface-container-high rounded-xl p-3 whitespace-pre-wrap">{user.internal_notes}</div>
                   </div>
                 )}
@@ -706,7 +706,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
 
             {/* Zona destructiva */}
             <div className="border-t border-outline-variant pt-6 mt-6">
-              <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-4">Zona perillosa</div>
+              <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-4">Zona perillosa</div>
               {!confirmAnon ? (
                 <button onClick={() => setConfirmAnon(true)}
                   className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-xl px-4 py-2.5 transition-colors">
@@ -725,7 +725,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                       {anonizing ? 'Anonimitzant...' : 'Sí, anonimitzar'}
                     </button>
                     <button onClick={() => setConfirmAnon(false)}
-                      className="px-4 py-2 text-sm text-secondary hover:text-on-surface-variant">
+                      className="px-4 py-2 text-sm text-secondary-foreground hover:text-on-surface-variant">
                       Cancel·lar
                     </button>
                   </div>
@@ -746,13 +746,13 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <span className="text-xs text-secondary">{fmt(o.created_at)}</span>
+                    <span className="text-xs text-secondary-foreground">{fmt(o.created_at)}</span>
                     <div className="flex items-center gap-2">
                       <OrderStatusBadge status={o.status} />
                       <span className="font-semibold text-on-surface text-sm">{o.total.toFixed(2)} €</span>
                     </div>
                   </div>
-                  <div className="text-xs text-secondary">
+                  <div className="text-xs text-secondary-foreground">
                     {o.items.map(i => `${i.artista} — ${i.titulo}`).join(' · ')}
                   </div>
                 </div>
@@ -772,7 +772,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-on-surface text-sm truncate">{v.artista} — {v.titulo}</div>
-                  <div className="text-xs text-secondary">
+                  <div className="text-xs text-secondary-foreground">
                     {fmt(v.date)} · {v.channel} ·
                     <span className={`ml-1 ${v.payment_method === 'efectivo' ? 'text-green-600' : 'text-indigo-600'}`}>
                       {v.payment_method}
@@ -792,10 +792,10 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             renderItem={c => (
               <div key={c.id} className="py-3 border-b border-outline-variant/40 last:border-0">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-xs text-secondary">{fmt(c.fecha)} · {c.num_items} disc{c.num_items !== 1 ? 'os' : ''}</span>
+                  <span className="text-xs text-secondary-foreground">{fmt(c.fecha)} · {c.num_items} disc{c.num_items !== 1 ? 'os' : ''}</span>
                   <span className="text-sm font-semibold text-green-700">{c.total_pagat.toFixed(2)} € pagat</span>
                 </div>
-                <div className="text-xs text-secondary">
+                <div className="text-xs text-secondary-foreground">
                   {c.items.map(i => `${i.artista} — ${i.titulo}`).join(' · ')}
                 </div>
               </div>
@@ -838,7 +838,7 @@ function SetPasswordModal({ userId, onClose }) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">Assignar contrasenya</h3>
           <button onClick={onClose} className="p-1.5 hover:bg-surface-container-high rounded-lg">
-            <MIcon name="close" className="w-5 h-5 text-secondary" />
+            <MIcon name="close" className="w-5 h-5 text-secondary-foreground" />
           </button>
         </div>
         {done ? (
@@ -857,7 +857,7 @@ function SetPasswordModal({ userId, onClose }) {
             {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>}
             <div className="flex gap-2">
               <Button type="submit" disabled={saving}>{saving ? 'Guardant...' : 'Assignar'}</Button>
-              <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
+              <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-secondary-foreground hover:text-on-surface-variant">
                 Cancel·lar
               </button>
             </div>
@@ -871,9 +871,9 @@ function SetPasswordModal({ userId, onClose }) {
 function MiniStat({ icon, label, count, total, totalLabel = 'total' }) {
   return (
     <div className="px-4 py-3 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-secondary mb-1">{icon}<span className="text-xs">{label}</span></div>
+      <div className="flex items-center justify-center gap-1.5 text-secondary-foreground mb-1">{icon}<span className="text-xs">{label}</span></div>
       <div className="text-xl font-bold text-on-surface">{count}</div>
-      {total > 0 && <div className="text-xs text-secondary font-medium">{totalLabel} {total.toFixed(2)} €</div>}
+      {total > 0 && <div className="text-xs text-secondary-foreground font-medium">{totalLabel} {total.toFixed(2)} €</div>}
     </div>
   );
 }
@@ -881,7 +881,7 @@ function MiniStat({ icon, label, count, total, totalLabel = 'total' }) {
 function ProfileRow({ label, value, mono }) {
   return (
     <div className="flex items-start gap-3 py-1.5 border-b border-outline-variant/40">
-      <span className="text-xs text-secondary w-20 shrink-0 pt-0.5">{label}</span>
+      <span className="text-xs text-secondary-foreground w-20 shrink-0 pt-0.5">{label}</span>
       <span className={`text-sm text-on-surface ${mono ? 'font-mono text-xs' : ''}`}>{value}</span>
     </div>
   );
@@ -889,7 +889,7 @@ function ProfileRow({ label, value, mono }) {
 
 function ActivitySection({ items, empty, renderItem }) {
   if (!items.length) return (
-    <div className="py-12 text-center text-secondary text-sm">{empty}</div>
+    <div className="py-12 text-center text-secondary-foreground text-sm">{empty}</div>
   );
   return <div>{items.map(renderItem)}</div>;
 }

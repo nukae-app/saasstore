@@ -107,7 +107,7 @@ export default function NovaSolicitudPage() {
       </div>
 
       <form onSubmit={save} className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-5">
-        <p className="text-xs text-secondary">
+        <p className="text-xs text-secondary-foreground">
           {t('purchases.add_to_pool_page.hint', 'Afegeix els discos que vols comprar. Més endavant, des de la pestanya "Sol·licituds", els seleccionaràs per crear-ne una sol·licitud numerada i, quan calgui, la comanda a proveïdor.')}
         </p>
         <div>
@@ -158,7 +158,7 @@ export default function NovaSolicitudPage() {
           )}
 
           {lineas.length === 0 && (
-            <div className="text-sm text-secondary text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
+            <div className="text-sm text-secondary-foreground text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
           )}
 
           <div className="space-y-2">
@@ -168,24 +168,24 @@ export default function NovaSolicitudPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
                     {l.existing && (
-                      <span className="text-[10px] uppercase tracking-wide text-secondary bg-surface-container-high rounded-full px-2 py-0.5">
+                      <span className="text-[10px] uppercase tracking-wide text-secondary-foreground bg-surface-container-high rounded-full px-2 py-0.5">
                         {t('purchases.modal.already_in_catalog', 'Ja al catàleg')}
                       </span>
                     )}
                   </div>
                   <button type="button" onClick={() => setLineas(p => p.filter((_, i) => i !== idx))}
-                    className="text-secondary hover:text-red-500 transition-colors">
+                    className="text-secondary-foreground hover:text-red-500 transition-colors">
                     <MIcon name="delete" size={15} />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <div>
-                    <label className="block text-xs text-secondary mb-1">{t('purchases.quantity', 'Quantitat')}</label>
+                    <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.quantity', 'Quantitat')}</label>
                     <input type="number" min="1" value={l.cantidad} onChange={e => upd(idx, 'cantidad', e.target.value)}
                       className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                   </div>
                   <div>
-                    <label className="block text-xs text-secondary mb-1">{t('purchases.suggested_supplier', 'Proveïdor suggerit')}</label>
+                    <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.suggested_supplier', 'Proveïdor suggerit')}</label>
                     <select value={l.proveedor_sugerido_id} onChange={e => upd(idx, 'proveedor_sugerido_id', e.target.value)}
                       className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                       <option value="">—</option>

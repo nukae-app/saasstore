@@ -13,7 +13,7 @@ const ESTAT_FALLBACK = {
 };
 const ESTAT_COLOR = {
   pendent_pagament: 'bg-amber-100 text-amber-700', activa: 'bg-emerald-100 text-emerald-700',
-  pausada: 'bg-surface-container-high text-secondary', cancel_lada: 'bg-red-100 text-red-600',
+  pausada: 'bg-surface-container-high text-secondary-foreground', cancel_lada: 'bg-red-100 text-red-600',
 };
 function estatLabel(t, estat) {
   return t(`subscriptions.status.${estat}`, ESTAT_FALLBACK[estat] ?? estat);
@@ -137,7 +137,7 @@ function CiclePanel() {
     }
   }
 
-  if (loading) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
+  if (loading) return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>;
 
   return (
     <div className="space-y-5">
@@ -149,7 +149,7 @@ function CiclePanel() {
                 ? t('subscriptions.cycle.new_shipments_plural', 'enviaments nous per generar')
                 : t('subscriptions.cycle.new_shipments_singular', 'enviament nou per generar')}
             </p>
-            <p className="text-xs text-secondary mt-0.5">{t('subscriptions.cycle.new_shipments_hint', "Ja s'han cobrat; falta triar quins exemplars de la safata envia cadascú.")}</p>
+            <p className="text-xs text-secondary-foreground mt-0.5">{t('subscriptions.cycle.new_shipments_hint', "Ja s'han cobrat; falta triar quins exemplars de la safata envia cadascú.")}</p>
           </div>
           <Button size="sm" onClick={proposar} disabled={proposant}>
             {proposant ? <MIcon name="progress_activity" size={14} className="animate-spin" /> : <MIcon name="refresh" size={14} />}
@@ -169,7 +169,7 @@ function CiclePanel() {
       </div>
 
       {enviaments.length === 0 ? (
-        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-12 text-center text-secondary text-sm">
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-12 text-center text-secondary-foreground text-sm">
           {t('subscriptions.cycle.no_pending_shipments', 'Cap enviament pendent de gestionar. Si n\'hi ha de nous a dalt, prem "Generar proposta".')}
         </div>
       ) : (
@@ -182,7 +182,7 @@ function CiclePanel() {
                 <div className="px-5 py-3 flex items-center justify-between border-b border-outline-variant flex-wrap gap-2">
                   <div>
                     <span className="font-medium text-on-surface">{env.email}</span>
-                    <span className="text-xs text-secondary ml-2">
+                    <span className="text-xs text-secondary-foreground ml-2">
                       {trobats}/{env.discos.length} {t('subscriptions.cycle.records_found', 'discs trobats')} · {env.import_cobrat} €
                     </span>
                   </div>
@@ -210,8 +210,8 @@ function CiclePanel() {
                               {t('common.condition.new')}
                             </span>
                           )}
-                          <span className="text-secondary">{d.item.precio} € <span className="text-xs text-secondary">({d.item.marge_pct}%)</span></span>
-                          <span className="text-secondary text-xs">{d.item.dies_estoc ?? '—'} {t('subscriptions.cycle.days_in_stock', 'dies en estoc')}</span>
+                          <span className="text-secondary-foreground">{d.item.precio} € <span className="text-xs text-secondary-foreground">({d.item.marge_pct}%)</span></span>
+                          <span className="text-secondary-foreground text-xs">{d.item.dies_estoc ?? '—'} {t('subscriptions.cycle.days_in_stock', 'dies en estoc')}</span>
                         </div>
                       ) : (
                         <span className="text-amber-600 text-xs font-medium">
@@ -219,7 +219,7 @@ function CiclePanel() {
                         </span>
                       )}
                       <button onClick={() => ometre(d.assignacio_id)}
-                        className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors" title={t('subscriptions.cycle.skip_record', 'Ometre aquest disc')}>
+                        className="p-1.5 rounded-lg text-secondary-foreground hover:text-red-600 hover:bg-red-50 transition-colors" title={t('subscriptions.cycle.skip_record', 'Ometre aquest disc')}>
                         <MIcon name="close" size={14} />
                       </button>
                     </div>
@@ -266,16 +266,16 @@ function SubscriptorsPanel() {
 
   const { rows: subscriptors, sort, toggleSort, filters, setFilter, distinctValues } = useSortFilter(rows, columns);
 
-  if (loading) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
+  if (loading) return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>;
 
   return (
     <>
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {rows.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('subscriptions.no_subscribers', 'Encara no hi ha cap subscriptor.')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('subscriptions.no_subscribers', 'Encara no hi ha cap subscriptor.')}</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <SortableTh label={t('subscriptions.col.client', 'Client')} sortKey="client" sort={sort} onSort={toggleSort}
                   filterOptions={distinctValues.client} selected={filters.client} onFilterChange={setFilter} />
@@ -293,13 +293,13 @@ function SubscriptorsPanel() {
                   className="hover:bg-surface-container-high transition-colors cursor-pointer">
                   <td className="px-4 py-3">
                     <div className="text-on-surface">{s.nom || s.email}</div>
-                    <div className="text-xs text-secondary">{s.email}</div>
+                    <div className="text-xs text-secondary-foreground">{s.email}</div>
                   </td>
                   <td className="px-4 py-3 text-on-surface-variant">
                     {s.quantitat} {s.quantitat !== 1 ? t('purchases.record_plural', 'discos') : t('purchases.record_singular', 'disc')} · {periodicitatLabel(t, s.periodicitat_mesos)} · {s.preu_periode} €
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTAT_COLOR[s.estat] || 'bg-surface-container-high text-secondary'}`}>
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTAT_COLOR[s.estat] || 'bg-surface-container-high text-secondary-foreground'}`}>
                       {estatLabel(t, s.estat)}
                     </span>
                   </td>
@@ -329,15 +329,15 @@ function SubscriptorDetailModal({ subscripcioId, onClose }) {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {!detall ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : (
           <>
             <div className="px-6 py-4 border-b border-outline-variant flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-bold text-on-surface">{detall.nom || detall.email}</h3>
-                <p className="text-sm text-secondary">{detall.email}</p>
+                <p className="text-sm text-secondary-foreground">{detall.email}</p>
               </div>
-              <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1">
+              <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1">
                 <MIcon name="close" size={18} />
               </button>
             </div>
@@ -345,31 +345,31 @@ function SubscriptorDetailModal({ subscripcioId, onClose }) {
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-xs text-secondary">{t('subscriptions.col.subscription', 'Subscripció')}</p>
+                  <p className="text-xs text-secondary-foreground">{t('subscriptions.col.subscription', 'Subscripció')}</p>
                   <p className="text-on-surface">
                     {detall.quantitat} {detall.quantitat !== 1 ? t('purchases.record_plural', 'discos') : t('purchases.record_singular', 'disc')} · {periodicitatLabel(t, detall.periodicitat_mesos)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-secondary">{t('subscriptions.price_per_shipment', 'Preu per enviament')}</p>
+                  <p className="text-xs text-secondary-foreground">{t('subscriptions.price_per_shipment', 'Preu per enviament')}</p>
                   <p className="text-on-surface">{detall.preu_periode} €</p>
                 </div>
                 <div>
-                  <p className="text-xs text-secondary">{t('purchases.col.status', 'Estat')}</p>
-                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTAT_COLOR[detall.estat] || 'bg-surface-container-high text-secondary'}`}>
+                  <p className="text-xs text-secondary-foreground">{t('purchases.col.status', 'Estat')}</p>
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTAT_COLOR[detall.estat] || 'bg-surface-container-high text-secondary-foreground'}`}>
                     {estatLabel(t, detall.estat)}
                   </span>
                 </div>
                 <div>
-                  <p className="text-xs text-secondary">{t('subscriptions.col.next_billing', 'Pròxima facturació')}</p>
+                  <p className="text-xs text-secondary-foreground">{t('subscriptions.col.next_billing', 'Pròxima facturació')}</p>
                   <p className="text-on-surface">{detall.proxima_facturacio}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-secondary mb-1.5">{t('subscriptions.music_taste', 'Gustos musicals')}</p>
+                <p className="text-xs text-secondary-foreground mb-1.5">{t('subscriptions.music_taste', 'Gustos musicals')}</p>
                 {detall.generes_preferits.length === 0 ? (
-                  <p className="text-sm text-secondary">{t('subscriptions.no_preference', 'Sense preferència (qualsevol gènere)')}</p>
+                  <p className="text-sm text-secondary-foreground">{t('subscriptions.no_preference', 'Sense preferència (qualsevol gènere)')}</p>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {detall.generes_preferits.map(g => (
@@ -383,7 +383,7 @@ function SubscriptorDetailModal({ subscripcioId, onClose }) {
 
               {detall.adreca && (
                 <div>
-                  <p className="text-xs text-secondary mb-1">{t('subscriptions.shipping_address', "Adreça d'enviament")}</p>
+                  <p className="text-xs text-secondary-foreground mb-1">{t('subscriptions.shipping_address', "Adreça d'enviament")}</p>
                   <p className="text-sm text-on-surface-variant">
                     {detall.adreca.recipient_name} — {detall.adreca.address_line1}
                     {detall.adreca.address_line2 ? `, ${detall.adreca.address_line2}` : ''}, {detall.adreca.postal_code} {detall.adreca.city}
@@ -392,9 +392,9 @@ function SubscriptorDetailModal({ subscripcioId, onClose }) {
               )}
 
               <div>
-                <p className="text-xs text-secondary mb-1.5">{t('subscriptions.records_sent', 'Discos enviats')} ({detall.discos_rebuts.length})</p>
+                <p className="text-xs text-secondary-foreground mb-1.5">{t('subscriptions.records_sent', 'Discos enviats')} ({detall.discos_rebuts.length})</p>
                 {detall.discos_rebuts.length === 0 ? (
-                  <p className="text-sm text-secondary">{t('subscriptions.no_records_received', 'Encara no ha rebut cap disc.')}</p>
+                  <p className="text-sm text-secondary-foreground">{t('subscriptions.no_records_received', 'Encara no ha rebut cap disc.')}</p>
                 ) : (
                   <ul className="divide-y divide-outline-variant border border-outline-variant rounded-xl overflow-hidden">
                     {detall.discos_rebuts.map(d => (
@@ -405,7 +405,7 @@ function SubscriptorDetailModal({ subscripcioId, onClose }) {
                           <div className="w-8 h-8 rounded bg-surface-container-high" />
                         )}
                         <span className="text-on-surface-variant flex-1">{d.artista} — {d.titulo}</span>
-                        <span className="text-xs text-secondary">{d.confirmada_at?.slice(0, 10)}</span>
+                        <span className="text-xs text-secondary-foreground">{d.confirmada_at?.slice(0, 10)}</span>
                       </li>
                     ))}
                   </ul>
@@ -489,7 +489,7 @@ function CatalogPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-secondary max-w-2xl">
+      <p className="text-sm text-secondary-foreground max-w-2xl">
         {t('subscriptions.catalog.hint', "Tria quins exemplars concrets poden enviar-se per subscripció (la safata). Marge i antiguitat només filtren aquesta llista per ajudar-te a decidir — l'assignació automàtica només tria entre els discos que aquí marquis.")}
       </p>
 
@@ -536,12 +536,12 @@ function CatalogPanel() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : items.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('subscriptions.catalog.no_records', 'Cap disc disponible amb aquests filtres.')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('subscriptions.catalog.no_records', 'Cap disc disponible amb aquests filtres.')}</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('tpv.col.record')}</th>
                 <th className="px-4 py-3 text-left font-medium">{t('common.condition')}</th>
@@ -567,7 +567,7 @@ function CatalogPanel() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-secondary text-xs">{it.genero || '—'}</td>
+                  <td className="px-4 py-3 text-secondary-foreground text-xs">{it.genero || '—'}</td>
                   <td className="px-4 py-3 text-on-surface-variant">{it.precio} €</td>
                   <td className="px-4 py-3 text-on-surface-variant">{it.marge_pct ?? '—'}%</td>
                   <td className="px-4 py-3 text-on-surface-variant">{it.dies_estoc ?? '—'}</td>
@@ -624,7 +624,7 @@ function InformesPanel() {
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+        <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
       ) : !data ? null : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -649,7 +649,7 @@ function InformesPanel() {
               <div className="text-xl font-bold text-amber-700">{data.cobraments_fallits}</div>
             </div>
             <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
-              <div className="text-xs text-secondary mb-1">{t('subscriptions.records_sent', 'Discos enviats')}</div>
+              <div className="text-xs text-secondary-foreground mb-1">{t('subscriptions.records_sent', 'Discos enviats')}</div>
               <div className="text-xl font-bold text-on-surface">{data.discos_enviats}</div>
             </div>
           </div>
@@ -706,38 +706,38 @@ function ConfiguracioPanel() {
     }
   }
 
-  if (!config) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
+  if (!config) return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>;
 
   return (
     <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-5 max-w-lg">
       <div>
-        <label className="block text-xs font-medium text-secondary mb-1">{t('subscriptions.config.price_per_record', 'Preu per disc (€)')}</label>
+        <label className="block text-xs font-medium text-secondary-foreground mb-1">{t('subscriptions.config.price_per_record', 'Preu per disc (€)')}</label>
         <input type="number" step="0.01" value={config.preu_per_disc}
           onChange={e => setConfig(c => ({ ...c, preu_per_disc: e.target.value }))}
           className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-        <p className="text-xs text-secondary mt-1">{t('subscriptions.config.price_hint', 'El preu que paga el client és preu per disc × quantitat triada.')}</p>
+        <p className="text-xs text-secondary-foreground mt-1">{t('subscriptions.config.price_hint', 'El preu que paga el client és preu per disc × quantitat triada.')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">{t('subscriptions.config.margin_min', 'Marge mín. del filtre (%)')}</label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">{t('subscriptions.config.margin_min', 'Marge mín. del filtre (%)')}</label>
           <input type="number" step="0.01" value={config.marge_min_pct}
             onChange={e => setConfig(c => ({ ...c, marge_min_pct: e.target.value }))}
             className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">{t('subscriptions.config.margin_max', 'Marge màx. del filtre (%)')}</label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">{t('subscriptions.config.margin_max', 'Marge màx. del filtre (%)')}</label>
           <input type="number" step="0.01" value={config.marge_max_pct}
             onChange={e => setConfig(c => ({ ...c, marge_max_pct: e.target.value }))}
             className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
       </div>
-      <p className="text-xs text-secondary -mt-3">
+      <p className="text-xs text-secondary-foreground -mt-3">
         {t('subscriptions.config.margin_hint', 'Valors per defecte del filtre de marge a la pestanya Catàleg — no exclouen res automàticament.')}
       </p>
 
       <div>
-        <label className="block text-xs font-medium text-secondary mb-2">{t('subscriptions.config.periodicities_label', 'Periodicitats que pot triar el client')}</label>
+        <label className="block text-xs font-medium text-secondary-foreground mb-2">{t('subscriptions.config.periodicities_label', 'Periodicitats que pot triar el client')}</label>
         <div className="flex flex-wrap gap-2">
           {PERIODICITATS_CANDIDATES.map(m => (
             <button key={m} type="button" onClick={() => toggleList('periodicitats_mesos_disponibles', m)}
@@ -751,7 +751,7 @@ function ConfiguracioPanel() {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-secondary mb-2">{t('subscriptions.config.quantities_label', 'Quantitats que pot triar el client')}</label>
+        <label className="block text-xs font-medium text-secondary-foreground mb-2">{t('subscriptions.config.quantities_label', 'Quantitats que pot triar el client')}</label>
         <div className="flex flex-wrap gap-2">
           {QUANTITATS_CANDIDATES.map(q => (
             <button key={q} type="button" onClick={() => toggleList('quantitats_disponibles', q)}

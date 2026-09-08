@@ -140,12 +140,12 @@ export default function PostEditor({ initial = null }) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-medium text-on-surface-variant">Contingut HTML *</label>
-              <span className="text-xs text-secondary">{wordCount} paraules</span>
+              <span className="text-xs text-secondary-foreground">{wordCount} paraules</span>
             </div>
             {preview ? (
               <div
                 className="blog-content min-h-[400px] bg-card border border-outline-variant rounded-xl p-5 overflow-auto"
-                dangerouslySetInnerHTML={{ __html: form.content || '<p class="text-secondary">Sense contingut…</p>' }}
+                dangerouslySetInnerHTML={{ __html: form.content || '<p class="text-secondary-foreground">Sense contingut…</p>' }}
               />
             ) : (
               <textarea
@@ -171,7 +171,7 @@ export default function PostEditor({ initial = null }) {
               placeholder="el-meu-post"
               className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <p className="text-xs text-secondary mt-1">/blog/{form.slug || '…'}</p>
+            <p className="text-xs text-secondary-foreground mt-1">/blog/{form.slug || '…'}</p>
           </div>
 
           {/* Idioma */}
@@ -186,7 +186,7 @@ export default function PostEditor({ initial = null }) {
                   className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${
                     form.language === code
                       ? 'border-primary bg-surface-container-high text-on-surface font-medium'
-                      : 'border-outline-variant text-secondary hover:border-outline-variant'
+                      : 'border-outline-variant text-secondary-foreground hover:border-outline-variant'
                   }`}
                 >
                   {label}
@@ -199,7 +199,7 @@ export default function PostEditor({ initial = null }) {
           <div>
             <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
               Data de publicació
-              <span className="text-secondary font-normal ml-1">(buit = esborrany)</span>
+              <span className="text-secondary-foreground font-normal ml-1">(buit = esborrany)</span>
             </label>
             <input
               type="datetime-local"
@@ -211,7 +211,7 @@ export default function PostEditor({ initial = null }) {
               <button
                 type="button"
                 onClick={() => set('published_at', '')}
-                className="text-xs text-secondary hover:text-red-500 mt-1 transition-colors"
+                className="text-xs text-secondary-foreground hover:text-red-500 mt-1 transition-colors"
               >
                 Tornar a esborrany
               </button>

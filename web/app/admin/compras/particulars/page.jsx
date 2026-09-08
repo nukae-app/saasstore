@@ -72,12 +72,12 @@ export default function ParticularsPage() {
           className="flex-1 min-w-[260px] border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         <input type="date" value={filters.desde} onChange={e => setFilters(f => ({ ...f, desde: e.target.value }))}
           className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary" />
-        <span className="text-secondary text-sm">–</span>
+        <span className="text-secondary-foreground text-sm">–</span>
         <input type="date" value={filters.hasta} onChange={e => setFilters(f => ({ ...f, hasta: e.target.value }))}
           className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary" />
         {hasFilters && (
           <button onClick={() => setFilters({ q: '', desde: '', hasta: '' })}
-            className="text-xs text-secondary hover:text-on-surface-variant px-1">
+            className="text-xs text-secondary-foreground hover:text-on-surface-variant px-1">
             {t('common.clear', 'Netejar')}
           </button>
         )}
@@ -85,15 +85,15 @@ export default function ParticularsPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : comprasSorted.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">
+          <div className="p-12 text-center text-secondary-foreground text-sm">
             {hasFilters ? t('purchases.order.no_results_filtered', 'Cap resultat amb aquests filtres.') : t('purchases.order.no_orders', 'Encara no hi ha comandes ni compres.')}
           </div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('common.date')} sortKey="fecha" sort={sort} onSort={toggleSort} />
@@ -135,10 +135,10 @@ function ParticularRow({ c, expanded, setExpanded, onReturnItem }) {
     <>
       <tr onClick={() => setExpanded(expanded === c.id ? null : c.id)}
         className="hover:bg-surface-container-high cursor-pointer transition-colors">
-        <td className="px-4 py-3 text-secondary">
+        <td className="px-4 py-3 text-secondary-foreground">
           {expanded === c.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
         </td>
-        <td className="px-4 py-3 text-secondary">{new Date(c.date).toLocaleDateString()}</td>
+        <td className="px-4 py-3 text-secondary-foreground">{new Date(c.date).toLocaleDateString()}</td>
         <td className="px-4 py-3 font-medium">{c.individual_name ?? c.user_nom ?? '—'}</td>
         <td className="px-4 py-3 text-center">
           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-surface-container-high text-on-surface-variant">
@@ -150,18 +150,18 @@ function ParticularRow({ c, expanded, setExpanded, onReturnItem }) {
         <tr>
           <td colSpan={4} className="px-4 py-3 bg-amber-50/40 border-b border-amber-100">
             {(c.items?.length ?? 0) === 0
-              ? <span className="text-sm text-secondary">{t('purchases.no_copies', 'Sense còpies.')}</span>
+              ? <span className="text-sm text-secondary-foreground">{t('purchases.no_copies', 'Sense còpies.')}</span>
               : (
                 <div className="space-y-1">
                   {c.items.map(it => (
                     <div key={it.item_id} className="flex items-center gap-4 text-sm flex-wrap">
                       <span className="font-semibold text-on-surface">{it.artista} — {it.title}</span>
-                      <span className="text-secondary">{t('purchases.pvp_short', 'PVP')}: {it.price} €</span>
+                      <span className="text-secondary-foreground">{t('purchases.pvp_short', 'PVP')}: {it.price} €</span>
                       {it.acquisition_cost && (
-                        <span className="text-secondary">{t('purchases.cost_short', 'Cost')}: {it.acquisition_cost} €</span>
+                        <span className="text-secondary-foreground">{t('purchases.cost_short', 'Cost')}: {it.acquisition_cost} €</span>
                       )}
                       {it.devuelto ? (
-                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary">
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary-foreground">
                           {t('return.returned')}
                         </span>
                       ) : it.item_status === 'disponible' ? (
@@ -172,7 +172,7 @@ function ParticularRow({ c, expanded, setExpanded, onReturnItem }) {
                           <MIcon name="undo" size={11} /> {t('purchases.return_action', 'Devolució')}
                         </button>
                       ) : (
-                        <span className="text-xs text-secondary">{it.item_status}</span>
+                        <span className="text-xs text-secondary-foreground">{it.item_status}</span>
                       )}
                     </div>
                   ))}
@@ -280,14 +280,14 @@ function CompraParticularModal({ onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('purchases.btn.individual_purchase', 'Compra particular')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-on-surface-variant mb-1">
-                {t('purchases.individual_modal.registered_user', 'Usuari registrat')} <span className="text-secondary font-normal">{t('common.optional', '(opcional)')}</span>
+                {t('purchases.individual_modal.registered_user', 'Usuari registrat')} <span className="text-secondary-foreground font-normal">{t('common.optional', '(opcional)')}</span>
               </label>
               {linkedUser ? (
                 <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
@@ -296,7 +296,7 @@ function CompraParticularModal({ onClose, onSaved }) {
                   </div>
                   <span className="text-sm font-medium flex-1 truncate">{linkedUser.name || linkedUser.email}</span>
                   <button type="button" onClick={() => { setLinkedUser(null); setUserQ(''); }}
-                    className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={13} /></button>
+                    className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={13} /></button>
                 </div>
               ) : (
                 <div className="relative">
@@ -309,7 +309,7 @@ function CompraParticularModal({ onClose, onSaved }) {
                         <button key={u.id} type="button" onClick={() => selectUser(u)}
                           className="w-full text-left px-3 py-2.5 hover:bg-surface-container-high text-sm border-b border-outline-variant/40 last:border-0">
                           <span className="font-medium">{u.name || u.email}</span>
-                          {u.name && <span className="text-secondary ml-1 text-xs">{u.email}</span>}
+                          {u.name && <span className="text-secondary-foreground ml-1 text-xs">{u.email}</span>}
                         </button>
                       ))}
                     </div>
@@ -373,7 +373,7 @@ function CompraParticularModal({ onClose, onSaved }) {
             )}
 
             {items.length === 0 && (
-              <div className="text-sm text-secondary text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
+              <div className="text-sm text-secondary-foreground text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
             )}
 
             <div className="space-y-2">
@@ -383,19 +383,19 @@ function CompraParticularModal({ onClose, onSaved }) {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-on-surface">{it.artista} — {it.titulo}</span>
                       {it.existing && (
-                        <span className="text-[10px] uppercase tracking-wide text-secondary bg-surface-container-high rounded-full px-2 py-0.5">
+                        <span className="text-[10px] uppercase tracking-wide text-secondary-foreground bg-surface-container-high rounded-full px-2 py-0.5">
                           {t('purchases.modal.already_in_catalog', 'Ja al catàleg')}
                         </span>
                       )}
                     </div>
                     <button type="button" onClick={() => setItems(p => p.filter((_, i) => i !== idx))}
-                      className="text-secondary hover:text-red-500 transition-colors">
+                      className="text-secondary-foreground hover:text-red-500 transition-colors">
                       <MIcon name="delete" size={15} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <div>
-                      <label className="block text-xs text-secondary mb-1">{t('common.condition')}</label>
+                      <label className="block text-xs text-secondary-foreground mb-1">{t('common.condition')}</label>
                       <select value={it.condicion} onChange={e => upd(idx, 'condicion', e.target.value)}
                         className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                         <option value="segona_ma">{t('purchases.condition.used', 'Segona mà')}</option>
@@ -403,18 +403,18 @@ function CompraParticularModal({ onClose, onSaved }) {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-secondary mb-1">{t('purchases.individual_modal.purchase_price', 'Preu de compra')}</label>
+                      <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.individual_modal.purchase_price', 'Preu de compra')}</label>
                       <input type="number" step="0.01" min="0" value={it.coste_adquisicion} onChange={e => upd(idx, 'coste_adquisicion', e.target.value)} required
                         className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                     <div>
-                      <label className="block text-xs text-secondary mb-1">{t('purchases.individual_modal.sale_price_catalog', 'Preu venda (catàleg)')}</label>
+                      <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.individual_modal.sale_price_catalog', 'Preu venda (catàleg)')}</label>
                       <input type="number" step="0.01" min="0" value={it.precio} onChange={e => upd(idx, 'precio', e.target.value)} required
                         className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                     {it.condicion === 'segona_ma' && vertical === 'records' && <>
                       <div>
-                        <label className="block text-xs text-secondary mb-1">{t('purchases.grading.disc', 'Grading disc')}</label>
+                        <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.grading.disc', 'Grading disc')}</label>
                         <select value={it.estado_disco} onChange={e => upd(idx, 'estado_disco', e.target.value)}
                           className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                           <option value="">—</option>
@@ -422,7 +422,7 @@ function CompraParticularModal({ onClose, onSaved }) {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-secondary mb-1">{t('purchases.grading.sleeve', 'Grading funda')}</label>
+                        <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.grading.sleeve', 'Grading funda')}</label>
                         <select value={it.estado_funda} onChange={e => upd(idx, 'estado_funda', e.target.value)}
                           className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                           <option value="">—</option>

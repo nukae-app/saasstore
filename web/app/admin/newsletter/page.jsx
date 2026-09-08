@@ -63,7 +63,7 @@ export default function AdminNewsletterPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Newsletter</h1>
-          <p className="text-sm text-secondary mt-0.5 flex items-center gap-1.5">
+          <p className="text-sm text-secondary-foreground mt-0.5 flex items-center gap-1.5">
             <MIcon name="mail" size={13} />
             {recipients === null ? '…' : recipients} subscriptors actius
           </p>
@@ -78,10 +78,10 @@ export default function AdminNewsletterPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <MIcon name="progress_activity" size={20} className="animate-spin text-secondary" />
+          <MIcon name="progress_activity" size={20} className="animate-spin text-secondary-foreground" />
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="text-center py-20 text-secondary">
+        <div className="text-center py-20 text-secondary-foreground">
           <p className="mb-4">Encara no hi ha cap campanya.</p>
           <Link href="/admin/newsletter/nou" className="text-on-surface hover:text-on-surface-variant font-medium text-sm">
             Crea la primera →
@@ -106,12 +106,12 @@ function CampaignRow({ campaign, onDelete, deleting }) {
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm text-on-surface truncate">{campaign.subject}</p>
         <div className="flex items-center gap-3 mt-0.5">
-          <span className="text-xs text-secondary">{formatDate(campaign.created_at)}</span>
+          <span className="text-xs text-secondary-foreground">{formatDate(campaign.created_at)}</span>
           <span className={`text-xs px-1.5 py-0.5 rounded font-medium border ${ESTAT_STYLES[campaign.status]}`}>
             {ESTAT_LABELS[campaign.status]}
           </span>
           {total > 0 && (
-            <span className="text-xs text-secondary">
+            <span className="text-xs text-secondary-foreground">
               {enviat}/{total} enviats{error > 0 ? ` · ${error} errors` : ''}
             </span>
           )}
@@ -120,7 +120,7 @@ function CampaignRow({ campaign, onDelete, deleting }) {
       <div className="flex items-center gap-1.5 shrink-0">
         <Link
           href={`/admin/newsletter/${campaign.id}`}
-          className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
+          className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
           title={campaign.status === 'esborrany' ? 'Editar' : 'Veure'}
         >
           {campaign.status === 'esborrany' ? <MIcon name="edit" size={13} /> : <MIcon name="send" size={13} />}
@@ -129,7 +129,7 @@ function CampaignRow({ campaign, onDelete, deleting }) {
           <button
             onClick={() => onDelete(campaign.id, campaign.subject)}
             disabled={deleting === campaign.id}
-            className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
             title="Eliminar"
           >
             {deleting === campaign.id

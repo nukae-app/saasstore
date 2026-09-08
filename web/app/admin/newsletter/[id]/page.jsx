@@ -23,12 +23,12 @@ export default function EditCampaignPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <MIcon name="progress_activity" size={20} className="animate-spin text-secondary" />
+        <MIcon name="progress_activity" size={20} className="animate-spin text-secondary-foreground" />
       </div>
     );
   }
   if (notFound) {
-    return <p className="text-secondary p-6">Campanya no trobada.</p>;
+    return <p className="text-secondary-foreground p-6">Campanya no trobada.</p>;
   }
   return <CampaignEditor initial={campaign} />;
 }

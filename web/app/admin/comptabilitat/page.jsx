@@ -57,7 +57,7 @@ export default function ComptabilitatResumPage() {
     });
   }, []);
 
-  if (loading) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>;
+  if (loading) return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>;
 
   const resultatPositiu = pyg && parseFloat(pyg.resultat) >= 0;
   const vencudes = pendents.filter(d => d.payment_status === 'vencut');
@@ -71,7 +71,7 @@ export default function ComptabilitatResumPage() {
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
         <h2 className="text-2xl font-bold text-on-surface">{t('nav.comptabilitat', 'Comptabilitat')}</h2>
-        <p className="text-sm text-secondary mt-1">{t('comptabilitat.subtitle', "Resum del mes en curs — un cop d'ull abans d'entrar al detall.")}</p>
+        <p className="text-sm text-secondary-foreground mt-1">{t('comptabilitat.subtitle', "Resum del mes en curs — un cop d'ull abans d'entrar al detall.")}</p>
       </div>
 
       {/* Targes resum */}
@@ -91,12 +91,12 @@ export default function ComptabilitatResumPage() {
         </Link>
 
         <div className="rounded-xl p-4 border bg-surface-container-high border-outline-variant">
-          <div className="flex items-center gap-1.5 text-xs mb-1 text-secondary"><MIcon name="account_balance" size={13} /> {t('comptabilitat.card.bank_balance', 'Saldo banc (572)')}</div>
+          <div className="flex items-center gap-1.5 text-xs mb-1 text-secondary-foreground"><MIcon name="account_balance" size={13} /> {t('comptabilitat.card.bank_balance', 'Saldo banc (572)')}</div>
           <div className="text-xl font-bold text-on-surface">{saldoBanc != null ? fmtEur(saldoBanc) : '—'}</div>
         </div>
 
         <div className={`rounded-xl p-4 border ${vencudes.length ? 'bg-red-50 border-red-200' : 'bg-surface-container-high border-outline-variant'}`}>
-          <div className={`flex items-center gap-1.5 text-xs mb-1 ${vencudes.length ? 'text-red-600' : 'text-secondary'}`}>
+          <div className={`flex items-center gap-1.5 text-xs mb-1 ${vencudes.length ? 'text-red-600' : 'text-secondary-foreground'}`}>
             <MIcon name="error" size={13} /> {t('comptabilitat.card.overdue', 'Factures vençudes')}
           </div>
           <div className={`text-xl font-bold ${vencudes.length ? 'text-red-700' : 'text-on-surface'}`}>{vencudes.length}</div>
@@ -108,19 +108,19 @@ export default function ComptabilitatResumPage() {
         <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 bg-surface-container-high border-b border-outline-variant flex items-center justify-between">
             <span className="text-sm font-semibold text-on-surface-variant flex items-center gap-1.5"><MIcon name="schedule" size={14} /> {t('comptabilitat.upcoming_due', 'Properes a vèncer')}</span>
-            <Link href="/admin/despeses" className="text-xs text-secondary hover:text-on-surface-variant flex items-center gap-0.5">
+            <Link href="/admin/despeses" className="text-xs text-secondary-foreground hover:text-on-surface-variant flex items-center gap-0.5">
               {t('common.see_all', 'Veure totes')} <MIcon name="arrow_forward" size={11} />
             </Link>
           </div>
           {properesAVencer.length === 0 ? (
-            <div className="p-6 text-center text-secondary text-xs">{t('comptabilitat.no_pending_invoices', 'Cap factura pendent')}</div>
+            <div className="p-6 text-center text-secondary-foreground text-xs">{t('comptabilitat.no_pending_invoices', 'Cap factura pendent')}</div>
           ) : (
             <div className="divide-y divide-outline-variant">
               {properesAVencer.map(d => (
                 <div key={d.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
                   <div>
                     <div className="text-on-surface">{d.supplier_name}</div>
-                    <div className="text-xs text-secondary">{t('comptabilitat.due', 'Venç')} {fmtDate(d.due_date)}</div>
+                    <div className="text-xs text-secondary-foreground">{t('comptabilitat.due', 'Venç')} {fmtDate(d.due_date)}</div>
                   </div>
                   <div className="font-semibold text-on-surface">{fmtEur(d.total)}</div>
                 </div>
@@ -133,21 +133,21 @@ export default function ComptabilitatResumPage() {
         <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
           <div className="px-4 py-2.5 bg-surface-container-high border-b border-outline-variant flex items-center justify-between">
             <span className="text-sm font-semibold text-on-surface-variant flex items-center gap-1.5"><MIcon name="auto_stories" size={14} /> {t('comptabilitat.latest_entries', 'Últims assentaments')}</span>
-            <Link href="/admin/llibres" className="text-xs text-secondary hover:text-on-surface-variant flex items-center gap-0.5">
+            <Link href="/admin/llibres" className="text-xs text-secondary-foreground hover:text-on-surface-variant flex items-center gap-0.5">
               {t('comptabilitat.see_books', 'Veure llibres')} <MIcon name="arrow_forward" size={11} />
             </Link>
           </div>
           {ultimsAssentaments.length === 0 ? (
-            <div className="p-6 text-center text-secondary text-xs">{t('llibres.no_entries_month', 'Cap assentament aquest mes')}</div>
+            <div className="p-6 text-center text-secondary-foreground text-xs">{t('llibres.no_entries_month', 'Cap assentament aquest mes')}</div>
           ) : (
             <div className="divide-y divide-outline-variant">
               {ultimsAssentaments.map(a => (
                 <div key={a.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-secondary">#{a.entry_number}</span>
+                    <span className="font-mono text-xs text-secondary-foreground">#{a.entry_number}</span>
                     <span className="text-on-surface">{a.description}</span>
                   </div>
-                  <span className="text-xs text-secondary">{fmtDate(a.date)}</span>
+                  <span className="text-xs text-secondary-foreground">{fmtDate(a.date)}</span>
                 </div>
               ))}
             </div>
@@ -160,7 +160,7 @@ export default function ComptabilitatResumPage() {
         {ACCESSOS.map(({ href, label, icon }) => (
           <Link key={href} href={href}
             className="flex flex-col items-center gap-1.5 p-4 bg-card border border-outline-variant rounded-xl hover:border-outline hover:shadow-sm transition-all text-center">
-            <MIcon name={icon} size={20} className="text-secondary" />
+            <MIcon name={icon} size={20} className="text-secondary-foreground" />
             <span className="text-xs font-medium text-on-surface-variant">{label}</span>
           </Link>
         ))}

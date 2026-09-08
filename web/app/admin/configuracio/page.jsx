@@ -45,7 +45,7 @@ export default function ConfiguracioPage() {
       </div>
 
       {loading || !config ? (
-        <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+        <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
       ) : tab === 'fiscals' ? (
         <DadesFiscalsPanel config={config} onSaved={loadConfig} />
       ) : tab === 'contacte' ? (
@@ -95,7 +95,7 @@ function DadesFiscalsPanel({ config, onSaved }) {
 
   return (
     <form onSubmit={save} className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4 max-w-lg">
-      <p className="text-sm text-secondary">
+      <p className="text-sm text-secondary-foreground">
         {t('config.fiscal.hint', 'Dades fiscals de la botiga: apareixen a la capçalera dels PDF de comanda a proveïdor.')}
       </p>
       <div>
@@ -113,7 +113,7 @@ function DadesFiscalsPanel({ config, onSaved }) {
         <textarea value={adreca} onChange={e => setAdreca(e.target.value)} required rows={3}
           placeholder={t('config.fiscal.address_ph', 'Carrer, número\nCodi postal, ciutat')}
           className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-        <p className="text-xs text-secondary mt-1">{t('config.fiscal.address_hint', 'Cada línia es mostra per separat al PDF.')}</p>
+        <p className="text-xs text-secondary-foreground mt-1">{t('config.fiscal.address_hint', 'Cada línia es mostra per separat al PDF.')}</p>
       </div>
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex items-center gap-3">
@@ -251,7 +251,7 @@ function BotigaPanel({ config, onSaved }) {
   return (
     <form onSubmit={save} className="space-y-5 max-w-lg">
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
-        <p className="text-sm text-secondary">
+        <p className="text-sm text-secondary-foreground">
           {t('config.shop.hint', 'Contacte i xarxes que es mostren al peu de la web pública.')}
         </p>
         <div>
@@ -269,7 +269,7 @@ function BotigaPanel({ config, onSaved }) {
           <input type="email" value={emailFrom} onChange={e => setEmailFrom(e.target.value)}
             placeholder={t('config.shop.email_from_placeholder', 'botiga@exemple.com')}
             className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-          <p className="text-xs text-secondary mt-1">
+          <p className="text-xs text-secondary-foreground mt-1">
             {t('config.shop.email_from_hint', "Adreça amb la qual s'envien els emails transaccionals (confirmació de comanda, magic link...).")}
           </p>
         </div>
@@ -284,7 +284,7 @@ function BotigaPanel({ config, onSaved }) {
           <textarea value={horari} onChange={e => setHorari(e.target.value)} rows={3}
             placeholder={'Dl–Dv: 11h–20h\nDs: 11h–14h / 17h–20h\nDg: tancat'}
             className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-          <p className="text-xs text-secondary mt-1">{t('config.shop.hours_hint', 'Cada línia es mostra per separat al footer.')}</p>
+          <p className="text-xs text-secondary-foreground mt-1">{t('config.shop.hours_hint', 'Cada línia es mostra per separat al footer.')}</p>
         </div>
       </div>
 
@@ -292,7 +292,7 @@ function BotigaPanel({ config, onSaved }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-on-surface-variant">{t('config.favicon', 'Favicon')}</p>
-            <p className="text-xs text-secondary mt-1 max-w-md">
+            <p className="text-xs text-secondary-foreground mt-1 max-w-md">
               {t('config.favicon_hint', "La icona que es veu a la pestanya del navegador. Sense pujar-ne cap, s'utilitza la de per defecte.")}
             </p>
           </div>
@@ -307,7 +307,7 @@ function BotigaPanel({ config, onSaved }) {
             </label>
             {config.favicon_url && (
               <button type="button" onClick={removeFavicon} disabled={uploadingFavicon}
-                className="text-secondary hover:text-red-500 transition-colors">
+                className="text-secondary-foreground hover:text-red-500 transition-colors">
                 <MIcon name="delete" size={16} />
               </button>
             )}
@@ -320,7 +320,7 @@ function BotigaPanel({ config, onSaved }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-on-surface-variant">{t('config.logo', 'Logo')}</p>
-            <p className="text-xs text-secondary mt-1 max-w-md">
+            <p className="text-xs text-secondary-foreground mt-1 max-w-md">
               {t('config.logo_hint', "El logo del capçal i del peu de la web pública. Sense pujar-ne cap, es mostra el nom de la botiga en text.")}
             </p>
           </div>
@@ -335,7 +335,7 @@ function BotigaPanel({ config, onSaved }) {
             </label>
             {config.logo_url && (
               <button type="button" onClick={removeLogo} disabled={uploadingLogo}
-                className="text-secondary hover:text-red-500 transition-colors">
+                className="text-secondary-foreground hover:text-red-500 transition-colors">
                 <MIcon name="delete" size={16} />
               </button>
             )}
@@ -345,12 +345,12 @@ function BotigaPanel({ config, onSaved }) {
       </div>
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
-        <p className="text-sm text-secondary">{t('config.shop.checkout_params', 'Paràmetres operatius del checkout.')}</p>
+        <p className="text-sm text-secondary-foreground">{t('config.shop.checkout_params', 'Paràmetres operatius del checkout.')}</p>
         <div>
           <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.shop.reserve_minutes', 'Minuts de reserva de stock')}</label>
           <input type="number" min="1" value={reservaMinuts} onChange={e => setReservaMinuts(e.target.value)}
             className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-          <p className="text-xs text-secondary mt-1">
+          <p className="text-xs text-secondary-foreground mt-1">
             {t('config.shop.reserve_minutes_hint', "Temps que es reserva un exemplar mentre un client fa el checkout abans d'alliberar-se.")}
           </p>
         </div>
@@ -361,7 +361,7 @@ function BotigaPanel({ config, onSaved }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-on-surface-variant">{t('config.shop.record_club', 'Club del disc (subscripció)')}</p>
-            <p className="text-xs text-secondary mt-1 max-w-md">
+            <p className="text-xs text-secondary-foreground mt-1 max-w-md">
               {t('config.shop.record_club_hint', 'Activa o desactiva l\'opció de subscriure\'s al front públic. Els plans, els subscriptors i el cicle mensual es gestionen a "Club del disc" al menú.')}
             </p>
           </div>
@@ -377,7 +377,7 @@ function BotigaPanel({ config, onSaved }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-on-surface-variant">{t('config.shop.maintenance_mode', 'Mode manteniment (web en construcció)')}</p>
-            <p className="text-xs text-secondary mt-1 max-w-md">
+            <p className="text-xs text-secondary-foreground mt-1 max-w-md">
               {t('config.shop.maintenance_mode_hint', 'Bloqueja el checkout a qualsevol client que no sigui admin i mostra un banner "en construcció" a tota la web pública. Un admin loguejat pot seguir comprant per provar el flux sencer.')}
             </p>
           </div>
@@ -392,7 +392,7 @@ function BotigaPanel({ config, onSaved }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-on-surface-variant">{t('config.shop.discogs_sync', 'Sincronització amb Discogs')}</p>
-            <p className="text-xs text-secondary mt-1 max-w-md">
+            <p className="text-xs text-secondary-foreground mt-1 max-w-md">
               {t('config.shop.discogs_sync_hint', "Activa la cerca i sincronització d'estoc amb Discogs des del catàleg. Només té sentit si el negoci ven vinils via Discogs.")}
             </p>
           </div>
@@ -404,7 +404,7 @@ function BotigaPanel({ config, onSaved }) {
       </div>
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
-        <p className="text-sm text-secondary">
+        <p className="text-sm text-secondary-foreground">
           {t('config.shop.catalog_features_hint', 'Funcions del catàleg públic que només tenen sentit per a vinils — es poden apagar individualment encara que el teu vertical les tingui disponibles.')}
         </p>
         {[
@@ -415,7 +415,7 @@ function BotigaPanel({ config, onSaved }) {
           <div key={key} className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-on-surface-variant">{label}</p>
-              <p className="text-xs text-secondary mt-1 max-w-md">{hint}</p>
+              <p className="text-xs text-secondary-foreground mt-1 max-w-md">{hint}</p>
             </div>
             <button type="button" onClick={() => toggleCatalogFeature(key)}
               className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config[key] ? 'bg-green-500' : 'bg-muted'}`}>
@@ -486,12 +486,12 @@ function SecretsPanel() {
   }
 
   if (status === null) {
-    return <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>;
+    return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>;
   }
 
   return (
     <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-5 max-w-lg">
-      <p className="text-sm text-secondary">
+      <p className="text-sm text-secondary-foreground">
         {t('config.secrets.hint', 'Els valors no es mostren mai, ni tan sols els que ja estan configurats — només si hi ha alguna cosa desada o no. Escriu un valor nou només al camp que vulguis canviar.')}
       </p>
       <form onSubmit={handleSave} className="space-y-4">
@@ -499,7 +499,7 @@ function SecretsPanel() {
           <div key={key}>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-on-surface-variant">{t(labelKey, label)}</label>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${status[key] ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${status[key] ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary-foreground'}`}>
                 {status[key] ? t('config.secrets.configured', 'Configurat') : t('config.secrets.not_configured', 'Sense configurar')}
               </span>
             </div>
@@ -555,7 +555,7 @@ function TipusIvaPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-secondary max-w-xl">
+        <p className="text-sm text-secondary-foreground max-w-xl">
           {t('config.vat.hint', "Configura els percentatges d'IVA. Marca quin tipus s'aplica per defecte a les vendes de productes nous i quin a les de 2a mà (REBU) — a compra es tria sempre a mà.")}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
@@ -565,12 +565,12 @@ function TipusIvaPanel() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : tipus.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('tpv.no_iva_configured', "Cap tipus d'IVA configurat")}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('tpv.no_iva_configured', "Cap tipus d'IVA configurat")}</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('common.name')}</th>
                 <th className="px-4 py-3 text-right font-medium">%</th>
@@ -592,7 +592,7 @@ function TipusIvaPanel() {
                       <MIcon name="star" size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
                       <button onClick={() => marcarDefecte(row, 'default_new')}
-                        className="text-xs text-secondary hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
+                        className="text-xs text-secondary-foreground hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -600,18 +600,18 @@ function TipusIvaPanel() {
                       <MIcon name="star" size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
                       <button onClick={() => marcarDefecte(row, 'default_used')}
-                        className="text-xs text-secondary hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
+                        className="text-xs text-secondary-foreground hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiu(row)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary-foreground'}`}>
                       {row.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => { setEdit(row); setShowForm(true); }}
-                      className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
+                      className="text-xs text-secondary-foreground hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
                       {t('catalog.edit')}
                     </button>
                   </td>
@@ -710,7 +710,7 @@ function PesFormatPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-secondary max-w-xl">
+        <p className="text-sm text-secondary-foreground max-w-xl">
           {t('config.weight.hint', "Pes per defecte segons el format del disc: s'usa per calcular el pes total d'una comanda (i per tant el tram d'enviament) quan una còpia no té un pes propi indicat al catàleg. Un LP no pesa el mateix que un CD o un 7\".")}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
@@ -720,14 +720,14 @@ function PesFormatPanel() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : pesos.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">
+          <div className="p-12 text-center text-secondary-foreground text-sm">
             {t('config.weight.no_formats', "Cap format configurat — s'usarà un pes genèric per defecte.")}
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('catalog.col.format')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('config.weight.col_weight', 'Pes')}</th>
@@ -742,11 +742,11 @@ function PesFormatPanel() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setEdit(p); setShowForm(true); }}
-                        className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
+                        className="text-xs text-secondary-foreground hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
                         {t('catalog.edit')}
                       </button>
                       <button onClick={() => eliminar(p)}
-                        className="text-secondary hover:text-red-600 p-1.5 rounded hover:bg-red-50">
+                        className="text-secondary-foreground hover:text-red-600 p-1.5 rounded hover:bg-red-50">
                         <MIcon name="delete" size={14} />
                       </button>
                     </div>
@@ -798,7 +798,7 @@ function PesFormatForm({ pes, existents, onClose, onSaved }) {
             <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.format_required', 'Format *')}</label>
             {isEdit ? (
               <input value={formato} disabled
-                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm bg-surface-container-high text-secondary" />
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm bg-surface-container-high text-secondary-foreground" />
             ) : (
               <select value={formato} onChange={e => setFormato(e.target.value)} required
                 className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
@@ -859,7 +859,7 @@ function SeccionsPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-secondary max-w-xl">
+        <p className="text-sm text-secondary-foreground max-w-xl">
           {t('config.sections.hint', 'Cubetes físiques de la botiga (Nacional, Internacional, Alternatiu...). Cada disc pot viure en una sola cubeta — s\'assigna des de la fitxa del disc — i determinen les files del mode "Remena" del catàleg públic.')}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
@@ -869,14 +869,14 @@ function SeccionsPanel() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : seccions.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">
+          <div className="p-12 text-center text-secondary-foreground text-sm">
             {t('config.sections.no_sections', "Encara no hi ha cap cubeta configurada. Crea'n una!")}
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('config.sections.col.section', 'Cubeta')}</th>
                 <th className="px-4 py-3 text-left font-medium">{t('config.sections.col.slug', 'Slug')}</th>
@@ -897,23 +897,23 @@ function SeccionsPanel() {
                       {s.name_ca}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-secondary text-xs">{s.slug}</td>
-                  <td className="px-4 py-3 text-secondary">{s.name_es || '—'}</td>
-                  <td className="px-4 py-3 text-center text-secondary">{s.position}</td>
+                  <td className="px-4 py-3 font-mono text-secondary-foreground text-xs">{s.slug}</td>
+                  <td className="px-4 py-3 text-secondary-foreground">{s.name_es || '—'}</td>
+                  <td className="px-4 py-3 text-center text-secondary-foreground">{s.position}</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiva(s)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary-foreground'}`}>
                       {s.active ? t('config.sections.active_fem', 'Activa') : t('config.sections.inactive_fem', 'Inactiva')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setEdit(s); setShowForm(true); }}
-                        className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                        className="p-1.5 rounded-lg text-secondary-foreground hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
                         <MIcon name="edit" size={14} />
                       </button>
                       <button onClick={() => eliminar(s)}
-                        className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors">
+                        className="p-1.5 rounded-lg text-secondary-foreground hover:text-red-600 hover:bg-red-50 transition-colors">
                         <MIcon name="delete" size={14} />
                       </button>
                     </div>
@@ -1043,7 +1043,7 @@ function TramsEnviamentPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-secondary max-w-xl">
+        <p className="text-sm text-secondary-foreground max-w-xl">
           {t('config.shipping.hint', 'Tarifa pròpia d\'enviament per país i tram de pes: cada comanda es cobra amb el tram actiu més barat del país de destí que cobreixi el pes total dels discos. Es fa servir quan el client tria "Enviament" al checkout; la recollida a botiga sempre és gratuïta. Un país només és venedor si té algun tram actiu — per vendre a un país nou, només cal afegir-hi un tram aquí.')}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
@@ -1053,14 +1053,14 @@ function TramsEnviamentPanel() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : trams.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">
+          <div className="p-12 text-center text-secondary-foreground text-sm">
             {t('config.shipping.no_tiers', 'Cap tram configurat — sense trams no es pot triar "Enviament" a cap país al checkout.')}
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('config.shipping.col.country', 'País')}</th>
                 <th className="px-4 py-3 text-left font-medium">{t('config.shipping.col.up_to_weight', 'Fins a (pes)')}</th>
@@ -1083,18 +1083,18 @@ function TramsEnviamentPanel() {
                   <td className="px-4 py-3 text-right">{parseFloat(tram.price).toFixed(2)} €</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiu(tram)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${tram.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${tram.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary-foreground'}`}>
                       {tram.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setEdit(tram); setShowForm(true); }}
-                        className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
+                        className="text-xs text-secondary-foreground hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
                         {t('catalog.edit')}
                       </button>
                       <button onClick={() => eliminar(tram)}
-                        className="text-secondary hover:text-red-600 p-1.5 rounded hover:bg-red-50">
+                        className="text-secondary-foreground hover:text-red-600 p-1.5 rounded hover:bg-red-50">
                         <MIcon name="delete" size={14} />
                       </button>
                     </div>
@@ -1147,7 +1147,7 @@ function TramEnviamentForm({ tram, onClose, onSaved }) {
             <input type="number" min="1" value={pesMaxim} onChange={e => setPesMaxim(e.target.value)} required
               placeholder="500"
               className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            <p className="text-xs text-secondary mt-1">
+            <p className="text-xs text-secondary-foreground mt-1">
               {t('config.shipping.max_weight_hint', "Aquest tram s'aplica a comandes de fins a aquest pes (inclusiu).")}
             </p>
           </div>
@@ -1161,7 +1161,7 @@ function TramEnviamentForm({ tram, onClose, onSaved }) {
             <input type="text" maxLength={2} value={country} onChange={e => setCountry(e.target.value.toUpperCase())} required
               placeholder="ES, FR, IT…"
               className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-primary" />
-            <p className="text-xs text-secondary mt-1">
+            <p className="text-xs text-secondary-foreground mt-1">
               {t('config.shipping.country_hint', 'Codi de 2 lletres (ISO 3166-1). Un país només és venedor si té algun tram actiu: per afegir-hi un de nou, crea aquí el primer tram amb el seu codi.')}
             </p>
           </div>

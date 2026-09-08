@@ -19,10 +19,10 @@ function estatLabel(t, estat) {
 }
 const ESTAT_COLOR = {
   pendent: 'bg-surface-container-high text-on-surface-variant', pendent_acceptacio: 'bg-amber-100 text-amber-700',
-  acceptada: 'bg-blue-100 text-blue-700', rebutjada: 'bg-surface-container-high text-secondary',
+  acceptada: 'bg-blue-100 text-blue-700', rebutjada: 'bg-surface-container-high text-secondary-foreground',
   en_tramit: 'bg-blue-100 text-blue-700', reservada: 'bg-emerald-100 text-emerald-700',
-  recollida: 'bg-surface-container-high text-secondary', caducada: 'bg-red-100 text-red-600',
-  cancelada: 'bg-surface-container-high text-secondary',
+  recollida: 'bg-surface-container-high text-secondary-foreground', caducada: 'bg-red-100 text-red-600',
+  cancelada: 'bg-surface-container-high text-secondary-foreground',
 };
 
 function CatalogarModal({ peticion, onClose, onSaved }) {
@@ -91,12 +91,12 @@ function CatalogarModal({ peticion, onClose, onSaved }) {
       <div className="bg-card rounded-xl max-w-lg w-full p-6 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif italic text-xl">{t('requests.catalogar_modal.title', 'Catalogar petició')}</h2>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
         <div className="flex gap-1 bg-surface-container-high p-1 rounded-lg w-fit mb-3">
           {[['catalog', t('requests.catalogar_modal.mode_catalog', 'Al catàleg')], ['discogs', t('requests.catalogar_modal.mode_discogs', 'A Discogs')]].map(([key, label]) => (
             <button key={key} onClick={() => switchMode(key)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${mode === key ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface'}`}>
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${mode === key ? 'bg-card text-on-surface shadow-sm' : 'text-secondary-foreground hover:text-on-surface'}`}>
               {label}
             </button>
           ))}
@@ -115,7 +115,7 @@ function CatalogarModal({ peticion, onClose, onSaved }) {
         </div>
         <div className="flex-1 overflow-y-auto space-y-1.5">
           {results.length === 0 && !searching && (
-            <p className="text-sm text-secondary text-center py-6">
+            <p className="text-sm text-secondary-foreground text-center py-6">
               {mode === 'discogs' ? t('requests.catalogar_modal.no_discogs_results', 'Cap resultat a Discogs.') : t('requests.catalogar_modal.no_catalog_results', "Cap resultat. Prova a cercar-lo a Discogs per donar-lo d'alta.")}
             </p>
           )}
@@ -127,7 +127,7 @@ function CatalogarModal({ peticion, onClose, onSaved }) {
               ) : <div className="w-9 h-9 rounded bg-surface-container-high shrink-0" />}
               <div className="min-w-0">
                 <p className="text-sm font-medium text-on-surface truncate">{r.titulo}</p>
-                <p className="text-xs text-secondary truncate">{r.artista} {r.sello ? `· ${r.sello}` : ''}</p>
+                <p className="text-xs text-secondary-foreground truncate">{r.artista} {r.sello ? `· ${r.sello}` : ''}</p>
               </div>
             </button>
           ))}
@@ -137,7 +137,7 @@ function CatalogarModal({ peticion, onClose, onSaved }) {
               <CoverImg url={r.imagen_url} size={36} />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-on-surface truncate">{r.titulo}</p>
-                <p className="text-xs text-secondary truncate">{[r.artista, r.sello, r.anio, r.genero].filter(Boolean).join(' · ')}</p>
+                <p className="text-xs text-secondary-foreground truncate">{[r.artista, r.sello, r.anio, r.genero].filter(Boolean).join(' · ')}</p>
               </div>
             </button>
           ))}
@@ -168,16 +168,16 @@ function PrecioModal({ peticion, onClose, onSaved }) {
       <div className="bg-card rounded-xl max-w-sm w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif italic text-xl">{t('requests.precio_modal.title', 'Fixar preu')}</h2>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
-        <p className="text-sm text-secondary mb-3">{peticion.artista} — {peticion.titulo}</p>
+        <p className="text-sm text-secondary-foreground mb-3">{peticion.artista} — {peticion.titulo}</p>
         <div className="flex items-center gap-2 mb-4">
           <input type="number" step="0.01" min="0" value={precio} onChange={e => setPrecio(e.target.value)}
             placeholder="0.00" autoFocus
             className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-          <span className="text-secondary text-sm">€</span>
+          <span className="text-secondary-foreground text-sm">€</span>
         </div>
-        <p className="text-xs text-secondary mb-4">
+        <p className="text-xs text-secondary-foreground mb-4">
           {peticion.channel === 'tienda'
             ? t('requests.precio_modal.hint_tienda', "Petició de tenda: es donarà per acceptada directament (recollida i pagament a botiga), sense passar pel client.")
             : t('requests.precio_modal.hint_online', "Es notificarà per email al client, que l'haurà d'acceptar abans de fer-ne la comanda.")}
@@ -219,9 +219,9 @@ function VincularSolicitudModal({ peticion, proveedores, onClose, onSaved }) {
       <div className="bg-card rounded-xl max-w-sm w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif italic text-xl">{t('requests.solicitud_modal.title', 'Crear sol·licitud de compra')}</h2>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
-        <p className="text-sm text-secondary mb-4">{peticion.artista} — {peticion.titulo}</p>
+        <p className="text-sm text-secondary-foreground mb-4">{peticion.artista} — {peticion.titulo}</p>
         <div className="space-y-3 mb-4">
           <div>
             <label className="block text-xs font-medium text-on-surface-variant mb-1">{t('requests.solicitud_modal.quantity', 'Quantitat')}</label>
@@ -283,15 +283,15 @@ function VincularItemModal({ peticion, onClose, onSaved }) {
       <div className="bg-card rounded-xl max-w-sm w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif italic text-xl">{t('requests.item_modal.title', 'Vincular exemplar')}</h2>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
-        <p className="text-sm text-secondary mb-2">{peticion.artista} — {peticion.titulo}</p>
-        <p className="text-xs text-secondary mb-4">{t('requests.item_modal.hint', "Normalment això es fa sol en rebre la comanda del proveïdor. Fes-ho a mà només si l'exemplar ja és a estoc per una altra via.")}</p>
+        <p className="text-sm text-secondary-foreground mb-2">{peticion.artista} — {peticion.titulo}</p>
+        <p className="text-xs text-secondary-foreground mb-4">{t('requests.item_modal.hint', "Normalment això es fa sol en rebre la comanda del proveïdor. Fes-ho a mà només si l'exemplar ja és a estoc per una altra via.")}</p>
         {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
         {items === null ? (
           <div className="animate-pulse bg-surface-container-high rounded-lg h-16" />
         ) : items.length === 0 ? (
-          <p className="text-sm text-secondary text-center py-6">{t('requests.item_modal.no_stock', 'Aquest disc encara no té cap exemplar disponible a estoc.')}</p>
+          <p className="text-sm text-secondary-foreground text-center py-6">{t('requests.item_modal.no_stock', 'Aquest disc encara no té cap exemplar disponible a estoc.')}</p>
         ) : (
           <div className="space-y-1.5">
             {items.map(i => (
@@ -388,9 +388,9 @@ function NovaPeticioTiendaModal({ onClose, onSaved }) {
       <div className="bg-card rounded-xl max-w-md w-full p-6 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif italic text-xl">{t('requests.nova_tienda_modal.title', 'Petició de tenda o telèfon')}</h2>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
-        <p className="text-sm text-secondary mb-4">
+        <p className="text-sm text-secondary-foreground mb-4">
           {t('requests.nova_tienda_modal.hint', "Per quan un client truca o ve a la botiga a demanar un disc. Un cop hi fixis el preu, es dona per acceptat directament (recollida i pagament a botiga) — sense passar per l'acceptació online.")}
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -398,8 +398,8 @@ function NovaPeticioTiendaModal({ onClose, onSaved }) {
             <label className="block text-xs font-medium text-on-surface-variant mb-1">{t('requests.nova_tienda_modal.client_required', 'Client *')}</label>
             {linkedUser ? (
               <div className="flex items-center justify-between border border-outline-variant bg-surface-container-high rounded-lg px-3 py-2 text-sm">
-                <span>{linkedUser.name || linkedUser.email} {linkedUser.name && <span className="text-secondary">· {linkedUser.email}</span>}</span>
-                <button type="button" onClick={() => { setLinkedUser(null); setUserQ(''); }} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={14} /></button>
+                <span>{linkedUser.name || linkedUser.email} {linkedUser.name && <span className="text-secondary-foreground">· {linkedUser.email}</span>}</span>
+                <button type="button" onClick={() => { setLinkedUser(null); setUserQ(''); }} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={14} /></button>
               </div>
             ) : (
               <div className="relative">
@@ -412,7 +412,7 @@ function NovaPeticioTiendaModal({ onClose, onSaved }) {
                       <button key={u.id} type="button" onClick={() => selectUser(u)}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-surface-container-high border-b border-outline-variant last:border-0">
                         <p className="text-on-surface">{u.name || u.email}</p>
-                        {u.name && <p className="text-xs text-secondary">{u.email}</p>}
+                        {u.name && <p className="text-xs text-secondary-foreground">{u.email}</p>}
                       </button>
                     ))}
                   </div>
@@ -489,24 +489,24 @@ function PeticioRow({ p, proveedores, onRefresh }) {
     <tr className="hover:bg-surface-container-high transition-colors">
       <td className="px-5 py-3">
         <p className="font-medium text-sm text-on-surface">{p.titulo}</p>
-        <p className="text-xs text-secondary">{p.artista}{!p.release_id && ` (${t('requests.out_of_catalog', 'fora de catàleg')})`}</p>
+        <p className="text-xs text-secondary-foreground">{p.artista}{!p.release_id && ` (${t('requests.out_of_catalog', 'fora de catàleg')})`}</p>
         {p.client_notes && (
-          <p className="text-xs text-secondary mt-1 max-w-xs whitespace-pre-line">{p.client_notes}</p>
+          <p className="text-xs text-secondary-foreground mt-1 max-w-xs whitespace-pre-line">{p.client_notes}</p>
         )}
       </td>
       <td className="px-5 py-3 text-sm text-on-surface-variant">
         <p className="flex items-center gap-1.5">
           {p.user_nombre || '—'}
           {p.channel === 'tienda' && (
-            <span title={t('requests.created_from_store_tooltip', 'Petició creada des de tenda/telèfon')} className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-surface-container-high text-secondary">
+            <span title={t('requests.created_from_store_tooltip', 'Petició creada des de tenda/telèfon')} className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-surface-container-high text-secondary-foreground">
               <MIcon name="call" size={9} /> {t('requests.store_badge', 'Tenda')}
             </span>
           )}
         </p>
-        <p className="text-xs text-secondary">{p.user_email}</p>
+        <p className="text-xs text-secondary-foreground">{p.user_email}</p>
       </td>
       <td className="px-5 py-3 text-center">
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ESTAT_COLOR[p.status] || 'bg-surface-container-high text-secondary'}`}>
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ESTAT_COLOR[p.status] || 'bg-surface-container-high text-secondary-foreground'}`}>
           {estatLabel(t, p.status)}
         </span>
         {p.pagada && (
@@ -551,7 +551,7 @@ function PeticioRow({ p, proveedores, onRefresh }) {
             </button>
           )}
           {canCancel && (
-            <button onClick={cancelar} disabled={busy} className="flex items-center gap-1 text-xs text-secondary hover:text-red-500 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+            <button onClick={cancelar} disabled={busy} className="flex items-center gap-1 text-xs text-secondary-foreground hover:text-red-500 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50">
               <MIcon name="block" size={11} />
             </button>
           )}
@@ -624,11 +624,11 @@ export default function PeticionsPage() {
             {[1, 2, 3].map(i => <div key={i} className="animate-pulse bg-surface-container-high rounded-lg h-12" />)}
           </div>
         ) : peticionsFiltrades.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('requests.none_found', 'Cap petició trobada.')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('requests.none_found', 'Cap petició trobada.')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <SortableTh label={t('requests.col.record', 'Disc')} sortKey="titulo" sort={sort} onSort={toggleSort} />
                 <SortableTh label={t('requests.col.client', 'Client')} sortKey="user_nombre" sort={sort} onSort={toggleSort}

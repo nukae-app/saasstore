@@ -97,7 +97,7 @@ export default function AdminPaginesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold text-on-surface">Pàgines</h1>
-          <p className="text-sm text-secondary mt-0.5">Gestiona les seccions del menú principal</p>
+          <p className="text-sm text-secondary-foreground mt-0.5">Gestiona les seccions del menú principal</p>
         </div>
         <button onClick={openNew}
           className="flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl hover:opacity-90 transition-colors">
@@ -120,7 +120,7 @@ export default function AdminPaginesPage() {
             <div>
               <label className="block text-xs font-medium text-on-surface-variant mb-1">Slug (URL) *</label>
               <div className="flex items-center border border-outline-variant rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary">
-                <span className="px-2 text-secondary text-xs border-r border-outline-variant bg-surface-container-high py-2">/</span>
+                <span className="px-2 text-secondary-foreground text-xs border-r border-outline-variant bg-surface-container-high py-2">/</span>
                 <input value={editing.slug}
                   onChange={e => setEditing(v => ({ ...v, slug: e.target.value }))}
                   className="flex-1 px-3 py-2 text-sm focus:outline-none"
@@ -142,7 +142,7 @@ export default function AdminPaginesPage() {
                     }`}>
                     <MIcon name={opt.icon} size={16} />
                     <span className="text-xs font-semibold">{opt.label}</span>
-                    <span className={`text-[10px] leading-tight ${sel ? 'text-white/75' : 'text-secondary'}`}>{opt.desc}</span>
+                    <span className={`text-[10px] leading-tight ${sel ? 'text-white/75' : 'text-secondary-foreground'}`}>{opt.desc}</span>
                   </button>
                 );
               })}
@@ -169,7 +169,7 @@ export default function AdminPaginesPage() {
               <label htmlFor="visible_menu" className="text-sm text-on-surface-variant">Visible al menú</label>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs text-secondary">Posició:</label>
+              <label className="text-xs text-secondary-foreground">Posició:</label>
               <input type="number" value={editing.position} min={0}
                 onChange={e => setEditing(v => ({ ...v, position: Number(e.target.value) }))}
                 className="w-16 border border-outline-variant rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
@@ -193,48 +193,48 @@ export default function AdminPaginesPage() {
 
       {/* Llista */}
       {loading ? (
-        <p className="text-secondary text-sm">Carregant…</p>
+        <p className="text-secondary-foreground text-sm">Carregant…</p>
       ) : (
         <div className="flex flex-col gap-2">
           {pagines.map(p => (
             <div key={p.id} className="flex items-center gap-3 bg-card rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] px-4 py-3 hover:border-outline-variant transition-colors">
-              <MIcon name="drag_indicator" size={16} className="text-secondary shrink-0" />
+              <MIcon name="drag_indicator" size={16} className="text-secondary-foreground shrink-0" />
 
-              <div className="flex items-center gap-2 shrink-0 text-secondary">
+              <div className="flex items-center gap-2 shrink-0 text-secondary-foreground">
                 <TipusIcon type={p.type} />
               </div>
 
               <div className="flex-1 min-w-0">
                 <span className="font-medium text-on-surface text-sm">{p.name}</span>
-                <span className="ml-2 text-xs text-secondary">/{p.slug}</span>
-                <span className="ml-2 text-[10px] bg-surface-container-high text-secondary px-1.5 py-0.5 rounded-full">
+                <span className="ml-2 text-xs text-secondary-foreground">/{p.slug}</span>
+                <span className="ml-2 text-[10px] bg-surface-container-high text-secondary-foreground px-1.5 py-0.5 rounded-full">
                   {TIPUS_MAP[p.type]?.label || p.type}
                 </span>
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
                 <a href={`/${p.slug}`} target="_blank" rel="noopener"
-                  className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                  className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
                   <MIcon name="language" size={14} />
                 </a>
                 <button onClick={() => toggleVisible(p)}
-                  className={`p-1.5 rounded-lg hover:bg-surface-container-high transition-colors ${p.menu_visible ? 'text-on-surface' : 'text-secondary'}`}
+                  className={`p-1.5 rounded-lg hover:bg-surface-container-high transition-colors ${p.menu_visible ? 'text-on-surface' : 'text-secondary-foreground'}`}
                   title={p.menu_visible ? 'Visible al menú' : 'Ocult del menú'}>
                   {p.menu_visible ? <MIcon name="visibility" size={14} /> : <MIcon name="visibility_off" size={14} />}
                 </button>
                 <button onClick={() => openEdit(p)}
-                  className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                  className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
                   <MIcon name="edit" size={14} />
                 </button>
                 <button onClick={() => deletePagina(p.id)} disabled={deleting === p.id}
-                  className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
+                  className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
                   <MIcon name="delete" size={14} />
                 </button>
               </div>
             </div>
           ))}
           {pagines.length === 0 && (
-            <p className="text-secondary text-sm py-8 text-center">Cap pàgina creada. Afegeix-ne una!</p>
+            <p className="text-secondary-foreground text-sm py-8 text-center">Cap pàgina creada. Afegeix-ne una!</p>
           )}
         </div>
       )}

@@ -151,13 +151,13 @@ export default function DespesesPage() {
       {/* Taula */}
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : llista.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('despeses.empty', 'Cap despesa trobada')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('despeses.empty', 'Cap despesa trobada')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('despeses.col.invoice_date', 'Data factura')} sortKey="data_factura" sort={sort} onSort={toggleSort} />
@@ -178,7 +178,7 @@ export default function DespesesPage() {
                   <tr key={d.id}
                     onClick={() => setExpanded(expanded === d.id ? null : d.id)}
                     className={`hover:bg-surface-container-high cursor-pointer transition-colors ${d.payment_status === 'vencut' ? 'bg-red-50/30' : ''}`}>
-                    <td className="px-4 py-3 text-secondary">
+                    <td className="px-4 py-3 text-secondary-foreground">
                       {expanded === d.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
                     </td>
                     <td className="px-4 py-3 text-on-surface-variant">{fmtDate(d.invoice_date)}</td>
@@ -190,12 +190,12 @@ export default function DespesesPage() {
                       ) : '—'}
                     </td>
                     <td className="px-4 py-3 font-medium text-on-surface">{d.supplier_name}</td>
-                    <td className="px-4 py-3 text-secondary text-xs">{CATEGORIES.find(c => c.value === d.category)?.label || d.category}</td>
+                    <td className="px-4 py-3 text-secondary-foreground text-xs">{CATEGORIES.find(c => c.value === d.category)?.label || d.category}</td>
                     <td className="px-4 py-3 text-right font-semibold text-on-surface">{fmtEur(d.total)}</td>
                     <td className="px-4 py-3 text-center"><EstatBadge estat={d.payment_status} t={t} /></td>
                     <td className="px-4 py-3">
                       <button onClick={e => { e.stopPropagation(); setEditDespesa(d); setShowModal(true); }}
-                        className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high transition-colors">
+                        className="text-xs text-secondary-foreground hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high transition-colors">
                         {t('despeses.edit', 'Editar')}
                       </button>
                     </td>
@@ -204,19 +204,19 @@ export default function DespesesPage() {
                     <tr key={`${d.id}-exp`}>
                       <td colSpan={8} className="px-6 py-3 bg-surface-container-high/80 border-b border-outline-variant">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div><span className="text-secondary text-xs block">{t('llibres.concept', 'Concepte')}</span>{d.concept}</div>
-                          <div><span className="text-secondary text-xs block">{t('despeses.invoice_number', 'Nº factura')}</span>{d.invoice_number || '—'}</div>
-                          <div><span className="text-secondary text-xs block">{t('despeses.taxable_base', 'Base imposable')}</span>{fmtEur(d.taxable_base)}</div>
-                          <div><span className="text-secondary text-xs block">IVA {d.vat_pct}%</span>{fmtEur(d.vat_amount)}</div>
+                          <div><span className="text-secondary-foreground text-xs block">{t('llibres.concept', 'Concepte')}</span>{d.concept}</div>
+                          <div><span className="text-secondary-foreground text-xs block">{t('despeses.invoice_number', 'Nº factura')}</span>{d.invoice_number || '—'}</div>
+                          <div><span className="text-secondary-foreground text-xs block">{t('despeses.taxable_base', 'Base imposable')}</span>{fmtEur(d.taxable_base)}</div>
+                          <div><span className="text-secondary-foreground text-xs block">IVA {d.vat_pct}%</span>{fmtEur(d.vat_amount)}</div>
                           {d.retencio_tipus && (
                             <>
-                              <div><span className="text-secondary text-xs block">{t('despeses.retencio', 'Retenció IRPF')} ({d.retencio_tipus === 'professional' ? t('despeses.retencio.professional', 'Model 111') : t('despeses.retencio.lloguer', 'Model 115')}, {d.retencio_pct}%)</span>−{fmtEur(d.retencio_import)}</div>
-                              <div><span className="text-secondary text-xs block">{t('despeses.net_a_pagar', 'Net a pagar')}</span><span className="font-semibold">{fmtEur(d.net_a_pagar)}</span></div>
+                              <div><span className="text-secondary-foreground text-xs block">{t('despeses.retencio', 'Retenció IRPF')} ({d.retencio_tipus === 'professional' ? t('despeses.retencio.professional', 'Model 111') : t('despeses.retencio.lloguer', 'Model 115')}, {d.retencio_pct}%)</span>−{fmtEur(d.retencio_import)}</div>
+                              <div><span className="text-secondary-foreground text-xs block">{t('despeses.net_a_pagar', 'Net a pagar')}</span><span className="font-semibold">{fmtEur(d.net_a_pagar)}</span></div>
                             </>
                           )}
-                          {d.payment_method && <div><span className="text-secondary text-xs block">{t('despeses.payment_method_label', 'Mètode pagament')}</span>{METODES.find(m => m.value === d.payment_method)?.label || d.payment_method}</div>}
-                          {d.payment_date && <div><span className="text-secondary text-xs block">{t('despeses.payment_date', 'Data pagament')}</span>{fmtDate(d.payment_date)}</div>}
-                          {d.notes && <div className="col-span-2"><span className="text-secondary text-xs block">{t('common.notes', 'Notes')}</span>{d.notes}</div>}
+                          {d.payment_method && <div><span className="text-secondary-foreground text-xs block">{t('despeses.payment_method_label', 'Mètode pagament')}</span>{METODES.find(m => m.value === d.payment_method)?.label || d.payment_method}</div>}
+                          {d.payment_date && <div><span className="text-secondary-foreground text-xs block">{t('despeses.payment_date', 'Data pagament')}</span>{fmtDate(d.payment_date)}</div>}
+                          {d.notes && <div className="col-span-2"><span className="text-secondary-foreground text-xs block">{t('common.notes', 'Notes')}</span>{d.notes}</div>}
                         </div>
                       </td>
                     </tr>
@@ -343,7 +343,7 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{isEdit ? t('despeses.edit', 'Editar despesa') : t('despeses.new', 'Nova despesa')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -396,12 +396,12 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
             <div className="text-sm font-semibold text-on-surface-variant">{t('despeses.amounts', 'Imports')}</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('despeses.taxable_base', 'Base imposable')} *</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.taxable_base', 'Base imposable')} *</label>
                 <input type="number" step="0.01" value={base} onChange={e => setBase(e.target.value)} required
                   className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('despeses.vat_type', "Tipus d'IVA")}</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.vat_type', "Tipus d'IVA")}</label>
                 <select value={tipusIvaId} onChange={e => handleTipusIvaSelect(e.target.value)}
                   className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   <option value="">{t('despeses.vat_manual', '— Manual —')}</option>
@@ -409,14 +409,14 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">IVA %</label>
+                <label className="block text-xs text-secondary-foreground mb-1">IVA %</label>
                 <input type="number" step="0.01" value={ivaPct}
                   disabled={!!tipusIvaId}
                   onChange={e => setIvaPct(e.target.value)}
-                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary" />
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary-foreground" />
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('despeses.col.total', 'Total')} (€)</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.col.total', 'Total')} (€)</label>
                 <input type="number" step="0.01" value={total} onChange={e => setTotal(e.target.value)} required
                   className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary font-semibold" />
               </div>
@@ -428,7 +428,7 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
             <div className="text-sm font-semibold text-on-surface-variant">{t('despeses.retencio', 'Retenció IRPF')}</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('despeses.retencio.tipus', 'Tipus')}</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.retencio.tipus', 'Tipus')}</label>
                 <select value={retencioTipus} onChange={e => setRetencioTipus(e.target.value)}
                   className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   <option value="">{t('despeses.retencio.cap', '— Cap —')}</option>
@@ -437,19 +437,19 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('despeses.retencio.pct', 'Retenció %')}</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.retencio.pct', 'Retenció %')}</label>
                 <input type="number" step="0.01" value={retencioPct} onChange={e => setRetencioPct(e.target.value)}
                   disabled={!retencioTipus} placeholder={retencioTipus === 'lloguer' ? '19.00' : '15.00'}
-                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary" />
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary-foreground" />
               </div>
               {retencioTipus && retencioPct && (
                 <>
                   <div>
-                    <span className="block text-xs text-secondary mb-1">{t('despeses.retencio.import', 'Import retingut')}</span>
+                    <span className="block text-xs text-secondary-foreground mb-1">{t('despeses.retencio.import', 'Import retingut')}</span>
                     <div className="text-sm font-semibold text-on-surface py-1.5">−{retencioImport.toFixed(2)} €</div>
                   </div>
                   <div>
-                    <span className="block text-xs text-secondary mb-1">{t('despeses.net_a_pagar', 'Net a pagar')}</span>
+                    <span className="block text-xs text-secondary-foreground mb-1">{t('despeses.net_a_pagar', 'Net a pagar')}</span>
                     <div className="text-sm font-semibold text-on-surface py-1.5">{netAPagar.toFixed(2)} €</div>
                   </div>
                 </>
@@ -462,7 +462,7 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
             <div className="text-sm font-semibold text-on-surface-variant">{t('despeses.payment', 'Pagament')}</div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('despeses.col.status', 'Estat')}</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.col.status', 'Estat')}</label>
                 <select value={estat} onChange={e => setEstat(e.target.value)}
                   className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   <option value="pendent">{t('despeses.status.pending', 'Pendent')}</option>
@@ -472,13 +472,13 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
               </div>
               {estat === 'pagat' && (
                 <div>
-                  <label className="block text-xs text-secondary mb-1">{t('despeses.payment_date', 'Data pagament')}</label>
+                  <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.payment_date', 'Data pagament')}</label>
                   <input type="date" value={dataPagament} onChange={e => setDataPagament(e.target.value)}
                     className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                 </div>
               )}
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('despeses.payment_method_label', 'Mètode pagament')}</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.payment_method_label', 'Mètode pagament')}</label>
                 <select value={metodePagament} onChange={e => setMetodePagament(e.target.value)}
                   className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                   <option value="">—</option>

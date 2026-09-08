@@ -127,7 +127,7 @@ export default function CuponsPage() {
           <h3 className="font-semibold text-on-surface">{editing === 'new' ? 'Nou cupó' : 'Editar cupó'}</h3>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">Codi <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-medium text-secondary-foreground mb-1">Codi <span className="text-red-500">*</span></label>
               <input
                 value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
                 placeholder="BENVINGUDA10"
@@ -135,7 +135,7 @@ export default function CuponsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">Tipus</label>
+              <label className="block text-xs font-medium text-secondary-foreground mb-1">Tipus</label>
               <select
                 value={form.discount_type} onChange={e => setForm(p => ({ ...p, discount_type: e.target.value }))}
                 className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -145,7 +145,7 @@ export default function CuponsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">
+              <label className="block text-xs font-medium text-secondary-foreground mb-1">
                 Valor {form.discount_type === 'percentage' ? '(%)' : '(€)'} <span className="text-red-500">*</span>
               </label>
               <input
@@ -155,7 +155,7 @@ export default function CuponsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">Import mínim de comanda (€)</label>
+              <label className="block text-xs font-medium text-secondary-foreground mb-1">Import mínim de comanda (€)</label>
               <input
                 type="number" step="0.01" value={form.min_order_amount}
                 onChange={e => setForm(p => ({ ...p, min_order_amount: e.target.value }))}
@@ -163,21 +163,21 @@ export default function CuponsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">Comença (opcional)</label>
+              <label className="block text-xs font-medium text-secondary-foreground mb-1">Comença (opcional)</label>
               <input
                 type="datetime-local" value={form.starts_at} onChange={e => setForm(p => ({ ...p, starts_at: e.target.value }))}
                 className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">Acaba (opcional)</label>
+              <label className="block text-xs font-medium text-secondary-foreground mb-1">Acaba (opcional)</label>
               <input
                 type="datetime-local" value={form.ends_at} onChange={e => setForm(p => ({ ...p, ends_at: e.target.value }))}
                 className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">Usos màxims (total)</label>
+              <label className="block text-xs font-medium text-secondary-foreground mb-1">Usos màxims (total)</label>
               <input
                 type="number" value={form.max_uses} onChange={e => setForm(p => ({ ...p, max_uses: e.target.value }))}
                 placeholder="Il·limitats"
@@ -185,7 +185,7 @@ export default function CuponsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">Usos màxims per client</label>
+              <label className="block text-xs font-medium text-secondary-foreground mb-1">Usos màxims per client</label>
               <input
                 type="number" value={form.max_uses_per_user} onChange={e => setForm(p => ({ ...p, max_uses_per_user: e.target.value }))}
                 placeholder="Il·limitats"
@@ -214,7 +214,7 @@ export default function CuponsPage() {
             <Button size="sm" onClick={save} disabled={saving}>
               <MIcon name="check" size={14} /> {saving ? 'Desant...' : 'Desar'}
             </Button>
-            <button onClick={cancel} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
+            <button onClick={cancel} className="px-3 py-1.5 text-sm text-secondary-foreground hover:text-on-surface-variant">
               <MIcon name="close" size={14} className="inline mr-1" />Cancel·lar
             </button>
           </div>
@@ -223,13 +223,13 @@ export default function CuponsPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">Carregant...</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">Carregant...</div>
         ) : coupons.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">Encara no hi ha cupons. Crea'n un!</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">Encara no hi ha cupons. Crea'n un!</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">Codi</th>
                   <th className="px-4 py-3 text-left font-medium">Descompte</th>
@@ -244,11 +244,11 @@ export default function CuponsPage() {
                   <tr key={c.id} className="hover:bg-surface-container-high transition-colors">
                     <td className="px-4 py-3 font-mono font-medium text-on-surface">{c.code}</td>
                     <td className="px-4 py-3 text-on-surface-variant">{formatDiscount(c)}</td>
-                    <td className="px-4 py-3 text-secondary text-xs">
+                    <td className="px-4 py-3 text-secondary-foreground text-xs">
                       {c.max_uses != null ? `màx. ${c.max_uses}` : 'il·limitats'}
                       {c.max_uses_per_user != null && ` (${c.max_uses_per_user}/client)`}
                     </td>
-                    <td className="px-4 py-3 text-secondary text-xs">
+                    <td className="px-4 py-3 text-secondary-foreground text-xs">
                       {c.starts_at ? new Date(c.starts_at).toLocaleDateString('ca-ES') : 'sempre'}
                       {' → '}
                       {c.ends_at ? new Date(c.ends_at).toLocaleDateString('ca-ES') : 'sense fi'}
@@ -263,13 +263,13 @@ export default function CuponsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => showRedemptions(c)} className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Veure usos">
+                        <button onClick={() => showRedemptions(c)} className="p-1.5 rounded-lg text-secondary-foreground hover:text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Veure usos">
                           <MIcon name="history" size={14} />
                         </button>
-                        <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                        <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-secondary-foreground hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
                           <MIcon name="edit" size={14} />
                         </button>
-                        <button onClick={() => del(c)} className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <button onClick={() => del(c)} className="p-1.5 rounded-lg text-secondary-foreground hover:text-red-600 hover:bg-red-50 transition-colors">
                           <MIcon name="delete" size={14} />
                         </button>
                       </div>
@@ -287,15 +287,15 @@ export default function CuponsPage() {
           <div className="bg-card rounded-2xl shadow-xl max-w-md w-full p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-on-surface">Usos de {redemptions.coupon.code}</h3>
-              <button onClick={() => setRedemptions(null)} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={16} /></button>
+              <button onClick={() => setRedemptions(null)} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={16} /></button>
             </div>
             {redemptions.rows.length === 0 ? (
-              <p className="text-sm text-secondary">Encara no s'ha fet servir.</p>
+              <p className="text-sm text-secondary-foreground">Encara no s'ha fet servir.</p>
             ) : (
               <ul className="divide-y divide-outline-variant max-h-80 overflow-y-auto">
                 {redemptions.rows.map(row => (
                   <li key={row.id} className="py-2 text-xs flex items-center justify-between">
-                    <span className="text-secondary">{new Date(row.created_at).toLocaleString('ca-ES')}</span>
+                    <span className="text-secondary-foreground">{new Date(row.created_at).toLocaleString('ca-ES')}</span>
                     <span className="font-medium text-on-surface">-{parseFloat(row.discount_amount).toFixed(2)} €</span>
                   </li>
                 ))}

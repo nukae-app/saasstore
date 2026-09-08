@@ -40,19 +40,19 @@ function SyncBadge({ status, codiDiscogs }) {
     </span>
   );
   return (
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-secondary bg-surface-container-high border border-outline-variant px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-secondary-foreground bg-surface-container-high border border-outline-variant px-2 py-0.5 rounded-full">
       <MIcon name="block" size={9} /> {t('catalog.no_discogs_id', 'Sense ID')}
     </span>
   );
 }
 
 function ReleaseSyncSummary({ items, discogs_release_id }) {
-  if (!items?.length) return <span className="text-secondary text-xs">—</span>;
+  if (!items?.length) return <span className="text-secondary-foreground text-xs">—</span>;
   const active = items.filter(i => i.status === 'disponible' || i.status === 'reservado');
-  if (!active.length) return <span className="text-secondary text-xs">—</span>;
+  if (!active.length) return <span className="text-secondary-foreground text-xs">—</span>;
   const listed = active.filter(i => i.codi_discogs).length;
   const pending = active.filter(i => !i.codi_discogs && discogs_release_id).length;
-  if (listed === 0 && pending === 0) return <span className="text-xs text-secondary">—</span>;
+  if (listed === 0 && pending === 0) return <span className="text-xs text-secondary-foreground">—</span>;
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {listed > 0 && (
@@ -316,7 +316,7 @@ export default function CatalogoPage() {
 
       {/* Search */}
       <div className="relative">
-        <MIcon name="search" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" />
+        <MIcon name="search" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary-foreground" />
         <input
           value={q}
           onChange={e => handleSearch(e.target.value)}
@@ -328,15 +328,15 @@ export default function CatalogoPage() {
       {/* Table */}
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm flex items-center justify-center gap-2">
+          <div className="p-12 text-center text-secondary-foreground text-sm flex items-center justify-center gap-2">
             <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
           </div>
         ) : sortedFiltered.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('catalog.no_results')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('catalog.no_results')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('catalog.col.artist')} sortKey="artista" sort={sort} onSort={handleSort} />
@@ -362,7 +362,7 @@ export default function CatalogoPage() {
                   <tr key={r.id}
                     onClick={() => setExpanded(expanded === r.id ? null : r.id)}
                     className="hover:bg-surface-container-high cursor-pointer transition-colors">
-                    <td className="px-4 py-3 text-secondary">
+                    <td className="px-4 py-3 text-secondary-foreground">
                       {expanded === r.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
                     </td>
                     <td className="px-4 py-3">
@@ -382,7 +382,7 @@ export default function CatalogoPage() {
                               </span>
                             )}
                           </div>
-                          <div className="text-secondary text-xs">{r.titulo}</div>
+                          <div className="text-secondary-foreground text-xs">{r.titulo}</div>
                           {r.etiquetes?.length > 0 && (
                             <div className="flex gap-1 mt-1 flex-wrap">
                               {r.etiquetes.map(e => (
@@ -397,10 +397,10 @@ export default function CatalogoPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-secondary hidden md:table-cell">{r.sello ?? '—'}</td>
-                    <td className="px-4 py-3 text-secondary hidden md:table-cell">{r.formato ?? '—'}</td>
-                    <td className="px-4 py-3 text-secondary hidden lg:table-cell">{r.anio ?? '—'}</td>
-                    <td className="px-4 py-3 text-secondary hidden lg:table-cell font-mono text-xs">{r.ean ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary-foreground hidden md:table-cell">{r.sello ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary-foreground hidden md:table-cell">{r.formato ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary-foreground hidden lg:table-cell">{r.anio ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary-foreground hidden lg:table-cell font-mono text-xs">{r.ean ?? '—'}</td>
                     <td className="px-4 py-3 text-center">
                       <StockBadge items={r.items ?? []} />
                     </td>
@@ -410,15 +410,15 @@ export default function CatalogoPage() {
                     <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => setModal({ mode: 'edit', release: r })} title={t('catalog.edit')}
-                          className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                          className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
                           <MIcon name="edit" size={14} />
                         </button>
                         <button onClick={() => setModal({ mode: 'duplicate', release: r })} title={t('catalog.duplicate')}
-                          className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
+                          className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors">
                           <MIcon name="content_copy" size={14} />
                         </button>
                         <button onClick={() => deleteRelease(r)} title={t('catalog.delete')}
-                          className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
+                          className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
                           <MIcon name="delete" size={14} />
                         </button>
                       </div>
@@ -443,7 +443,7 @@ export default function CatalogoPage() {
 
         {/* Pagination */}
         {total > LIMIT && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary-foreground">
             <span>{offset + 1}–{Math.min(offset + LIMIT, total)} {t('catalog.of', 'de')} {total}</span>
             <div className="flex gap-2">
               <button onClick={() => handlePage(-1)} disabled={offset === 0}
@@ -500,7 +500,7 @@ function StockAlertsPanel({ onVeureRelease }) {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-secondary text-sm flex items-center justify-center gap-2 bg-card rounded-2xl border border-outline-variant">
+      <div className="p-8 text-center text-secondary-foreground text-sm flex items-center justify-center gap-2 bg-card rounded-2xl border border-outline-variant">
         <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
       </div>
     );
@@ -519,7 +519,7 @@ function StockAlertsPanel({ onVeureRelease }) {
           <MIcon name="refresh" size={12} /> {t('catalog.refresh', 'Actualitzar')}
         </button>
       </div>
-      <p className="px-5 pt-3 text-sm text-secondary">
+      <p className="px-5 pt-3 text-sm text-secondary-foreground">
         {t('catalog.stock_alerts.hint', "Línies de stock nou amb l'estoc disponible al llindar mínim configurat o per sota — fixa'l a l'edició de la còpia.")}
       </p>
       <div className="divide-y divide-outline-variant max-h-[22rem] overflow-y-auto mt-2">
@@ -528,16 +528,16 @@ function StockAlertsPanel({ onVeureRelease }) {
             <CoverImg url={it.imagen_url} size={32} />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-on-surface truncate">{it.artista} — {it.titulo}</div>
-              <div className="text-xs text-secondary">
+              <div className="text-xs text-secondary-foreground">
                 {t('catalog.stock_alerts.threshold', 'Llindar')}: {it.alerta_stock_minimo} {t('catalog.units', 'unitats')}
               </div>
             </div>
             <div className="text-right shrink-0">
               <div className="text-sm font-semibold text-amber-700">{it.disponible} {t('catalog.units', 'unitats')}</div>
-              <div className="text-xs text-secondary">{t('catalog.stock_alerts.available', 'disponibles')}</div>
+              <div className="text-xs text-secondary-foreground">{t('catalog.stock_alerts.available', 'disponibles')}</div>
             </div>
             <button onClick={() => onVeureRelease(it.release_id, it.artista, it.titulo)} title={t('catalog.aging.view_in_list', 'Veure al llistat')}
-              className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors shrink-0">
+              className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors shrink-0">
               <MIcon name="visibility" size={14} />
             </button>
           </div>
@@ -559,7 +559,7 @@ const ORIGEN_FALLBACK = { compra: 'Compra', discogs: 'Discogs (llegat)', descone
 const ORIGEN_COLOR = {
   compra: 'bg-blue-50 text-blue-700 border-blue-200',
   discogs: 'bg-violet-50 text-violet-700 border-violet-200',
-  desconegut: 'bg-surface-container-high text-secondary border-outline-variant',
+  desconegut: 'bg-surface-container-high text-secondary-foreground border-outline-variant',
 };
 function origenLabel(t, origen) {
   return t(`catalog.aging.origin.${origen}`, ORIGEN_FALLBACK[origen] ?? origen);
@@ -616,13 +616,13 @@ function AgingDashboard({ onVeureRelease }) {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-secondary text-sm flex items-center justify-center gap-2">
+      <div className="p-12 text-center text-secondary-foreground text-sm flex items-center justify-center gap-2">
         <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
       </div>
     );
   }
   if (!data) {
-    return <div className="p-12 text-center text-secondary text-sm">{t('purchases.resum.load_error', "No s'han pogut carregar les dades.")}</div>;
+    return <div className="p-12 text-center text-secondary-foreground text-sm">{t('purchases.resum.load_error', "No s'han pogut carregar les dades.")}</div>;
   }
 
   const maxCount = Math.max(1, ...data.buckets.map(b => b.count));
@@ -631,7 +631,7 @@ function AgingDashboard({ onVeureRelease }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-secondary max-w-2xl">
+        <p className="text-sm text-secondary-foreground max-w-2xl">
           {t('catalog.aging.hint', 'Antiguitat de l\'estoc disponible des de la data d\'entrada al magatzem (recepció de compra, o "posted" de Discogs per a l\'estoc anterior a l\'app).')}
         </p>
         <button onClick={refresh}
@@ -653,7 +653,7 @@ function AgingDashboard({ onVeureRelease }) {
           <div className="flex items-center justify-between mb-3">
             <div className="text-sm font-semibold text-on-surface-variant">{t('catalog.aging.distribution', 'Distribució per antiguitat')}</div>
             {bucket && (
-              <button onClick={() => selectBucket(bucket)} className="text-xs text-secondary hover:text-on-surface-variant">
+              <button onClick={() => selectBucket(bucket)} className="text-xs text-secondary-foreground hover:text-on-surface-variant">
                 {t('catalog.aging.view_all', 'Veure tots')}
               </button>
             )}
@@ -667,7 +667,7 @@ function AgingDashboard({ onVeureRelease }) {
                   className={`w-full text-left rounded-lg p-1.5 -m-1.5 transition-colors ${selected ? 'bg-surface-container-high' : 'hover:bg-surface-container-high'}`}>
                   <div className="flex items-center justify-between text-xs text-on-surface-variant mb-1 gap-2">
                     <span className={`font-medium ${selected ? 'text-on-surface' : ''}`}>{b.label}</span>
-                    <span className="text-secondary shrink-0">{b.count} · {fmtEur(b.valor)} {t('catalog.aging.sale_short', 'venda')} · {fmtEur(b.coste)} {t('catalog.aging.cost_short', 'cost')}</span>
+                    <span className="text-secondary-foreground shrink-0">{b.count} · {fmtEur(b.valor)} {t('catalog.aging.sale_short', 'venda')} · {fmtEur(b.coste)} {t('catalog.aging.cost_short', 'cost')}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-surface-container-high overflow-hidden">
                     <div className={`h-full rounded-full ${AGING_BUCKET_COLOR[b.key] ?? 'bg-zinc-400'}`} style={{ width: `${pct}%` }} />
@@ -690,11 +690,11 @@ function AgingDashboard({ onVeureRelease }) {
             </div>
           </div>
           {itemsLoading ? (
-            <div className="p-8 text-center text-secondary text-sm flex items-center justify-center gap-2">
+            <div className="p-8 text-center text-secondary-foreground text-sm flex items-center justify-center gap-2">
               <MIcon name="progress_activity" size={14} className="animate-spin" /> {t('common.loading')}
             </div>
           ) : items.length === 0 ? (
-            <div className="p-5 text-sm text-secondary">{t('catalog.aging.no_copies_in_group', 'Cap còpia en aquest grup.')}</div>
+            <div className="p-5 text-sm text-secondary-foreground">{t('catalog.aging.no_copies_in_group', 'Cap còpia en aquest grup.')}</div>
           ) : (
             <>
               <div className="divide-y divide-outline-variant max-h-[22rem] overflow-y-auto">
@@ -704,7 +704,7 @@ function AgingDashboard({ onVeureRelease }) {
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium text-on-surface truncate">{it.artista} — {it.titulo}</div>
                       <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                        <span className="text-xs text-secondary">
+                        <span className="text-xs text-secondary-foreground">
                           {it.fecha_entrada ? `${t('catalog.aging.since', 'des de')} ${new Date(it.fecha_entrada).toLocaleDateString('ca-ES')}` : t('catalog.aging.no_date', 'sense data')}
                         </span>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border ${ORIGEN_COLOR[it.origen]}`}>
@@ -714,19 +714,19 @@ function AgingDashboard({ onVeureRelease }) {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-sm font-semibold text-on-surface">{it.dias != null ? `${it.dias} ${t('catalog.aging.days', 'dies')}` : '—'}</div>
-                      <div className="text-xs text-secondary">
+                      <div className="text-xs text-secondary-foreground">
                         {fmtEur(it.precio)} {t('catalog.aging.sale_short', 'venda')}{it.coste != null ? ` · ${fmtEur(it.coste)} ${t('catalog.aging.cost_short', 'cost')}` : ''}
                       </div>
                     </div>
                     <button onClick={() => onVeureRelease(it.release_id, it.artista, it.titulo)} title={t('catalog.aging.view_in_list', 'Veure al llistat')}
-                      className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors shrink-0">
+                      className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors shrink-0">
                       <MIcon name="visibility" size={14} />
                     </button>
                   </div>
                 ))}
               </div>
               {itemsTotal > AGING_ITEMS_LIMIT && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary-foreground">
                   <span>{itemsOffset + 1}–{Math.min(itemsOffset + AGING_ITEMS_LIMIT, itemsTotal)} {t('catalog.of', 'de')} {itemsTotal}</span>
                   <div className="flex gap-2">
                     <button onClick={() => setItemsOffset(o => Math.max(0, o - AGING_ITEMS_LIMIT))} disabled={itemsOffset === 0}
@@ -779,7 +779,7 @@ function ImportCsvModal({ onClose, onDone }) {
 
   return (
     <Modal title={t('catalog.import.title', 'Importar canvis del catàleg')} onClose={onClose}>
-      <p className="text-sm text-secondary">
+      <p className="text-sm text-secondary-foreground">
         {t('catalog.import.hint', "Puja el CSV exportat (amb canvis de preu, condició, grading, segell, format, any o gènere, o amb la columna")} <strong>{t('catalog.import.delete_column', 'eliminar')}</strong> {t('catalog.import.hint_rest', 'marcada amb una X per donar de baixa una còpia).')}
       </p>
 
@@ -830,7 +830,7 @@ function ExpandedPanel({ release, onRefresh }) {
       <div className="flex gap-1 border-b border-amber-200/60 pb-0">
         {[{ id: 'copies', label: t('catalog.copies', 'Còpies') }, { id: 'gallery', label: t('catalog.gallery_tags', 'Galeria & Etiquetes') }].map(({ id, label }) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors ${tab === id ? 'bg-card border border-b-white border-amber-200/60 text-amber-700' : 'text-secondary hover:text-on-surface-variant'}`}>
+            className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors ${tab === id ? 'bg-card border border-b-white border-amber-200/60 text-amber-700' : 'text-secondary-foreground hover:text-on-surface-variant'}`}>
             {label}
           </button>
         ))}
@@ -964,19 +964,19 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
     <div className="space-y-6">
       {/* Aparició a la portada */}
       <div className="border-b border-outline-variant pb-4">
-        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-3">
-          {t('catalog.homepage_appearance', 'Aparició a la portada')} {savingFlag && <span className="normal-case font-normal text-secondary">· {t('catalog.saving_lower', 'desant...')}</span>}
+        <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-3">
+          {t('catalog.homepage_appearance', 'Aparició a la portada')} {savingFlag && <span className="normal-case font-normal text-secondary-foreground">· {t('catalog.saving_lower', 'desant...')}</span>}
         </div>
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={estaSonant} onChange={handleToggleEstaSonant}
               className="w-4 h-4 rounded border-outline-variant text-on-surface focus:ring-primary" />
-            <span className="text-sm text-on-surface-variant">{t('catalog.now_playing', 'Sonant')} <span className="text-secondary">{t('catalog.now_playing_hint', '(targeta del hero, només un disc alhora)')}</span></span>
+            <span className="text-sm text-on-surface-variant">{t('catalog.now_playing', 'Sonant')} <span className="text-secondary-foreground">{t('catalog.now_playing_hint', '(targeta del hero, només un disc alhora)')}</span></span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" checked={isRecomanat} onChange={handleToggleRecomanat}
               className="w-4 h-4 rounded border-outline-variant text-on-surface focus:ring-primary" />
-            <span className="text-sm text-on-surface-variant">{t('catalog.recommended', 'Recomanats')} <span className="text-secondary">{t('catalog.recommended_hint', '(Selecció del curador)')}</span></span>
+            <span className="text-sm text-on-surface-variant">{t('catalog.recommended', 'Recomanats')} <span className="text-secondary-foreground">{t('catalog.recommended_hint', '(Selecció del curador)')}</span></span>
           </label>
         </div>
       </div>
@@ -984,7 +984,7 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Galeria */}
       <div>
-        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">
+        <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-2">
           {t('catalog.image_gallery', "Galeria d'imatges")} ({images.length})
         </div>
         <div className="flex flex-wrap gap-2 mb-3">
@@ -1000,7 +1000,7 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
               )}
             </div>
           ))}
-          {images.length === 0 && <p className="text-sm text-secondary">{t('catalog.no_image', 'Cap imatge.')}</p>}
+          {images.length === 0 && <p className="text-sm text-secondary-foreground">{t('catalog.no_image', 'Cap imatge.')}</p>}
         </div>
         <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
         <button onClick={() => fileRef.current?.click()} disabled={uploading}
@@ -1012,7 +1012,7 @@ function GalleryEtiquetesPanel({ release, onRefresh }) {
 
       {/* Etiquetes */}
       <div>
-        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">{t('catalog.tags', 'Etiquetes')}</div>
+        <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-2">{t('catalog.tags', 'Etiquetes')}</div>
         <div className="flex flex-wrap gap-2 mb-3">
           {allEtiquetes.filter(et => et.slug !== 'recomanat').map(et => {
             const active = etiquetes.some(e => e.id === et.id);
@@ -1042,7 +1042,7 @@ const statusColor = {
   disponible: 'bg-green-100 text-green-700',
   reservado:  'bg-yellow-100 text-yellow-700',
   vendido:    'bg-blue-100 text-blue-700',
-  retirado:   'bg-surface-container-high text-secondary',
+  retirado:   'bg-surface-container-high text-secondary-foreground',
 };
 const statusKey = {
   disponible: 'status.available',
@@ -1166,10 +1166,10 @@ function CopiesPanel({ release, items, onRefresh }) {
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-secondary uppercase tracking-wide">
+      <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide">
         {t('catalog.copies', 'Còpies')} ({items.length})
       </div>
-      {items.length === 0 && <div className="text-sm text-secondary">{t('catalog.no_copies_period', 'Cap còpia.')}</div>}
+      {items.length === 0 && <div className="text-sm text-secondary-foreground">{t('catalog.no_copies_period', 'Cap còpia.')}</div>}
       <div className="space-y-1.5">
         {items.map(item => editingId === item.id ? (
           <form key={item.id} onSubmit={saveEdit} className="flex flex-wrap items-end gap-3 p-3 bg-card rounded-xl border border-amber-200 shadow-sm">
@@ -1224,7 +1224,7 @@ function CopiesPanel({ release, items, onRefresh }) {
             </span>
             <span className="font-semibold text-on-surface">{item.precio} €</span>
             {item.condicion === 'nou' && (
-              <span className="text-xs text-secondary">
+              <span className="text-xs text-secondary-foreground">
                 {item.cantidad} {t('catalog.units', 'unitats')}
                 {item.cantidad_reservada > 0 && ` (${item.cantidad_reservada} ${t('catalog.reserved_lower', 'reservades')})`}
               </span>
@@ -1242,13 +1242,13 @@ function CopiesPanel({ release, items, onRefresh }) {
               const marge = pvp - cost;
               const pct = pvp > 0 ? Math.round((marge / pvp) * 100) : 0;
               return (
-                <span className="text-xs text-secondary" title={`${t('purchases.cost_short', 'Cost')}: ${cost.toFixed(2)} € · ${t('purchases.margin_capitalized', 'Marge')}: ${marge.toFixed(2)} € (${pct}%)`}>
+                <span className="text-xs text-secondary-foreground" title={`${t('purchases.cost_short', 'Cost')}: ${cost.toFixed(2)} € · ${t('purchases.margin_capitalized', 'Marge')}: ${marge.toFixed(2)} € (${pct}%)`}>
                   {t('purchases.cost_short', 'Cost').toLowerCase()} {cost.toFixed(2)} € · <span className={marge >= 0 ? 'text-emerald-600' : 'text-red-500'}>{marge >= 0 ? '+' : ''}{marge.toFixed(2)} €</span>
                 </span>
               );
             })()}
-            {item.estado_disco && <span className="text-secondary text-xs">{item.estado_disco}</span>}
-            {item.estado_funda && <span className="text-secondary text-xs">/ {item.estado_funda}</span>}
+            {item.estado_disco && <span className="text-secondary-foreground text-xs">{item.estado_disco}</span>}
+            {item.estado_funda && <span className="text-secondary-foreground text-xs">/ {item.estado_funda}</span>}
 
             {/* Discogs sync */}
             <div className="flex items-center gap-1 ml-1">
@@ -1262,7 +1262,7 @@ function CopiesPanel({ release, items, onRefresh }) {
               )}
               {syncStatus(item, release) === 'listed' && (
                 <button onClick={() => handleRemove(item)} disabled={!!actionId} title={t('catalog.delete_listing', 'Eliminar listing')}
-                  className="flex items-center gap-1 text-xs text-secondary hover:text-red-500 border border-outline-variant hover:border-red-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
+                  className="flex items-center gap-1 text-xs text-secondary-foreground hover:text-red-500 border border-outline-variant hover:border-red-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
                   {actionId === item.id + '_remove' ? <MIcon name="progress_activity" size={9} className="animate-spin" /> : <MIcon name="delete" size={9} />}
                   {t('catalog.remove', 'Treure')}
                 </button>
@@ -1270,7 +1270,7 @@ function CopiesPanel({ release, items, onRefresh }) {
               {(item.codi_discogs || release.discogs_release_id) && (
                 <button onClick={() => handleEnrichImage(item)} disabled={!!actionId}
                   title={release.imagen_url ? t('catalog.update_cover', 'Actualitzar caràtula') : t('catalog.get_cover_from_discogs', 'Obtenir caràtula de Discogs')}
-                  className="flex items-center gap-1 text-xs text-secondary hover:text-violet-700 border border-outline-variant hover:border-violet-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
+                  className="flex items-center gap-1 text-xs text-secondary-foreground hover:text-violet-700 border border-outline-variant hover:border-violet-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
                   {actionId === item.id + '_img' ? <MIcon name="progress_activity" size={9} className="animate-spin" /> : <MIcon name="image" size={9} />}
                   {release.imagen_url ? `↑ ${t('catalog.art', 'Art')}` : t('catalog.art', 'Art')}
                 </button>
@@ -1280,11 +1280,11 @@ function CopiesPanel({ release, items, onRefresh }) {
             {item.status !== 'vendido' && (
               <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => startEdit(item)} title={t('catalog.edit')}
-                  className="p-1 text-secondary hover:text-on-surface-variant rounded-md hover:bg-surface-container-high">
+                  className="p-1 text-secondary-foreground hover:text-on-surface-variant rounded-md hover:bg-surface-container-high">
                   <MIcon name="edit" size={12} />
                 </button>
                 <button onClick={() => deleteItem(item)} title={t('catalog.delete')}
-                  className="p-1 text-secondary hover:text-red-500 rounded-md hover:bg-red-50">
+                  className="p-1 text-secondary-foreground hover:text-red-500 rounded-md hover:bg-red-50">
                   <MIcon name="delete" size={12} />
                 </button>
               </div>
@@ -1358,7 +1358,7 @@ function CopiesPanel({ release, items, onRefresh }) {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="block text-xs text-secondary mb-1">{label}</label>
+      <label className="block text-xs text-secondary-foreground mb-1">{label}</label>
       {children}
     </div>
   );
@@ -1629,7 +1629,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
               {t('catalog.modal.discogs_refresh', 'Actualitzar des de Discogs')}
             </Button>
           </div>
-          <p className="text-xs text-secondary">
+          <p className="text-xs text-secondary-foreground">
             {t('catalog.modal.discogs_id_help', 'Vincula aquest disc a un release de Discogs (per a discos donats d\'alta a mà que ara ja hi estan catalogats). En actualitzar es desa l\'ID i es porten tracklist, crèdits i altres dades.')}
           </p>
         </div>
@@ -1697,7 +1697,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
             <input type="number" min="1" value={form.pes_g} onChange={e => f('pes_g', e.target.value)}
               placeholder={pesPerFormat[form.formato] != null ? String(pesPerFormat[form.formato]) : ''}
               className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            <p className="text-xs text-secondary mt-1">
+            <p className="text-xs text-secondary-foreground mt-1">
               {t('catalog.modal.weight_hint_1', 'Nomes per a casos especials. Buit = pes per defecte del format')}{' '}
               {pesPerFormat[form.formato] != null ? `(${pesPerFormat[form.formato]} g, ` : '('}
               {t('catalog.modal.weight_hint_2', 'configurable a Configuració → Enviaments).')}
@@ -1760,7 +1760,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
           </label>
           {form.properament && (
             <div>
-              <label className="block text-xs text-secondary mb-1">{t('catalog.modal.availability_date', 'Data disponibilitat (opcional)')}</label>
+              <label className="block text-xs text-secondary-foreground mb-1">{t('catalog.modal.availability_date', 'Data disponibilitat (opcional)')}</label>
               <input type="date" value={form.data_disponibilitat} onChange={e => f('data_disponibilitat', e.target.value)}
                 className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
@@ -1772,7 +1772,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
             <div className="text-sm font-semibold text-on-surface-variant mb-3">{t('catalog.modal.first_copy')}</div>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('common.condition')}</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('common.condition')}</label>
                 <select value={form.condicion} onChange={e => f('condicion', e.target.value)}
                   className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
                   <option value="segona_ma">{t('common.condition.used')}</option>
@@ -1780,7 +1780,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">{t('common.price')}</label>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('common.price')}</label>
                 <input type="number" step="0.01" min="0" value={form.precio} onChange={e => f('precio', e.target.value)}
                   className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
@@ -1788,11 +1788,11 @@ function DiscModal({ mode, release, onClose, onSaved }) {
             {!isFloristeria && form.condicion === 'segona_ma' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-secondary mb-1">{t('catalog.disc_grade')}</label>
+                  <label className="block text-xs text-secondary-foreground mb-1">{t('catalog.disc_grade')}</label>
                   <GradingSelect value={form.estado_disco} onChange={v => f('estado_disco', v)} />
                 </div>
                 <div>
-                  <label className="block text-xs text-secondary mb-1">{t('catalog.sleeve_grade')}</label>
+                  <label className="block text-xs text-secondary-foreground mb-1">{t('catalog.sleeve_grade')}</label>
                   <GradingSelect value={form.estado_funda} onChange={v => f('estado_funda', v)} />
                 </div>
               </div>
@@ -1817,7 +1817,7 @@ function Modal({ title, onClose, children }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{title}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high">
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high">
             <MIcon name="close" size={20} />
           </button>
         </div>

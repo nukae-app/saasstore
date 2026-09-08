@@ -144,7 +144,7 @@ export default function CaixaDiaria({ year, mes }) {
     }
   }
 
-  if (loading) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>;
+  if (loading) return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>;
 
   return (
     <div className="space-y-3">
@@ -159,7 +159,7 @@ export default function CaixaDiaria({ year, mes }) {
             <span className="text-xs text-amber-600">{t('resultat.caixa.unsaved_changes', 'Canvis sense desar')}</span>
           )}
           {!periodeTancat && (
-            <span className="text-xs text-secondary">
+            <span className="text-xs text-secondary-foreground">
               <span className="inline-block w-2 h-2 rounded-sm bg-blue-100 border border-blue-200 align-[1px] mr-1" />
               {t('resultat.caixa.autofill_hint', 'Targeta / Efectiu / Bizum / Bono cultural es poden omplir automàticament — Paypal i Transfer, a mà')}
             </span>
@@ -216,7 +216,7 @@ export default function CaixaDiaria({ year, mes }) {
                       disabled={periodeTancat}
                       value={num(dia[c.key]) === 0 ? '' : dia[c.key]}
                       onChange={(e) => updateCamp(idx, c.key, e.target.value)}
-                      className="w-20 text-right text-xs border border-outline-variant rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary"
+                      className="w-20 text-right text-xs border border-outline-variant rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-surface-container-high disabled:text-secondary-foreground"
                       placeholder="0"
                     />
                   </td>

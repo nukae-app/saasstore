@@ -25,7 +25,7 @@ export default function BancPage() {
   const ESTAT_CFG = useMemo(() => ({
     pendent: { label: t('despeses.status.pending', 'Pendent'), cls: 'bg-amber-100 text-amber-700' },
     conciliat: { label: t('banc.status.reconciled', 'Conciliat'), cls: 'bg-green-100 text-green-700' },
-    ignorat: { label: t('banc.status.ignored', 'Ignorat'), cls: 'bg-surface-container-high text-secondary' },
+    ignorat: { label: t('banc.status.ignored', 'Ignorat'), cls: 'bg-surface-container-high text-secondary-foreground' },
   }), [t]);
 
   const [comptes, setComptes] = useState([]);
@@ -157,7 +157,7 @@ export default function BancPage() {
 
       {comptes.length === 0 ? (
         <div className="bg-card rounded-2xl border border-outline-variant p-12 text-center">
-          <p className="text-secondary text-sm mb-4">{t('banc.no_accounts', 'No hi ha cap compte bancari configurat')}</p>
+          <p className="text-secondary-foreground text-sm mb-4">{t('banc.no_accounts', 'No hi ha cap compte bancari configurat')}</p>
           <Button onClick={() => setShowNouCompte(true)}><MIcon name="add" size={15} /> {t('banc.add_account', 'Afegir compte')}</Button>
         </div>
       ) : (
@@ -166,7 +166,7 @@ export default function BancPage() {
           <div className="grid grid-cols-3 gap-3">
             {saldoActual != null && (
               <div className="bg-card border border-outline-variant rounded-xl p-4">
-                <div className="text-xs text-secondary mb-1">{t('banc.last_statement_balance', 'Saldo últim extracte')}</div>
+                <div className="text-xs text-secondary-foreground mb-1">{t('banc.last_statement_balance', 'Saldo últim extracte')}</div>
                 <div className={`text-xl font-bold ${saldoActual >= 0 ? 'text-on-surface' : 'text-red-600'}`}>{saldoActual.toFixed(2)} €</div>
               </div>
             )}
@@ -181,21 +181,21 @@ export default function BancPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm text-secondary">{moviments_.length} {t('banc.movements', 'moviments')}</span>
+            <span className="text-sm text-secondary-foreground">{moviments_.length} {t('banc.movements', 'moviments')}</span>
           </div>
 
           {/* Taula de moviments */}
           <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
             {loading ? (
-              <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+              <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
             ) : moviments_.length === 0 ? (
-              <div className="p-12 text-center text-secondary text-sm">
+              <div className="p-12 text-center text-secondary-foreground text-sm">
                 {t('banc.no_movements', 'Cap moviment. Importa un extracte bancari per començar.')}
               </div>
             ) : (
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+                <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                   <tr>
                     <SortableTh label={t('common.date', 'Data')} sortKey="data_operacio" sort={sort} onSort={toggleSort} />
                     <th className="px-4 py-3 text-left font-medium">{t('llibres.concept', 'Concepte')}</th>
@@ -210,22 +210,22 @@ export default function BancPage() {
                 <tbody className="divide-y divide-outline-variant">
                   {moviments_.map(m => (
                     <tr key={m.id} className="hover:bg-surface-container-high transition-colors">
-                      <td className="px-4 py-3 text-secondary whitespace-nowrap">{fmtDate(m.operation_date)}</td>
+                      <td className="px-4 py-3 text-secondary-foreground whitespace-nowrap">{fmtDate(m.operation_date)}</td>
                       <td className="px-4 py-3 text-on-surface-variant max-w-xs truncate" title={m.concept}>{m.concept}</td>
                       <td className="px-4 py-3 text-right">{fmtImport(m.movement_amount)}</td>
-                      <td className="px-4 py-3 text-right text-secondary text-xs">{m.balance != null ? parseFloat(m.balance).toFixed(2) + ' €' : '—'}</td>
+                      <td className="px-4 py-3 text-right text-secondary-foreground text-xs">{m.balance != null ? parseFloat(m.balance).toFixed(2) + ' €' : '—'}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ESTAT_CFG[m.status]?.cls}`}>
                           {ESTAT_CFG[m.status]?.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-secondary">
+                      <td className="px-4 py-3 text-xs text-secondary-foreground">
                         {m.despesa_proveidor ? (
                           <span className="flex items-center gap-1"><MIcon name="link" size={11} className="text-green-500" /> {m.despesa_proveidor} — {m.despesa_concepte}</span>
                         ) : m.order_id ? (
                           <span className="flex items-center gap-1"><MIcon name="link" size={11} className="text-blue-500" /> {t('banc.web_order', 'Comanda web')}</span>
                         ) : m.venta_externa_id ? (
-                          <span className="flex items-center gap-1"><MIcon name="link" size={11} className="text-secondary" /> {t('banc.external_sale', 'Venda externa')}</span>
+                          <span className="flex items-center gap-1"><MIcon name="link" size={11} className="text-secondary-foreground" /> {t('banc.external_sale', 'Venda externa')}</span>
                         ) : '—'}
                       </td>
                       <td className="px-4 py-3">
@@ -237,7 +237,7 @@ export default function BancPage() {
                         )}
                         {m.status === 'conciliat' && (
                           <button onClick={() => conciliar(m.id, { status: 'pendent', despesa_id: null, order_id: null, venta_externa_id: null })}
-                            className="text-xs text-secondary hover:text-on-surface-variant transition-colors">
+                            className="text-xs text-secondary-foreground hover:text-on-surface-variant transition-colors">
                             {t('banc.undo', 'Desfer')}
                           </button>
                         )}
@@ -305,7 +305,7 @@ function NouCompteModal({ onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="font-bold text-on-surface">{t('banc.new_account_title', 'Nou compte bancari')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div>
@@ -371,16 +371,16 @@ function ImportModal({ compte, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="font-bold text-on-surface">{t('banc.import_statement_title', 'Importar extracte')} — {compte.name}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
         <div className="p-6 space-y-4">
           {!result ? (
             <form onSubmit={importar} className="space-y-4">
               <div className="border-2 border-dashed border-outline-variant rounded-xl p-6 text-center cursor-pointer hover:border-outline transition-colors"
                 onClick={() => fileRef.current?.click()}>
-                <MIcon name="upload" size={24} className="mx-auto text-secondary mb-2" />
+                <MIcon name="upload" size={24} className="mx-auto text-secondary-foreground mb-2" />
                 <p className="text-sm font-medium text-on-surface-variant">{file ? file.name : t('banc.select_file', 'Selecciona fitxer .n43 o .csv')}</p>
-                <p className="text-xs text-secondary mt-1">{t('banc.file_format_hint', 'Format N43 (AEB 43) o CSV genèric')}</p>
+                <p className="text-xs text-secondary-foreground mt-1">{t('banc.file_format_hint', 'Format N43 (AEB 43) o CSV genèric')}</p>
                 <input ref={fileRef} type="file" accept=".n43,.txt,.csv" className="hidden"
                   onChange={e => setFile(e.target.files[0])} />
               </div>
@@ -394,7 +394,7 @@ function ImportModal({ compte, onClose, onSaved }) {
             <div className="text-center space-y-3">
               <MIcon name="check_circle" size={40} className="mx-auto text-green-500" />
               <p className="font-semibold text-on-surface">{result.importats} {t('banc.new_movements_imported', 'moviments nous importats')}</p>
-              <p className="text-sm text-secondary">{result.total_fitxer} {t('banc.in_file', 'al fitxer')} · {result.duplicats_ignorats} {t('banc.duplicates_ignored', 'duplicats ignorats')}</p>
+              <p className="text-sm text-secondary-foreground">{result.total_fitxer} {t('banc.in_file', 'al fitxer')} · {result.duplicats_ignorats} {t('banc.duplicates_ignored', 'duplicats ignorats')}</p>
               <Button onClick={onSaved} className="w-full">{t('banc.view_movements', 'Veure moviments')}</Button>
             </div>
           )}
@@ -459,21 +459,21 @@ function ReglesModal({ onClose }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="font-bold text-on-surface">{t('banc.rules.title', 'Regles de conciliació')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
         <div className="p-6 space-y-4">
-          <p className="text-sm text-secondary">
+          <p className="text-sm text-secondary-foreground">
             {t('banc.rules.hint', "Quan el concepte d'un moviment conté el text indicat, es concilia automàticament amb una factura pendent d'aquest proveïdor si l'import quadra exactament i no hi ha ambigüitat.")}
           </p>
 
           <form onSubmit={crear} className="flex items-end gap-2 flex-wrap p-3 bg-surface-container-high rounded-xl border border-outline-variant">
             <div className="flex-1 min-w-[10rem]">
-              <label className="block text-xs text-secondary mb-1">{t('banc.rules.pattern', 'Text al concepte')}</label>
+              <label className="block text-xs text-secondary-foreground mb-1">{t('banc.rules.pattern', 'Text al concepte')}</label>
               <input value={pattern} onChange={e => setPattern(e.target.value)} required placeholder="ENDESA, AMAZON..."
                 className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div className="flex-1 min-w-[10rem]">
-              <label className="block text-xs text-secondary mb-1">{t('banc.rules.supplier', 'Proveïdor')}</label>
+              <label className="block text-xs text-secondary-foreground mb-1">{t('banc.rules.supplier', 'Proveïdor')}</label>
               <select value={proveidorId} onChange={e => setProveidorId(e.target.value)} required
                 className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm bg-card focus:outline-none focus:ring-1 focus:ring-primary">
                 <option value="">{t('common.select', 'Selecciona...')}</option>
@@ -484,24 +484,24 @@ function ReglesModal({ onClose }) {
           </form>
 
           {loading ? (
-            <div className="p-6 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+            <div className="p-6 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
           ) : regles.length === 0 ? (
-            <div className="p-6 text-center text-secondary text-sm">{t('banc.rules.empty', 'Cap regla configurada')}</div>
+            <div className="p-6 text-center text-secondary-foreground text-sm">{t('banc.rules.empty', 'Cap regla configurada')}</div>
           ) : (
             <div className="divide-y divide-outline-variant border border-outline-variant rounded-xl overflow-hidden">
               {regles.map(r => (
                 <div key={r.id} className="flex items-center justify-between px-3 py-2 text-sm">
                   <div className={r.active ? '' : 'opacity-40'}>
                     <span className="font-mono text-xs bg-surface-container-high rounded px-1.5 py-0.5">{r.pattern}</span>
-                    <span className="text-secondary mx-1.5">→</span>
+                    <span className="text-secondary-foreground mx-1.5">→</span>
                     <span className="text-on-surface-variant">{r.proveidor_nom}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => toggleActiva(r)}
-                      className={`text-xs px-2 py-1 rounded-lg border transition-colors ${r.active ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 'border-outline-variant text-secondary'}`}>
+                      className={`text-xs px-2 py-1 rounded-lg border transition-colors ${r.active ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 'border-outline-variant text-secondary-foreground'}`}>
                       {r.active ? t('banc.rules.active', 'Activa') : t('banc.rules.inactive', 'Inactiva')}
                     </button>
-                    <button onClick={() => eliminar(r)} className="text-secondary hover:text-red-500 p-1">
+                    <button onClick={() => eliminar(r)} className="text-secondary-foreground hover:text-red-500 p-1">
                       <MIcon name="delete" size={13} />
                     </button>
                   </div>
@@ -558,13 +558,13 @@ function ConciliarModal({ moviment, despeses, onClose, onConciliar }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="font-bold text-on-surface">{t('banc.reconcile_movement', 'Conciliar moviment')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           {/* Info moviment */}
           <div className="bg-surface-container-high rounded-xl p-3 text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-secondary">{new Date(moviment.operation_date + 'T00:00:00').toLocaleDateString('ca-ES')}</span>
+              <span className="text-secondary-foreground">{new Date(moviment.operation_date + 'T00:00:00').toLocaleDateString('ca-ES')}</span>
               <span className={parseFloat(moviment.movement_amount) >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
                 {parseFloat(moviment.movement_amount) >= 0 ? '+' : ''}{parseFloat(moviment.movement_amount).toFixed(2)} €
               </span>

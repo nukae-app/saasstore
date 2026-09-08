@@ -38,7 +38,7 @@ export default function LlibresPage() {
     <div className="space-y-5 max-w-6xl mx-auto">
       <div>
         <h2 className="text-2xl font-bold text-on-surface">{t('llibres.title', 'Llibres comptables')}</h2>
-        <p className="text-sm text-secondary mt-1">
+        <p className="text-sm text-secondary-foreground mt-1">
           {t('llibres.subtitle', 'Derivats de la partida doble — net d\'IVA, a diferència de "Resultat" i "IVA".')}
         </p>
       </div>
@@ -46,7 +46,7 @@ export default function LlibresPage() {
       <div className="inline-flex gap-1 p-1 bg-surface-container-high rounded-lg">
         {TABS.map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === id ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface-variant'}`}>
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === id ? 'bg-card text-on-surface shadow-sm' : 'text-secondary-foreground hover:text-on-surface-variant'}`}>
             {label}
           </button>
         ))}
@@ -121,7 +121,7 @@ function DiariTab({ year, mes }) {
     }
   }
 
-  if (loading) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>;
+  if (loading) return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>;
 
   return (
     <div className="space-y-3">
@@ -135,7 +135,7 @@ function DiariTab({ year, mes }) {
       </div>
 
       {!data?.assentaments?.length ? (
-        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-12 text-center text-secondary text-sm">
+        <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-12 text-center text-secondary-foreground text-sm">
           {t('llibres.no_entries_month', 'Cap assentament aquest mes')}
         </div>
       ) : (
@@ -144,7 +144,7 @@ function DiariTab({ year, mes }) {
             <div key={a.id} className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2.5 bg-surface-container-high border-b border-outline-variant">
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-secondary">#{a.entry_number}</span>
+                  <span className="font-mono text-xs text-secondary-foreground">#{a.entry_number}</span>
                   <span className="text-sm font-medium text-on-surface">{a.description}</span>
                   {a.source_type === 'manual' && (
                     <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
@@ -153,10 +153,10 @@ function DiariTab({ year, mes }) {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-secondary">{fmtDate(a.date)}</span>
+                  <span className="text-xs text-secondary-foreground">{fmtDate(a.date)}</span>
                   {a.source_type === 'manual' && (
                     <button onClick={() => esborrar(a.id)} disabled={deleting === a.id}
-                      className="text-secondary hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" title={t('llibres.delete_entry', 'Esborrar assentament')}>
+                      className="text-secondary-foreground hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors" title={t('llibres.delete_entry', 'Esborrar assentament')}>
                       <MIcon name="delete" size={14} />
                     </button>
                   )}
@@ -166,7 +166,7 @@ function DiariTab({ year, mes }) {
                 <tbody className="divide-y divide-outline-variant">
                   {a.apunts.map(l => (
                     <tr key={l.id}>
-                      <td className="px-4 py-2 font-mono text-secondary w-20">{l.compte_code}</td>
+                      <td className="px-4 py-2 font-mono text-secondary-foreground w-20">{l.compte_code}</td>
                       <td className="px-4 py-2 text-on-surface-variant">{l.compte_name}</td>
                       <td className="px-4 py-2 text-right text-on-surface w-28">{parseFloat(l.debit) > 0 ? fmtEur(l.debit) : ''}</td>
                       <td className="px-4 py-2 text-right text-on-surface w-28">{parseFloat(l.credit) > 0 ? fmtEur(l.credit) : ''}</td>
@@ -233,7 +233,7 @@ function ManualEntryModal({ defaultDate, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('llibres.new_manual_entry', 'Nou assentament manual')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -252,7 +252,7 @@ function ManualEntryModal({ defaultDate, onClose, onSaved }) {
 
           <div className="border border-outline-variant rounded-xl overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">{t('llibres.account', 'Compte')}</th>
                   <th className="px-3 py-2 text-right font-medium w-28">{t('llibres.debit', 'Debe')}</th>
@@ -280,7 +280,7 @@ function ManualEntryModal({ defaultDate, onClose, onSaved }) {
                     </td>
                     <td className="px-1">
                       {linies.length > 2 && (
-                        <button type="button" onClick={() => treureLinia(i)} className="text-secondary hover:text-red-500"><MIcon name="close" size={14} /></button>
+                        <button type="button" onClick={() => treureLinia(i)} className="text-secondary-foreground hover:text-red-500"><MIcon name="close" size={14} /></button>
                       )}
                     </td>
                   </tr>
@@ -289,7 +289,7 @@ function ManualEntryModal({ defaultDate, onClose, onSaved }) {
               <tfoot className="bg-surface-container-high border-t border-outline-variant">
                 <tr>
                   <td className="px-3 py-2">
-                    <button type="button" onClick={afegirLinia} className="text-xs text-secondary hover:text-on-surface font-medium">+ {t('llibres.add_line', 'Afegir línia')}</button>
+                    <button type="button" onClick={afegirLinia} className="text-xs text-secondary-foreground hover:text-on-surface font-medium">+ {t('llibres.add_line', 'Afegir línia')}</button>
                   </td>
                   <td className="px-3 py-2 text-right font-medium text-on-surface-variant">{totalDebit.toFixed(2)} €</td>
                   <td className="px-3 py-2 text-right font-medium text-on-surface-variant">{totalCredit.toFixed(2)} €</td>
@@ -358,13 +358,13 @@ function MajorTab({ year, initialCompte }) {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : !data?.linies?.length ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('llibres.no_movements_year', 'Cap moviment aquest any per a aquest compte')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('llibres.no_movements_year', 'Cap moviment aquest any per a aquest compte')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                 <tr>
                   <th className="px-4 py-3 text-center font-medium" title={t('llibres.punteat_hint', 'Punteat (revisat manualment)')}>✓</th>
                   <th className="px-4 py-3 text-left font-medium">{t('common.date', 'Data')}</th>
@@ -410,13 +410,13 @@ function BalancColumna({ titol, linies, total, emptyLabel }) {
     <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
       <div className="px-4 py-2.5 bg-surface-container-high border-b border-outline-variant text-sm font-semibold text-on-surface-variant">{titol}</div>
       {linies.length === 0 ? (
-        <div className="p-6 text-center text-secondary text-xs">{emptyLabel || t('llibres.no_balance', 'Cap saldo')}</div>
+        <div className="p-6 text-center text-secondary-foreground text-xs">{emptyLabel || t('llibres.no_balance', 'Cap saldo')}</div>
       ) : (
         <table className="w-full text-sm">
           <tbody className="divide-y divide-outline-variant">
             {linies.map(l => (
               <tr key={l.compte_code}>
-                <td className="px-4 py-2 font-mono text-xs text-secondary w-16">{l.compte_code}</td>
+                <td className="px-4 py-2 font-mono text-xs text-secondary-foreground w-16">{l.compte_code}</td>
                 <td className="px-4 py-2 text-on-surface-variant">{l.compte_name}</td>
                 <td className="px-4 py-2 text-right text-on-surface">{fmtEur(l.saldo)}</td>
               </tr>
@@ -459,7 +459,7 @@ function BalancTab({ year, mes }) {
     else setError((await r.json()).detail || t('common.error_saving', 'Error desant'));
   }
 
-  if (loading) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>;
+  if (loading) return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>;
   if (!data) return null;
 
   return (
@@ -472,7 +472,7 @@ function BalancTab({ year, mes }) {
         </div>
         <div className="flex items-center gap-2">
           {data.exercici_tancat && (
-            <span className="inline-flex items-center gap-1 text-xs text-secondary px-2 py-1 rounded-full bg-surface-container-high">
+            <span className="inline-flex items-center gap-1 text-xs text-secondary-foreground px-2 py-1 rounded-full bg-surface-container-high">
               <MIcon name="lock" size={13} /> {t('llibres.exercici_tancat', 'Exercici {year} tancat').replace('{year}', year)}
             </span>
           )}
@@ -507,7 +507,7 @@ function PygTab({ year, mes }) {
     authFetch(`/admin/compte-resultats/${year}/${mes}`).then(r => r.json()).then(d => { setData(d); setLoading(false); });
   }, [year, mes]);
 
-  if (loading) return <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>;
+  if (loading) return <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>;
   if (!data) return null;
 
   const resultatPositiu = parseFloat(data.resultat) >= 0;

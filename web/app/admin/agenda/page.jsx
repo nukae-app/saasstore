@@ -178,7 +178,7 @@ export default function AdminAgendaPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">Agenda</h1>
-          <p className="text-sm text-secondary mt-0.5">
+          <p className="text-sm text-secondary-foreground mt-0.5">
             {upcoming.length} propers · {past.length} passats
           </p>
         </div>
@@ -207,10 +207,10 @@ export default function AdminAgendaPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <MIcon name="progress_activity" size={20} className="animate-spin text-secondary" />
+          <MIcon name="progress_activity" size={20} className="animate-spin text-secondary-foreground" />
         </div>
       ) : events.length === 0 && !creating ? (
-        <div className="text-center py-20 text-secondary">
+        <div className="text-center py-20 text-secondary-foreground">
           <MIcon name="calendar_today" size={32} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm mb-3">Sense esdeveniments.</p>
           <button
@@ -248,7 +248,7 @@ export default function AdminAgendaPage() {
           {past.length > 0 && (
             <button
               onClick={() => setShowPast(v => !v)}
-              className="w-full text-sm text-secondary hover:text-on-surface-variant py-3 border border-dashed border-outline-variant rounded-xl transition-colors"
+              className="w-full text-sm text-secondary-foreground hover:text-on-surface-variant py-3 border border-dashed border-outline-variant rounded-xl transition-colors"
             >
               {showPast ? `Amagar ${past.length} actes passats` : `Veure ${past.length} actes passats`}
             </button>
@@ -268,10 +268,10 @@ function EventCard({ event, defaultPlace, onEdit, onDelete, deleting }) {
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-medium text-on-surface">{event.title}</p>
             {past && (
-              <span className="text-xs text-secondary bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded">Passat</span>
+              <span className="text-xs text-secondary-foreground bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded">Passat</span>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-secondary">
+          <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-secondary-foreground">
             <span className="flex items-center gap-1">
               <MIcon name="calendar_today" size={10} /> {formatFecha(event.date)}
             </span>
@@ -280,7 +280,7 @@ function EventCard({ event, defaultPlace, onEdit, onDelete, deleting }) {
             )}
           </div>
           {event.description && (
-            <p className="text-xs text-secondary mt-1.5 line-clamp-2">{event.description}</p>
+            <p className="text-xs text-secondary-foreground mt-1.5 line-clamp-2">{event.description}</p>
           )}
           {event.link && (
             <a
@@ -296,14 +296,14 @@ function EventCard({ event, defaultPlace, onEdit, onDelete, deleting }) {
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={onEdit}
-            className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
+            className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors"
           >
             <MIcon name="edit" size={13} />
           </button>
           <button
             onClick={() => onDelete(event.id, event.title)}
             disabled={deleting === event.id}
-            className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
           >
             {deleting === event.id
               ? <MIcon name="progress_activity" size={13} className="animate-spin" />

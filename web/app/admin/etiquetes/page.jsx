@@ -103,13 +103,13 @@ export default function EtiquetesPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">Carregant...</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">Carregant...</div>
         ) : etiquetes.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">Encara no hi ha etiquetes. Crea'n una!</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">Encara no hi ha etiquetes. Crea'n una!</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium w-6" />
                 <th className="px-4 py-3 text-left font-medium">Etiqueta</th>
@@ -122,7 +122,7 @@ export default function EtiquetesPage() {
             <tbody className="divide-y divide-outline-variant">
               {etiquetes.map(et => (
                 <tr key={et.id} className="hover:bg-surface-container-high transition-colors">
-                  <td className="px-4 py-3 text-secondary">
+                  <td className="px-4 py-3 text-secondary-foreground">
                     <MIcon name="drag_indicator" size={14} />
                   </td>
                   <td className="px-4 py-3">
@@ -133,8 +133,8 @@ export default function EtiquetesPage() {
                       {et.name_ca}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-secondary text-xs">{et.slug}</td>
-                  <td className="px-4 py-3 text-secondary">{et.name_es || '—'}</td>
+                  <td className="px-4 py-3 font-mono text-secondary-foreground text-xs">{et.slug}</td>
+                  <td className="px-4 py-3 text-secondary-foreground">{et.name_es || '—'}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => toggleActiva(et)}
@@ -147,13 +147,13 @@ export default function EtiquetesPage() {
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => openEdit(et)}
-                        className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
+                        className="p-1.5 rounded-lg text-secondary-foreground hover:text-on-surface-variant hover:bg-surface-container-high transition-colors"
                       >
                         <MIcon name="edit" size={14} />
                       </button>
                       <button
                         onClick={() => del(et)}
-                        className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-secondary-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <MIcon name="delete" size={14} />
                       </button>
@@ -179,7 +179,7 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">Slug <span className="text-red-500">*</span></label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Slug <span className="text-red-500">*</span></label>
           <input
             value={form.slug}
             onChange={e => f('slug', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
@@ -188,7 +188,7 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">Posició</label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Posició</label>
           <input
             type="number" value={form.position}
             onChange={e => f('position', parseInt(e.target.value) || 0)}
@@ -196,7 +196,7 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">Nom català <span className="text-red-500">*</span></label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Nom català <span className="text-red-500">*</span></label>
           <input
             value={form.name_ca} onChange={e => f('name_ca', e.target.value)}
             placeholder="Novetat"
@@ -204,7 +204,7 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">Nom castellà</label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Nom castellà</label>
           <input
             value={form.name_es} onChange={e => f('name_es', e.target.value)}
             placeholder="Novedad"
@@ -214,7 +214,7 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-secondary mb-2">Color</label>
+        <label className="block text-xs font-medium text-secondary-foreground mb-2">Color</label>
         <div className="flex items-center gap-2 flex-wrap">
           {DEFAULT_COLORS.map(c => (
             <button
@@ -245,7 +245,7 @@ function EtiquetaForm({ form, setForm, onSave, onCancel, saving, error, isNew })
         <Button size="sm" onClick={onSave} disabled={saving}>
           <MIcon name="check" size={14} /> {saving ? 'Desant...' : 'Desar'}
         </Button>
-        <button onClick={onCancel} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
+        <button onClick={onCancel} className="px-3 py-1.5 text-sm text-secondary-foreground hover:text-on-surface-variant">
           <MIcon name="close" size={14} className="inline mr-1" />Cancel·lar
         </button>
       </div>

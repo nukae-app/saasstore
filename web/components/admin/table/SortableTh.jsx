@@ -8,7 +8,7 @@ import { cn } from '../../lib/utils';
 
 /**
  * <th> drop-in with click-to-sort and an optional Excel-style checkbox filter popover.
- * Matches the admin's shared M3 table header styling (bg-surface-container-high / text-secondary).
+ * Matches the admin's shared M3 table header styling (bg-surface-container-high / text-secondary-foreground).
  */
 export function SortableTh({
   label,
@@ -39,7 +39,7 @@ export function SortableTh({
           {isSorted ? (
             <MIcon name={sort.dir === 'asc' ? 'arrow_upward' : 'arrow_downward'} size={12} />
           ) : (
-            <MIcon name="unfold_more" size={12} className="text-secondary" />
+            <MIcon name="unfold_more" size={12} className="text-secondary-foreground" />
           )}
         </button>
         {hasFilter && (
@@ -89,7 +89,7 @@ function FilterPopover({ options, selected, onChange, active }) {
           title="Filtrar"
           className={cn(
             'p-0.5 rounded transition-colors',
-            active ? 'text-on-surface' : 'text-secondary hover:text-on-surface-variant',
+            active ? 'text-on-surface' : 'text-secondary-foreground hover:text-on-surface-variant',
           )}
         >
           <MIcon name="filter_alt" size={12} style={{ fontVariationSettings: `'FILL' ${active ? 1 : 0}` }} />
@@ -97,7 +97,7 @@ function FilterPopover({ options, selected, onChange, active }) {
       </PopoverTrigger>
       <PopoverContent align="start" className="w-56 normal-case font-normal">
         <div className="relative mb-2">
-          <MIcon name="search" size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-secondary" />
+          <MIcon name="search" size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-secondary-foreground" />
           <input
             value={q}
             onChange={e => setQ(e.target.value)}
@@ -106,16 +106,16 @@ function FilterPopover({ options, selected, onChange, active }) {
           />
         </div>
         <div className="flex items-center justify-between mb-1.5 text-xs">
-          <button type="button" onClick={selectAll} className="text-secondary hover:text-on-surface">
+          <button type="button" onClick={selectAll} className="text-secondary-foreground hover:text-on-surface">
             Seleccionar-ho tot
           </button>
-          <button type="button" onClick={clearAll} className="text-secondary hover:text-on-surface">
+          <button type="button" onClick={clearAll} className="text-secondary-foreground hover:text-on-surface">
             Netejar
           </button>
         </div>
         <div className="max-h-56 overflow-y-auto space-y-0.5">
           {visibleOptions.length === 0 && (
-            <p className="text-xs text-secondary px-1 py-1">Cap resultat.</p>
+            <p className="text-xs text-secondary-foreground px-1 py-1">Cap resultat.</p>
           )}
           {visibleOptions.map(value => (
             <label key={value} className="flex items-center gap-2 px-1 py-1 rounded hover:bg-surface-container-high cursor-pointer text-xs text-on-surface-variant">

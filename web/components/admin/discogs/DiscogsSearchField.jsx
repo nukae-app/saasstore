@@ -9,7 +9,7 @@ export function CoverImg({ url, size = 36 }) {
   const [failed, setFailed] = useState(false);
   if (!url || failed) return (
     <div className="rounded-lg bg-surface-container-high border border-outline-variant shrink-0 flex items-center justify-center" style={{ width: size, height: size }}>
-      <MIcon name="album" size={Math.round(size * 0.4)} className="text-secondary" />
+      <MIcon name="album" size={Math.round(size * 0.4)} className="text-secondary-foreground" />
     </div>
   );
   return (
@@ -59,7 +59,7 @@ export default function DiscogsSearchField({
         className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
       />
       {(searching || resolving) && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary flex items-center gap-1 bg-card pl-1">
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary-foreground flex items-center gap-1 bg-card pl-1">
           <MIcon name="progress_activity" size={12} className="animate-spin" /> {t('common.searching', 'Cercant…')}
         </span>
       )}
@@ -77,7 +77,7 @@ export default function DiscogsSearchField({
                 <div className="text-sm font-medium text-on-surface truncate">
                   {r.artista ? <><span className="font-semibold">{r.artista}</span> — {r.titulo}</> : r.titulo}
                 </div>
-                <div className="text-xs text-secondary truncate">
+                <div className="text-xs text-secondary-foreground truncate">
                   {[r.sello, r.formato, r.anio, r.genero].filter(Boolean).join(' · ')}
                 </div>
               </div>

@@ -66,7 +66,7 @@ export default function IVAPage() {
     <div className="space-y-5 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-on-surface">{t('nav.iva', 'IVA')}</h2>
-        <div className="text-xs text-secondary">{t('iva.subtitle', 'Model 303 — previsió fiscal')}</div>
+        <div className="text-xs text-secondary-foreground">{t('iva.subtitle', 'Model 303 — previsió fiscal')}</div>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
@@ -82,11 +82,11 @@ export default function IVAPage() {
             </button>
           ))}
         </div>
-        <span className="text-sm text-secondary">{TRIMESTRES.find(tr => tr.value === trim)?.label} {year}</span>
+        <span className="text-sm text-secondary-foreground">{TRIMESTRES.find(tr => tr.value === trim)?.label} {year}</span>
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+        <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
       ) : !data ? null : (
         <div className="space-y-4">
           {data.nota_rebu && (
@@ -127,7 +127,7 @@ export default function IVAPage() {
           {/* IVA Repercutit */}
           <IVASection title={t('iva.output_vat_sales', 'IVA repercutit — vendes')} total={totalRepercutit} sign="+" colorClass="bg-red-50 border-red-100 text-red-800">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground">
                 <tr>
                   <th className="px-5 py-2 text-left font-medium">{t('iva.col.channel_concept', 'Canal / Concepte')}</th>
                   <th className="px-5 py-2 text-right font-medium">{t('despeses.taxable_base', 'Base imposable')}</th>
@@ -137,18 +137,18 @@ export default function IVAPage() {
               </thead>
               <tbody className="divide-y divide-outline-variant">
                 {ivaRepercutit.length === 0 ? (
-                  <tr><td colSpan={4} className="px-5 py-4 text-secondary text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+                  <tr><td colSpan={4} className="px-5 py-4 text-secondary-foreground text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
                 ) : ivaRepercutit.map((l, i) => (
                   <tr key={i} className="hover:bg-surface-container-high">
                     <td className="px-5 py-2.5 text-on-surface-variant">{CATEGORIA_LABELS[l.categoria] || l.categoria}</td>
                     <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(l.base)}</td>
-                    <td className="px-5 py-2.5 text-right text-secondary">{parseFloat(l.iva_pct).toFixed(0)}%</td>
+                    <td className="px-5 py-2.5 text-right text-secondary-foreground">{parseFloat(l.iva_pct).toFixed(0)}%</td>
                     <td className="px-5 py-2.5 text-right font-medium text-red-600">+{fmtEur(l.iva_import)}</td>
                   </tr>
                 ))}
                 {ivaRepercutit.length > 0 && (
                   <tr className="bg-surface-container-high font-semibold text-xs">
-                    <td className="px-5 py-2 text-secondary">{t('iva.total_base', 'Base total')}</td>
+                    <td className="px-5 py-2 text-secondary-foreground">{t('iva.total_base', 'Base total')}</td>
                     <td className="px-5 py-2 text-right text-on-surface-variant">{fmtEur(data.total_base_repercutit)}</td>
                     <td />
                     <td className="px-5 py-2 text-right text-red-700">+{fmtEur(totalRepercutit)}</td>
@@ -161,7 +161,7 @@ export default function IVAPage() {
           {/* IVA Suportat */}
           <IVASection title={t('iva.input_vat_expenses', 'IVA suportat — despeses')} total={totalSuportat} sign="–" colorClass="bg-green-50 border-green-100 text-green-800">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground">
                 <tr>
                   <th className="px-5 py-2 text-left font-medium">{t('actius.col.category', 'Categoria')}</th>
                   <th className="px-5 py-2 text-right font-medium">{t('despeses.taxable_base', 'Base imposable')}</th>
@@ -171,18 +171,18 @@ export default function IVAPage() {
               </thead>
               <tbody className="divide-y divide-outline-variant">
                 {ivaSuportat.length === 0 ? (
-                  <tr><td colSpan={4} className="px-5 py-4 text-secondary text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+                  <tr><td colSpan={4} className="px-5 py-4 text-secondary-foreground text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
                 ) : ivaSuportat.map((l, i) => (
                   <tr key={i} className="hover:bg-surface-container-high">
                     <td className="px-5 py-2.5 text-on-surface-variant">{CATEGORIA_LABELS[l.categoria] || l.categoria}</td>
                     <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(l.base)}</td>
-                    <td className="px-5 py-2.5 text-right text-secondary">{parseFloat(l.iva_pct).toFixed(0)}%</td>
+                    <td className="px-5 py-2.5 text-right text-secondary-foreground">{parseFloat(l.iva_pct).toFixed(0)}%</td>
                     <td className="px-5 py-2.5 text-right font-medium text-green-600">–{fmtEur(l.iva_import)}</td>
                   </tr>
                 ))}
                 {ivaSuportat.length > 0 && (
                   <tr className="bg-surface-container-high font-semibold text-xs">
-                    <td className="px-5 py-2 text-secondary">{t('iva.total_base', 'Base total')}</td>
+                    <td className="px-5 py-2 text-secondary-foreground">{t('iva.total_base', 'Base total')}</td>
                     <td className="px-5 py-2 text-right text-on-surface-variant">{fmtEur(data.total_base_suportat)}</td>
                     <td />
                     <td className="px-5 py-2 text-right text-green-700">–{fmtEur(totalSuportat)}</td>

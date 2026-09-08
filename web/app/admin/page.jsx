@@ -11,7 +11,7 @@ const STATUS_COLOR = {
   pagado:         'bg-blue-100 text-blue-700',
   enviado:        'bg-purple-100 text-purple-700',
   entregado:      'bg-green-100 text-green-700',
-  cancelado:      'bg-surface-container-high text-secondary',
+  cancelado:      'bg-surface-container-high text-secondary-foreground',
 };
 const STATUS_KEY = {
   pendiente_pago: 'order.status.pending',
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-baseline justify-between">
         <h2 className="font-headline font-bold text-2xl text-on-surface">{t('dashboard.title')}</h2>
-        <span className="text-xs text-secondary uppercase tracking-wide">
+        <span className="text-xs text-secondary-foreground uppercase tracking-wide">
           {now.toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </span>
       </div>
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
             { label: t('dashboard.sales.month'), resum: vendesMes },
           ].map(({ label, resum }) => (
             <div key={label} className="bg-surface-container-low p-4 rounded-xl shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
-              <div className="text-xs font-medium text-secondary mb-1">{label}</div>
+              <div className="text-xs font-medium text-secondary-foreground mb-1">{label}</div>
               <div className="text-2xl font-headline font-bold text-on-surface">{fmtEur(resum.total)}</div>
               <div className="text-xs text-on-surface-variant mt-1">
                 {t('dashboard.sales.web_label')} {fmtEur(resum.web)} · {t('dashboard.sales.tpv_label')} {fmtEur(resum.mostrador)}
@@ -159,15 +159,15 @@ export default function AdminDashboard() {
               href={row.href}
               className="flex items-center gap-3 px-4 py-3 hover:bg-surface-container-high transition-colors"
             >
-              <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${row.value > 0 ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high text-secondary'}`}>
+              <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${row.value > 0 ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high text-secondary-foreground'}`}>
                 <MIcon name={row.icon} size={16} />
               </span>
               <span className="text-sm text-on-surface flex-1 truncate">{row.label}</span>
-              {row.subtext && <span className="hidden sm:inline text-xs text-secondary">{row.subtext}</span>}
-              <span className={`text-sm font-bold tabular-nums w-6 text-right ${row.value > 0 ? 'text-on-surface' : 'text-secondary/50'}`}>
+              {row.subtext && <span className="hidden sm:inline text-xs text-secondary-foreground">{row.subtext}</span>}
+              <span className={`text-sm font-bold tabular-nums w-6 text-right ${row.value > 0 ? 'text-on-surface' : 'text-secondary-foreground/50'}`}>
                 {row.value}
               </span>
-              <MIcon name="chevron_right" size={16} className="text-secondary shrink-0" />
+              <MIcon name="chevron_right" size={16} className="text-secondary-foreground shrink-0" />
             </Link>
           ))}
         </div>
@@ -182,13 +182,13 @@ export default function AdminDashboard() {
         </div>
 
         {loading ? (
-          <div className="p-10 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-10 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : orders.length === 0 ? (
-          <div className="p-10 text-center text-secondary text-sm">{t('dashboard.no_orders')}</div>
+          <div className="p-10 text-center text-secondary-foreground text-sm">{t('dashboard.no_orders')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high/60 text-[11px] text-secondary uppercase tracking-wider">
+            <thead className="bg-surface-container-high/60 text-[11px] text-secondary-foreground uppercase tracking-wider">
               <tr>
                 <th className="px-5 py-2.5 text-left font-bold">{t('dashboard.col.date')}</th>
                 <th className="px-5 py-2.5 text-left font-bold">{t('dashboard.col.email')}</th>
@@ -226,7 +226,7 @@ export default function AdminDashboard() {
 
 function SectionLabel({ children }) {
   return (
-    <h3 className="text-[11px] font-bold text-secondary uppercase tracking-wider mb-2">{children}</h3>
+    <h3 className="text-[11px] font-bold text-secondary-foreground uppercase tracking-wider mb-2">{children}</h3>
   );
 }
 
@@ -246,7 +246,7 @@ function StatStrip({ entries }) {
             </div>
             <div>
               <div className="text-xl font-headline font-bold text-on-surface">{e.value}</div>
-              <div className="text-xs text-secondary mt-0.5 truncate">{e.label}</div>
+              <div className="text-xs text-secondary-foreground mt-0.5 truncate">{e.label}</div>
             </div>
           </div>
         );

@@ -136,7 +136,7 @@ export default function HistorialPage() {
           placeholder={t('purchases.search_history.search_ph', 'Cerca per artista, títol, segell... (opcional, per filtrar)')}
           className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <p className="text-xs text-secondary">
+        <p className="text-xs text-secondary-foreground">
           {t('purchases.search_history.hint', "Combina l'històric importat dels fulls de càlcul antics amb les comandes reals (enviada/rebuda) fetes des d'aquí — creix amb cada comanda nova. No indica estoc actual del proveïdor, només que se li ha comprat abans. Desplega un proveïdor per veure'n els discos.")}
         </p>
       </div>
@@ -165,7 +165,7 @@ export default function HistorialPage() {
                     <input type="number" min="1" value={c.cantidad}
                       onChange={e => updateQuantitat(c.key, Math.max(1, parseInt(e.target.value) || 1))}
                       className="w-16 border border-outline-variant rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary" />
-                    <button onClick={() => treureDeCistella(c.key)} className="text-secondary hover:text-red-500 p-1 rounded hover:bg-red-50">
+                    <button onClick={() => treureDeCistella(c.key)} className="text-secondary-foreground hover:text-red-500 p-1 rounded hover:bg-red-50">
                       <MIcon name="close" size={14} />
                     </button>
                   </div>
@@ -177,11 +177,11 @@ export default function HistorialPage() {
       )}
 
       {loading ? (
-        <div className="text-sm text-secondary text-center py-6">{t('common.loading')}</div>
+        <div className="text-sm text-secondary-foreground text-center py-6">{t('common.loading')}</div>
       ) : (
         <>
           {resum.length === 0 ? (
-            <div className="text-sm text-secondary text-center py-6">{t('purchases.search_history.no_matches', "Cap coincidència a l'històric.")}</div>
+            <div className="text-sm text-secondary-foreground text-center py-6">{t('purchases.search_history.no_matches', "Cap coincidència a l'històric.")}</div>
           ) : (
             <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
               <div className="px-5 py-3 text-sm font-semibold text-on-surface-variant border-b border-outline-variant">
@@ -195,17 +195,17 @@ export default function HistorialPage() {
                       className="w-full flex items-center justify-between px-5 py-3 text-sm hover:bg-surface-container-high transition-colors text-left"
                     >
                       <div className="flex items-center gap-2">
-                        {expandedProv === p.proveedor_id ? <MIcon name="expand_more" size={14} className="text-secondary" /> : <MIcon name="chevron_right" size={14} className="text-secondary" />}
+                        {expandedProv === p.proveedor_id ? <MIcon name="expand_more" size={14} className="text-secondary-foreground" /> : <MIcon name="chevron_right" size={14} className="text-secondary-foreground" />}
                         <span className="font-medium text-on-surface">{p.proveedor_nombre}</span>
                       </div>
-                      <span className="text-secondary">
+                      <span className="text-secondary-foreground">
                         {p.count} {p.count === 1 ? t('purchases.search_history.purchase', 'compra') : t('purchases.search_history.purchases', 'compres')} · {t('purchases.search_history.last', 'última')} {new Date(p.ultima_compra).toLocaleDateString()}
                       </span>
                     </button>
                     {expandedProv === p.proveedor_id && (
                       <div className="bg-surface-container-high/60 border-t border-outline-variant px-5 py-3">
                         {loadingExpanded ? (
-                          <div className="text-sm text-secondary py-2">{t('common.loading')}</div>
+                          <div className="text-sm text-secondary-foreground py-2">{t('common.loading')}</div>
                         ) : (
                           <div className="space-y-1.5">
                             {expandedLineas.map(l => {
@@ -213,17 +213,17 @@ export default function HistorialPage() {
                               const selected = cistella.some(c => c.key === l.id);
                               return (
                                 <div key={l.id} className="flex items-center gap-3 text-sm flex-wrap">
-                                  <span className="text-secondary w-20 shrink-0">{new Date(l.date).toLocaleDateString()}</span>
+                                  <span className="text-secondary-foreground w-20 shrink-0">{new Date(l.date).toLocaleDateString()}</span>
                                   <span className="font-medium text-on-surface">
                                     {l.artist ? `${l.artist}${l.title ? ` — ${l.title}` : ''}` : (l.notes ?? '—')}
                                   </span>
                                   {l.ean && <span className="text-[10px] uppercase tracking-wide text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5">EAN</span>}
-                                  {l.cost_price != null && <span className="text-secondary ml-auto">{l.cost_price} €</span>}
+                                  {l.cost_price != null && <span className="text-secondary-foreground ml-auto">{l.cost_price} €</span>}
                                   {addable && (
                                     <button
                                       onClick={() => toggleCistella(l, p.proveedor_id, p.proveedor_nombre)}
                                       title={selected ? t('purchases.search_history.remove_from_request', 'Treure del pool') : t('purchases.search_history.add_to_request', 'Afegir al pool')}
-                                      className={`p-1 rounded-lg ${selected ? 'text-emerald-600 hover:bg-emerald-50' : 'text-secondary hover:text-on-surface-variant hover:bg-surface-container-high'} ${l.cost_price == null ? 'ml-auto' : ''}`}
+                                      className={`p-1 rounded-lg ${selected ? 'text-emerald-600 hover:bg-emerald-50' : 'text-secondary-foreground hover:text-on-surface-variant hover:bg-surface-container-high'} ${l.cost_price == null ? 'ml-auto' : ''}`}
                                     >
                                       {selected ? <MIcon name="local_shipping" size={15} /> : <MIcon name="add" size={15} />}
                                     </button>
@@ -248,7 +248,7 @@ export default function HistorialPage() {
               </div>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+                <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                   <tr>
                     <SortableTh label={t('common.date')} sortKey="fecha" sort={detalleSort} onSort={toggleDetalleSort} />
                     <SortableTh label={t('purchases.type.supplier')} sortKey="proveedor_nombre" sort={detalleSort} onSort={toggleDetalleSort} />
@@ -260,11 +260,11 @@ export default function HistorialPage() {
                 <tbody className="divide-y divide-outline-variant">
                   {detalleSorted.map(r => (
                     <tr key={r.id}>
-                      <td className="px-4 py-3 text-secondary">{new Date(r.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-secondary-foreground">{new Date(r.date).toLocaleDateString()}</td>
                       <td className="px-4 py-3 font-medium">{r.proveedor_nombre}</td>
                       <td className="px-4 py-3">{r.artist ? `${r.artist}${r.title ? ` — ${r.title}` : ''}` : (r.notes ?? '—')}</td>
-                      <td className="px-4 py-3 text-secondary">{r.label ?? '—'}</td>
-                      <td className="px-4 py-3 text-right text-secondary">{r.cost_price != null ? `${r.cost_price} €` : '—'}</td>
+                      <td className="px-4 py-3 text-secondary-foreground">{r.label ?? '—'}</td>
+                      <td className="px-4 py-3 text-right text-secondary-foreground">{r.cost_price != null ? `${r.cost_price} €` : '—'}</td>
                     </tr>
                   ))}
                 </tbody>

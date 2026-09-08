@@ -33,7 +33,7 @@ export default function FluxCaixaPage() {
     <div className="space-y-5 max-w-4xl mx-auto">
       <div>
         <h2 className="text-2xl font-bold text-on-surface">{t('flux_caixa.title', 'Flux de caixa projectat')}</h2>
-        <p className="text-sm text-secondary mt-1">
+        <p className="text-sm text-secondary-foreground mt-1">
           {t('flux_caixa.subtitle', "Projecció, no historial: combina el saldo actual de tresoreria amb la mitjana de vendes d'aquest mateix mes en anys anteriors i les despeses ja facturades pendents de pagar. Una despesa recurrent futura que encara no s'ha donat d'alta (per exemple, el lloguer del mes vinent) no hi apareix fins que es registri com a factura.")}
         </p>
       </div>
@@ -48,17 +48,17 @@ export default function FluxCaixaPage() {
       </div>
 
       {loading || !data ? (
-        <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+        <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
       ) : (
         <>
           <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-4 flex items-center justify-between">
-            <span className="text-sm text-secondary">{t('flux_caixa.current_balance', 'Saldo actual (caixa + bancs)')}</span>
+            <span className="text-sm text-secondary-foreground">{t('flux_caixa.current_balance', 'Saldo actual (caixa + bancs)')}</span>
             <span className="text-lg font-bold text-on-surface">{fmtEur(data.saldo_actual)}</span>
           </div>
 
           <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">{t('common.month', 'Mes')}</th>
                   <th className="px-4 py-3 text-right font-medium">{t('flux_caixa.estimated_income', 'Ingressos estimats')}</th>

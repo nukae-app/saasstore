@@ -15,8 +15,8 @@ const NOW = new Date();
 function Casella({ num, label, value, sign }) {
   return (
     <div className="bg-surface-container-high border border-outline-variant rounded-lg p-3">
-      <div className="text-[10px] font-mono text-secondary mb-0.5">Casella {num}</div>
-      <div className="text-xs text-secondary mb-1">{label}</div>
+      <div className="text-[10px] font-mono text-secondary-foreground mb-0.5">Casella {num}</div>
+      <div className="text-xs text-secondary-foreground mb-1">{label}</div>
       <div className="text-base font-semibold text-on-surface">{sign}{fmtEur(value)}</div>
     </div>
   );
@@ -94,7 +94,7 @@ export default function ModelsFiscalsPage() {
     <div className="space-y-5 max-w-4xl mx-auto">
       <div>
         <h2 className="text-2xl font-bold text-on-surface">{t('nav.models_fiscals', 'Models AEAT')}</h2>
-        <p className="text-sm text-secondary mt-1">
+        <p className="text-sm text-secondary-foreground mt-1">
           {t('models_fiscals.subtitle', 'Caselles per copiar a la seu electrònica o passar a la gestoria — cap d’aquests informes es presenta telemàticament des d’aquí.')}
         </p>
       </div>
@@ -140,13 +140,13 @@ export default function ModelsFiscalsPage() {
             {t('models_fiscals.130.reduccio_toggle', 'Aplicar reducció 5% (estimació directa simplificada)')}
           </label>
         )}
-        <span className="text-sm text-secondary">{MODELS.find(m => m.key === model)?.sub}</span>
+        <span className="text-sm text-secondary-foreground">{MODELS.find(m => m.key === model)?.sub}</span>
       </div>
 
       {model === '200' && (
         <div className="flex items-end gap-4 flex-wrap bg-surface-container-high border border-outline-variant rounded-xl p-4">
           <div>
-            <label className="block text-xs text-secondary mb-1">{t('models_fiscals.200.tipus_pct', 'Tipus impositiu *')}</label>
+            <label className="block text-xs text-secondary-foreground mb-1">{t('models_fiscals.200.tipus_pct', 'Tipus impositiu *')}</label>
             <select value={tipusPct} onChange={e => setTipusPct(e.target.value)}
               className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="">{t('models_fiscals.200.tipus_pct_choose', "— Tria'n un —")}</option>
@@ -155,7 +155,7 @@ export default function ModelsFiscalsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-secondary mb-1">{t('models_fiscals.200.pagaments_fraccionats', 'Pagaments fraccionats (202) ja satisfets')}</label>
+            <label className="block text-xs text-secondary-foreground mb-1">{t('models_fiscals.200.pagaments_fraccionats', 'Pagaments fraccionats (202) ja satisfets')}</label>
             <input type="number" step="0.01" value={pagamentsFraccionats} onChange={e => setPagamentsFraccionats(e.target.value)}
               className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
@@ -165,7 +165,7 @@ export default function ModelsFiscalsPage() {
       {model === '202' && (
         <div className="flex items-end gap-4 flex-wrap bg-surface-container-high border border-outline-variant rounded-xl p-4">
           <div>
-            <label className="block text-xs text-secondary mb-1">{t('models_fiscals.202.cuota_anterior', "Quota íntegra de l'exercici anterior *")}</label>
+            <label className="block text-xs text-secondary-foreground mb-1">{t('models_fiscals.202.cuota_anterior', "Quota íntegra de l'exercici anterior *")}</label>
             <input type="number" step="0.01" value={cuotaAnterior202} onChange={e => setCuotaAnterior202(e.target.value)}
               placeholder="0.00"
               className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-primary" />
@@ -174,9 +174,9 @@ export default function ModelsFiscalsPage() {
       )}
 
       {loading ? (
-        <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+        <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
       ) : !data ? (
-        <div className="p-12 text-center text-secondary text-sm">
+        <div className="p-12 text-center text-secondary-foreground text-sm">
           {model === '200' && !tipusPct ? t('models_fiscals.200.tria_tipus', 'Tria un tipus impositiu per calcular.')
             : model === '202' && !cuotaAnterior202 ? t('models_fiscals.202.introdueix_cuota', "Introdueix la quota de l'exercici anterior per calcular.")
             : t('iva.no_data', 'Sense dades')}
@@ -213,7 +213,7 @@ function Model303View({ data, t }) {
       )}
 
       <div>
-        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">{t('models_fiscals.303.repercutit', 'IVA repercutit')}</div>
+        <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-2">{t('models_fiscals.303.repercutit', 'IVA repercutit')}</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {data.repercutit_general && <Casella num="01-03" label={`General (${data.repercutit_general.pct}%)`} value={data.repercutit_general.cuota} sign="+" />}
           {data.repercutit_reduit && <Casella num="04-06" label={`Reduït (${data.repercutit_reduit.pct}%)`} value={data.repercutit_reduit.cuota} sign="+" />}
@@ -223,7 +223,7 @@ function Model303View({ data, t }) {
       </div>
 
       <div>
-        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">{t('models_fiscals.303.suportat', 'IVA suportat')}</div>
+        <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-2">{t('models_fiscals.303.suportat', 'IVA suportat')}</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <Casella num="28" label={t('models_fiscals.303.casella_28', 'Base corrent')} value={data.casella_28_base_corrent} sign="" />
           <Casella num="29" label={t('models_fiscals.303.casella_29', 'Quota corrent')} value={data.casella_29_cuota_corrent} sign="–" />
@@ -234,7 +234,7 @@ function Model303View({ data, t }) {
       </div>
 
       <div className={`rounded-xl p-4 border ${parseFloat(data.casella_64_resultat_liquidacio) >= 0 ? 'bg-orange-50 border-orange-200' : 'bg-emerald-50 border-emerald-200'}`}>
-        <div className="text-xs text-secondary mb-1">{t('models_fiscals.303.casella_64', 'Casella 64 · Resultat de la liquidació')}</div>
+        <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.303.casella_64', 'Casella 64 · Resultat de la liquidació')}</div>
         <div className="text-xl font-bold text-on-surface">{fmtEur(data.casella_64_resultat_liquidacio)}</div>
       </div>
 
@@ -248,7 +248,7 @@ function Model390View({ data, t }) {
     <div className="space-y-4">
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-surface-container-high text-xs text-secondary">
+          <thead className="bg-surface-container-high text-xs text-secondary-foreground">
             <tr>
               <th className="px-5 py-2 text-left font-medium">{t('models_fiscals.390.trimestre', 'Trimestre')}</th>
               <th className="px-5 py-2 text-right font-medium">{t('models_fiscals.303.casella_27', 'Quota meritada')}</th>
@@ -300,7 +300,7 @@ function Model130View({ data, t }) {
       )}
 
       <div>
-        <div className="text-xs font-semibold text-secondary uppercase tracking-wide mb-2">
+        <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-2">
           {t('models_fiscals.130.acumulat', "Acumulat des de l'1 de gener")}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -319,8 +319,8 @@ function Model130View({ data, t }) {
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="bg-surface-container-high border border-outline-variant rounded-lg p-3">
-          <div className="text-[10px] font-mono text-secondary mb-0.5">Casella 04</div>
-          <div className="text-xs text-secondary mb-1">{t('models_fiscals.130.casella_04', 'Percentatge')}</div>
+          <div className="text-[10px] font-mono text-secondary-foreground mb-0.5">Casella 04</div>
+          <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.130.casella_04', 'Percentatge')}</div>
           <div className="text-base font-semibold text-on-surface">{parseFloat(data.casella_04_pct).toFixed(0)}%</div>
         </div>
         <Casella num="05" label={t('models_fiscals.130.casella_05', 'Import (03 × 20%)')} value={data.casella_05_import} sign="+" />
@@ -328,7 +328,7 @@ function Model130View({ data, t }) {
       </div>
 
       <div className={`rounded-xl p-4 border ${parseFloat(data.resultat) > 0 ? 'bg-orange-50 border-orange-200' : 'bg-surface-container-high border-outline-variant'}`}>
-        <div className="text-xs text-secondary mb-1">{t('models_fiscals.130.resultat', 'Resultat · A ingressar aquest trimestre')}</div>
+        <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.130.resultat', 'Resultat · A ingressar aquest trimestre')}</div>
         <div className="text-xl font-bold text-on-surface">{fmtEur(data.resultat)}</div>
       </div>
 
@@ -360,7 +360,7 @@ function Model200View({ data, t }) {
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="bg-surface-container-high border border-outline-variant rounded-lg p-3">
-          <div className="text-xs text-secondary mb-1">{t('models_fiscals.200.tipus_pct', 'Tipus impositiu')}</div>
+          <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.200.tipus_pct', 'Tipus impositiu')}</div>
           <div className="text-base font-semibold text-on-surface">{parseFloat(data.tipus_pct).toFixed(0)}%</div>
         </div>
         <Casella num="—" label={t('models_fiscals.200.quota_integra', 'Quota íntegra')} value={data.quota_integra} sign="" />
@@ -368,7 +368,7 @@ function Model200View({ data, t }) {
       </div>
 
       <div className={`rounded-xl p-4 border ${parseFloat(data.resultat) >= 0 ? 'bg-orange-50 border-orange-200' : 'bg-emerald-50 border-emerald-200'}`}>
-        <div className="text-xs text-secondary mb-1">
+        <div className="text-xs text-secondary-foreground mb-1">
           {parseFloat(data.resultat) >= 0 ? t('models_fiscals.200.resultat_a_ingressar', 'Resultat · A ingressar') : t('models_fiscals.200.resultat_a_retornar', 'Resultat · A retornar')}
         </div>
         <div className="text-xl font-bold text-on-surface">{fmtEur(Math.abs(parseFloat(data.resultat)))}</div>
@@ -392,13 +392,13 @@ function Model202View({ data, t }) {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Casella num="—" label={t('models_fiscals.202.cuota_anterior', "Quota íntegra exercici anterior")} value={data.cuota_integra_exercici_anterior} sign="" />
         <div className="bg-surface-container-high border border-outline-variant rounded-lg p-3">
-          <div className="text-xs text-secondary mb-1">{t('models_fiscals.202.pct', 'Percentatge')}</div>
+          <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.202.pct', 'Percentatge')}</div>
           <div className="text-base font-semibold text-on-surface">{parseFloat(data.pct).toFixed(0)}%</div>
         </div>
       </div>
 
       <div className="rounded-xl p-4 border bg-orange-50 border-orange-200">
-        <div className="text-xs text-secondary mb-1">{t('models_fiscals.202.import', 'Import a ingressar')} · {data.periode_nom}</div>
+        <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.202.import', 'Import a ingressar')} · {data.periode_nom}</div>
         <div className="text-xl font-bold text-on-surface">{fmtEur(data.import_pagament)}</div>
       </div>
 
@@ -412,11 +412,11 @@ function ModelRetencioAnualView({ data, t }) {
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
-          <div className="text-xs text-secondary mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
+          <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
           <div className="text-xl font-bold text-on-surface">{data.num_perceptors}</div>
         </div>
         <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
-          <div className="text-xs text-secondary mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
+          <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
           <div className="text-xl font-bold text-on-surface">{fmtEur(data.base_total)}</div>
         </div>
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
@@ -427,7 +427,7 @@ function ModelRetencioAnualView({ data, t }) {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-surface-container-high text-xs text-secondary">
+          <thead className="bg-surface-container-high text-xs text-secondary-foreground">
             <tr>
               <th className="px-5 py-2 text-left font-medium">{t('models_fiscals.390.trimestre', 'Trimestre')}</th>
               <th className="px-5 py-2 text-right font-medium">{t('despeses.taxable_base', 'Base imposable')}</th>
@@ -445,13 +445,13 @@ function ModelRetencioAnualView({ data, t }) {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-secondary">
+      <p className="text-xs text-secondary-foreground">
         {t('models_fiscals.190_180.nota_trimestres', 'Els totals per trimestre poden sumar més que el total anual si un mateix proveïdor apareix en diversos trimestres — el nombre de perceptors de dalt és el recompte correcte, sobre tot l’any.')}
       </p>
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-surface-container-high text-xs text-secondary">
+          <thead className="bg-surface-container-high text-xs text-secondary-foreground">
             <tr>
               <th className="px-5 py-2 text-left font-medium">{t('nav.proveidors', 'Proveïdor')}</th>
               <th className="px-5 py-2 text-left font-medium">NIF</th>
@@ -461,11 +461,11 @@ function ModelRetencioAnualView({ data, t }) {
           </thead>
           <tbody className="divide-y divide-outline-variant">
             {data.desglossat.length === 0 ? (
-              <tr><td colSpan={4} className="px-5 py-4 text-secondary text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+              <tr><td colSpan={4} className="px-5 py-4 text-secondary-foreground text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
             ) : data.desglossat.map((d, i) => (
               <tr key={i} className="hover:bg-surface-container-high">
                 <td className="px-5 py-2.5 text-on-surface-variant">{d.nom}</td>
-                <td className="px-5 py-2.5 text-secondary font-mono text-xs">{d.nif || '—'}</td>
+                <td className="px-5 py-2.5 text-secondary-foreground font-mono text-xs">{d.nif || '—'}</td>
                 <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(d.base)}</td>
                 <td className="px-5 py-2.5 text-right font-medium text-orange-700">{fmtEur(d.retencio)}</td>
               </tr>
@@ -484,11 +484,11 @@ function ModelRetencioView({ data, t }) {
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
-          <div className="text-xs text-secondary mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
+          <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
           <div className="text-xl font-bold text-on-surface">{data.num_perceptors}</div>
         </div>
         <div className="bg-surface-container-high border border-outline-variant rounded-xl p-4">
-          <div className="text-xs text-secondary mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
+          <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
           <div className="text-xl font-bold text-on-surface">{fmtEur(data.base_total)}</div>
         </div>
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
@@ -499,7 +499,7 @@ function ModelRetencioView({ data, t }) {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-surface-container-high text-xs text-secondary">
+          <thead className="bg-surface-container-high text-xs text-secondary-foreground">
             <tr>
               <th className="px-5 py-2 text-left font-medium">{t('nav.proveidors', 'Proveïdor')}</th>
               <th className="px-5 py-2 text-left font-medium">NIF</th>
@@ -509,11 +509,11 @@ function ModelRetencioView({ data, t }) {
           </thead>
           <tbody className="divide-y divide-outline-variant">
             {data.desglossat.length === 0 ? (
-              <tr><td colSpan={4} className="px-5 py-4 text-secondary text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+              <tr><td colSpan={4} className="px-5 py-4 text-secondary-foreground text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
             ) : data.desglossat.map((d, i) => (
               <tr key={i} className="hover:bg-surface-container-high">
                 <td className="px-5 py-2.5 text-on-surface-variant">{d.nom}</td>
-                <td className="px-5 py-2.5 text-secondary font-mono text-xs">{d.nif || '—'}</td>
+                <td className="px-5 py-2.5 text-secondary-foreground font-mono text-xs">{d.nif || '—'}</td>
                 <td className="px-5 py-2.5 text-right text-on-surface-variant">{fmtEur(d.base)}</td>
                 <td className="px-5 py-2.5 text-right font-medium text-orange-700">{fmtEur(d.retencio)}</td>
               </tr>

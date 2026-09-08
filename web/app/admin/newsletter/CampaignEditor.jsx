@@ -159,19 +159,19 @@ export default function CampaignEditor({ initial = null }) {
               onChange={e => set('subject', e.target.value)}
               disabled={!isDraft}
               placeholder="Novetats de la setmana…"
-              className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary font-medium disabled:bg-surface-container-high disabled:text-secondary"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary font-medium disabled:bg-surface-container-high disabled:text-secondary-foreground"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-medium text-on-surface-variant">Contingut *</label>
-              <span className="text-xs text-secondary">{wordCount} paraules</span>
+              <span className="text-xs text-secondary-foreground">{wordCount} paraules</span>
             </div>
             {!isDraft ? (
               <div
                 className="blog-content min-h-[400px] bg-card border border-outline-variant rounded-xl p-5 overflow-auto"
-                dangerouslySetInnerHTML={{ __html: form.content_html || '<p class="text-secondary">Sense contingut…</p>' }}
+                dangerouslySetInnerHTML={{ __html: form.content_html || '<p class="text-secondary-foreground">Sense contingut…</p>' }}
               />
             ) : showHtml ? (
               <textarea
@@ -200,7 +200,7 @@ export default function CampaignEditor({ initial = null }) {
                     className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${
                       form.language === code
                         ? 'border-primary bg-surface-container-high text-on-surface font-medium'
-                        : 'border-outline-variant text-secondary hover:border-outline-variant'
+                        : 'border-outline-variant text-secondary-foreground hover:border-outline-variant'
                     }`}
                   >
                     {label}
@@ -229,7 +229,7 @@ export default function CampaignEditor({ initial = null }) {
                   style={{ width: `${((counts.enviat + counts.error) / total) * 100}%` }}
                 />
               </div>
-              <p className="text-xs text-secondary">
+              <p className="text-xs text-secondary-foreground">
                 {counts.enviat} enviats · {counts.pendent} pendents{counts.error > 0 ? ` · ${counts.error} errors` : ''}
               </p>
               {campaign.errors?.length > 0 && (

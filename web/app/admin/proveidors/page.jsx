@@ -71,17 +71,17 @@ export default function ProveidorsPage() {
     <div className="space-y-5 max-w-5xl mx-auto">
       <div>
         <h2 className="text-2xl font-bold text-on-surface">{t('nav.proveidors', 'Proveïdors')}</h2>
-        <p className="text-sm text-secondary mt-1">{t('proveidors.subtitle', 'Compte corrent per proveïdor — saldo pendent i historial de factures.')}</p>
+        <p className="text-sm text-secondary-foreground mt-1">{t('proveidors.subtitle', 'Compte corrent per proveïdor — saldo pendent i historial de factures.')}</p>
       </div>
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
         ) : llista.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('proveidors.empty', "Cap proveïdor donat d'alta")}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('proveidors.empty', "Cap proveïdor donat d'alta")}</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('nav.proveidors', 'Proveïdor')} sortKey="nom" sort={sort} onSort={toggleSort} />
@@ -95,13 +95,13 @@ export default function ProveidorsPage() {
                 return (
                   <>
                     <tr key={p.id} onClick={() => toggleExpand(p)} className="hover:bg-surface-container-high cursor-pointer transition-colors">
-                      <td className="px-4 py-3 text-secondary">
+                      <td className="px-4 py-3 text-secondary-foreground">
                         {expanded === p.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
                       </td>
                       <td className="px-4 py-3 font-medium text-on-surface">{p.name}</td>
                       <td className="px-4 py-3 text-right">
                         {total === 0 ? (
-                          <span className="text-secondary">{t('proveidors.up_to_date', 'Al dia')}</span>
+                          <span className="text-secondary-foreground">{t('proveidors.up_to_date', 'Al dia')}</span>
                         ) : (
                           <span className={`font-semibold ${s?.vencut ? 'text-red-600' : 'text-amber-600'}`}>
                             {s?.vencut > 0 && <MIcon name="error" size={12} className="inline mr-1 -mt-0.5" />}
@@ -114,12 +114,12 @@ export default function ProveidorsPage() {
                       <tr key={`${p.id}-exp`}>
                         <td colSpan={3} className="px-6 py-3 bg-surface-container-high/80 border-b border-outline-variant">
                           {!historial[p.id] ? (
-                            <div className="text-xs text-secondary py-2">{t('proveidors.loading_history', 'Carregant historial...')}</div>
+                            <div className="text-xs text-secondary-foreground py-2">{t('proveidors.loading_history', 'Carregant historial...')}</div>
                           ) : historial[p.id].length === 0 ? (
-                            <div className="text-xs text-secondary py-2">{t('proveidors.no_invoices', 'Cap factura registrada')}</div>
+                            <div className="text-xs text-secondary-foreground py-2">{t('proveidors.no_invoices', 'Cap factura registrada')}</div>
                           ) : (
                             <table className="w-full text-xs">
-                              <thead className="text-secondary">
+                              <thead className="text-secondary-foreground">
                                 <tr>
                                   <th className="text-left py-1 font-medium">{t('common.date', 'Data')}</th>
                                   <th className="text-left py-1 font-medium">{t('llibres.concept', 'Concepte')}</th>

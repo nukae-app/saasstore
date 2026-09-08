@@ -86,15 +86,15 @@ export default function ProveidorsPage() {
         className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : proveedores.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('purchases.no_suppliers')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('purchases.no_suppliers')}</div>
         ) : proveedoresFiltrats.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('purchases.no_supplier_match', 'Cap proveïdor coincideix amb la cerca.')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('purchases.no_supplier_match', 'Cap proveïdor coincideix amb la cerca.')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <SortableTh label={t('common.name')} sortKey="name" sort={provSort} onSort={toggleProvSort} />
                 <SortableTh label={t('common.type')} sortKey="type" sort={provSort} onSort={toggleProvSort}
@@ -110,12 +110,12 @@ export default function ProveidorsPage() {
               {proveedoresFiltrats.map(p => (
                 <tr key={p.id} onClick={() => setEditingProveedor(p)} className="hover:bg-surface-container-high cursor-pointer transition-colors">
                   <td className="px-5 py-3 font-medium">{p.name}</td>
-                  <td className="px-5 py-3 text-secondary">{p.type ?? '—'}</td>
-                  <td className="px-5 py-3 text-secondary">{p.nif ?? '—'}</td>
-                  <td className="px-5 py-3 text-secondary">{p.email ?? '—'}</td>
-                  <td className="px-5 py-3 text-secondary">{p.phone ?? '—'}</td>
+                  <td className="px-5 py-3 text-secondary-foreground">{p.type ?? '—'}</td>
+                  <td className="px-5 py-3 text-secondary-foreground">{p.nif ?? '—'}</td>
+                  <td className="px-5 py-3 text-secondary-foreground">{p.email ?? '—'}</td>
+                  <td className="px-5 py-3 text-secondary-foreground">{p.phone ?? '—'}</td>
                   <td className="px-5 py-3 text-center">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${p.active ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-container-high text-secondary'}`}>
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${p.active ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-container-high text-secondary-foreground'}`}>
                       {p.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </span>
                   </td>
@@ -188,7 +188,7 @@ function ProveedorModal({ proveedor, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="font-bold text-on-surface">{isEdit ? t('purchases.supplier_modal.edit_title', 'Editar proveïdor') : t('purchases.new_supplier')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">

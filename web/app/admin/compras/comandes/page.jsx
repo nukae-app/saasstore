@@ -156,12 +156,12 @@ export default function ComandesPage() {
           className="flex-1 min-w-[260px] border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         <input type="date" value={filters.desde} onChange={e => setFilters(f => ({ ...f, desde: e.target.value }))}
           className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary" />
-        <span className="text-secondary text-sm">–</span>
+        <span className="text-secondary-foreground text-sm">–</span>
         <input type="date" value={filters.hasta} onChange={e => setFilters(f => ({ ...f, hasta: e.target.value }))}
           className="border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary" />
         {hasFilters && (
           <button onClick={() => setFilters({ q: '', desde: '', hasta: '' })}
-            className="text-xs text-secondary hover:text-on-surface-variant px-1">
+            className="text-xs text-secondary-foreground hover:text-on-surface-variant px-1">
             {t('common.clear', 'Netejar')}
           </button>
         )}
@@ -169,15 +169,15 @@ export default function ComandesPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : comandasSorted.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">
+          <div className="p-12 text-center text-secondary-foreground text-sm">
             {hasFilters ? t('purchases.order.no_results_filtered', 'Cap resultat amb aquests filtres.') : t('purchases.order.no_orders', 'Encara no hi ha comandes ni compres.')}
           </div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('common.date')} sortKey="fecha" sort={sort} onSort={toggleSort} />
@@ -229,13 +229,13 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
     <>
       <tr onClick={() => setExpanded(expanded === c.id ? null : c.id)}
         className="hover:bg-surface-container-high cursor-pointer transition-colors">
-        <td className="px-4 py-3 text-secondary">
+        <td className="px-4 py-3 text-secondary-foreground">
           {expanded === c.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
         </td>
-        <td className="px-4 py-3 text-secondary">{new Date(c.date).toLocaleDateString()}</td>
+        <td className="px-4 py-3 text-secondary-foreground">{new Date(c.date).toLocaleDateString()}</td>
         <td className="px-4 py-3 font-medium">
           {c.proveedor_nombre}
-          {c.order_number && <span className="text-secondary font-normal ml-1.5 text-xs">{c.order_number}</span>}
+          {c.order_number && <span className="text-secondary-foreground font-normal ml-1.5 text-xs">{c.order_number}</span>}
         </td>
         <td className="px-4 py-3 text-center">
           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-surface-container-high text-on-surface-variant">
@@ -250,7 +250,7 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
         <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-end gap-1.5">
             <button onClick={() => downloadPdf(c)} title={t('purchases.action.download_pdf', 'Descarregar PDF')}
-              className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high">
+              className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high">
               <MIcon name="newspaper" size={14} />
             </button>
             {c.status === 'esborrany' && (
@@ -261,7 +261,7 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
             )}
             {c.status === 'esborrany' && (
               <button onClick={() => marcarEnviada(c)} disabled={busyId === c.id + '_marcar'} title={t('purchases.action.mark_sent', 'Marcar com a enviada (manual)')}
-                className="p-1.5 text-secondary hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high disabled:opacity-50">
+                className="p-1.5 text-secondary-foreground hover:text-on-surface-variant rounded-lg hover:bg-surface-container-high disabled:opacity-50">
                 {busyId === c.id + '_marcar' ? <MIcon name="progress_activity" size={14} className="animate-spin" /> : <MIcon name="send" size={14} className="opacity-50" />}
               </button>
             )}
@@ -273,13 +273,13 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
             )}
             {c.status !== 'rebuda' && c.status !== 'cancelada' && (
               <button onClick={() => cancelar(c)} disabled={busyId === c.id + '_cancelar'} title={t('common.cancel')}
-                className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
                 <MIcon name="block" size={14} />
               </button>
             )}
             {c.status === 'esborrany' && (
               <button onClick={() => eliminar(c)} disabled={busyId === c.id + '_eliminar'} title={t('catalog.delete')}
-                className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
                 <MIcon name="delete" size={14} />
               </button>
             )}
@@ -293,34 +293,34 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
               {(c.lineas ?? []).map(l => (
                 <div key={l.id} className="flex items-center gap-4 text-sm flex-wrap">
                   <span className="font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
-                  <span className="text-secondary">{l.received_quantity}/{l.quantity} {t('purchases.received_suffix', 'rebudes')}</span>
+                  <span className="text-secondary-foreground">{l.received_quantity}/{l.quantity} {t('purchases.received_suffix', 'rebudes')}</span>
                   {l.estimated_unit_price && (
-                    <span className="text-secondary">{t('purchases.est_price', 'Preu est.')}: {l.estimated_unit_price} €</span>
+                    <span className="text-secondary-foreground">{t('purchases.est_price', 'Preu est.')}: {l.estimated_unit_price} €</span>
                   )}
                 </div>
               ))}
             </div>
             {recepcions.length > 0 && (
               <div className="mt-3 pt-3 border-t border-blue-100 space-y-1">
-                <div className="text-xs font-semibold text-secondary uppercase tracking-wide">
+                <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide">
                   {t('purchases.receptions', 'Recepcions')} ({recepcions.length})
                 </div>
                 {recepcions.map(r => (
                   <div key={r.id} className="flex items-center gap-3 text-sm flex-wrap">
-                    <span className="text-secondary">{new Date(r.date).toLocaleDateString()}</span>
-                    <span className="text-secondary">{r.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${r.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}</span>
-                    <span className="text-secondary">· {r.items?.length ?? 0} {t('purchases.copies', 'exemplars')}</span>
+                    <span className="text-secondary-foreground">{new Date(r.date).toLocaleDateString()}</span>
+                    <span className="text-secondary-foreground">{r.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${r.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}</span>
+                    <span className="text-secondary-foreground">· {r.items?.length ?? 0} {t('purchases.copies', 'exemplars')}</span>
                     {r.despesa_estat ? (
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${DESPESA_ESTAT_COLOR[r.despesa_estat] ?? ''}`}>
                         {t('purchases.col.invoice')} {despesaEstatLabel(t, r.despesa_estat)}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary">
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary-foreground">
                         {t('purchases.not_invoiced', 'Sense facturar')}
                       </span>
                     )}
                     <button onClick={() => downloadRecepcioPdf(r)} title={t('purchases.action.download_reception_list', 'Descarregar llista de recepció (per etiquetes de preu)')}
-                      className="p-1 text-secondary hover:text-on-surface-variant rounded hover:bg-surface-container-high">
+                      className="p-1 text-secondary-foreground hover:text-on-surface-variant rounded hover:bg-surface-container-high">
                       <MIcon name="newspaper" size={13} />
                     </button>
                   </div>
@@ -438,7 +438,7 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('purchases.btn.new_order', 'Nova comanda')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
@@ -462,7 +462,7 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
                 className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
-          <p className="text-xs text-secondary">{t('purchases.order_modal.auto_number_hint', 'El número de comanda es genera automàticament en crear-la.')}</p>
+          <p className="text-xs text-secondary-foreground">{t('purchases.order_modal.auto_number_hint', 'El número de comanda es genera automàticament en crear-la.')}</p>
 
           <div className="border border-outline-variant rounded-xl p-4 space-y-3">
             <div className="text-sm font-semibold text-on-surface-variant">{t('purchases.order_modal.records_requested', 'Discos demanats')}</div>
@@ -482,7 +482,7 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
                 {t('purchases.order_modal.import_csv', 'Importar CSV')}
               </button>
               <button type="button" onClick={handleDownloadTemplate}
-                className="flex items-center gap-1 text-xs text-secondary hover:text-on-surface-variant">
+                className="flex items-center gap-1 text-xs text-secondary-foreground hover:text-on-surface-variant">
                 <MIcon name="download" size={12} /> {t('purchases.order_modal.template', 'Plantilla')}
               </button>
               <input ref={csvInputRef} type="file" accept=".csv" className="hidden"
@@ -525,7 +525,7 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
             )}
 
             {lineas.length === 0 && (
-              <div className="text-sm text-secondary text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
+              <div className="text-sm text-secondary-foreground text-center py-4">{t('purchases.individual_modal.no_items', 'Encara no has afegit cap disc.')}</div>
             )}
 
             <div className="space-y-2">
@@ -535,24 +535,24 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
                       {l.existing && (
-                        <span className="text-[10px] uppercase tracking-wide text-secondary bg-surface-container-high rounded-full px-2 py-0.5">
+                        <span className="text-[10px] uppercase tracking-wide text-secondary-foreground bg-surface-container-high rounded-full px-2 py-0.5">
                           {t('purchases.modal.already_in_catalog', 'Ja al catàleg')}
                         </span>
                       )}
                     </div>
                     <button type="button" onClick={() => setLineas(p => p.filter((_, i) => i !== idx))}
-                      className="text-secondary hover:text-red-500 transition-colors">
+                      className="text-secondary-foreground hover:text-red-500 transition-colors">
                       <MIcon name="delete" size={15} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <div>
-                      <label className="block text-xs text-secondary mb-1">{t('purchases.quantity', 'Quantitat')}</label>
+                      <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.quantity', 'Quantitat')}</label>
                       <input type="number" min="1" step="1" value={l.cantidad} onChange={e => upd(idx, 'cantidad', e.target.value)} required
                         className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                     <div>
-                      <label className="block text-xs text-secondary mb-1">{t('purchases.order_modal.estimated_unit_price', 'Preu unitari estimat')}</label>
+                      <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.order_modal.estimated_unit_price', 'Preu unitari estimat')}</label>
                       <input type="number" step="0.01" min="0" value={l.precio_unitario_estimado} onChange={e => upd(idx, 'precio_unitario_estimado', e.target.value)}
                         className="w-28 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
@@ -689,7 +689,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('purchases.reception_modal.title', 'Registrar recepció')} — {comanda.proveedor_nombre}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
@@ -701,14 +701,14 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-on-surface-variant mb-1">
-                {t('purchases.reception_modal.albaran_num', 'Núm. albarà')} <span className="text-secondary font-normal">{t('common.optional', '(opcional)')}</span>
+                {t('purchases.reception_modal.albaran_num', 'Núm. albarà')} <span className="text-secondary-foreground font-normal">{t('common.optional', '(opcional)')}</span>
               </label>
               <input value={numAlbaran} onChange={e => setNumAlbaran(e.target.value)}
                 placeholder={t('purchases.reception_modal.albaran_ph', 'Referència del proveïdor, no és la factura')}
                 className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
-          <p className="text-xs text-secondary -mt-2">
+          <p className="text-xs text-secondary-foreground -mt-2">
             {t('purchases.reception_modal.invoice_hint', 'La factura es registra a part un cop arribi, des de "Facturar recepcions" — pot agrupar diverses recepcions.')}
           </p>
 
@@ -720,12 +720,12 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                 <div key={linea.id} className="border border-outline-variant rounded-xl p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-on-surface">{linea.artista} — {linea.titulo}</span>
-                    <span className="text-xs text-secondary">{unitatsLinea(copias)}/{pendent} {t('purchases.pending', 'pendents')}</span>
+                    <span className="text-xs text-secondary-foreground">{unitatsLinea(copias)}/{pendent} {t('purchases.pending', 'pendents')}</span>
                   </div>
                   {copias.map((c, idx) => (
                     <div key={idx} className="flex flex-wrap items-end gap-3 p-2 bg-surface-container-high rounded-lg">
                       <div>
-                        <label className="block text-xs text-secondary mb-1">{t('common.condition')}</label>
+                        <label className="block text-xs text-secondary-foreground mb-1">{t('common.condition')}</label>
                         <select value={c.condicion} onChange={e => updCopia(linea.id, idx, 'condicion', e.target.value)}
                           className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                           <option value="nou">{t('common.condition.new')}</option>
@@ -734,7 +734,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                       </div>
                       {c.condicion === 'nou' && (
                         <div>
-                          <label className="block text-xs text-secondary mb-1">{t('purchases.reception_modal.units', 'Unitats')}</label>
+                          <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.reception_modal.units', 'Unitats')}</label>
                           <input type="number" step="1" min="1" max={pendent - unitatsLinea(copias.filter((_, i) => i !== idx))}
                             value={c.cantidad} onChange={e => updCopia(linea.id, idx, 'cantidad', e.target.value)}
                             title={t('purchases.reception_modal.units_hint', 'Aquesta entrada representa vàries unitats idèntiques (mateix cost i preu)')}
@@ -742,19 +742,19 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                         </div>
                       )}
                       <div>
-                        <label className="block text-xs text-secondary mb-1">{t('purchases.cost_short', 'Cost')} {c.condicion === 'nou' ? t('purchases.reception_modal.per_unit', '(per unitat)') : ''}</label>
+                        <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.cost_short', 'Cost')} {c.condicion === 'nou' ? t('purchases.reception_modal.per_unit', '(per unitat)') : ''}</label>
                         <input type="number" step="0.01" min="0" value={c.coste_adquisicion} onChange={e => updCopia(linea.id, idx, 'coste_adquisicion', e.target.value)}
                           className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                       </div>
                       <div>
-                        <label className="block text-xs text-secondary mb-1">{t('purchases.reception_modal.sale_price', 'Preu venda')}</label>
+                        <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.reception_modal.sale_price', 'Preu venda')}</label>
                         <div className="flex gap-1">
                           <input type="number" step="0.01" min="0" value={c.precio} onChange={e => updCopia(linea.id, idx, 'precio', e.target.value)} required
                             className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                           <button type="button" onClick={() => calcularPreu(linea.id, idx, c)}
                             disabled={!defectesPreu[c.condicion] || !c.coste_adquisicion}
                             title={t('purchases.reception_modal.calculate_hint', 'Calcula el preu a partir del cost + marge i IVA per defecte')}
-                            className="text-xs text-secondary hover:text-on-surface-variant border border-outline-variant rounded-lg px-2 disabled:opacity-30">
+                            className="text-xs text-secondary-foreground hover:text-on-surface-variant border border-outline-variant rounded-lg px-2 disabled:opacity-30">
                             {t('purchases.reception_modal.calculate', 'Calcular')}
                           </button>
                         </div>
@@ -762,7 +762,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                           const desglos = desglossPreu(c);
                           if (!desglos) return null;
                           return (
-                            <div className="text-[10px] text-secondary mt-0.5 whitespace-nowrap">
+                            <div className="text-[10px] text-secondary-foreground mt-0.5 whitespace-nowrap">
                               {t('purchases.margin_capitalized', 'Marge')} {desglos.importMarge.toFixed(2)}€ · IVA {desglos.importIva.toFixed(2)}€
                             </div>
                           );
@@ -770,7 +770,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                       </div>
                       {c.condicion === 'segona_ma' && vertical === 'records' && <>
                         <div>
-                          <label className="block text-xs text-secondary mb-1">{t('purchases.grading.disc', 'Grading disc')}</label>
+                          <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.grading.disc', 'Grading disc')}</label>
                           <select value={c.estado_disco} onChange={e => updCopia(linea.id, idx, 'estado_disco', e.target.value)}
                             className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                             <option value="">—</option>
@@ -778,7 +778,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs text-secondary mb-1">{t('purchases.grading.sleeve', 'Grading funda')}</label>
+                          <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.grading.sleeve', 'Grading funda')}</label>
                           <select value={c.estado_funda} onChange={e => updCopia(linea.id, idx, 'estado_funda', e.target.value)}
                             className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
                             <option value="">—</option>
@@ -787,7 +787,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                         </div>
                       </>}
                       <button type="button" onClick={() => removeCopia(linea.id, idx)}
-                        className="text-secondary hover:text-red-500 transition-colors pb-1.5">
+                        className="text-secondary-foreground hover:text-red-500 transition-colors pb-1.5">
                         <MIcon name="delete" size={15} />
                       </button>
                     </div>
@@ -875,7 +875,7 @@ function FacturarRecepcionsModal({ proveedores, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('purchases.btn.invoice_receptions', 'Facturar recepcions')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
@@ -889,9 +889,9 @@ function FacturarRecepcionsModal({ proveedores, onClose, onSaved }) {
           </div>
 
           {loadingCompras ? (
-            <div className="text-sm text-secondary text-center py-4">{t('purchases.invoice_modal.loading_receptions', 'Carregant recepcions...')}</div>
+            <div className="text-sm text-secondary-foreground text-center py-4">{t('purchases.invoice_modal.loading_receptions', 'Carregant recepcions...')}</div>
           ) : proveedorId && compras.length === 0 ? (
-            <div className="text-sm text-secondary text-center py-4">{t('purchases.invoice_modal.no_pending_receptions', 'Aquest proveïdor no té recepcions pendents de facturar.')}</div>
+            <div className="text-sm text-secondary-foreground text-center py-4">{t('purchases.invoice_modal.no_pending_receptions', 'Aquest proveïdor no té recepcions pendents de facturar.')}</div>
           ) : compras.length > 0 && (
             <div className="border border-outline-variant rounded-xl divide-y divide-outline-variant">
               {compras.map(c => (
@@ -899,9 +899,9 @@ function FacturarRecepcionsModal({ proveedores, onClose, onSaved }) {
                   <input type="checkbox" checked={!!selected[c.id]}
                     onChange={e => setSelected(prev => ({ ...prev, [c.id]: e.target.checked }))}
                     className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
-                  <span className="text-secondary">{new Date(c.date).toLocaleDateString()}</span>
-                  <span className="text-secondary">{c.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${c.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}</span>
-                  <span className="text-secondary">· {c.items?.length ?? 0} {t('purchases.copies', 'exemplars')}</span>
+                  <span className="text-secondary-foreground">{new Date(c.date).toLocaleDateString()}</span>
+                  <span className="text-secondary-foreground">{c.delivery_note_number ? `${t('purchases.albaran', 'Albarà')} ${c.delivery_note_number}` : t('purchases.no_albaran', 'Sense núm. albarà')}</span>
+                  <span className="text-secondary-foreground">· {c.items?.length ?? 0} {t('purchases.copies', 'exemplars')}</span>
                   <span className="ml-auto font-medium text-on-surface">{costCompra(c).toFixed(2)} €</span>
                 </label>
               ))}
@@ -928,7 +928,7 @@ function FacturarRecepcionsModal({ proveedores, onClose, onSaved }) {
                   className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div className="flex items-center justify-between text-sm bg-surface-container-high rounded-lg px-4 py-2.5">
-                <span className="text-secondary">{t('purchases.resum.total', 'Total')} ({compraIds.length} {t('purchases.receptions', 'Recepcions').toLowerCase()})</span>
+                <span className="text-secondary-foreground">{t('purchases.resum.total', 'Total')} ({compraIds.length} {t('purchases.receptions', 'Recepcions').toLowerCase()})</span>
                 <span className="font-semibold text-on-surface">{total.toFixed(2)} €</span>
               </div>
             </>

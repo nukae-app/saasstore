@@ -27,7 +27,7 @@ const STATUS_COLOR = {
   pagado:         'bg-blue-100 text-blue-700',
   enviado:        'bg-purple-100 text-purple-700',
   entregado:      'bg-green-100 text-green-700',
-  cancelado:      'bg-surface-container-high text-secondary',
+  cancelado:      'bg-surface-container-high text-secondary-foreground',
 };
 const STATUS_KEY = {
   pendiente_pago: 'order.status.pending',
@@ -39,7 +39,7 @@ const STATUS_KEY = {
 // Un pedido puede tener varios intentos de pago Redsys (p. ej. uno denegado
 // y luego un reintento autorizado): se listan todos, más reciente primero.
 const PAYMENT_STATUS_COLOR = {
-  creado:     'bg-surface-container-high text-secondary',
+  creado:     'bg-surface-container-high text-secondary-foreground',
   autorizado: 'bg-green-100 text-green-700',
   denegado:   'bg-red-100 text-red-700',
   error:      'bg-amber-100 text-amber-700',
@@ -204,7 +204,7 @@ export default function VendesWebPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-on-surface">{t('orders.title')}</h2>
         <div className="flex items-center gap-3">
-          {syncMsg && <span className="text-xs text-secondary">{syncMsg}</span>}
+          {syncMsg && <span className="text-xs text-secondary-foreground">{syncMsg}</span>}
           <Button variant="secondary" size="sm" onClick={syncDiscogs} disabled={syncing}>
             <MIcon name="refresh" size={14} className={syncing ? 'animate-spin' : ''} />
             {syncing ? t('orders.sync.loading', 'Sincronitzant...') : t('orders.sync.btn', 'Sincronitzar amb Discogs')}
@@ -224,7 +224,7 @@ export default function VendesWebPage() {
       {tab !== TAB_RECOLLIDA && (
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[220px]">
-            <MIcon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
+            <MIcon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-foreground" />
             <input value={q} onChange={e => setQ(e.target.value)}
               placeholder={t('orders.search_ph', 'Cerca per email, disc o comanda de Discogs...')}
               className="w-full pl-9 pr-4 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card" />
@@ -251,7 +251,7 @@ export default function VendesWebPage() {
           {(q || metodoEnvioFilter || metodoPagoFilter || origenFilter) && (
             <button
               onClick={() => { setQ(''); setMetodoEnvioFilter(''); setMetodoPagoFilter(''); setOrigenFilter(''); }}
-              className="text-xs text-secondary hover:text-on-surface font-medium px-2">
+              className="text-xs text-secondary-foreground hover:text-on-surface font-medium px-2">
               {t('orders.clear_filters', 'Netejar filtres')}
             </button>
           )}
@@ -268,13 +268,13 @@ export default function VendesWebPage() {
       ) : (
         <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
           {loading ? (
-            <div className="p-12 text-center text-secondary text-sm">{t('orders.loading')}</div>
+            <div className="p-12 text-center text-secondary-foreground text-sm">{t('orders.loading')}</div>
           ) : orders.length === 0 ? (
-            <div className="p-12 text-center text-secondary text-sm">{t('orders.no_results')}</div>
+            <div className="p-12 text-center text-secondary-foreground text-sm">{t('orders.no_results')}</div>
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                 <tr>
                   <SortableTh label={t('orders.col.date')} sortKey="created_at" sort={ordersSort} onSort={toggleOrdersSort} />
                   <SortableTh label={t('orders.col.email')} sortKey="email" sort={ordersSort} onSort={toggleOrdersSort} />
@@ -287,9 +287,9 @@ export default function VendesWebPage() {
               <tbody className="divide-y divide-outline-variant">
                 {ordersSorted.map(o => (
                   <tr key={o.id} className="hover:bg-surface-container-high transition-colors">
-                    <td className="px-5 py-3 text-secondary">{new Date(o.created_at).toLocaleDateString()}</td>
+                    <td className="px-5 py-3 text-secondary-foreground">{new Date(o.created_at).toLocaleDateString()}</td>
                     <td className="px-5 py-3 font-medium">{o.email}</td>
-                    <td className="px-5 py-3 text-secondary">
+                    <td className="px-5 py-3 text-secondary-foreground">
                       {o.metodo_envio === 'recogida_tienda' ? t('orders.shipping.pickup') : t('orders.shipping.delivery')}
                     </td>
                     <td className="px-5 py-3 text-right font-semibold">{o.total} €</td>
@@ -339,7 +339,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
   const t = useT();
   if (loading) {
     return (
-      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-12 text-center text-secondary text-sm">
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-12 text-center text-secondary-foreground text-sm">
         {t('common.loading')}
       </div>
     );
@@ -349,8 +349,8 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
 
   if (orders.length === 0 && reservesBotiga.length === 0 && ordersTiendaPendents.length === 0) {
     return (
-      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-12 text-center text-secondary text-sm">
-        <MIcon name="storefront" size={28} className="text-secondary mx-auto mb-3" />
+      <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-12 text-center text-secondary-foreground text-sm">
+        <MIcon name="storefront" size={28} className="text-secondary-foreground mx-auto mb-3" />
         {t('orders.pickup.no_pending', 'Cap disc pendent de recollir a botiga.')}
       </div>
     );
@@ -360,7 +360,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
     <div className="space-y-4">
       {llestes.length > 0 && (
         <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-          <div className="px-5 py-3 bg-surface-container-high text-xs font-semibold text-secondary uppercase tracking-wide border-b border-outline-variant">
+          <div className="px-5 py-3 bg-surface-container-high text-xs font-semibold text-secondary-foreground uppercase tracking-wide border-b border-outline-variant">
             {t('orders.pickup.paid_waiting_client', 'Comandes web pagades, esperant que el client vingui')}
           </div>
           <div className="divide-y divide-outline-variant">
@@ -368,7 +368,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
               <div key={o.id} className="flex items-center gap-4 px-5 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-on-surface">{o.email}</p>
-                  <p className="text-xs text-secondary">{new Date(o.created_at).toLocaleDateString()}</p>
+                  <p className="text-xs text-secondary-foreground">{new Date(o.created_at).toLocaleDateString()}</p>
                 </div>
                 <span className="font-semibold text-on-surface shrink-0">{o.total} €</span>
                 <button onClick={() => onMarcarRecollit(o)} disabled={updating}
@@ -383,7 +383,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
 
       {esperantExemplar.length > 0 && (
         <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-          <div className="px-5 py-3 bg-surface-container-high text-xs font-semibold text-secondary uppercase tracking-wide border-b border-outline-variant">
+          <div className="px-5 py-3 bg-surface-container-high text-xs font-semibold text-secondary-foreground uppercase tracking-wide border-b border-outline-variant">
             {t('orders.pickup.paid_waiting_supplier', "Ja pagades, esperant que arribi l'exemplar del proveïdor")}
           </div>
           <div className="divide-y divide-outline-variant">
@@ -391,7 +391,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
               <div key={o.id} className="flex items-center gap-4 px-5 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-on-surface">{o.email}</p>
-                  <p className="text-xs text-secondary">{new Date(o.created_at).toLocaleDateString()}</p>
+                  <p className="text-xs text-secondary-foreground">{new Date(o.created_at).toLocaleDateString()}</p>
                 </div>
                 <span className="font-semibold text-on-surface shrink-0">{o.total} €</span>
                 <Link href="/admin/peticions"
@@ -406,7 +406,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
 
       {ordersTiendaPendents.length > 0 && (
         <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-          <div className="px-5 py-3 bg-surface-container-high text-xs font-semibold text-secondary uppercase tracking-wide border-b border-outline-variant">
+          <div className="px-5 py-3 bg-surface-container-high text-xs font-semibold text-secondary-foreground uppercase tracking-wide border-b border-outline-variant">
             {t('orders.pickup.reserved_orders', 'Comandes web reservades, pendents de pagar i recollir (72h)')}
           </div>
           <div className="divide-y divide-outline-variant">
@@ -418,7 +418,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
                     <p className="text-sm font-medium text-on-surface truncate">
                       {o.items.map(it => `${it.artista} — ${it.titulo}`).join(', ')}
                     </p>
-                    <p className="text-xs text-secondary truncate">{o.email}</p>
+                    <p className="text-xs text-secondary-foreground truncate">{o.email}</p>
                   </div>
                   {restant && (
                     <span className="flex items-center gap-1 text-xs text-red-500 shrink-0"><MIcon name="schedule" size={11} /> {restant}</span>
@@ -437,7 +437,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
 
       {reservesBotiga.length > 0 && (
         <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-          <div className="px-5 py-3 bg-surface-container-high text-xs font-semibold text-secondary uppercase tracking-wide border-b border-outline-variant">
+          <div className="px-5 py-3 bg-surface-container-high text-xs font-semibold text-secondary-foreground uppercase tracking-wide border-b border-outline-variant">
             {t('orders.pickup.reserved_requests', 'Peticions reservades, pendents de pagar i recollir (72h)')}
           </div>
           <div className="divide-y divide-outline-variant">
@@ -447,7 +447,7 @@ function RecollidaBotigaTab({ orders, reservesBotiga, ordersTiendaPendents, load
                 <div key={r.peticion_id} className="flex items-center gap-4 px-5 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-on-surface truncate">{r.artista} — {r.titulo}</p>
-                    <p className="text-xs text-secondary truncate">{r.user_nombre || r.user_email}</p>
+                    <p className="text-xs text-secondary-foreground truncate">{r.user_nombre || r.user_email}</p>
                   </div>
                   {restant && (
                     <span className="flex items-center gap-1 text-xs text-red-500 shrink-0"><MIcon name="schedule" size={11} /> {restant}</span>
@@ -515,7 +515,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="font-bold text-on-surface">{t('orders.detail.order')} #{order.id?.slice(0, 8)}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <div className="p-6 space-y-5">
@@ -544,7 +544,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
             {order.numero_seguiment && (
               <InfoBlock label={t('orders.detail.tracking')} value={
                 <span className="inline-flex items-center gap-1.5">
-                  <MIcon name="local_shipping" size={14} className="text-secondary" />
+                  <MIcon name="local_shipping" size={14} className="text-secondary-foreground" />
                   {order.numero_seguiment}{order.transportista ? ` · ${order.transportista}` : ''}
                 </span>
               } />
@@ -582,16 +582,16 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
 
           {order.metodo_pago === 'redsys' && order.payments?.length > 0 && (
             <div className="shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] rounded-xl overflow-hidden">
-              <div className="px-4 py-2.5 bg-surface-container-high text-xs font-semibold text-secondary uppercase tracking-wide border-b border-outline-variant flex items-center gap-1.5">
+              <div className="px-4 py-2.5 bg-surface-container-high text-xs font-semibold text-secondary-foreground uppercase tracking-wide border-b border-outline-variant flex items-center gap-1.5">
                 <MIcon name="credit_card" size={13} /> {t('orders.detail.redsys_payment', 'Pagament Redsys')}
               </div>
               <div className="divide-y divide-outline-variant">
                 {order.payments.map(p => (
                   <div key={p.id} className="flex items-center justify-between px-4 py-2.5 gap-3 text-sm">
                     <div className="min-w-0">
-                      <div className="font-mono text-xs text-secondary">Ds_Order {p.ds_order}</div>
+                      <div className="font-mono text-xs text-secondary-foreground">Ds_Order {p.ds_order}</div>
                       {p.ds_authorisation_code && (
-                        <div className="text-xs text-secondary">{t('orders.detail.authorization', 'Autorització')} {p.ds_authorisation_code}</div>
+                        <div className="text-xs text-secondary-foreground">{t('orders.detail.authorization', 'Autorització')} {p.ds_authorisation_code}</div>
                       )}
                     </div>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${PAYMENT_STATUS_COLOR[p.estado] ?? 'bg-surface-container-high text-on-surface-variant'}`}>
@@ -606,7 +606,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
           {/* Items amb opció de devolució */}
           {(order.items?.length > 0) && (
             <div className="shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] rounded-xl overflow-hidden">
-              <div className="px-4 py-2.5 bg-surface-container-high text-xs font-semibold text-secondary uppercase tracking-wide border-b border-outline-variant">
+              <div className="px-4 py-2.5 bg-surface-container-high text-xs font-semibold text-secondary-foreground uppercase tracking-wide border-b border-outline-variant">
                 {t('return.items_title')}
               </div>
               <div className="divide-y divide-outline-variant">
@@ -614,14 +614,14 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
                   <div key={it.order_item_id} className="flex items-center justify-between px-4 py-3 gap-3">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-on-surface truncate">{it.artista} — {it.titulo}</div>
-                      <div className="text-xs text-secondary">{it.precio} € {it.estado_disco ? `· ${it.estado_disco}` : ''}</div>
+                      <div className="text-xs text-secondary-foreground">{it.precio} € {it.estado_disco ? `· ${it.estado_disco}` : ''}</div>
                     </div>
                     {it.pendent_arribada ? (
                       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 shrink-0">
                         {t('orders.detail.pending_arrival', "Pendent d'arribar")}
                       </span>
                     ) : it.devuelto ? (
-                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-surface-container-high text-secondary shrink-0">
+                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-surface-container-high text-secondary-foreground shrink-0">
                         {t('return.returned')}
                       </span>
                     ) : canReturn ? (
@@ -640,7 +640,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
 
           {order.notas && (
             <div className="p-3 bg-surface-container-high rounded-xl text-sm text-on-surface-variant">
-              <div className="text-xs text-secondary mb-1 font-medium">{t('common.notes')}</div>
+              <div className="text-xs text-secondary-foreground mb-1 font-medium">{t('common.notes')}</div>
               {order.notas}
             </div>
           )}
@@ -675,7 +675,7 @@ function OrderDetail({ order, shopConfig, onClose, onUpdate, onAvisarRecollida, 
             />
           ) : available.length > 0 && (
             <div className="border-t border-outline-variant pt-4">
-              <div className="text-xs text-secondary mb-2 font-medium">{t('orders.detail.change')}</div>
+              <div className="text-xs text-secondary-foreground mb-2 font-medium">{t('orders.detail.change')}</div>
               <div className="flex gap-2 flex-wrap">
                 {available.map(s => (
                   <Button key={s} variant={s === 'cancelado' ? 'danger' : 'default'} size="sm"
@@ -784,7 +784,7 @@ function MetodeEditor({ order, onCancel, onConfirm, updating }) {
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
         <Button size="sm" disabled={updating} onClick={confirm}>{t('orders.detail.confirm', 'Confirmar')}</Button>
-        <button onClick={onCancel} className="text-sm px-3 py-1.5 text-secondary hover:text-on-surface-variant">{t('common.cancel')}</button>
+        <button onClick={onCancel} className="text-sm px-3 py-1.5 text-secondary-foreground hover:text-on-surface-variant">{t('common.cancel')}</button>
       </div>
     </div>
   );
@@ -797,7 +797,7 @@ function ShipForm({ order, onCancel, onConfirm, updating }) {
 
   return (
     <div className="border-t border-outline-variant pt-4">
-      <div className="text-xs text-secondary mb-2 font-medium">{t('orders.modal.ship_title')}</div>
+      <div className="text-xs text-secondary-foreground mb-2 font-medium">{t('orders.modal.ship_title')}</div>
       <div className="flex gap-2 flex-wrap mb-3">
         <input value={numero} onChange={e => setNumero(e.target.value)}
           placeholder={t('orders.modal.tracking_ph')}
@@ -811,7 +811,7 @@ function ShipForm({ order, onCancel, onConfirm, updating }) {
           onClick={() => onConfirm({ tracking_number: numero || null, carrier: transportista || null })}>
           {t('orders.modal.confirm_ship')}
         </Button>
-        <button onClick={onCancel} className="text-sm px-3 py-1.5 text-secondary hover:text-on-surface-variant">
+        <button onClick={onCancel} className="text-sm px-3 py-1.5 text-secondary-foreground hover:text-on-surface-variant">
           {t('common.cancel')}
         </button>
       </div>
@@ -822,7 +822,7 @@ function ShipForm({ order, onCancel, onConfirm, updating }) {
 function InfoBlock({ label, value }) {
   return (
     <div>
-      <div className="text-xs text-secondary font-medium mb-0.5">{label}</div>
+      <div className="text-xs text-secondary-foreground font-medium mb-0.5">{label}</div>
       <div className="text-sm text-on-surface">{value}</div>
     </div>
   );

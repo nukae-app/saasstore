@@ -285,14 +285,14 @@ function AdminShell({ children }) {
               {group.label && showLabels && group.collapsible && (
                 <button
                   onClick={() => setOpenGroups(g => ({ ...g, [group.label]: !g[group.label] }))}
-                  className="w-full flex items-center justify-between px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-secondary hover:text-on-surface"
+                  className="w-full flex items-center justify-between px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-secondary-foreground hover:text-on-surface"
                 >
                   {group.label}
                   <MIcon name="expand_more" size={14} className={`transition-transform ${isCollapsibleOpen ? '' : '-rotate-90'}`} />
                 </button>
               )}
               {group.label && showLabels && !group.collapsible && (
-                <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-secondary">
+                <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-secondary-foreground">
                   {group.label}
                 </p>
               )}
@@ -336,7 +336,7 @@ function AdminShell({ children }) {
             {showLabels && (
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-on-surface truncate">{user.email}</p>
-                <p className="text-[11px] text-secondary">Administrador</p>
+                <p className="text-[11px] text-secondary-foreground">Administrador</p>
               </div>
             )}
           </div>

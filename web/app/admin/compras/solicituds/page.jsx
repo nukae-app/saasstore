@@ -122,11 +122,11 @@ export default function SolicitudsPage() {
 
       <div className="flex items-center gap-1 border-b border-outline-variant">
         <button onClick={() => setVista('pool')}
-          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'pool' ? 'border-primary text-on-surface' : 'border-transparent text-secondary hover:text-on-surface-variant'}`}>
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'pool' ? 'border-primary text-on-surface' : 'border-transparent text-secondary-foreground hover:text-on-surface-variant'}`}>
           {t('purchases.view.pool', 'Pool de compra')}
         </button>
         <button onClick={() => setVista('llistat')}
-          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'llistat' ? 'border-primary text-on-surface' : 'border-transparent text-secondary hover:text-on-surface-variant'}`}>
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${vista === 'llistat' ? 'border-primary text-on-surface' : 'border-transparent text-secondary-foreground hover:text-on-surface-variant'}`}>
           {t('purchases.view.list', 'Registre de sol·licituds')}
         </button>
       </div>
@@ -139,7 +139,7 @@ export default function SolicitudsPage() {
         <div className="flex items-center gap-1 bg-surface-container-high rounded-lg p-1">
           {ESTAT_TABS.map(tab => (
             <button key={tab} onClick={() => setEstado(tab)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface-variant'}`}>
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-card text-on-surface shadow-sm' : 'text-secondary-foreground hover:text-on-surface-variant'}`}>
               {t(`purchases.pool.tab.${tab}`, tab)}
             </button>
           ))}
@@ -167,7 +167,7 @@ export default function SolicitudsPage() {
             {seleccio.size} {seleccio.size !== 1 ? t('purchases.request.records_selected_plural', 'discs seleccionats') : t('purchases.request.records_selected', 'disc seleccionat')}
           </span>
           <div className="flex items-center gap-3">
-            <button onClick={() => setSeleccio(new Map())} className="text-xs text-secondary hover:text-on-surface-variant">
+            <button onClick={() => setSeleccio(new Map())} className="text-xs text-secondary-foreground hover:text-on-surface-variant">
               {t('purchases.request.clear_selection', 'Netejar selecció')}
             </button>
             <Button size="sm" onClick={() => setGeneratingLineas([...seleccio.values()])}>
@@ -179,13 +179,13 @@ export default function SolicitudsPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : rows.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('purchases.pool.empty', 'No hi ha cap disc en aquest filtre.')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('purchases.pool.empty', 'No hi ha cap disc en aquest filtre.')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                 <tr>
                   <th className="w-8 px-4 py-3">
                     <input type="checkbox"
@@ -214,8 +214,8 @@ export default function SolicitudsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-on-surface">{row.artist} — {row.title}</div>
-                        {row.label && <div className="text-xs text-secondary">{row.label}</div>}
-                        {row.notes && <div className="text-xs text-secondary">{row.notes}</div>}
+                        {row.label && <div className="text-xs text-secondary-foreground">{row.label}</div>}
+                        {row.notes && <div className="text-xs text-secondary-foreground">{row.notes}</div>}
                       </td>
                       <td className="px-4 py-3 text-center text-on-surface-variant">{row.quantity}x</td>
                       <td className="px-4 py-3">
@@ -223,16 +223,16 @@ export default function SolicitudsPage() {
                           {origenSolicitudLabel(t, row.origen)}
                         </span>
                         {row.origen === 'peticion_cliente' && (
-                          <div className="text-xs text-secondary mt-0.5">{row.cliente_nombre || row.cliente_email}</div>
+                          <div className="text-xs text-secondary-foreground mt-0.5">{row.cliente_nombre || row.cliente_email}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-on-surface-variant">{row.proveedor_sugerido_nombre ?? <span className="text-secondary">—</span>}</td>
+                      <td className="px-4 py-3 text-on-surface-variant">{row.proveedor_sugerido_nombre ?? <span className="text-secondary-foreground">—</span>}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${POOL_LINEA_ESTAT_COLOR[estat]}`}>
                           {poolLineaEstatLabel(t, row)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-secondary">{new Date(row.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-secondary-foreground">{new Date(row.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-right">
                         {estat === 'pendent' && (
                           <div className="flex items-center justify-end gap-1.5">
@@ -245,7 +245,7 @@ export default function SolicitudsPage() {
                             )}
                             <button onClick={() => eliminarLinia(row)} disabled={busyId === row.id}
                               title={t('purchases.action.remove_from_request', 'Treure aquest disc de la sol·licitud')}
-                              className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                              className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
                               <MIcon name="delete" size={14} />
                             </button>
                           </div>
@@ -259,7 +259,7 @@ export default function SolicitudsPage() {
           </div>
         )}
         {total > PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary-foreground">
             <span>{from}–{to} {t('common.of', 'de')} {total}</span>
             <div className="flex gap-2">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
@@ -328,22 +328,22 @@ function GenerarSolicitudModal({ lineas, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('purchases.generate_request_modal.title', 'Crear sol·licitud')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
-          <p className="text-xs text-secondary">
+          <p className="text-xs text-secondary-foreground">
             {t('purchases.generate_request_modal.hint', 'Aquestes línies (poden venir de diversos orígens) es consolidaran en una sol·licitud numerada. Podràs triar proveïdor i crear-ne la comanda més endavant, des del registre.')}
           </p>
           <div className="border border-outline-variant rounded-xl divide-y divide-outline-variant max-h-64 overflow-y-auto">
             {lineas.map(l => (
               <div key={l.id} className="px-4 py-2.5 text-sm flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-on-surface">{l.artist} — {l.title}</span>
-                <span className="text-secondary">{l.quantity}x</span>
+                <span className="text-secondary-foreground">{l.quantity}x</span>
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-surface-container-high text-on-surface-variant'}`}>
                   {origenSolicitudLabel(t, l.origen)}
                 </span>
                 {l.origen === 'peticion_cliente' && (
-                  <span className="text-secondary text-xs">{l.cliente_nombre || l.cliente_email}</span>
+                  <span className="text-secondary-foreground text-xs">{l.cliente_nombre || l.cliente_email}</span>
                 )}
               </div>
             ))}
@@ -441,7 +441,7 @@ function SolicitudsLlistatView({ proveedores }) {
         <div className="flex items-center gap-1 bg-surface-container-high rounded-lg p-1">
           {LLISTAT_ESTAT_TABS.map(tab => (
             <button key={tab} onClick={() => setEstado(tab)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface-variant'}`}>
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${estado === tab ? 'bg-card text-on-surface shadow-sm' : 'text-secondary-foreground hover:text-on-surface-variant'}`}>
               {tab === 'totes' ? t('purchases.pool.tab.totes', 'Totes') : solicitudStatusLabel(t, tab)}
             </button>
           ))}
@@ -457,13 +457,13 @@ function SolicitudsLlistatView({ proveedores }) {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : solicitudes.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('purchases.request.no_requests', 'Encara no hi ha cap sol·licitud de compra.')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('purchases.request.no_requests', 'Encara no hi ha cap sol·licitud de compra.')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                 <tr>
                   <th className="w-8 px-4 py-3" />
                   <th className="px-4 py-3 text-left font-medium">{t('purchases.col.number', 'Número')}</th>
@@ -481,16 +481,16 @@ function SolicitudsLlistatView({ proveedores }) {
                     <Fragment key={s.id}>
                       <tr onClick={() => setExpanded(expanded === s.id ? null : s.id)}
                         className="hover:bg-surface-container-high cursor-pointer transition-colors">
-                        <td className="px-4 py-3 text-secondary">
+                        <td className="px-4 py-3 text-secondary-foreground">
                           {expanded === s.id ? <MIcon name="expand_more" size={14} /> : <MIcon name="chevron_right" size={14} />}
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-on-surface-variant">{s.numero}</td>
-                        <td className="px-4 py-3 text-secondary">{new Date(s.created_at).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-secondary-foreground">{new Date(s.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${s.origenes.length === 1 ? (ORIGEN_SOLICITUD_COLOR[s.origenes[0]] ?? 'bg-surface-container-high text-on-surface-variant') : 'bg-fuchsia-100 text-fuchsia-700'}`}>
                             {origenesSolicitudLabel(t, s.origenes)}
                           </span>
-                          {s.user_nom && <span className="text-secondary text-xs"> · {s.user_nom}</span>}
+                          {s.user_nom && <span className="text-secondary-foreground text-xs"> · {s.user_nom}</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-surface-container-high text-on-surface-variant">
@@ -512,13 +512,13 @@ function SolicitudsLlistatView({ proveedores }) {
                             )}
                             {s.estado === 'oberta' && (
                               <button onClick={() => cancelar(s)} disabled={busyId === s.id + '_cancelar'} title={t('common.cancel')}
-                                className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                                className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
                                 <MIcon name="block" size={14} />
                               </button>
                             )}
                             {pendents === s.lineas.length && (
                               <button onClick={() => eliminar(s)} disabled={busyId === s.id + '_eliminar'} title={t('catalog.delete')}
-                                className="p-1.5 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                                className="p-1.5 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50">
                                 <MIcon name="delete" size={14} />
                               </button>
                             )}
@@ -532,16 +532,16 @@ function SolicitudsLlistatView({ proveedores }) {
                               {s.lineas.map(l => (
                                 <div key={l.id} className="flex items-center gap-3 text-sm flex-wrap">
                                   <span className="font-semibold text-on-surface">{l.artist} — {l.title}</span>
-                                  <span className="text-secondary">{l.quantity}x</span>
-                                  {l.label && <span className="text-secondary">{l.label}</span>}
+                                  <span className="text-secondary-foreground">{l.quantity}x</span>
+                                  {l.label && <span className="text-secondary-foreground">{l.label}</span>}
                                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${ORIGEN_SOLICITUD_COLOR[l.origen] ?? 'bg-surface-container-high text-on-surface-variant'}`}>
                                     {origenSolicitudLabel(t, l.origen)}
                                   </span>
                                   {l.origen === 'peticion_cliente' && (
-                                    <span className="text-secondary">{l.cliente_nombre || l.cliente_email}</span>
+                                    <span className="text-secondary-foreground">{l.cliente_nombre || l.cliente_email}</span>
                                   )}
                                   {l.proveedor_sugerido_nombre && (
-                                    <span className="text-secondary">{t('purchases.suggested', 'Suggerit')}: {l.proveedor_sugerido_nombre}</span>
+                                    <span className="text-secondary-foreground">{t('purchases.suggested', 'Suggerit')}: {l.proveedor_sugerido_nombre}</span>
                                   )}
                                   {l.resuelta ? (
                                     <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700">
@@ -549,7 +549,7 @@ function SolicitudsLlistatView({ proveedores }) {
                                     </span>
                                   ) : (
                                     <>
-                                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary">
+                                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-surface-container-high text-secondary-foreground">
                                         {t('purchases.pending', 'Pendent')}
                                       </span>
                                       {l.release_id && (
@@ -560,7 +560,7 @@ function SolicitudsLlistatView({ proveedores }) {
                                       )}
                                       <button onClick={() => eliminarLinia(s, l)} disabled={busyId === l.id + '_eliminar_linia'}
                                         title={t('purchases.action.remove_from_request', 'Treure aquest disc de la sol·licitud')}
-                                        className="p-1 text-secondary hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50 ml-auto">
+                                        className="p-1 text-secondary-foreground hover:text-red-500 rounded-lg hover:bg-red-50 disabled:opacity-50 ml-auto">
                                         <MIcon name="delete" size={13} />
                                       </button>
                                     </>
@@ -568,7 +568,7 @@ function SolicitudsLlistatView({ proveedores }) {
                                 </div>
                               ))}
                             </div>
-                            {s.notes && <div className="mt-2 text-xs text-secondary">{s.notes}</div>}
+                            {s.notes && <div className="mt-2 text-xs text-secondary-foreground">{s.notes}</div>}
                           </td>
                         </tr>
                       )}
@@ -580,7 +580,7 @@ function SolicitudsLlistatView({ proveedores }) {
           </div>
         )}
         {total > LLISTAT_PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary-foreground">
             <span>{from}–{to} {t('common.of', 'de')} {total}</span>
             <div className="flex gap-2">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
@@ -644,17 +644,17 @@ function ResoldreEstocModal({ linea, onClose, onSaved }) {
       <div className="bg-card rounded-xl max-w-sm w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-on-surface">{t('purchases.action.resolve_from_stock', "Resoldre d'estoc")}</h2>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant"><MIcon name="close" size={18} /></button>
         </div>
-        <p className="text-sm text-secondary mb-4">{linea.artist} — {linea.title}</p>
-        <p className="text-xs text-secondary mb-4">
+        <p className="text-sm text-secondary-foreground mb-4">{linea.artist} — {linea.title}</p>
+        <p className="text-xs text-secondary-foreground mb-4">
           {t('purchases.resolve_stock_modal.hint', "Tria l'exemplar que ja hi ha a estoc per tancar aquesta línia sense fer-ne una comanda a proveïdor.")}
         </p>
         {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
         {items === null ? (
           <div className="animate-pulse bg-surface-container-high rounded-lg h-16" />
         ) : items.length === 0 ? (
-          <p className="text-sm text-secondary text-center py-6">{t('purchases.resolve_stock_modal.no_items', 'Aquest disc no té cap exemplar disponible a estoc ara mateix.')}</p>
+          <p className="text-sm text-secondary-foreground text-center py-6">{t('purchases.resolve_stock_modal.no_items', 'Aquest disc no té cap exemplar disponible a estoc ara mateix.')}</p>
         ) : (
           <div className="space-y-1.5">
             {items.map(i => (
@@ -763,11 +763,11 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('purchases.resolve_request_modal.title', 'Crear comanda des de sol·licituds')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={save} className="p-6 space-y-5">
-          <p className="text-xs text-secondary">
+          <p className="text-xs text-secondary-foreground">
             {t('purchases.resolve_request_modal.hint', 'Tria quines línies (poden venir de sol·licituds diferents) van a la mateixa comanda. Les que no seleccionis queden pendents per resoldre-les després (cap a un altre proveïdor, per exemple).')}
           </p>
           <div className="grid grid-cols-2 gap-4">
@@ -804,7 +804,7 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
                       <div className="text-sm font-medium text-on-surface truncate">
                         {resolved ? `${resolved.artista} — ${resolved.titulo}` : `${l.artist} — ${l.title}`}
                       </div>
-                      <div className="text-xs text-secondary flex items-center gap-1.5">
+                      <div className="text-xs text-secondary-foreground flex items-center gap-1.5">
                         {l.quantity}x{l.label ? ` · ${l.label}` : ''}
                         {!catalogat && (
                           <span className="text-sky-600 font-medium">
@@ -893,7 +893,7 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
 }
 
 const TENDENCIA_ICON = { accelerant: 'trending_up', frenant: 'trending_down', estable: 'remove' };
-const TENDENCIA_COLOR = { accelerant: 'text-emerald-600', frenant: 'text-red-500', estable: 'text-secondary' };
+const TENDENCIA_COLOR = { accelerant: 'text-emerald-600', frenant: 'text-red-500', estable: 'text-secondary-foreground' };
 
 // Previsualització dels candidats a reposició (estoc baix + es venen + sense
 // comanda oberta). No crea res fins que es confirma: llavors genera una
@@ -978,24 +978,24 @@ function RefillSugerenciesModal({ onClose, onSaved }) {
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('purchases.btn.generate_suggestions_title', 'Suggeriments de reposició')}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
 
         <div className="p-6 space-y-4">
-          <p className="text-xs text-secondary">
+          <p className="text-xs text-secondary-foreground">
             {t('purchases.refill_modal.hint', "Discos amb estoc nou baix que es continuen venent (vendes dels últims 60 dies), amb menys de 21 dies d'estoc restant al ritme actual. No inclou discos amb una comanda ja oberta. La quantitat i el proveïdor són editables abans de crear la sol·licitud.")}
           </p>
 
           {loading ? (
-            <div className="text-sm text-secondary text-center py-8">{t('purchases.refill_modal.calculating', 'Calculant...')}</div>
+            <div className="text-sm text-secondary-foreground text-center py-8">{t('purchases.refill_modal.calculating', 'Calculant...')}</div>
           ) : candidats.length === 0 ? (
-            <div className="text-sm text-secondary text-center py-8">
+            <div className="text-sm text-secondary-foreground text-center py-8">
               {t('purchases.refill_modal.no_candidates', 'Ara mateix no hi ha cap disc que compleixi els criteris de reposició.')}
             </div>
           ) : (
             <div className="border border-outline-variant rounded-xl overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+                <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                   <tr>
                     <th className="w-8 px-3 py-2">
                       <input type="checkbox"
@@ -1037,7 +1037,7 @@ function RefillSugerenciesModal({ onClose, onSaved }) {
                         </td>
                         <td className="px-3 py-2.5 text-center text-on-surface-variant">{c.dies_estoc}</td>
                         <td className="px-3 py-2.5 text-right text-on-surface-variant">{c.marge_mitja != null ? `${parseFloat(c.marge_mitja).toFixed(2)} €` : '—'}</td>
-                        <td className="px-3 py-2.5 text-on-surface-variant">{c.proveedor_sugerido_nombre ?? <span className="text-secondary">—</span>}</td>
+                        <td className="px-3 py-2.5 text-on-surface-variant">{c.proveedor_sugerido_nombre ?? <span className="text-secondary-foreground">—</span>}</td>
                         <td className="px-3 py-2.5">
                           <input type="number" min="1" value={cantidades[c.release_id] ?? 1}
                             onChange={e => setCantidades(prev => ({ ...prev, [c.release_id]: e.target.value }))}

@@ -89,7 +89,7 @@ export default function ResultatPage() {
       <div className="inline-flex gap-1 p-1 bg-surface-container-high rounded-lg">
         {[['resum', t('resultat.tab.summary', 'Resum mensual')], ['caixa', t('resultat.tab.cash', 'Control de caixa')]].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === id ? 'bg-card text-on-surface shadow-sm' : 'text-secondary hover:text-on-surface-variant'}`}>
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === id ? 'bg-card text-on-surface shadow-sm' : 'text-secondary-foreground hover:text-on-surface-variant'}`}>
             {label}
           </button>
         ))}
@@ -126,7 +126,7 @@ export default function ResultatPage() {
       {tab === 'caixa' && <CaixaDiaria year={year} mes={mes} />}
 
       {tab !== 'resum' ? null : loading ? (
-        <div className="p-12 text-center text-secondary text-sm">{t('common.loading', 'Carregant...')}</div>
+        <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading', 'Carregant...')}</div>
       ) : !data ? null : (
         <div className="space-y-4">
           {/* Targes resum */}
@@ -158,7 +158,7 @@ export default function ResultatPage() {
               <span className="font-bold text-green-700">+{fmtEur(data.total_ingressos)}</span>
             </div>
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground">
                 <tr>
                   <th className="px-5 py-2 text-left font-medium">{t('resultat.col.channel', 'Canal')}</th>
                   <th className="px-5 py-2 text-right font-medium">{t('resultat.col.total', 'Total')}</th>
@@ -176,7 +176,7 @@ export default function ResultatPage() {
                   </tr>
                 ))}
                 {parseFloat(data.total_ingressos) === 0 && (
-                  <tr><td colSpan={2} className="px-5 py-4 text-secondary text-center text-xs">{t('resultat.no_income', 'Sense ingressos')}</td></tr>
+                  <tr><td colSpan={2} className="px-5 py-4 text-secondary-foreground text-center text-xs">{t('resultat.no_income', 'Sense ingressos')}</td></tr>
                 )}
               </tbody>
             </table>
@@ -203,7 +203,7 @@ export default function ResultatPage() {
                   </tr>
                 )}
                 {parseFloat(data.total_cogs) === 0 && (
-                  <tr><td colSpan={2} className="px-5 py-4 text-secondary text-center text-xs">{t('resultat.no_sales_month', 'Sense vendes aquest mes')}</td></tr>
+                  <tr><td colSpan={2} className="px-5 py-4 text-secondary-foreground text-center text-xs">{t('resultat.no_sales_month', 'Sense vendes aquest mes')}</td></tr>
                 )}
                 {data.items_sense_cost > 0 && (
                   <tr>
@@ -236,7 +236,7 @@ export default function ResultatPage() {
             </button>
             {expandedDespeses && (
               <table className="w-full text-sm">
-                <thead className="bg-surface-container-high text-xs text-secondary">
+                <thead className="bg-surface-container-high text-xs text-secondary-foreground">
                   <tr>
                     <th className="px-5 py-2 text-left font-medium">{t('resultat.col.category', 'Categoria')}</th>
                     <th className="px-5 py-2 text-right font-medium">{t('resultat.col.invoices', 'Factures')}</th>
@@ -245,17 +245,17 @@ export default function ResultatPage() {
                 </thead>
                 <tbody className="divide-y divide-outline-variant">
                   {data.despeses.filter(d => d.categoria !== 'compres_material').length === 0 ? (
-                    <tr><td colSpan={3} className="px-5 py-4 text-secondary text-center text-xs">{t('resultat.no_operating_expenses', 'Sense despeses operatives')}</td></tr>
+                    <tr><td colSpan={3} className="px-5 py-4 text-secondary-foreground text-center text-xs">{t('resultat.no_operating_expenses', 'Sense despeses operatives')}</td></tr>
                   ) : data.despeses.filter(d => d.categoria !== 'compres_material').map((d, i) => (
                     <tr key={i} className="hover:bg-surface-container-high">
                       <td className="px-5 py-2.5 text-on-surface-variant">{categoriaLabel(t, d.categoria)}</td>
-                      <td className="px-5 py-2.5 text-right text-secondary">{d.num_factures}</td>
+                      <td className="px-5 py-2.5 text-right text-secondary-foreground">{d.num_factures}</td>
                       <td className="px-5 py-2.5 text-right font-medium text-red-600">−{fmtEur(d.total)}</td>
                     </tr>
                   ))}
                   {data.despeses.find(d => d.categoria === 'compres_material') && (
                     <tr className="bg-surface-container-high">
-                      <td colSpan={3} className="px-5 py-2 text-xs text-secondary italic">
+                      <td colSpan={3} className="px-5 py-2 text-xs text-secondary-foreground italic">
                         {t('resultat.material_purchases_note', 'Compres de material no incloses aquí (reflectides al COGS per venda)')}
                       </td>
                     </tr>

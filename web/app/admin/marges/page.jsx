@@ -47,7 +47,7 @@ function MargesPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-secondary max-w-xl">
+        <p className="text-sm text-secondary-foreground max-w-xl">
           {t('config.margins.hint', 'Configura els marges de benefici. El de per defecte segons condició (nou / 2a mà) es fa servir per suggerir el preu de venda a la recepció de compres — sempre editable a mà allà.')}
         </p>
         <Button onClick={() => { setEdit(null); setShowForm(true); }}>
@@ -57,12 +57,12 @@ function MargesPanel() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('common.loading')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('common.loading')}</div>
         ) : marges.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">{t('config.margins.no_margins', 'Cap marge configurat')}</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">{t('config.margins.no_margins', 'Cap marge configurat')}</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+            <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">{t('common.name')}</th>
                 <th className="px-4 py-3 text-right font-medium">%</th>
@@ -82,7 +82,7 @@ function MargesPanel() {
                       <MIcon name="star" size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
                       <button onClick={() => marcarDefecte(m, 'default_new')}
-                        className="text-xs text-secondary hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
+                        className="text-xs text-secondary-foreground hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -90,18 +90,18 @@ function MargesPanel() {
                       <MIcon name="star" size={16} className="inline text-amber-500 fill-amber-500" />
                     ) : (
                       <button onClick={() => marcarDefecte(m, 'default_used')}
-                        className="text-xs text-secondary hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
+                        className="text-xs text-secondary-foreground hover:text-on-surface-variant underline">{t('config.use', 'Fer servir')}</button>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActiu(m)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.active ? 'bg-green-100 text-green-700' : 'bg-surface-container-high text-secondary-foreground'}`}>
                       {m.active ? t('purchases.supplier.active', 'Actiu') : t('purchases.supplier.inactive', 'Inactiu')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => { setEdit(m); setShowForm(true); }}
-                      className="text-xs text-secondary hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
+                      className="text-xs text-secondary-foreground hover:text-on-surface-variant font-medium px-2 py-1 rounded hover:bg-surface-container-high">
                       {t('catalog.edit')}
                     </button>
                   </td>

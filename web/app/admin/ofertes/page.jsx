@@ -190,7 +190,7 @@ export default function OfertesPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold text-on-surface">Ofertes</h2>
         <div className="flex items-center gap-2">
-          {recomputeMsg && <span className="text-xs text-secondary">{recomputeMsg}</span>}
+          {recomputeMsg && <span className="text-xs text-secondary-foreground">{recomputeMsg}</span>}
           <Button size="sm" variant="outline" onClick={recompute} disabled={recomputing}>
             <MIcon name="refresh" size={14} className={recomputing ? 'animate-spin' : ''} /> Recalcular ara
           </Button>
@@ -214,13 +214,13 @@ export default function OfertesPage() {
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-secondary text-sm">Carregant...</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">Carregant...</div>
         ) : offers.length === 0 ? (
-          <div className="p-12 text-center text-secondary text-sm">Encara no hi ha ofertes. Crea'n una!</div>
+          <div className="p-12 text-center text-secondary-foreground text-sm">Encara no hi ha ofertes. Crea'n una!</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-container-high text-xs text-secondary border-b border-outline-variant">
+              <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">Oferta</th>
                   <th className="px-4 py-3 text-left font-medium">Descompte</th>
@@ -235,8 +235,8 @@ export default function OfertesPage() {
                   <tr key={o.id} className="hover:bg-surface-container-high transition-colors">
                     <td className="px-4 py-3 font-medium text-on-surface">{o.name}</td>
                     <td className="px-4 py-3 text-on-surface-variant">{formatDiscount(o)}</td>
-                    <td className="px-4 py-3 text-secondary tabular-nums">{o.priority}</td>
-                    <td className="px-4 py-3 text-secondary text-xs">
+                    <td className="px-4 py-3 text-secondary-foreground tabular-nums">{o.priority}</td>
+                    <td className="px-4 py-3 text-secondary-foreground text-xs">
                       {o.starts_at ? new Date(o.starts_at).toLocaleDateString('ca-ES') : 'sempre'}
                       {' → '}
                       {o.ends_at ? new Date(o.ends_at).toLocaleDateString('ca-ES') : 'sense fi'}
@@ -251,10 +251,10 @@ export default function OfertesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => openEdit(o)} className="p-1.5 rounded-lg text-secondary hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                        <button onClick={() => openEdit(o)} className="p-1.5 rounded-lg text-secondary-foreground hover:text-on-surface-variant hover:bg-surface-container-high transition-colors">
                           <MIcon name="edit" size={14} />
                         </button>
-                        <button onClick={() => del(o)} className="p-1.5 rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <button onClick={() => del(o)} className="p-1.5 rounded-lg text-secondary-foreground hover:text-red-600 hover:bg-red-50 transition-colors">
                           <MIcon name="delete" size={14} />
                         </button>
                       </div>
@@ -314,7 +314,7 @@ function OfferForm({
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium text-secondary mb-1">Nom <span className="text-red-500">*</span></label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Nom <span className="text-red-500">*</span></label>
           <input
             value={form.name} onChange={e => f('name', e.target.value)}
             placeholder="Rebaixes d'hivern"
@@ -322,7 +322,7 @@ function OfferForm({
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium text-secondary mb-1">Descripció</label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Descripció</label>
           <input
             value={form.description} onChange={e => f('description', e.target.value)}
             className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -330,7 +330,7 @@ function OfferForm({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">Tipus de descompte</label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Tipus de descompte</label>
           <select
             value={form.discount_type} onChange={e => f('discount_type', e.target.value)}
             className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -341,7 +341,7 @@ function OfferForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">
             Valor {form.discount_type === 'percentage' ? '(%)' : '(€)'} <span className="text-red-500">*</span>
           </label>
           <input
@@ -352,14 +352,14 @@ function OfferForm({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">Comença (opcional)</label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Comença (opcional)</label>
           <input
             type="datetime-local" value={form.starts_at} onChange={e => f('starts_at', e.target.value)}
             className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">Acaba (opcional)</label>
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">Acaba (opcional)</label>
           <input
             type="datetime-local" value={form.ends_at} onChange={e => f('ends_at', e.target.value)}
             className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -367,9 +367,9 @@ function OfferForm({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-secondary mb-1">
+          <label className="block text-xs font-medium text-secondary-foreground mb-1">
             Prioritat
-            <span className="text-secondary font-normal"> (guanya la més alta en cas de solapament)</span>
+            <span className="text-secondary-foreground font-normal"> (guanya la més alta en cas de solapament)</span>
           </label>
           <input
             type="number" value={form.priority} onChange={e => f('priority', e.target.value)}
@@ -385,10 +385,10 @@ function OfferForm({
       </div>
 
       <div className="border-t border-outline-variant pt-4">
-        <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-3">Criteris (qui queda cobert per aquesta oferta)</p>
+        <p className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-3">Criteris (qui queda cobert per aquesta oferta)</p>
         <div className="grid md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-secondary mb-1">Secció</label>
+            <label className="block text-xs text-secondary-foreground mb-1">Secció</label>
             <select
               value={form.criteria.seccio_id} onChange={e => fc('seccio_id', e.target.value)}
               className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -398,7 +398,7 @@ function OfferForm({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-secondary mb-1">Etiqueta</label>
+            <label className="block text-xs text-secondary-foreground mb-1">Etiqueta</label>
             <select
               value={form.criteria.etiqueta_id} onChange={e => fc('etiqueta_id', e.target.value)}
               className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -408,7 +408,7 @@ function OfferForm({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-secondary mb-1">Condició</label>
+            <label className="block text-xs text-secondary-foreground mb-1">Condició</label>
             <select
               value={form.criteria.condicion} onChange={e => fc('condicion', e.target.value)}
               className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -419,28 +419,28 @@ function OfferForm({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-secondary mb-1">Preu mínim actual (€)</label>
+            <label className="block text-xs text-secondary-foreground mb-1">Preu mínim actual (€)</label>
             <input
               type="number" step="0.01" value={form.criteria.precio_min} onChange={e => fc('precio_min', e.target.value)}
               className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="block text-xs text-secondary mb-1">Preu màxim actual (€)</label>
+            <label className="block text-xs text-secondary-foreground mb-1">Preu màxim actual (€)</label>
             <input
               type="number" step="0.01" value={form.criteria.precio_max} onChange={e => fc('precio_max', e.target.value)}
               className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="block text-xs text-secondary mb-1">Antiguitat mínima (dies a catàleg)</label>
+            <label className="block text-xs text-secondary-foreground mb-1">Antiguitat mínima (dies a catàleg)</label>
             <input
               type="number" value={form.criteria.antiguedad_dias_min} onChange={e => fc('antiguedad_dias_min', e.target.value)}
               className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="block text-xs text-secondary mb-1">Sense vendre des de fa (dies)</label>
+            <label className="block text-xs text-secondary-foreground mb-1">Sense vendre des de fa (dies)</label>
             <input
               type="number" value={form.criteria.sin_venta_dias_min} onChange={e => fc('sin_venta_dias_min', e.target.value)}
               className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -449,28 +449,28 @@ function OfferForm({
           {isVinils && (
             <>
               <div>
-                <label className="block text-xs text-secondary mb-1">Gènere</label>
+                <label className="block text-xs text-secondary-foreground mb-1">Gènere</label>
                 <input
                   value={form.criteria.genero} onChange={e => fc('genero', e.target.value)}
                   className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">Artista</label>
+                <label className="block text-xs text-secondary-foreground mb-1">Artista</label>
                 <input
                   value={form.criteria.artista} onChange={e => fc('artista', e.target.value)}
                   className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">Segell</label>
+                <label className="block text-xs text-secondary-foreground mb-1">Segell</label>
                 <input
                   value={form.criteria.sello} onChange={e => fc('sello', e.target.value)}
                   className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="block text-xs text-secondary mb-1">Format</label>
+                <label className="block text-xs text-secondary-foreground mb-1">Format</label>
                 <input
                   value={form.criteria.formato} onChange={e => fc('formato', e.target.value)}
                   className="w-full border border-outline-variant rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -484,11 +484,11 @@ function OfferForm({
       {/* Previsualització */}
       <div className="bg-surface-container-high rounded-xl p-4 space-y-2">
         <p className="text-sm font-medium text-on-surface-variant flex items-center gap-2">
-          {previewing ? <MIcon name="progress_activity" size={13} className="animate-spin text-secondary" /> : null}
+          {previewing ? <MIcon name="progress_activity" size={13} className="animate-spin text-secondary-foreground" /> : null}
           {preview ? `${preview.total_items} article${preview.total_items === 1 ? '' : 's'} coincideixen amb aquests criteris` : 'Calculant...'}
         </p>
         {preview?.sample?.length > 0 && (
-          <ul className="text-xs text-secondary space-y-0.5">
+          <ul className="text-xs text-secondary-foreground space-y-0.5">
             {preview.sample.slice(0, 8).map(it => (
               <li key={it.item_id}>
                 {[it.artista, it.title].filter(Boolean).join(' — ')} · {parseFloat(it.price).toFixed(2)} €
@@ -548,7 +548,7 @@ function OfferForm({
         <Button size="sm" onClick={onSave} disabled={saving}>
           <MIcon name="check" size={14} /> {saving ? 'Desant...' : 'Desar'}
         </Button>
-        <button onClick={onCancel} className="px-3 py-1.5 text-sm text-secondary hover:text-on-surface-variant">
+        <button onClick={onCancel} className="px-3 py-1.5 text-sm text-secondary-foreground hover:text-on-surface-variant">
           <MIcon name="close" size={14} className="inline mr-1" />Tancar
         </button>
       </div>
@@ -610,10 +610,10 @@ function ManualItemsSection({ items, onAdd, onRemove }) {
 
   return (
     <div className="border-t border-outline-variant pt-4">
-      <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-1">
+      <p className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-1">
         Discos concrets (incloure/excloure a mà)
       </p>
-      <p className="text-xs text-secondary mb-2">
+      <p className="text-xs text-secondary-foreground mb-2">
         Per fer una oferta que només afecti uns discos triats, deixa els criteris de dalt buits i afegeix'ls aquí.
       </p>
 
@@ -627,10 +627,10 @@ function ManualItemsSection({ items, onAdd, onRemove }) {
                 </span>
                 {[it.item_artista, it.item_title].filter(Boolean).join(' — ') || `Article ${it.item_id.slice(0, 8)}…`}
                 {it.item_price != null && (
-                  <span className="text-secondary"> · {parseFloat(it.item_price).toFixed(2)} €</span>
+                  <span className="text-secondary-foreground"> · {parseFloat(it.item_price).toFixed(2)} €</span>
                 )}
               </span>
-              <button onClick={() => handleRemove(it.item_id)} disabled={busy} className="text-secondary hover:text-red-600 shrink-0">
+              <button onClick={() => handleRemove(it.item_id)} disabled={busy} className="text-secondary-foreground hover:text-red-600 shrink-0">
                 <MIcon name="delete" size={13} />
               </button>
             </li>
@@ -639,21 +639,21 @@ function ManualItemsSection({ items, onAdd, onRemove }) {
       )}
 
       <div className="relative">
-        <MIcon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
+        <MIcon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-foreground" />
         <input
           value={q} onChange={e => handleQ(e.target.value)}
           placeholder="Cerca un disc per afegir-lo o excloure'l a mà..."
           className="w-full border border-outline-variant rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
-      {searching && <p className="text-xs text-secondary mt-1">Cercant...</p>}
+      {searching && <p className="text-xs text-secondary-foreground mt-1">Cercant...</p>}
       {results.length > 0 && (
         <ul className="mt-2 border border-outline-variant rounded-xl divide-y divide-outline-variant max-h-56 overflow-y-auto">
           {results.map(it => (
             <li key={it.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
               <span className="truncate">
                 {[it.artista, it.titulo].filter(Boolean).join(' — ')}
-                <span className="text-secondary"> · {parseFloat(it.price).toFixed(2)} € · {it.condition}</span>
+                <span className="text-secondary-foreground"> · {parseFloat(it.price).toFixed(2)} € · {it.condition}</span>
               </span>
               <div className="flex gap-1 shrink-0">
                 <button
