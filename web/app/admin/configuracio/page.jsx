@@ -71,6 +71,7 @@ function DadesFiscalsPanel({ config, onSaved }) {
   const [nomFiscal, setNomFiscal] = useState(config.fiscal_name || '');
   const [nif, setNif] = useState(config.nif || '');
   const [adreca, setAdreca] = useState(config.address || '');
+  const [formaJuridica, setFormaJuridica] = useState(config.legal_form || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -80,9 +81,13 @@ function DadesFiscalsPanel({ config, onSaved }) {
     setSaving(true);
     setError('');
     setSaved(false);
+    const payload = { fiscal_name: nomFiscal, nif, address: adreca };
+    // Només s'envia si encara no estava fixada — un cop hi ha pla de comptes
+    // sembrat, l'API bloqueja canviar-la (409), ver routers/configuracio.py.
+    if (!config.legal_form && formaJuridica) payload.legal_form = formaJuridica;
     const r = await authFetch('/admin/configuracio', {
       method: 'PATCH',
-      body: JSON.stringify({ fiscal_name: nomFiscal, nif, address: adreca }),
+      body: JSON.stringify(payload),
     });
     setSaving(false);
     if (r.ok) {
@@ -114,6 +119,29 @@ function DadesFiscalsPanel({ config, onSaved }) {
           placeholder={t('config.fiscal.address_ph', 'Carrer, número\nCodi postal, ciutat')}
           className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         <p className="text-xs text-secondary-foreground mt-1">{t('config.fiscal.address_hint', 'Cada línia es mostra per separat al PDF.')}</p>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.fiscal.legal_form', 'Forma jurídica')}</label>
+        {config.legal_form ? (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-surface-container-high text-on-surface-variant">
+              {config.legal_form === 'sl' ? 'SL' : 'Autònom'}
+            </span>
+            <span className="text-xs text-secondary-foreground">{t('config.fiscal.legal_form_locked', 'Ja fixada — no es pot canviar des d\'aquí un cop hi ha pla de comptes.')}</span>
+          </div>
+        ) : (
+          <>
+            <select value={formaJuridica} onChange={e => setFormaJuridica(e.target.value)}
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="">{t('config.fiscal.legal_form_choose', "— Tria'n una —")}</option>
+              <option value="sl">SL</option>
+              <option value="autonom">{t('config.fiscal.autonom', 'Autònom')}</option>
+            </select>
+            <p className="text-xs text-secondary-foreground mt-1">
+              {t('config.fiscal.legal_form_hint', 'En desar-la per primer cop se sembra el pla de comptes — no es podrà tornar a canviar des d\'aquí.')}
+            </p>
+          </>
+        )}
       </div>
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex items-center gap-3">
