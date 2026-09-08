@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { authFetch } from '../lib/auth';
 import { useT } from '../lib/i18n';
-import { Clock, ShoppingBag, Disc3, Store, Tag, CheckCircle2, ClipboardList, PackageCheck, Receipt, Repeat } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const STATUS_COLOR = {
   pendiente_pago: 'bg-yellow-100 text-yellow-700',
@@ -98,51 +98,79 @@ export default function AdminDashboard() {
   const vendesSetmana = resumVendes(dSetmana);
   const vendesMes = resumVendes(dMes);
 
+  const alertRows = [
+    { label: t('dashboard.alert.peticiones_precio'), value: peticionsPendentPreu, href: '/admin/peticions' },
+    { label: t('dashboard.alert.peticiones_comanda'), value: peticionsPendentComanda, href: '/admin/peticions' },
+    { label: t('dashboard.alert.solicituds_obertes'), value: solicitudsObertes.length,
+      subtext: solicitudsLineasPendents > 0 ? `${solicitudsLineasPendents} discs` : null, href: '/admin/compras/solicituds' },
+    { label: t('dashboard.alert.comandes_pendents'), value: comprasStats?.comandes_pendents ?? 0, href: '/admin/compras/comandes' },
+    { label: t('dashboard.alert.recepcions_pendents'), value: comprasStats?.sense_facturar_count ?? 0,
+      subtext: comprasStats?.sense_facturar_count ? fmtEur(comprasStats.sense_facturar_import) : null, href: '/admin/compras/comandes' },
+    { label: t('dashboard.alert.club_disc', 'Club del disc'), value: enviamentsSubPendents,
+      subtext: novesSubscripcions > 0 ? `${novesSubscripcions} noves` : null, href: '/admin/subscripcions' },
+  ];
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold text-zinc-900">{t('dashboard.title')}</h2>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Clock}       label={t('dashboard.pending_orders')} value={pending}       color="yellow" href="/admin/vendes-web" />
-        <StatCard icon={ShoppingBag} label={t('dashboard.total_orders')}   value={orders.length} color="blue"   href="/admin/vendes-web" />
-        <StatCard icon={Disc3}       label={t('dashboard.catalog')}         value="→"            color="amber"  href="/admin/catalogo" />
-        <StatCard icon={Store}       label={t('dashboard.tpv')}             value="→"            color="green"  href="/admin/tpv" />
+    <div className="space-y-8 max-w-5xl mx-auto">
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-serif italic text-3xl text-zinc-900">{t('dashboard.title')}</h2>
+        <span className="font-mono text-xs text-zinc-400 uppercase tracking-[0.15em]">
+          {now.toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </span>
       </div>
 
+      {/* Register — key counts as a ledger strip, dashed dividers instead of separate cards */}
+      <LedgerStrip
+        entries={[
+          { label: t('dashboard.pending_orders'), value: pending, href: '/admin/vendes-web' },
+          { label: t('dashboard.total_orders'), value: orders.length, href: '/admin/vendes-web' },
+          { label: t('dashboard.catalog'), value: '—', href: '/admin/catalogo' },
+          { label: t('dashboard.tpv'), value: '—', href: '/admin/tpv' },
+        ]}
+      />
+
+      {/* Sales summary — same ledger language, monetary figures */}
       <div>
-        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">{t('dashboard.section.alerts')}</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-          <StatCard icon={Tag} label={t('dashboard.alert.peticiones_precio')} value={peticionsPendentPreu}
-            color="yellow" accent={peticionsPendentPreu > 0} href="/admin/peticions" />
-          <StatCard icon={CheckCircle2} label={t('dashboard.alert.peticiones_comanda')} value={peticionsPendentComanda}
-            color="blue" accent={peticionsPendentComanda > 0} href="/admin/peticions" />
-          <StatCard icon={ClipboardList} label={t('dashboard.alert.solicituds_obertes')} value={solicitudsObertes.length}
-            subtext={solicitudsLineasPendents > 0 ? `${solicitudsLineasPendents} discs` : null}
-            color="amber" accent={solicitudsObertes.length > 0} href="/admin/compras/solicituds" />
-          <StatCard icon={PackageCheck} label={t('dashboard.alert.comandes_pendents')} value={comprasStats?.comandes_pendents ?? 0}
-            color="green" accent={(comprasStats?.comandes_pendents ?? 0) > 0} href="/admin/compras/comandes" />
-          <StatCard icon={Receipt} label={t('dashboard.alert.recepcions_pendents')} value={comprasStats?.sense_facturar_count ?? 0}
-            subtext={comprasStats?.sense_facturar_count ? fmtEur(comprasStats.sense_facturar_import) : null}
-            color="yellow" accent={(comprasStats?.sense_facturar_count ?? 0) > 0} href="/admin/compras/comandes" />
-          <StatCard icon={Repeat} label={t('dashboard.alert.club_disc', 'Club del disc')} value={enviamentsSubPendents}
-            subtext={novesSubscripcions > 0 ? `${novesSubscripcions} noves` : null}
-            color="amber" accent={enviamentsSubPendents > 0 || novesSubscripcions > 0} href="/admin/subscripcions" />
+        <SectionLabel>{t('dashboard.section.sales_summary')}</SectionLabel>
+        <LedgerStrip
+          entries={[
+            { label: t('dashboard.sales.today'), value: fmtEur(vendesAvui.total),
+              subtext: `${t('dashboard.sales.web_label')} ${fmtEur(vendesAvui.web)} · ${t('dashboard.sales.tpv_label')} ${fmtEur(vendesAvui.mostrador)}` },
+            { label: t('dashboard.sales.week'), value: fmtEur(vendesSetmana.total),
+              subtext: `${t('dashboard.sales.web_label')} ${fmtEur(vendesSetmana.web)} · ${t('dashboard.sales.tpv_label')} ${fmtEur(vendesSetmana.mostrador)}` },
+            { label: t('dashboard.sales.month'), value: fmtEur(vendesMes.total),
+              subtext: `${t('dashboard.sales.web_label')} ${fmtEur(vendesMes.web)} · ${t('dashboard.sales.tpv_label')} ${fmtEur(vendesMes.mostrador)}` },
+          ]}
+        />
+      </div>
+
+      {/* Attention list — ledger rows instead of a grid of colored icon cards */}
+      <div>
+        <SectionLabel>{t('dashboard.section.alerts')}</SectionLabel>
+        <div className="bg-white rounded-3xl shadow-[0_2px_24px_-6px_rgba(15,23,42,0.08)] divide-y divide-dashed divide-zinc-200 overflow-hidden">
+          {alertRows.map((row, i) => (
+            <Link
+              key={i}
+              href={row.href}
+              className="flex items-center justify-between gap-4 px-6 py-3.5 hover:bg-zinc-50 transition-colors"
+            >
+              <span className="text-sm text-zinc-600 truncate">{row.label}</span>
+              <div className="flex items-center gap-3 shrink-0">
+                {row.subtext && <span className="hidden sm:inline text-xs text-zinc-400">{row.subtext}</span>}
+                <span className={`font-mono text-sm font-semibold tabular-nums w-6 text-right ${row.value > 0 ? 'text-zinc-900' : 'text-zinc-300'}`}>
+                  {row.value}
+                </span>
+                <ChevronRight size={14} className="text-zinc-300" />
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
 
-      <div>
-        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">{t('dashboard.section.sales_summary')}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SalesTile label={t('dashboard.sales.today')} resum={vendesAvui} t={t} />
-          <SalesTile label={t('dashboard.sales.week')} resum={vendesSetmana} t={t} />
-          <SalesTile label={t('dashboard.sales.month')} resum={vendesMes} t={t} />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
-          <h3 className="font-semibold text-zinc-900">{t('dashboard.recent_orders')}</h3>
-          <Link href="/admin/vendes-web" className="text-sm text-zinc-900 hover:text-zinc-600 font-medium">
+      <div className="bg-white rounded-3xl shadow-[0_2px_24px_-6px_rgba(15,23,42,0.08)] overflow-hidden">
+        <div className="px-6 py-4 border-b border-dashed border-zinc-200 flex items-center justify-between">
+          <h3 className="font-serif italic text-lg text-zinc-900">{t('dashboard.recent_orders')}</h3>
+          <Link href="/admin/vendes-web" className="text-xs font-mono uppercase tracking-wide text-zinc-500 hover:text-zinc-900">
             {t('common.see_all')}
           </Link>
         </div>
@@ -154,7 +182,7 @@ export default function AdminDashboard() {
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 border-b border-zinc-100">
+            <thead className="text-[10px] text-zinc-400 uppercase tracking-wide font-mono border-b border-dashed border-zinc-200">
               <tr>
                 <th className="px-6 py-3 text-left font-medium">{t('dashboard.col.date')}</th>
                 <th className="px-6 py-3 text-left font-medium">{t('dashboard.col.email')}</th>
@@ -163,7 +191,7 @@ export default function AdminDashboard() {
                 <th className="px-6 py-3 text-left font-medium">{t('dashboard.col.status')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-dashed divide-zinc-200">
               {orders.slice(0, 8).map(o => (
                 <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
                   <td className="px-6 py-3 text-zinc-500">
@@ -173,7 +201,7 @@ export default function AdminDashboard() {
                   <td className="px-6 py-3 text-zinc-500">
                     {o.metodo_envio === 'recogida_tienda' ? t('dashboard.shipping.pickup') : t('dashboard.shipping.delivery')}
                   </td>
-                  <td className="px-6 py-3 text-right font-semibold">{o.total} €</td>
+                  <td className="px-6 py-3 text-right font-mono font-semibold tabular-nums">{o.total} €</td>
                   <td className="px-6 py-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[o.status] ?? 'bg-zinc-100 text-zinc-700'}`}>
                       {t(STATUS_KEY[o.status] ?? o.status)}
@@ -190,30 +218,40 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, subtext, color, href, accent }) {
-  const bg = { yellow: 'bg-yellow-50 text-yellow-600', blue: 'bg-blue-50 text-blue-600', amber: 'bg-amber-50 text-amber-600', green: 'bg-green-50 text-green-600' };
+function SectionLabel({ children }) {
   return (
-    <Link href={href} className="bg-white rounded-2xl border border-zinc-200 p-5 flex items-center gap-4 hover:border-zinc-300 hover:shadow-md transition-all shadow-sm">
-      <div className={`p-3 rounded-xl ${bg[color]}`}>
-        <Icon size={22} />
-      </div>
-      <div className="min-w-0">
-        <div className={`text-2xl font-bold ${accent ? 'text-amber-600' : 'text-zinc-900'}`}>{value}</div>
-        <div className="text-xs text-zinc-500 mt-0.5 leading-tight">{label}</div>
-        {subtext && <div className="text-xs text-zinc-400 mt-0.5 truncate">{subtext}</div>}
-      </div>
-    </Link>
+    <h3 className="font-mono text-[11px] text-zinc-400 uppercase tracking-[0.2em] mb-3">{children}</h3>
   );
 }
 
-function SalesTile({ label, resum, t }) {
-  return (
-    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
-      <div className="text-xs font-medium text-zinc-500 mb-1">{label}</div>
-      <div className="text-2xl font-bold text-zinc-900">{fmtEur(resum.total)}</div>
-      <div className="text-xs text-zinc-400 mt-1">
-        {t('dashboard.sales.web_label')} {fmtEur(resum.web)} · {t('dashboard.sales.tpv_label')} {fmtEur(resum.mostrador)}
+// Franja tipus "tiquet": columnes separades per ratlla discontínua en lloc
+// de targetes independents amb icona — reutilitza el llenguatge visual del
+// receipt-ticket (globals.css) en comptes del patró genèric icona+número.
+function LedgerStrip({ entries }) {
+  const Item = ({ label, value, subtext, href }) => {
+    const inner = (
+      <div className="px-5 py-4 sm:px-6 sm:py-5 min-w-0">
+        <div className="font-mono text-2xl sm:text-3xl font-semibold text-zinc-900 tabular-nums truncate">{value}</div>
+        <div className="text-xs text-zinc-500 mt-1 truncate">{label}</div>
+        {subtext && <div className="text-[11px] text-zinc-400 mt-0.5 truncate">{subtext}</div>}
       </div>
+    );
+    return href ? (
+      <Link href={href} className="block hover:bg-zinc-50 transition-colors">{inner}</Link>
+    ) : (
+      <div>{inner}</div>
+    );
+  };
+
+  const smCols = entries.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-4';
+
+  return (
+    <div className={`bg-white rounded-3xl shadow-[0_2px_24px_-6px_rgba(15,23,42,0.08)] grid grid-cols-2 ${smCols} divide-x divide-dashed divide-zinc-200 overflow-hidden`}>
+      {entries.map((e, i) => (
+        <div key={i} className={i >= 2 ? 'border-t sm:border-t-0 border-dashed border-zinc-200' : ''}>
+          <Item {...e} />
+        </div>
+      ))}
     </div>
   );
 }
