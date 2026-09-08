@@ -309,3 +309,76 @@ def test_model_390_agrega_els_4_trimestres_del_303(client, db):
         for t in range(1, 5)
     )
     assert Decimal(body["resultat_anual"]) == total_esperat
+
+
+# ---------------------------------------------------------------------------
+# Models 190 / 180 (resum anual de 111 / 115)
+# ---------------------------------------------------------------------------
+
+def test_model_190_agrega_tot_l_any_sense_duplicar_perceptor(client, db):
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db, name="Gestoria X", nif="B11111111")
+    # Mateix proveïdor, factures a Q1 i Q2 -> ha de comptar com UN perceptor a l'any.
+    client.post(
+        "/admin/despeses",
+        json={
+            "invoice_date": "2026-02-10", "proveidor_id": str(prov.id), "supplier_name": prov.name,
+            "category": "serveis_professionals", "concept": "Gestoria febrer",
+            "taxable_base": "200.00", "vat_pct": "21.00",
+            "retencio_tipus": "professional", "retencio_pct": "15.00",
+        },
+        headers=_auth(admin),
+    )
+    client.post(
+        "/admin/despeses",
+        json={
+            "invoice_date": "2026-05-10", "proveidor_id": str(prov.id), "supplier_name": prov.name,
+            "category": "serveis_professionals", "concept": "Gestoria maig",
+            "taxable_base": "100.00", "vat_pct": "21.00",
+            "retencio_tipus": "professional", "retencio_pct": "15.00",
+        },
+        headers=_auth(admin),
+    )
+
+    resp = client.get("/admin/aeat/190/2026", headers=_auth(admin))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["num_perceptors"] == 1
+    assert body["base_total"] == "300.00"
+    assert body["retencio_total"] == "45.00"
+    assert len(body["desglossat"]) == 1
+    assert body["desglossat"][0]["nif"] == "B11111111"
+
+    assert len(body["trimestres"]) == 4
+    assert body["trimestres"][0]["base_total"] == "200.00"  # Q1: gener-març
+    assert body["trimestres"][1]["base_total"] == "100.00"  # Q2: abril-juny
+    assert body["trimestres"][2]["base_total"] == "0.00"
+    assert body["trimestres"][3]["base_total"] == "0.00"
+
+
+def test_model_180_agrega_retencions_de_lloguer(client, db):
+    admin = _admin_token(client, db)
+    arrendador = Proveedor(name="Propietari Local SL", nif="B22222222", type="altres")
+    db.add(arrendador)
+    db.commit()
+    for mes in ("2026-01-01", "2026-07-01"):
+        client.post(
+            "/admin/despeses",
+            json={
+                "invoice_date": mes, "proveidor_id": str(arrendador.id), "supplier_name": arrendador.name,
+                "category": "lloguer", "concept": "Lloguer",
+                "taxable_base": "500.00", "vat_pct": "21.00",
+                "retencio_tipus": "lloguer", "retencio_pct": "19.00",
+            },
+            headers=_auth(admin),
+        )
+
+    resp = client.get("/admin/aeat/180/2026", headers=_auth(admin))
+    body = resp.json()
+    assert body["num_perceptors"] == 1
+    assert body["base_total"] == "1000.00"
+    assert body["retencio_total"] == "190.00"
+
+    # No ha d'aparèixer al 190 (tipus diferent).
+    resp190 = client.get("/admin/aeat/190/2026", headers=_auth(admin))
+    assert resp190.json()["num_perceptors"] == 0

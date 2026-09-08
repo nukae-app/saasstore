@@ -24,7 +24,7 @@ from ...models import (
 )
 from ...schemas import (
     Model130Out, Model200Out, Model202Out, Model303Out, Model303TipusOut, Model390Out, Model390TrimestreOut,
-    ModelRetencioOut, RetencioProveidorOut,
+    ModelRetencioAnualOut, ModelRetencioOut, ModelRetencioTrimestreOut, RetencioProveidorOut,
 )
 from ...services.security import require_admin
 from .llibres import _fi_de_mes, _saldos_per_tipus
@@ -145,15 +145,14 @@ def model_390(year: int, db: Session = Depends(get_db)):
     )
 
 
-def _calcula_retencions(db: Session, year: int, trimestre: int, tipus: RetencioTipus) -> ModelRetencioOut:
-    mesos = [(trimestre - 1) * 3 + i for i in range(1, 4)]
-
-    def _in_trimestre(col):
-        return (extract("year", col) == year) & (extract("month", col).in_(mesos))
-
+def _desglossat_retencions(
+    db: Session, data_des_de: date, data_fins: date, tipus: RetencioTipus,
+) -> list[RetencioProveidorOut]:
+    """Agregació per proveïdor entre dues dates — compartida pels informes
+    trimestrals (111/115) i anuals (190/180): mateix criteri, diferent rang."""
     rows = db.execute(
         select(Despesa.proveidor_id, Despesa.supplier_name, Despesa.taxable_base, Despesa.retencio_import)
-        .where(_in_trimestre(Despesa.invoice_date))
+        .where(Despesa.invoice_date >= data_des_de, Despesa.invoice_date <= data_fins)
         .where(Despesa.retencio_tipus == tipus)
     ).all()
 
@@ -170,13 +169,17 @@ def _calcula_retencions(db: Session, year: int, trimestre: int, tipus: RetencioT
         acc[0] += base
         acc[1] += retencio or Decimal("0")
 
-    desglossat = [
+    return [
         RetencioProveidorOut(
             proveidor_id=proveidor_id, nom=nom, nif=nifs.get(proveidor_id), base=vals[0], retencio=vals[1],
         )
         for (proveidor_id, nom), vals in per_proveidor.items()
     ]
 
+
+def _calcula_retencions(db: Session, year: int, trimestre: int, tipus: RetencioTipus) -> ModelRetencioOut:
+    mesos = [(trimestre - 1) * 3 + i for i in range(1, 4)]
+    desglossat = _desglossat_retencions(db, date(year, mesos[0], 1), _fi_de_mes(year, mesos[-1]), tipus)
     return ModelRetencioOut(
         year=year, trimestre=trimestre, mesos=mesos,
         num_perceptors=len(desglossat),
@@ -200,6 +203,41 @@ def model_115(year: int, trimestre: int, db: Session = Depends(get_db)):
     if not (1 <= trimestre <= 4):
         raise HTTPException(422, "Trimestre ha de ser entre 1 i 4")
     return _calcula_retencions(db, year, trimestre, RetencioTipus.lloguer)
+
+
+def _calcula_retencions_anual(db: Session, year: int, tipus: RetencioTipus) -> ModelRetencioAnualOut:
+    """Resum anual (190 sobre 111, 180 sobre 115): agrega tot l'any per
+    proveïdor en una sola consulta (no suma els 4 trimestres per separat) —
+    un mateix proveïdor amb factures en dos trimestres ha de comptar com UN
+    sol perceptor a l'any, no dos."""
+    trimestres = []
+    for t in range(1, 5):
+        desglossat_t = _desglossat_retencions(db, date(year, (t - 1) * 3 + 1, 1), _fi_de_mes(year, (t - 1) * 3 + 3), tipus)
+        trimestres.append(ModelRetencioTrimestreOut(
+            trimestre=t,
+            base_total=sum((d.base for d in desglossat_t), Decimal("0.00")),
+            retencio_total=sum((d.retencio for d in desglossat_t), Decimal("0.00")),
+        ))
+    desglossat = _desglossat_retencions(db, date(year, 1, 1), date(year, 12, 31), tipus)
+    return ModelRetencioAnualOut(
+        year=year, trimestres=trimestres,
+        num_perceptors=len(desglossat),
+        base_total=sum((d.base for d in desglossat), Decimal("0")),
+        retencio_total=sum((d.retencio for d in desglossat), Decimal("0")),
+        desglossat=desglossat,
+    )
+
+
+@router.get("/aeat/190/{year}", response_model=ModelRetencioAnualOut)
+def model_190(year: int, db: Session = Depends(get_db)):
+    """Resum anual de retencions a professionals (agrega el Model 111)."""
+    return _calcula_retencions_anual(db, year, RetencioTipus.professional)
+
+
+@router.get("/aeat/180/{year}", response_model=ModelRetencioAnualOut)
+def model_180(year: int, db: Session = Depends(get_db)):
+    """Resum anual de la retenció de lloguer (agrega el Model 115)."""
+    return _calcula_retencions_anual(db, year, RetencioTipus.lloguer)
 
 
 REDUCCIO_5PCT_TOPALL_ANUAL = Decimal("2000.00")

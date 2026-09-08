@@ -192,3 +192,27 @@ class ModelRetencioOut(BaseModel):
     retencio_total: Decimal
     desglossat: list[RetencioProveidorOut]
     fora_abast: list[str] = ["Rendiments del treball (nòmines) — aquest negoci no modela empleats"]
+
+
+class ModelRetencioTrimestreOut(BaseModel):
+    """Una fila del desglossament trimestral dins del resum anual — NOMÉS
+    informativa (els totals per trimestre poden sobrecomptar un mateix
+    perceptor que apareix en més d'un trimestre); `num_perceptors` de
+    `ModelRetencioAnualOut` és el recompte correcte, sobre tot l'any."""
+    trimestre: int
+    base_total: Decimal
+    retencio_total: Decimal
+
+
+class ModelRetencioAnualOut(BaseModel):
+    """Resum anual dels models 111/115: Model 190 (professionals) i Model 180
+    (lloguer) — mateix criteri que Model390Out sobre el 303, agrega tot
+    l'any en una única consulta perquè un perceptor amb factures en dos
+    trimestres compti com UN perceptor, no dos."""
+    year: int
+    trimestres: list[ModelRetencioTrimestreOut]
+    num_perceptors: int
+    base_total: Decimal
+    retencio_total: Decimal
+    desglossat: list[RetencioProveidorOut]
+    fora_abast: list[str] = ["Rendiments del treball (nòmines) — aquest negoci no modela empleats"]

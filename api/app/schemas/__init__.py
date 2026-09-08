@@ -233,6 +233,8 @@ from .aeat import (
     Model202Out,
     RetencioProveidorOut,
     ModelRetencioOut,
+    ModelRetencioTrimestreOut,
+    ModelRetencioAnualOut,
 )
 
 from .holded import (

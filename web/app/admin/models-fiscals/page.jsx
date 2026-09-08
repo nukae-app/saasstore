@@ -58,7 +58,11 @@ export default function ModelsFiscalsPage() {
     { key: '202', label: 'Model 202', sub: t('models_fiscals.202.sub', 'Pagament fraccionat IS · SL') },
     { key: '111', label: 'Model 111', sub: t('models_fiscals.111.sub', 'Retencions professionals') },
     { key: '115', label: 'Model 115', sub: t('models_fiscals.115.sub', 'Retenció lloguer') },
+    { key: '190', label: 'Model 190', sub: t('models_fiscals.190.sub', 'Resum anual retencions professionals') },
+    { key: '180', label: 'Model 180', sub: t('models_fiscals.180.sub', 'Resum anual retenció lloguer') },
   ];
+
+  const ANUALS = ['390', '190', '180'];
 
   const [model, setModel] = useState('303');
   const [year, setYear] = useState(NOW.getFullYear());
@@ -77,7 +81,7 @@ export default function ModelsFiscalsPage() {
 
     setLoading(true);
     let url;
-    if (model === '390') url = `/admin/aeat/390/${year}`;
+    if (ANUALS.includes(model)) url = `/admin/aeat/${model}/${year}`;
     else if (model === '200') url = `/admin/aeat/200/${year}?tipus_pct=${tipusPct}&pagaments_fraccionats_satisfets=${pagamentsFraccionats || '0'}`;
     else if (model === '202') url = `/admin/aeat/202/${year}/${periode202}?cuota_integra_exercici_anterior=${cuotaAnterior202}`;
     else url = `/admin/aeat/${model}/${year}/${trim}`;
@@ -109,7 +113,7 @@ export default function ModelsFiscalsPage() {
           className="border border-zinc-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900">
           {[2023, 2024, 2025, 2026].map(y => <option key={y}>{y}</option>)}
         </select>
-        {!['390', '200', '202'].includes(model) && (
+        {!['390', '190', '180', '200', '202'].includes(model) && (
           <div className="flex gap-2">
             {TRIMESTRES.map(tr => (
               <button key={tr.value} onClick={() => setTrim(tr.value)}
@@ -187,6 +191,8 @@ export default function ModelsFiscalsPage() {
         <Model200View data={data} t={t} />
       ) : model === '202' ? (
         <Model202View data={data} t={t} />
+      ) : model === '190' || model === '180' ? (
+        <ModelRetencioAnualView data={data} t={t} />
       ) : (
         <ModelRetencioView data={data} t={t} />
       )}
@@ -394,6 +400,78 @@ function Model202View({ data, t }) {
       <div className="rounded-xl p-4 border bg-orange-50 border-orange-200">
         <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.202.import', 'Import a ingressar')} · {data.periode_nom}</div>
         <div className="text-xl font-bold text-zinc-900">{fmtEur(data.import_pagament)}</div>
+      </div>
+
+      <ForaAbast items={data.fora_abast} t={t} />
+    </div>
+  );
+}
+
+function ModelRetencioAnualView({ data, t }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4">
+          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.retencio.perceptors', 'Nº perceptors')}</div>
+          <div className="text-xl font-bold text-zinc-900">{data.num_perceptors}</div>
+        </div>
+        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4">
+          <div className="text-xs text-zinc-500 mb-1">{t('models_fiscals.retencio.base', 'Base total')}</div>
+          <div className="text-xl font-bold text-zinc-900">{fmtEur(data.base_total)}</div>
+        </div>
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <div className="text-xs text-orange-600 mb-1">{t('models_fiscals.retencio.total', 'Retenció a ingressar')}</div>
+          <div className="text-xl font-bold text-orange-700">{fmtEur(data.retencio_total)}</div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-zinc-50 text-xs text-zinc-500">
+            <tr>
+              <th className="px-5 py-2 text-left font-medium">{t('models_fiscals.390.trimestre', 'Trimestre')}</th>
+              <th className="px-5 py-2 text-right font-medium">{t('despeses.taxable_base', 'Base imposable')}</th>
+              <th className="px-5 py-2 text-right font-medium">{t('models_fiscals.retencio.import', 'Retenció')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {data.trimestres.map(tr => (
+              <tr key={tr.trimestre} className="hover:bg-zinc-50">
+                <td className="px-5 py-2.5 font-medium text-zinc-700">{tr.trimestre}T</td>
+                <td className="px-5 py-2.5 text-right text-zinc-600">{fmtEur(tr.base_total)}</td>
+                <td className="px-5 py-2.5 text-right font-medium text-orange-700">{fmtEur(tr.retencio_total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-zinc-400">
+        {t('models_fiscals.190_180.nota_trimestres', 'Els totals per trimestre poden sumar més que el total anual si un mateix proveïdor apareix en diversos trimestres — el nombre de perceptors de dalt és el recompte correcte, sobre tot l’any.')}
+      </p>
+
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-zinc-50 text-xs text-zinc-500">
+            <tr>
+              <th className="px-5 py-2 text-left font-medium">{t('nav.proveidors', 'Proveïdor')}</th>
+              <th className="px-5 py-2 text-left font-medium">NIF</th>
+              <th className="px-5 py-2 text-right font-medium">{t('despeses.taxable_base', 'Base imposable')}</th>
+              <th className="px-5 py-2 text-right font-medium">{t('models_fiscals.retencio.import', 'Retenció')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {data.desglossat.length === 0 ? (
+              <tr><td colSpan={4} className="px-5 py-4 text-zinc-400 text-center text-xs">{t('iva.no_data', 'Sense dades')}</td></tr>
+            ) : data.desglossat.map((d, i) => (
+              <tr key={i} className="hover:bg-zinc-50">
+                <td className="px-5 py-2.5 text-zinc-700">{d.nom}</td>
+                <td className="px-5 py-2.5 text-zinc-500 font-mono text-xs">{d.nif || '—'}</td>
+                <td className="px-5 py-2.5 text-right text-zinc-600">{fmtEur(d.base)}</td>
+                <td className="px-5 py-2.5 text-right font-medium text-orange-700">{fmtEur(d.retencio)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <ForaAbast items={data.fora_abast} t={t} />
