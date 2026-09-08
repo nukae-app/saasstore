@@ -60,6 +60,16 @@
 
   --color-cream: #faf9f6;
 
+  /* Registrats aquí perquè Tailwind generi les utilities font-headline/
+     font-body (abans només existien com a propietat CSS plana a :root,
+     mai dins @theme — className="font-headline" no feia res excepte a
+     h1/h2/h3, que el reben per una regla d'element separada). El valor
+     real ve sempre de :root / [data-admin-theme] a @layer base, que
+     guanya per ordre de layer (base > theme); aquest és només el
+     placeholder que fa que Tailwind sàpiga generar la classe. */
+  --font-headline: 'Bodoni Moda', Georgia, serif;
+  --font-body: 'Hanken Grotesk', system-ui, sans-serif;
+
   /* Rols addicionals de Material Design 3, només amb valor real sota
      [data-admin-theme="m3"] (ver més avall) — la resta de l'app no els fa
      servir, així que fora d'aquest scope cauen en el buit sense efecte. */
@@ -201,57 +211,71 @@
        es reavalua en aquest punt de l'arbre. */
     font-family: var(--font-body);
 
-    --background: #faf6f0;
-    --foreground: #2e3230;
-    --card: #ffffff;
-    --card-foreground: #2e3230;
-    --popover: #ffffff;
-    --popover-foreground: #2e3230;
+    /* IMPORTANT — sobreescriu sempre --color-<nom> (el que genera Tailwind
+       a @theme), MAI el nom intermedi propi (--background, --primary...).
+       Motiu (bug real, detectat 2026-09-08, confirmat present a producció
+       amb un build real, no només en dev): Tailwind registra
+       `--color-primary: var(--primary)` un sol cop a :root; quan una
+       utility (bg-primary) consumeix --color-primary, la resolució de la
+       referència var(--primary) niada es "congela" amb el valor de
+       --primary A :ROOT, ignorant que aquest scope el sobreescriu més
+       avall — encara que --primary AQUÍ es llegeixi correctament si es
+       consulta directament. Sobreescriure --color-X aquí (una sola
+       indirecció, no niada) ho evita completament. Verificat amb
+       getComputedStyle en un build de producció real: bg-primary amb
+       --primary sobreescrit donava #171717 (negre de botiga, INCORRECTE);
+       amb --color-primary sobreescrit dona el color correcte. */
+    --color-background: #faf6f0;
+    --color-foreground: #2e3230;
+    --color-card: #ffffff;
+    --color-card-foreground: #2e3230;
+    --color-popover: #ffffff;
+    --color-popover-foreground: #2e3230;
     /* Terracotta/rust en comptes del verd salvia original de Stitch —
        lliga amb l'accent ja real del marketing de NukaeStore (/nukaestore),
        no és una tria arbitrària nova. Decidit per l'usuari 2026-09-08. */
-    --primary: #b8563a;
-    --primary-foreground: #ffffff;
-    --secondary: #f0e8db;
-    --secondary-foreground: #6b6358;
-    --muted: #e4e0d8;
-    --muted-foreground: #4a4e4a;
-    --accent: #eae6de;
-    --accent-foreground: #2e3230;
-    --destructive: #b83230;
-    --destructive-foreground: #ffffff;
-    --border: #c4c8bc;
-    --input: #c4c8bc;
-    --ring: #b8563a;
+    --color-primary: #b8563a;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #f0e8db;
+    --color-secondary-foreground: #6b6358;
+    --color-muted: #e4e0d8;
+    --color-muted-foreground: #4a4e4a;
+    --color-accent: #eae6de;
+    --color-accent-foreground: #2e3230;
+    --color-destructive: #b83230;
+    --color-destructive-foreground: #ffffff;
+    --color-border: #c4c8bc;
+    --color-input: #c4c8bc;
+    --color-ring: #b8563a;
 
     --font-headline: 'Literata', Georgia, serif;
     --font-body: 'Nunito Sans', system-ui, sans-serif;
 
-    --m3-surface: #faf6f0;
-    --m3-surface-dim: #dbd7cf;
-    --m3-surface-bright: #faf6f0;
-    --m3-surface-container-lowest: #ffffff;
-    --m3-surface-container-low: #f5f1ea;
-    --m3-surface-container: #f0ece4;
-    --m3-surface-container-high: #eae6de;
-    --m3-surface-container-highest: #e4e0d8;
-    --m3-surface-variant: #e4e0d8;
-    --m3-on-surface: #2e3230;
-    --m3-on-surface-variant: #4a4e4a;
-    --m3-outline: #74796e;
-    --m3-outline-variant: #c4c8bc;
-    --m3-tertiary: #705c30;
-    --m3-tertiary-container: #c4a66a;
-    --m3-tertiary-fixed: #f8e0a8;
-    --m3-on-tertiary-fixed: #221a05;
-    --m3-primary-fixed: #f3c9b3;
-    --m3-on-primary-fixed: #3d1200;
-    --m3-primary-container: #e0a488;
-    --m3-on-primary-container: #3d1200;
-    --m3-secondary-container: #f0e8db;
-    --m3-on-secondary-container: #5e5548;
-    --m3-error-container: #ffdad8;
-    --m3-on-error-container: #690005;
+    --color-surface: #faf6f0;
+    --color-surface-dim: #dbd7cf;
+    --color-surface-bright: #faf6f0;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #f5f1ea;
+    --color-surface-container: #f0ece4;
+    --color-surface-container-high: #eae6de;
+    --color-surface-container-highest: #e4e0d8;
+    --color-surface-variant: #e4e0d8;
+    --color-on-surface: #2e3230;
+    --color-on-surface-variant: #4a4e4a;
+    --color-outline: #74796e;
+    --color-outline-variant: #c4c8bc;
+    --color-tertiary: #705c30;
+    --color-tertiary-container: #c4a66a;
+    --color-tertiary-fixed: #f8e0a8;
+    --color-on-tertiary-fixed: #221a05;
+    --color-primary-fixed: #f3c9b3;
+    --color-on-primary-fixed: #3d1200;
+    --color-primary-container: #e0a488;
+    --color-on-primary-container: #3d1200;
+    --color-secondary-container: #f0e8db;
+    --color-on-secondary-container: #5e5548;
+    --color-error-container: #ffdad8;
+    --color-on-error-container: #690005;
   }
 
   .hero-featured-image {
