@@ -1,7 +1,14 @@
-"""Documents comercials no fiscals: pressupostos i albarans (Bloc B1 del pla
-de paritat amb Holded, veure docs/PLAN_PARIDAD_HOLDED.md). Cap dels dos és
-un document fiscal amb numeració legal protegida — a diferència de la
-futura factura de venda (B2), no calen les cauteles de VeriFactu."""
+"""Documents comercials: pressupostos i albarans (Bloc B1, no fiscals) i
+factura de venda (Bloc B2, veure docs/PLAN_PARIDAD_HOLDED.md).
+
+`Factura` és NOMÉS la capa "sempre exigida" pel Reglament de Facturació (RD
+1619/2012): numeració correlativa sense buits, dades de l'emissor i el
+receptor, desglossament d'IVA. NO implementa VeriFactu (RD 1007/2023):
+sense encadenat de hashes, sense codi QR, sense enviament a Hisenda. Fins
+que no es confirmi amb la gestoria si/quan aplica VeriFactu a aquest
+negoci, cada factura emesa hauria d'imprimir-se o arxivar-se en PDF com a
+còpia de seguretat pròpia — aquest sistema no és, avui, un "Sistema
+Informàtic de Facturació" certificat."""
 
 import enum
 import uuid
@@ -130,3 +137,88 @@ class Albara(TenantScoped, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     order: Mapped["Order"] = relationship()
+
+
+class FacturaOrigen(str, enum.Enum):
+    # ticket: es genera a partir d'una venda ja registrada (Order o
+    # VentaExterna) — mai es torna a comptabilitzar (ja es va fer en el seu
+    # moment via post_venda). manual: servei/concepte fora del catàleg, es
+    # comptabilitza en emetre's (ver post_factura_manual).
+    ticket = "ticket"
+    manual = "manual"
+
+
+class FacturaStatus(str, enum.Enum):
+    emesa = "emesa"
+    anullada = "anullada"
+
+
+class Factura(TenantScoped, Base):
+    """Factura de venda (Bloc B2) — ver docstring del mòdul per l'abast
+    exacte (capa base del Reglament de Facturació, NO VeriFactu).
+
+    Un cop `emesa` NO s'edita mai (`lines` són immutables): el número i
+    l'import queden fixats per llei. L'única transició possible és
+    `anullar_factura`, que la marca `anullada` sense reutilitzar el número
+    (mateix criteri que una factura rectificativa simplificada — no hi ha
+    "esborrany" com a Pressupost perquè un cop assignat el número ja és un
+    document fiscal real)."""
+
+    __tablename__ = "factures"
+    __table_args__ = (UniqueConstraint("tenant_id", "fiscal_year", "number"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    fiscal_year: Mapped[int] = mapped_column(Integer, index=True)
+    number: Mapped[int] = mapped_column(Integer)
+    origen: Mapped[FacturaOrigen] = mapped_column(Enum(FacturaOrigen, name="factura_origen"), index=True)
+    status: Mapped[FacturaStatus] = mapped_column(
+        Enum(FacturaStatus, name="factura_status"), default=FacturaStatus.emesa, server_default="emesa", index=True,
+    )
+
+    # Només si origen=ticket — quina venda origina la factura. Un ticket de
+    # TPV pot agrupar diverses VentaExterna (mateix ticket_id): es referencia
+    # el ticket_id, no una fila individual.
+    order_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"), index=True)
+    venta_externa_ticket_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
+
+    # Client sempre com a snapshot (mateix criteri que Pressupost/Order): una
+    # factura emesa no canvia encara que el client editi les seves dades
+    # després, i permet facturar algú sense compte al sistema.
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    client_name: Mapped[str] = mapped_column(String(200))
+    client_nif: Mapped[str | None] = mapped_column(String(20))
+    client_address: Mapped[dict | None] = mapped_column(JSON)
+
+    issue_date: Mapped[date] = mapped_column(Date, server_default=func.current_date())
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    # Snapshot dels totals (mateix criteri que Despesa.vat_amount/total): un
+    # cop emesa mai es recalculen a partir de les línies.
+    base_total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    vat_total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    order: Mapped["Order | None"] = relationship()
+    lines: Mapped[list["FacturaLinia"]] = relationship(
+        back_populates="factura", cascade="all, delete-orphan", order_by="FacturaLinia.position"
+    )
+
+
+class FacturaLinia(TenantScoped, Base):
+    """Línia lliure (descripció + preu), no lligada a `Release`/`Item` del
+    catàleg — mateix criteri que `PressupostLinia`: cobreix tant una línia
+    copiada d'un tiquet com un servei donat d'alta des de zero."""
+
+    __tablename__ = "factura_linies"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    factura_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("factures.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    description: Mapped[str] = mapped_column(String(500))
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("1"), server_default="1")
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    vat_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("21"), server_default="21")
+
+    factura: Mapped["Factura"] = relationship(back_populates="lines")

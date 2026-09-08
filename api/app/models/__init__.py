@@ -174,4 +174,8 @@ from .documents import (
     Pressupost,
     PressupostLinia,
     Albara,
+    FacturaOrigen,
+    FacturaStatus,
+    Factura,
+    FacturaLinia,
 )

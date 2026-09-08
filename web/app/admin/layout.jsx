@@ -70,6 +70,7 @@ function getNavGroups(config) {
         { href: '/admin/comptabilitat', key: 'nav.comptabilitat_resum', label: 'Resum', icon: 'calculate', exact: true },
         { href: '/admin/pressupostos', key: 'nav.pressupostos', label: 'Pressupostos', icon: 'request_quote' },
         { href: '/admin/albarans',    key: 'nav.albarans',    label: 'Albarans',      icon: 'receipt_long' },
+        { href: '/admin/factures',    key: 'nav.factures',    label: 'Factures',      icon: 'description' },
         { href: '/admin/despeses',    key: 'nav.despeses',    label: 'Despeses',      icon: 'payments' },
         { href: '/admin/banc',        key: 'nav.banc',        label: 'Banc',          icon: 'account_balance' },
         { href: '/admin/proveidors',  key: 'nav.proveidors',  label: 'Proveïdors',    icon: 'factory' },

@@ -305,6 +305,7 @@ class JournalSourceType(str, enum.Enum):
     actiu_amortitzacio = "actiu_amortitzacio"
     manual = "manual"
     tancament_exercici = "tancament_exercici"
+    factura_manual = "factura_manual"
 
 
 class JournalEntryCounter(TenantScoped, Base):

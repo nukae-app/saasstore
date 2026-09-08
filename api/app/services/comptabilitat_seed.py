@@ -72,6 +72,7 @@ def seed_pgc_es(legal_form: str) -> list[AccountSeed]:
         AccountSeed("629", "Altres serveis", 6, AccountType.despesa),
         AccountSeed("681", "Amortització de l'immobilitzat material", 6, AccountType.despesa),
         AccountSeed("700", "Vendes de mercaderies", 7, AccountType.ingres),
+        AccountSeed("705", "Prestació de serveis", 7, AccountType.ingres),
         AccountSeed("708", "Devolucions de vendes", 7, AccountType.ingres),
         AccountSeed("771", "Beneficis procedents de l'immobilitzat material", 7, AccountType.ingres),
     ]

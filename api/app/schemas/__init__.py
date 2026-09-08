@@ -260,6 +260,10 @@ from .documents import (
     PressupostOut,
     AlbaraIn,
     AlbaraOut,
+    FacturaLiniaIn,
+    FacturaManualIn,
+    FacturaLiniaOut,
+    FacturaOut,
 )
 
 from .pricing import (

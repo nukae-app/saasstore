@@ -20,8 +20,8 @@ from sqlalchemy.orm import Session
 
 from .comptabilitat_seed import ASSET_CATEGORY_ACCOUNT_ES, DESPESA_CATEGORY_ACCOUNT_ES
 from ..models import (
-    AccountingAccount, AssetDepreciationEntry, CaixaDiaria, Despesa, FixedAsset, JournalEntry, JournalEntryCounter,
-    JournalLine, JournalSourceType, PeriodeComptable,
+    AccountingAccount, AssetDepreciationEntry, CaixaDiaria, Despesa, Factura, FixedAsset, JournalEntry,
+    JournalEntryCounter, JournalLine, JournalSourceType, PeriodeComptable,
 )
 
 
@@ -153,6 +153,26 @@ def post_cobrament_conciliacio(
     return post_entry(
         db, entry_date=entry_date, description=description, source_type=source_type, source_id=source_id,
         lines=[("572", amount, Decimal("0")), ("430", Decimal("0"), amount)],
+    )
+
+
+def post_factura_manual(db: Session, factura: Factura) -> JournalEntry:
+    """Factura de venda emesa des de zero (servei fora del catàleg, Bloc B2)
+    — a diferència de `post_venda`, sempre va a 705 (Prestació de serveis),
+    mai a 700 (mercaderies): una factura manual és sempre un servei, no un
+    article del catàleg (que ja té el seu propi tiquet i el seu propi
+    assentament). Ver `Factura.origen`: una factura amb origen=ticket NO
+    truca a aquesta funció — la venda ja es va comptabilitzar quan es va
+    crear l'Order/VentaExterna, tornar-ho a fer duplicaria l'ingrés."""
+    lines: list[tuple[str, Decimal, Decimal]] = [("430", factura.total, Decimal("0"))]
+    if factura.base_total:
+        lines.append(("705", Decimal("0"), factura.base_total))
+    if factura.vat_total:
+        lines.append(("477", Decimal("0"), factura.vat_total))
+    return post_entry(
+        db, entry_date=factura.issue_date,
+        description=f"Factura {factura.fiscal_year}/{factura.number:04d}: {factura.client_name}",
+        source_type=JournalSourceType.factura_manual, source_id=factura.id, lines=lines,
     )
 
 
