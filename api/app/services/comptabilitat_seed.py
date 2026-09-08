@@ -57,6 +57,7 @@ def seed_pgc_es(legal_form: str) -> list[AccountSeed]:
         AccountSeed("472", "H.P. IVA suportat", 4, AccountType.actiu),
         AccountSeed("477", "H.P. IVA repercutit", 4, AccountType.passiu),
         AccountSeed("4750", "H.P. creditora per IVA", 4, AccountType.passiu),
+        AccountSeed("4751", "H.P. creditora per retencions practicades", 4, AccountType.passiu),
         AccountSeed("570", "Caixa", 5, AccountType.actiu),
         AccountSeed("572", "Bancs", 5, AccountType.actiu),
         AccountSeed("600", "Compres de mercaderies", 6, AccountType.despesa),

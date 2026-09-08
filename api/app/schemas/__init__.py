@@ -141,6 +141,7 @@ from .comptabilitat import (
     CATEGORIES_DESPESA,
     ESTATS_PAGAMENT,
     METODES_PAGAMENT_DESPESA,
+    RETENCIO_TIPUS,
     DespesaIn,
     DespesaUpdate,
     DespesaOut,
@@ -225,6 +226,13 @@ from .actius import (
 from .aeat import (
     Model303TipusOut,
     Model303Out,
+    Model390TrimestreOut,
+    Model390Out,
+    Model130Out,
+    Model200Out,
+    Model202Out,
+    RetencioProveidorOut,
+    ModelRetencioOut,
 )
 
 from .holded import (

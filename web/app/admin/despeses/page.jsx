@@ -209,6 +209,12 @@ export default function DespesesPage() {
                           <div><span className="text-zinc-400 text-xs block">{t('despeses.invoice_number', 'Nº factura')}</span>{d.invoice_number || '—'}</div>
                           <div><span className="text-zinc-400 text-xs block">{t('despeses.taxable_base', 'Base imposable')}</span>{fmtEur(d.taxable_base)}</div>
                           <div><span className="text-zinc-400 text-xs block">IVA {d.vat_pct}%</span>{fmtEur(d.vat_amount)}</div>
+                          {d.retencio_tipus && (
+                            <>
+                              <div><span className="text-zinc-400 text-xs block">{t('despeses.retencio', 'Retenció IRPF')} ({d.retencio_tipus === 'professional' ? t('despeses.retencio.professional', 'Model 111') : t('despeses.retencio.lloguer', 'Model 115')}, {d.retencio_pct}%)</span>−{fmtEur(d.retencio_import)}</div>
+                              <div><span className="text-zinc-400 text-xs block">{t('despeses.net_a_pagar', 'Net a pagar')}</span><span className="font-semibold">{fmtEur(d.net_a_pagar)}</span></div>
+                            </>
+                          )}
                           {d.payment_method && <div><span className="text-zinc-400 text-xs block">{t('despeses.payment_method_label', 'Mètode pagament')}</span>{METODES.find(m => m.value === d.payment_method)?.label || d.payment_method}</div>}
                           {d.payment_date && <div><span className="text-zinc-400 text-xs block">{t('despeses.payment_date', 'Data pagament')}</span>{fmtDate(d.payment_date)}</div>}
                           {d.notes && <div className="col-span-2"><span className="text-zinc-400 text-xs block">{t('common.notes', 'Notes')}</span>{d.notes}</div>}
@@ -255,6 +261,8 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
   const [tipusIvaId, setTipusIvaId] = useState(despesa?.tipus_iva_id || '');
   const [ivaPct, setIvaPct] = useState(despesa?.vat_pct || '21.00');
   const [total, setTotal] = useState(despesa?.total || '');
+  const [retencioTipus, setRetencioTipus] = useState(despesa?.retencio_tipus || '');
+  const [retencioPct, setRetencioPct] = useState(despesa?.retencio_pct || '');
   const [estat, setEstat] = useState(despesa?.payment_status || 'pendent');
   const [dataPagament, setDataPagament] = useState(despesa?.payment_date || '');
   const [metodePagament, setMetodePagament] = useState(despesa?.payment_method || '');
@@ -270,6 +278,9 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
       setTotal((b + b * pct / 100).toFixed(2));
     }
   }, [base, ivaPct]);
+
+  const retencioImport = retencioTipus && retencioPct ? (parseFloat(base || 0) * parseFloat(retencioPct) / 100) : 0;
+  const netAPagar = (parseFloat(total || 0) - retencioImport);
 
   function handleTipusIvaSelect(id) {
     setTipusIvaId(id);
@@ -313,6 +324,8 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
       tipus_iva_id: tipusIvaId || null,
       vat_pct: parseFloat(ivaPct),
       total: parseFloat(total),
+      retencio_tipus: retencioTipus || null,
+      retencio_pct: retencioTipus && retencioPct ? parseFloat(retencioPct) : null,
       payment_status: estat,
       payment_date: dataPagament || null,
       payment_method: metodePagament || null,
@@ -408,6 +421,40 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
                 <input type="number" step="0.01" value={total} onChange={e => setTotal(e.target.value)} required
                   className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 font-semibold" />
               </div>
+            </div>
+          </div>
+
+          {/* Retenció IRPF */}
+          <div className="border border-zinc-200 rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-zinc-700">{t('despeses.retencio', 'Retenció IRPF')}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.retencio.tipus', 'Tipus')}</label>
+                <select value={retencioTipus} onChange={e => setRetencioTipus(e.target.value)}
+                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 bg-white">
+                  <option value="">{t('despeses.retencio.cap', '— Cap —')}</option>
+                  <option value="professional">{t('despeses.retencio.professional', 'Model 111 · Professionals')}</option>
+                  <option value="lloguer">{t('despeses.retencio.lloguer', 'Model 115 · Lloguer')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">{t('despeses.retencio.pct', 'Retenció %')}</label>
+                <input type="number" step="0.01" value={retencioPct} onChange={e => setRetencioPct(e.target.value)}
+                  disabled={!retencioTipus} placeholder={retencioTipus === 'lloguer' ? '19.00' : '15.00'}
+                  className="w-full border border-zinc-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:bg-zinc-100 disabled:text-zinc-500" />
+              </div>
+              {retencioTipus && retencioPct && (
+                <>
+                  <div>
+                    <span className="block text-xs text-zinc-500 mb-1">{t('despeses.retencio.import', 'Import retingut')}</span>
+                    <div className="text-sm font-semibold text-zinc-900 py-1.5">−{retencioImport.toFixed(2)} €</div>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-zinc-500 mb-1">{t('despeses.net_a_pagar', 'Net a pagar')}</span>
+                    <div className="text-sm font-semibold text-zinc-900 py-1.5">{netAPagar.toFixed(2)} €</div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

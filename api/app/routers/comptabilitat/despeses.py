@@ -9,7 +9,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
-from ...models import CategoriaDespesa, Compra, Despesa, EstatPagamentDespesa, Proveedor, TipusIva
+from ...models import CategoriaDespesa, Compra, Despesa, EstatPagamentDespesa, Proveedor, RetencioTipus, TipusIva
 from ...schemas import DespesaDesDeComprasIn, DespesaIn, DespesaOut, DespesaUpdate
 from ...services.comptabilitat_posting import post_despesa_alta, post_despesa_pagament
 from ...services.documents_pdf import generate_despesa_pdf
@@ -48,10 +48,19 @@ def _despesa_out(d: Despesa) -> dict:
         "due_date": d.due_date, "proveidor_id": d.proveidor_id,
         "supplier_name": d.supplier_name, "category": d.category, "concept": d.concept,
         "taxable_base": d.taxable_base, "tipus_iva_id": d.tipus_iva_id, "vat_pct": d.vat_pct,
-        "vat_amount": d.vat_amount, "total": d.total, "payment_status": d.payment_status,
+        "vat_amount": d.vat_amount, "total": d.total,
+        "retencio_tipus": d.retencio_tipus, "retencio_pct": d.retencio_pct, "retencio_import": d.retencio_import,
+        "net_a_pagar": d.total - (d.retencio_import or Decimal("0")),
+        "payment_status": d.payment_status,
         "payment_date": d.payment_date, "payment_method": d.payment_method,
         "compra_ids": [c.id for c in d.compras], "notes": d.notes, "created_at": d.created_at,
     }
+
+
+def _calc_retencio(base: Decimal, pct: Decimal | None) -> Decimal | None:
+    if pct is None:
+        return None
+    return (base * pct / 100).quantize(Decimal("0.01"))
 
 
 @router.post("/despeses", status_code=201, response_model=DespesaOut)
@@ -68,6 +77,7 @@ def create_despesa(payload: DespesaIn, db: Session = Depends(get_db)):
 
     vat_amount = (payload.taxable_base * vat_pct / 100).quantize(Decimal("0.01"))
     total = payload.total if payload.total is not None else payload.taxable_base + vat_amount
+    retencio_import = _calc_retencio(payload.taxable_base, payload.retencio_pct) if payload.retencio_tipus else None
 
     due_date = payload.due_date or _calc_venciment(payload.invoice_date, prov)
 
@@ -84,6 +94,9 @@ def create_despesa(payload: DespesaIn, db: Session = Depends(get_db)):
         vat_pct=vat_pct,
         vat_amount=vat_amount,
         total=total,
+        retencio_tipus=RetencioTipus(payload.retencio_tipus) if payload.retencio_tipus else None,
+        retencio_pct=payload.retencio_pct if payload.retencio_tipus else None,
+        retencio_import=retencio_import,
         payment_status=EstatPagamentDespesa(payload.payment_status),
         payment_date=payload.payment_date,
         payment_method=payload.payment_method,
@@ -94,11 +107,12 @@ def create_despesa(payload: DespesaIn, db: Session = Depends(get_db)):
     post_despesa_alta(db, despesa)
     # L'admin pot marcar la despesa com a pagada ja en l'alta (p.ex. una
     # compra en efectiu pagada al moment) — sense passar per la conciliació
-    # bancària de banc.py, que és l'altre camí cap a `pagat`.
+    # bancària de banc.py, que és l'altre camí cap a `pagat`. Si hi ha retenció,
+    # el que surt del banc és el net (la part retinguda no es paga al proveïdor).
     if despesa.payment_status == EstatPagamentDespesa.pagat:
         post_despesa_pagament(
             db, despesa, payment_date=despesa.payment_date or despesa.invoice_date,
-            amount=despesa.total, cash=(despesa.payment_method == "efectiu"),
+            amount=despesa.total - (retencio_import or Decimal("0")), cash=(despesa.payment_method == "efectiu"),
         )
     db.commit()
     db.refresh(despesa)
@@ -195,6 +209,17 @@ def update_despesa(despesa_id: uuid.UUID, payload: DespesaUpdate, db: Session = 
         pct = data.get("vat_pct", d.vat_pct)
         data.setdefault("vat_amount", (base * pct / 100).quantize(Decimal("0.01")))
         data.setdefault("total", base + data["vat_amount"])
+    # Recalcula retencio_import si canvia base, retencio_pct o retencio_tipus (mateix
+    # criteri que vat_amount: sempre snapshot, mai deixar-lo desincronitzat de la base).
+    if "taxable_base" in data or "retencio_pct" in data or "retencio_tipus" in data:
+        base = data.get("taxable_base", d.taxable_base)
+        tipus = data.get("retencio_tipus", d.retencio_tipus)
+        pct = data.get("retencio_pct", d.retencio_pct)
+        data["retencio_import"] = _calc_retencio(base, pct) if tipus else None
+        if not tipus:
+            data["retencio_pct"] = None
+    if data.get("retencio_tipus") is not None:
+        data["retencio_tipus"] = RetencioTipus(data["retencio_tipus"])
     for k, v in data.items():
         setattr(d, k, v)
     db.commit()

@@ -5,7 +5,9 @@ tolerància que pugui conciliar per error un moviment amb la despesa
 equivocada. Només afecta despeses (moviments de sortida): ingressos (Order/
 VentaExterna) no tenen patró recurrent fiable amb el que fer regles."""
 
-from sqlalchemy import select
+from decimal import Decimal
+
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..models import Despesa, EstatConciliacio, EstatPagamentDespesa, MovimentBancari, ReglaConciliacio
@@ -29,11 +31,15 @@ def rank_despesa_candidates(
     """Despeses pendents amb import EXACTE al moviment (abs), ordenades per
     proximitat de data (venciment si n'hi ha, si no data de factura) al
     moviment — servei compartit pels suggeriments manuals i per l'aplicació
-    automàtica de regles."""
+    automàtica de regles. Compara contra el NET (total - retenció): si la
+    despesa porta retenció d'IRPF, el que realment surt del banc és menys
+    que `total` (la part retinguda no es paga al proveïdor, ver
+    post_despesa_alta)."""
     import_moviment = abs(moviment.movement_amount)
+    net = Despesa.total - func.coalesce(Despesa.retencio_import, Decimal("0"))
     stmt = select(Despesa).where(
         Despesa.payment_status != EstatPagamentDespesa.pagat,
-        Despesa.total == import_moviment,
+        net == import_moviment,
     )
     if proveidor_id:
         stmt = stmt.where(Despesa.proveidor_id == proveidor_id)

@@ -9,7 +9,7 @@ import {
   Receipt, Landmark, TrendingUp, Calculator, Tag, Mail, Bell, Home,
   Settings, Repeat, LayoutTemplate, BookText, Boxes, ChevronDown, Library, Truck,
   FileSignature, PackageCheck, ClipboardList, PackageSearch, UserSquare2, History,
-  Percent, Ticket, LineChart,
+  Percent, Ticket, LineChart, Stamp,
 } from 'lucide-react';
 import { clearToken as clearAdminToken } from '../lib/auth';
 import { useAuth } from '../../components/store/AuthProvider';
@@ -83,6 +83,7 @@ function getNavGroups(config) {
         { href: '/admin/resultat',    key: 'nav.resultat',    label: 'Resultat',      icon: TrendingUp },
         { href: '/admin/flux-caixa',  key: 'nav.flux_caixa',  label: 'Flux de caixa', icon: LineChart },
         { href: '/admin/iva',         key: 'nav.iva',         label: 'IVA',           icon: Calculator },
+        { href: '/admin/models-fiscals', key: 'nav.models_fiscals', label: 'Models AEAT', icon: Stamp },
         { href: '/admin/marges',      key: 'nav.marges',      label: 'Marges',        icon: Percent },
         { href: '/admin/pla-comptes', key: 'nav.pla_comptes', label: 'Pla de comptes', icon: BookText },
         { href: '/admin/actius',      key: 'nav.actius',      label: 'Actius',        icon: Boxes },
@@ -166,7 +167,7 @@ function AdminShell({ children }) {
   // Mateixa sessió que la botiga: si ja has entrat a la web com a admin, no
   // cal tornar a fer login aquí. dev_admin_bypass es manté per a proves
   // locals sense haver de crear cap usuari.
-  const user = devBypass ? { email: 'dev@admin.local', nombre: 'Dev Admin', rol: 'admin' } : sessionUser;
+  const user = devBypass ? { email: 'dev@admin.local', nombre: 'Dev Admin', role: 'admin' } : sessionUser;
 
   function logout() {
     clearAdminToken();
@@ -175,7 +176,7 @@ function AdminShell({ children }) {
 
   if (!devBypass && loading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+      <div className="min-h-screen bg-primary flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -183,13 +184,13 @@ function AdminShell({ children }) {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-          <h1 className="text-xl font-bold text-zinc-900 mb-1">{config.nombre || 'Admin'}</h1>
+      <div className="min-h-screen bg-primary flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <h1 className="font-serif italic text-2xl text-zinc-900 mb-1">{config.nombre || 'Admin'}</h1>
           <p className="text-sm text-zinc-500 mb-6">Cal iniciar sessió per accedir al panell.</p>
           <Link
             href="/login"
-            className="inline-flex items-center justify-center w-full bg-primary hover:bg-zinc-800 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center justify-center w-full bg-primary hover:opacity-90 text-white px-5 py-2.5 rounded-full text-sm font-medium uppercase tracking-wide transition-opacity"
           >
             Anar al login
           </Link>
@@ -200,13 +201,13 @@ function AdminShell({ children }) {
 
   if (user.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-          <h1 className="text-xl font-bold text-zinc-900 mb-1">Sense accés</h1>
+      <div className="min-h-screen bg-primary flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <h1 className="font-serif italic text-2xl text-zinc-900 mb-1">Sense accés</h1>
           <p className="text-sm text-zinc-500 mb-6">Aquest compte no té permisos d&apos;administració.</p>
           <Link
             href="/"
-            className="inline-flex items-center justify-center w-full border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-zinc-50 transition-colors"
+            className="inline-flex items-center justify-center w-full border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-zinc-50 transition-colors"
           >
             Tornar a la web
           </Link>
@@ -221,7 +222,7 @@ function AdminShell({ children }) {
   const showLabels = !collapsed || mobileOpen;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-zinc-50 overflow-hidden">
       {/* Mobile backdrop */}
       {mobileOpen && (
         <div
@@ -232,23 +233,23 @@ function AdminShell({ children }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 w-64 ${collapsed ? 'md:w-16' : 'md:w-56'} flex flex-col bg-zinc-900 shrink-0 transform transition-transform md:transition-[width] duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+        className={`fixed md:static inset-y-0 left-0 z-40 w-64 ${collapsed ? 'md:w-16' : 'md:w-56'} flex flex-col bg-primary shrink-0 transform transition-transform md:transition-[width] duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         {/* Brand */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-800 shrink-0">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-white/10 shrink-0">
           {showLabels && (
-            <span className="font-bold text-white text-sm tracking-wide truncate">{config.nombre || 'Admin'}</span>
+            <span className="font-serif italic text-white text-lg truncate">{config.nombre || 'Admin'}</span>
           )}
-          <button onClick={() => setCollapsed(!collapsed)} className="hidden md:block text-zinc-500 hover:text-white p-1 rounded ml-auto">
+          <button onClick={() => setCollapsed(!collapsed)} className="hidden md:block text-white/40 hover:text-white p-1 rounded-full ml-auto">
             {collapsed ? <Menu size={18} /> : <X size={18} />}
           </button>
-          <button onClick={() => setMobileOpen(false)} className="md:hidden text-zinc-500 hover:text-white p-1 rounded ml-auto">
+          <button onClick={() => setMobileOpen(false)} className="md:hidden text-white/40 hover:text-white p-1 rounded-full ml-auto">
             <X size={18} />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-4">
+        <nav className="flex-1 py-4 px-2 overflow-y-auto space-y-5">
           {NAV_GROUPS.map((group, gi) => {
             // Els grups desplegables només es pleguen amb el sidebar
             // expandit — en mode icona (showLabels=false) no té sentit
@@ -259,19 +260,19 @@ function AdminShell({ children }) {
               {group.label && showLabels && group.collapsible && (
                 <button
                   onClick={() => setOpenGroups(g => ({ ...g, [group.label]: !g[group.label] }))}
-                  className="w-full flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-zinc-600 uppercase tracking-widest hover:text-zinc-400"
+                  className="w-full flex items-center justify-between px-3 mb-1.5 font-mono text-[10px] text-white/35 uppercase tracking-[0.2em] hover:text-white/60"
                 >
                   {group.label}
                   <ChevronDown size={12} className={`transition-transform ${isCollapsibleOpen ? '' : '-rotate-90'}`} />
                 </button>
               )}
               {group.label && showLabels && !group.collapsible && (
-                <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest px-3 mb-1">
+                <p className="font-mono text-[10px] text-white/35 uppercase tracking-[0.2em] px-3 mb-1.5">
                   {group.label}
                 </p>
               )}
               {group.label && !showLabels && gi > 0 && (
-                <div className="border-t border-zinc-800 mb-1 mx-2" />
+                <div className="border-t border-white/10 mb-1 mx-2" />
               )}
               {isCollapsibleOpen && (
                 <div className="space-y-0.5">
@@ -283,10 +284,10 @@ function AdminShell({ children }) {
                         key={href}
                         href={href}
                         title={collapsed && !mobileOpen ? label : undefined}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        className={`flex items-center gap-3 px-3 py-2 rounded-full text-sm transition-colors ${
                           active
-                            ? 'bg-zinc-800 text-white font-medium'
-                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                            ? 'bg-white text-zinc-900 font-medium'
+                            : 'text-white/50 hover:text-white hover:bg-white/10'
                         }`}
                       >
                         <Icon size={16} className="shrink-0" />
@@ -302,14 +303,14 @@ function AdminShell({ children }) {
         </nav>
 
         {/* User + logout */}
-        <div className="p-2 border-t border-zinc-800 shrink-0">
+        <div className="p-2 border-t border-white/10 shrink-0">
           {showLabels && (
-            <div className="px-3 py-1 text-xs text-zinc-500 truncate mb-1">{user.email}</div>
+            <div className="px-3 py-1 font-mono text-[11px] text-white/30 truncate mb-1">{user.email}</div>
           )}
           <button
             onClick={logout}
             title={collapsed && !mobileOpen ? t('nav.logout') : undefined}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-full text-sm text-white/50 hover:text-white hover:bg-white/10 transition-colors"
           >
             <LogOut size={18} className="shrink-0" />
             {showLabels && <span>{t('nav.logout')}</span>}
@@ -320,7 +321,7 @@ function AdminShell({ children }) {
       {/* Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-14 bg-white border-b border-zinc-200 flex items-center justify-between px-3 sm:px-6 gap-2 shrink-0">
+        <header className="h-14 bg-white/90 backdrop-blur-md border-b border-zinc-200 flex items-center justify-between px-3 sm:px-6 gap-2 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setMobileOpen(true)}
@@ -328,19 +329,19 @@ function AdminShell({ children }) {
             >
               <Menu size={20} />
             </button>
-            <h1 className="text-sm font-semibold text-zinc-700 truncate">{currentLabel}</h1>
+            <h1 className="font-serif italic text-lg text-zinc-900 truncate">{currentLabel}</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Language switcher */}
-            <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-0.5">
+            <div className="flex items-center gap-1 bg-zinc-100 rounded-full p-0.5">
               <Globe size={13} className="hidden sm:block text-zinc-400 ml-1.5" />
               {LANGS.map(({ code, label }) => (
                 <button
                   key={code}
                   onClick={() => setLang(code)}
-                  className={`px-1.5 sm:px-2 py-1 rounded text-xs font-semibold transition-colors ${
+                  className={`px-1.5 sm:px-2 py-1 rounded-full font-mono text-[10px] font-semibold tracking-wide transition-colors ${
                     lang === code
-                      ? 'bg-white text-zinc-900 shadow-sm'
+                      ? 'bg-zinc-900 text-white'
                       : 'text-zinc-500 hover:text-zinc-800'
                   }`}
                 >
@@ -350,11 +351,11 @@ function AdminShell({ children }) {
             </div>
             <Link
               href="/"
-              className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-800 border border-zinc-200 rounded-lg px-2 sm:px-2.5 py-1.5 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-800 border border-zinc-200 rounded-full px-2 sm:px-2.5 py-1.5 transition-colors"
             >
               <Home size={13} /> <span className="hidden sm:inline">Web</span>
             </Link>
-            <span className="hidden lg:inline text-xs text-zinc-400">{user.name ?? user.email}</span>
+            <span className="hidden lg:inline font-mono text-[11px] text-zinc-400">{user.name ?? user.email}</span>
           </div>
         </header>
 

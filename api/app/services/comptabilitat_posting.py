@@ -161,7 +161,13 @@ def post_despesa_alta(db: Session, despesa: Despesa) -> JournalEntry:
     lines: list[tuple[str, Decimal, Decimal]] = [(account_code, despesa.taxable_base, Decimal("0"))]
     if despesa.vat_amount:
         lines.append(("472", despesa.vat_amount, Decimal("0")))
-    lines.append(("400", Decimal("0"), despesa.total))
+    # Si hi ha retenció d'IRPF practicada (Model 111/115), el deute amb el
+    # proveïdor (400) es reconeix net; la part retinguda és deute amb Hisenda (4751),
+    # no amb el proveïdor — és el que realment sortirà del banc a cadascú.
+    retencio = despesa.retencio_import or Decimal("0")
+    lines.append(("400", Decimal("0"), despesa.total - retencio))
+    if retencio:
+        lines.append(("4751", Decimal("0"), retencio))
     return post_entry(
         db, entry_date=despesa.invoice_date, description=f"Factura {despesa.supplier_name}: {despesa.concept}",
         source_type=JournalSourceType.despesa_alta, source_id=despesa.id, lines=lines,

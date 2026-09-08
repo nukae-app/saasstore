@@ -47,6 +47,15 @@ class EstatConciliacio(str, enum.Enum):
     ignorat = "ignorat"   # transferència entre comptes propis, etc.
 
 
+class RetencioTipus(str, enum.Enum):
+    """Quina casella d'AEAT alimenta la retenció d'IRPF practicada en una
+    Despesa: professional (factures de professionals -> Model 111) o lloguer
+    (lloguer del local a arrendador persona física -> Model 115). No hi ha
+    `treball` perquè aquest negoci no modela nòmines (ver docs/PLAN_PARIDAD_HOLDED.md)."""
+    professional = "professional"
+    lloguer = "lloguer"
+
+
 class AccountType(str, enum.Enum):
     actiu = "actiu"
     passiu = "passiu"
@@ -134,6 +143,17 @@ class Despesa(TenantScoped, Base):
     vat_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2))    # snapshot del percentatge triat
     vat_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+
+    # Retenció d'IRPF practicada al proveïdor (Model 111/115) — ver RetencioTipus.
+    # `retencio_import` és sempre un snapshot (base * pct/100), mai recalculat en
+    # llegir, mateix criteri que vat_amount. `total` NO descompta la retenció: és
+    # l'import de la factura; el que realment surt del banc és `total - retencio_import`
+    # (ver post_despesa_alta, que ho parteix entre 400 i 4751).
+    retencio_tipus: Mapped[RetencioTipus | None] = mapped_column(
+        Enum(RetencioTipus, name="retencio_tipus"), index=True
+    )
+    retencio_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    retencio_import: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
 
     payment_status: Mapped[EstatPagamentDespesa] = mapped_column(
         Enum(EstatPagamentDespesa, name="estat_pagament_despesa"),

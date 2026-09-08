@@ -113,6 +113,7 @@ from .comptabilitat import (
     CategoriaDespesa,
     EstatPagamentDespesa,
     EstatConciliacio,
+    RetencioTipus,
     TipusIva,
     Despesa,
     CompteBancari,

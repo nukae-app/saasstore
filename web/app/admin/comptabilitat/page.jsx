@@ -88,10 +88,10 @@ export default function ComptabilitatResumPage() {
           </div>
         </div>
 
-        <div className="rounded-xl p-4 border bg-blue-50 border-blue-200">
+        <Link href="/admin/models-fiscals" className="rounded-xl p-4 border bg-blue-50 border-blue-200 hover:border-blue-400 transition-colors">
           <div className="flex items-center gap-1.5 text-xs mb-1 text-blue-600"><Calculator size={13} /> {t('comptabilitat.card.vat_quarter', 'IVA trimestre actual')}</div>
           <div className="text-xl font-bold text-blue-700">{aeat ? fmtEur(aeat.casella_64_resultat_liquidacio) : '—'}</div>
-        </div>
+        </Link>
 
         <div className="rounded-xl p-4 border bg-zinc-50 border-zinc-200">
           <div className="flex items-center gap-1.5 text-xs mb-1 text-zinc-500"><Landmark size={13} /> {t('comptabilitat.card.bank_balance', 'Saldo banc (572)')}</div>

@@ -48,6 +48,10 @@ ESTATS_PAGAMENT = Literal["pendent", "pagat", "vencut"]
 
 METODES_PAGAMENT_DESPESA = Literal["transferencia", "rebut_domiciliat", "targeta", "efectiu", "paypal_altres"]
 
+# professional -> Model 111 (factures de professionals amb retenció d'IRPF)
+# lloguer -> Model 115 (lloguer del local a arrendador persona física)
+RETENCIO_TIPUS = Literal["professional", "lloguer"]
+
 
 class DespesaIn(BaseModel):
     invoice_number: str | None = None
@@ -61,6 +65,10 @@ class DespesaIn(BaseModel):
     tipus_iva_id: int | None = None        # si s'indica, el seu percentatge mana sobre vat_pct
     vat_pct: Decimal = Decimal("21.00")
     total: Decimal | None = None           # si None, es calcula: base + base*vat_pct/100
+    # Retenció d'IRPF practicada al proveïdor (Model 111/115) — opcional; sense
+    # retencio_tipus no s'aplica cap retenció encara que hi hagi retencio_pct.
+    retencio_tipus: RETENCIO_TIPUS | None = None
+    retencio_pct: Decimal | None = None
     payment_status: ESTATS_PAGAMENT = "pendent"
     payment_date: date | None = None
     payment_method: METODES_PAGAMENT_DESPESA | None = None
@@ -85,6 +93,8 @@ class DespesaUpdate(BaseModel):
     vat_pct: Decimal | None = None
     vat_amount: Decimal | None = None
     total: Decimal | None = None
+    retencio_tipus: RETENCIO_TIPUS | None = None
+    retencio_pct: Decimal | None = None
     payment_status: ESTATS_PAGAMENT | None = None
     payment_date: date | None = None
     payment_method: METODES_PAGAMENT_DESPESA | None = None
@@ -105,6 +115,10 @@ class DespesaOut(BaseModel):
     vat_pct: Decimal
     vat_amount: Decimal
     total: Decimal
+    retencio_tipus: str | None
+    retencio_pct: Decimal | None
+    retencio_import: Decimal | None
+    net_a_pagar: Decimal          # total - retencio_import (el que realment surt del banc)
     payment_status: str
     payment_date: date | None
     payment_method: str | None
