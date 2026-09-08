@@ -228,6 +228,15 @@ def test_crear_factura_des_de_venda_externa(client, db):
     resp2 = client.post(f"/admin/factures/des-de-venda-externa/{ticket_id}", headers=_auth(admin))
     assert resp2.status_code == 409
 
+    # Mateix flux que el botó "Facturar" del TPV: si ja existeix, es pot
+    # recuperar filtrant per venta_externa_ticket_id (ver tpv/page.jsx::facturarTiquet).
+    existents = client.get(
+        f"/admin/factures?venta_externa_ticket_id={ticket_id}&status=emesa", headers=_auth(admin),
+    ).json()
+    assert len(existents) == 1
+    assert existents[0]["id"] == body["id"]
+    assert existents[0]["venta_externa_ticket_id"] == str(ticket_id)
+
 
 def test_factura_des_de_tiquet_inexistent_dona_404(client, db):
     admin = _admin_token(client, db)

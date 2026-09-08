@@ -852,6 +852,36 @@ function LinkUserModal({ ticket, onClose, onSaved }) {
   );
 }
 
+// Crea (o reutilitza, si ja existia) la factura d'un tiquet i en descarrega
+// el PDF — mateix endpoint que /admin/factures "Des de tiquet", ver
+// routers/documents/factures.py::crear_factura_des_de_venda_externa. Un
+// 409 (tiquet ja facturat) no és un error de veritat aquí: simplement es
+// descarrega la factura existent en lloc de crear-ne una altra.
+async function facturarTiquet(ticketId, t) {
+  let facturaId = null;
+  const resp = await authFetch(`/admin/factures/des-de-venda-externa/${ticketId}`, { method: 'POST' });
+  if (resp.status === 409) {
+    const existents = await authFetch(`/admin/factures?venta_externa_ticket_id=${ticketId}&status=emesa`)
+      .then(r => (r.ok ? r.json() : []));
+    if (!existents.length) { alert(t('tpv.resum.invoice_error', "No s'ha pogut trobar la factura existent")); return; }
+    facturaId = existents[0].id;
+  } else if (!resp.ok) {
+    alert((await resp.json()).detail || t('common.error'));
+    return;
+  } else {
+    facturaId = (await resp.json()).id;
+  }
+  const pdf = await authFetch(`/admin/factures/${facturaId}/pdf`);
+  if (!pdf.ok) return;
+  const blob = await pdf.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `factura_${ticketId.slice(0, 8)}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function ResumTab() {
   const t = useT();
   const shopConfig = useShopConfig();
@@ -864,6 +894,7 @@ function ResumTab() {
   const [expanded, setExpanded] = useState(new Set());
   const [linkTicket, setLinkTicket] = useState(null);
   const [printSale, setPrintSale] = useState(null);
+  const [facturant, setFacturant] = useState(null);
 
   useEffect(() => {
     if (printSale) window.print();
@@ -1020,7 +1051,18 @@ function ResumTab() {
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{tk.total.toFixed(2)} €</td>
-                      <td className="px-2 py-2.5 text-right">
+                      <td className="px-2 py-2.5 text-right whitespace-nowrap">
+                        <button onClick={async (e) => {
+                            e.stopPropagation();
+                            setFacturant(tk.ticket_id);
+                            await facturarTiquet(tk.ticket_id, t);
+                            setFacturant(null);
+                          }}
+                          disabled={facturant === tk.ticket_id}
+                          title={t('tpv.resum.invoice', 'Facturar')}
+                          className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high disabled:opacity-50">
+                          <MIcon name={facturant === tk.ticket_id ? 'hourglass_empty' : 'description'} size={14} />
+                        </button>
                         <button onClick={(e) => { e.stopPropagation(); setPrintSale({ items: tk.lines, metodo_pago: tk.metodo_pago, nombre_cliente: tk.nombre_cliente, fecha: tk.fecha }); }}
                           title={t('tpv.print_ticket', 'Imprimir tiquet')}
                           className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high">

@@ -27,7 +27,8 @@ def _factura_out(factura: Factura) -> dict:
     return {
         "id": factura.id, "fiscal_year": factura.fiscal_year, "number": factura.number,
         "origen": factura.origen, "status": factura.status,
-        "order_id": factura.order_id, "user_id": factura.user_id,
+        "order_id": factura.order_id, "venta_externa_ticket_id": factura.venta_externa_ticket_id,
+        "user_id": factura.user_id,
         "client_name": factura.client_name, "client_nif": factura.client_nif,
         "client_address": factura.client_address,
         "issue_date": factura.issue_date, "notes": factura.notes,
@@ -200,10 +201,17 @@ def crear_factura_des_de_venda_externa(ticket_id: uuid.UUID, client_nif: str | N
 
 
 @router.get("/factures", response_model=list[FacturaOut])
-def llistar_factures(status: str | None = None, db: Session = Depends(get_db)):
+def llistar_factures(
+    status: str | None = None, order_id: uuid.UUID | None = None,
+    venta_externa_ticket_id: uuid.UUID | None = None, db: Session = Depends(get_db),
+):
     query = select(Factura).options(selectinload(Factura.lines)).order_by(Factura.created_at.desc())
     if status:
         query = query.where(Factura.status == status)
+    if order_id:
+        query = query.where(Factura.order_id == order_id)
+    if venta_externa_ticket_id:
+        query = query.where(Factura.venta_externa_ticket_id == venta_externa_ticket_id)
     return [_factura_out(f) for f in db.scalars(query)]
 
 

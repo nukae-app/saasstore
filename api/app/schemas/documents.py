@@ -96,6 +96,7 @@ class FacturaOut(BaseModel):
     origen: str
     status: str
     order_id: uuid.UUID | None
+    venta_externa_ticket_id: uuid.UUID | None
     user_id: uuid.UUID | None
     client_name: str
     client_nif: str | None
