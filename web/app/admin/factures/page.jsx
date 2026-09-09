@@ -28,8 +28,18 @@ function calcTotals(lines) {
 }
 
 async function downloadPdf(url, filename) {
-  const r = await authFetch(url);
-  if (!r.ok) return;
+  let r;
+  try {
+    r = await authFetch(url);
+  } catch (e) {
+    alert(e?.message || 'Error de xarxa descarregant el PDF');
+    return;
+  }
+  if (!r.ok) {
+    const detail = await r.json().catch(() => null);
+    alert(detail?.detail || `No s'ha pogut descarregar el PDF (${r.status})`);
+    return;
+  }
   const blob = await r.blob();
   const objUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');
