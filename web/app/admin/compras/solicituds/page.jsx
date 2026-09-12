@@ -43,6 +43,7 @@ export default function SolicitudsPage() {
   const [resolvingEstocLinea, setResolvingEstocLinea] = useState(null);
   const [generatingLineas, setGeneratingLineas] = useState(null);
   const [showRefillModal, setShowRefillModal] = useState(false);
+  const [showVentasModal, setShowVentasModal] = useState(false);
   const qDebounce = useRef(null);
 
   useEffect(() => { authFetch('/admin/proveedores').then(r => r.json()).then(setProveedores); }, []);
@@ -109,6 +110,10 @@ export default function SolicitudsPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold text-on-surface">{t('purchases.tab.requests', 'Sol·licituds')}</h2>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowVentasModal(true)}
+            className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors">
+            <MIcon name="receipt_long" size={13} /> {t('purchases.btn.recent_sales', 'Vendes recents')}
+          </button>
           <button onClick={() => setShowRefillModal(true)}
             className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors">
             <MIcon name="auto_awesome" size={13} /> {t('purchases.btn.generate_suggestions', 'Generar suggeriments')}
@@ -295,6 +300,12 @@ export default function SolicitudsPage() {
         <RefillSugerenciesModal
           onClose={() => setShowRefillModal(false)}
           onSaved={() => { setShowRefillModal(false); loadPool(); }} />
+      )}
+
+      {showVentasModal && (
+        <VentasRecientesModal
+          onClose={() => setShowVentasModal(false)}
+          onSaved={() => { setShowVentasModal(false); loadPool(); }} />
       )}
     </div>
   );
@@ -1046,6 +1057,183 @@ function RefillSugerenciesModal({ onClose, onSaved }) {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="button" onClick={save} disabled={saving || selected.size === 0}>
+              {saving ? t('common.creating') : `${t('purchases.btn.add_to_pool', 'Afegir al pool')} (${selected.size})`}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Browser complementari a RefillSugerenciesModal: llista TOTES les vendes
+// (només còpies noves) en un rang de dates lliure, sense cap llindar
+// d'urgència ni exclusió per comanda oberta — per a vendes puntuals que
+// "Generar suggeriments" descarta perquè encara queda prou estoc pel ritme
+// de venda actual. L'admin decideix què val la pena reposar.
+function VentasRecientesModal({ onClose, onSaved }) {
+  const t = useT();
+  const avui = new Date().toISOString().slice(0, 10);
+  const fa90dies = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+  const [desde, setDesde] = useState(fa90dies);
+  const [hasta, setHasta] = useState(avui);
+  const [ventas, setVentas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(new Set());
+  const [cantidades, setCantidades] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const params = new URLSearchParams({ desde, hasta });
+      const r = await authFetch(`/admin/solicitudes-compra/ventas-recientes?${params.toString()}`);
+      const data = r.ok ? await r.json() : [];
+      setVentas(data);
+      setCantidades(Object.fromEntries(data.map(v => [v.release_id, 1])));
+      setLoading(false);
+    })();
+  }, [desde, hasta]);
+
+  function toggle(releaseId) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(releaseId)) next.delete(releaseId); else next.add(releaseId);
+      return next;
+    });
+  }
+
+  function toggleAllVisible(visibleRows) {
+    setSelected(prev => {
+      const allSelected = visibleRows.length > 0 && visibleRows.every(v => prev.has(v.release_id));
+      const next = new Set(prev);
+      visibleRows.forEach(v => allSelected ? next.delete(v.release_id) : next.add(v.release_id));
+      return next;
+    });
+  }
+
+  const ventasColumns = {
+    disc: { sortValue: v => `${v.artista ?? ''} ${v.titulo ?? ''}`.toLowerCase() },
+    unidades_vendidas: { sortValue: v => v.unidades_vendidas ?? 0 },
+    ultima_venta: { sortValue: v => v.ultima_venta ?? '' },
+    stock_actual: { sortValue: v => v.stock_actual ?? 0 },
+    proveedor_sugerido_nombre: {
+      sortValue: v => (v.proveedor_sugerido_nombre ?? '').toLowerCase(),
+      filterValue: v => v.proveedor_sugerido_nombre,
+    },
+  };
+  const {
+    rows: ventasSorted, sort: ventSort, toggleSort: toggleVentSort,
+    filters: ventFilters, setFilter: setVentFilter, distinctValues: ventDistinct,
+  } = useSortFilter(ventas, ventasColumns);
+
+  async function save(e) {
+    e.preventDefault();
+    if (selected.size === 0) return;
+    setSaving(true);
+    setError('');
+    const nota = `${t('purchases.ventas_modal.manual_from_sales', 'Afegit des de Vendes recents')} (${new Date().toLocaleDateString()})`;
+    const payload = {
+      origen: 'manual',
+      lineas: ventas.filter(v => selected.has(v.release_id)).map(v => ({
+        release_id: v.release_id,
+        quantity: parseInt(cantidades[v.release_id], 10) || 1,
+        proveedor_sugerido_id: v.proveedor_sugerido_id || null,
+        notes: nota,
+      })),
+    };
+    const r = await authFetch('/admin/solicitudes-compra/pool', { method: 'POST', body: JSON.stringify(payload) });
+    setSaving(false);
+    if (r.ok) onSaved();
+    else setError((await r.json().catch(() => ({}))).detail || t('purchases.request.create_error', 'No s\'ha pogut crear la sol·licitud.'));
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('purchases.ventas_modal.title', 'Vendes recents')}</h3>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-xs text-secondary-foreground">
+            {t('purchases.ventas_modal.hint', "Tot el que s'ha venut (només còpies noves) en aquest rang de dates, sense cap filtre d'urgència: útil per a vendes puntuals que \"Generar suggeriments\" no proposa perquè encara queda prou estoc pel ritme de venda actual.")}
+          </p>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+              {t('common.from', 'Des de')}
+              <input type="date" value={desde} onChange={e => setDesde(e.target.value)} max={hasta}
+                className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+              {t('common.to', 'Fins a')}
+              <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} min={desde} max={avui}
+                className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </label>
+          </div>
+
+          {loading ? (
+            <div className="text-sm text-secondary-foreground text-center py-8">{t('common.loading')}</div>
+          ) : ventas.length === 0 ? (
+            <div className="text-sm text-secondary-foreground text-center py-8">
+              {t('purchases.ventas_modal.no_sales', 'No hi ha vendes de còpies noves en aquest rang de dates.')}
+            </div>
+          ) : (
+            <div className="border border-outline-variant rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
+                  <tr>
+                    <th className="w-8 px-3 py-2">
+                      <input type="checkbox"
+                        checked={ventasSorted.length > 0 && ventasSorted.every(v => selected.has(v.release_id))}
+                        onChange={() => toggleAllVisible(ventasSorted)}
+                        className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
+                    </th>
+                    <SortableTh label={t('tpv.col.record')} sortKey="disc" sort={ventSort} onSort={toggleVentSort} className="px-3 py-2" />
+                    <SortableTh label={t('purchases.ventas_modal.col.units_sold', 'Unitats venudes')} sortKey="unidades_vendidas" sort={ventSort} onSort={toggleVentSort} align="center" className="px-3 py-2" />
+                    <SortableTh label={t('purchases.ventas_modal.col.last_sale', 'Última venda')} sortKey="ultima_venta" sort={ventSort} onSort={toggleVentSort} className="px-3 py-2" />
+                    <SortableTh label={t('catalog.col.stock')} sortKey="stock_actual" sort={ventSort} onSort={toggleVentSort} align="center" className="px-3 py-2" />
+                    <SortableTh label={t('purchases.type.supplier')} sortKey="proveedor_sugerido_nombre" sort={ventSort} onSort={toggleVentSort} className="px-3 py-2"
+                      filterOptions={ventDistinct.proveedor_sugerido_nombre} selected={ventFilters.proveedor_sugerido_nombre} onFilterChange={setVentFilter} />
+                    <th className="px-3 py-2 text-center font-medium">{t('purchases.quantity', 'Quantitat')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant">
+                  {ventasSorted.map(v => (
+                    <tr key={v.release_id} className={selected.has(v.release_id) ? '' : 'opacity-60'}>
+                      <td className="px-3 py-2.5">
+                        <input type="checkbox" checked={selected.has(v.release_id)} onChange={() => toggle(v.release_id)}
+                          className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="font-medium text-on-surface">{v.artista} — {v.titulo}</div>
+                        {v.tiene_comanda_abierta && (
+                          <div className="text-[11px] text-amber-600">{t('purchases.ventas_modal.open_order', 'Ja té una comanda oberta')}</div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-on-surface-variant">{v.unidades_vendidas}</td>
+                      <td className="px-3 py-2.5 text-on-surface-variant">{new Date(v.ultima_venta).toLocaleDateString()}</td>
+                      <td className="px-3 py-2.5 text-center text-on-surface-variant">{v.stock_actual}</td>
+                      <td className="px-3 py-2.5 text-on-surface-variant">{v.proveedor_sugerido_nombre ?? <span className="text-secondary-foreground">—</span>}</td>
+                      <td className="px-3 py-2.5">
+                        <input type="number" min="1" value={cantidades[v.release_id] ?? 1}
+                          onChange={e => setCantidades(prev => ({ ...prev, [v.release_id]: e.target.value }))}
+                          className="w-16 border border-outline-variant rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary" />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

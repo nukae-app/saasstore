@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -16,7 +16,7 @@ from ...models import (
 from ...schemas import (
     ComandaOut, PoolLineasIn, RefillSugerenciaOut, ResoldreEstocIn, SolicitudCompraLineaIn,
     SolicitudCompraLineaOut, SolicitudCompraListPage, SolicitudCompraOut, SolicitudGenerarIn, SolicitudPoolPage,
-    SolicitudResolverIn,
+    SolicitudResolverIn, VentaRecienteOut,
 )
 from ...services.documents_numbering import next_document_number
 from ...services.security import require_admin
@@ -93,6 +93,26 @@ COBERTURA_OBJECTIU_DIAS = 30
 ORDER_STATUS_VENUT = (OrderStatus.pagado, OrderStatus.enviado, OrderStatus.entregado)
 
 
+def _stock_nou_disponible_por_release(db: Session) -> dict[uuid.UUID, int]:
+    """Estoc lliure (cantidad - cantidad_reservada) de còpies noves
+    disponibles, agrupat per release. La segona mà no hi entra: cada còpia
+    és única i no es "reposa" (veure CLAUDE.md, decisió de disseny #1)."""
+    return dict(db.execute(
+        select(Item.release_id, func.sum(Item.quantity - Item.reserved_quantity))
+        .where(Item.status == ItemStatus.disponible, Item.condition == CondicionItem.nou)
+        .group_by(Item.release_id)
+    ).all())
+
+
+def _releases_amb_comanda_pendent(db: Session) -> set[uuid.UUID]:
+    return set(db.execute(
+        select(ComandaLinea.release_id)
+        .join(Comanda, Comanda.id == ComandaLinea.comanda_id)
+        .where(Comanda.status.in_([EstadoComanda.esborrany, EstadoComanda.enviada, EstadoComanda.rebuda_parcial]))
+        .distinct()
+    ).scalars().all())
+
+
 def _suggest_proveedor_para_release(db: Session, release_id: uuid.UUID, artista: str) -> tuple[uuid.UUID | None, str | None]:
     """Mateixa lògica que el frontend fa servir en afegir un disc a mà: primer
     coincidència exacta de release_id a l'històric, si no n'hi ha, per artista."""
@@ -124,14 +144,7 @@ def refill_sugerencias(db: Session = Depends(get_db)):
     inici_periode = now - timedelta(days=VENTAS_WINDOW_DAYS)
     inici_periode_anterior = now - timedelta(days=2 * VENTAS_WINDOW_DAYS)
 
-    # Estoc actual (només còpies noves: la segona mà no es "reposa"). Suma
-    # unitats lliures (cantidad - cantidad_reservada), no files: una sola
-    # línia nou pot representar-ne moltes.
-    stock_por_release: dict[uuid.UUID, int] = dict(db.execute(
-        select(Item.release_id, func.sum(Item.quantity - Item.reserved_quantity))
-        .where(Item.status == ItemStatus.disponible, Item.condition == CondicionItem.nou)
-        .group_by(Item.release_id)
-    ).all())
+    stock_por_release = _stock_nou_disponible_por_release(db)
 
     def _ventas_periode(desde: datetime, fins: datetime) -> dict[uuid.UUID, int]:
         web = dict(db.execute(
@@ -204,12 +217,7 @@ def refill_sugerencias(db: Session = Depends(get_db)):
     ).all())
 
     # Releases amb comanda ja oberta: no re-suggerir.
-    releases_amb_comanda_pendent = set(db.execute(
-        select(ComandaLinea.release_id)
-        .join(Comanda, Comanda.id == ComandaLinea.comanda_id)
-        .where(Comanda.status.in_([EstadoComanda.esborrany, EstadoComanda.enviada, EstadoComanda.rebuda_parcial]))
-        .distinct()
-    ).scalars().all())
+    releases_amb_comanda_pendent = _releases_amb_comanda_pendent(db)
 
     candidats = []
     for release_id, vendes in vendes_actual.items():
@@ -248,6 +256,73 @@ def refill_sugerencias(db: Session = Depends(get_db)):
 
     candidats.sort(key=lambda c: (c.dies_estoc, -(c.marge_mitja or Decimal("0"))))
     return candidats
+
+
+@router.get("/solicitudes-compra/ventas-recientes", response_model=list[VentaRecienteOut])
+def ventas_recientes(
+    desde: date | None = Query(None, description="Per defecte, 90 dies enrere"),
+    hasta: date | None = Query(None, description="Per defecte, avui"),
+    db: Session = Depends(get_db),
+):
+    """Browser complementari a `refill_sugerencias`: llista TOT el que s'ha
+    venut (només còpies noves) al rang de dates indicat, sense cap llindar
+    d'urgència ni exclusió per comanda oberta. `refill_sugerencias` deixa
+    fora vendes puntuals que no baixen prou l'estoc restant — aquí és
+    l'admin qui decideix, mirant els números, si val la pena reposar-ho."""
+    ahora = datetime.now(timezone.utc)
+    hasta_date = hasta or ahora.date()
+    desde_date = desde or (ahora - timedelta(days=90)).date()
+    if hasta_date < desde_date:
+        raise HTTPException(422, "'hasta' no pot ser anterior a 'desde'")
+    inici = datetime.combine(desde_date, time.min, tzinfo=timezone.utc)
+    final = datetime.combine(hasta_date, time.min, tzinfo=timezone.utc) + timedelta(days=1)
+
+    # Sumem `quantity`, no comptem files: una línia nou pot vendre'n més
+    # d'una unitat de cop (a diferència de segona_ma, que sempre és 1).
+    web = db.execute(
+        select(Item.release_id, func.sum(OrderItem.quantity), func.max(Order.created_at))
+        .select_from(OrderItem)
+        .join(Order, Order.id == OrderItem.order_id)
+        .join(Item, Item.id == OrderItem.item_id)
+        .where(
+            Order.status.in_(ORDER_STATUS_VENUT), Item.condition == CondicionItem.nou,
+            Order.created_at >= inici, Order.created_at < final,
+        )
+        .group_by(Item.release_id)
+    ).all()
+    externa = db.execute(
+        select(Item.release_id, func.sum(VentaExterna.quantity), func.max(VentaExterna.date))
+        .select_from(VentaExterna)
+        .join(Item, Item.id == VentaExterna.item_id)
+        .where(Item.condition == CondicionItem.nou, VentaExterna.date >= inici, VentaExterna.date < final)
+        .group_by(Item.release_id)
+    ).all()
+
+    unidades_por_release: dict[uuid.UUID, int] = {}
+    ultima_venta_por_release: dict[uuid.UUID, datetime] = {}
+    for release_id, count, ultima in [*web, *externa]:
+        unidades_por_release[release_id] = unidades_por_release.get(release_id, 0) + count
+        if ultima is not None and (release_id not in ultima_venta_por_release or ultima > ultima_venta_por_release[release_id]):
+            ultima_venta_por_release[release_id] = ultima
+
+    stock_por_release = _stock_nou_disponible_por_release(db)
+    releases_amb_comanda_pendent = _releases_amb_comanda_pendent(db)
+
+    resultado = []
+    for release_id, unidades in unidades_por_release.items():
+        release = db.get(Release, release_id)
+        if release is None:
+            continue
+        prov_id, prov_nombre = _suggest_proveedor_para_release(db, release_id, release.artista)
+        resultado.append(VentaRecienteOut(
+            release_id=release_id, artista=release.artista, titulo=release.title, formato=release.formato,
+            unidades_vendidas=unidades, ultima_venta=ultima_venta_por_release[release_id],
+            stock_actual=stock_por_release.get(release_id, 0),
+            tiene_comanda_abierta=release_id in releases_amb_comanda_pendent,
+            proveedor_sugerido_id=prov_id, proveedor_sugerido_nombre=prov_nombre,
+        ))
+    resultado.sort(key=lambda r: r.ultima_venta, reverse=True)
+    return resultado
 
 
 @router.post("/solicitudes-compra/pool", status_code=201, response_model=list[SolicitudCompraLineaOut])

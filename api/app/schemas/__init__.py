@@ -28,6 +28,11 @@ from .catalog import (
 
 from .auth import (
     MagicLinkRequest,
+    MobileLoginOut,
+    MobilePasswordLoginRequest,
+    MobileRefreshRequest,
+    MobileTenantOption,
+    MobileTokenOut,
     PasswordLoginRequest,
     RegisterRequest,
     SetPasswordRequest,
@@ -92,6 +97,7 @@ from .erp_solicitudes import (
     SolicitudResolverIn,
     ResoldreEstocIn,
     RefillSugerenciaOut,
+    VentaRecienteOut,
     SolicitudPoolPage,
     SolicitudCompraListPage,
 )

@@ -129,3 +129,20 @@ class RefillSugerenciaOut(BaseModel):
     cantidad_sugerida: int
     proveedor_sugerido_id: uuid.UUID | None
     proveedor_sugerido_nombre: str | None
+
+
+class VentaRecienteOut(BaseModel):
+    """Fila del browser de vendes recents (`ventas-recientes`): a diferència
+    de `RefillSugerenciaOut`, no aplica cap llindar d'urgència ni exclou
+    releases amb comanda oberta — és l'admin qui decideix què val la pena
+    reposar a partir de tot el que s'ha venut al rang de dates."""
+    release_id: uuid.UUID
+    artista: str
+    titulo: str
+    formato: str | None
+    unidades_vendidas: int
+    ultima_venta: datetime
+    stock_actual: int
+    tiene_comanda_abierta: bool
+    proveedor_sugerido_id: uuid.UUID | None
+    proveedor_sugerido_nombre: str | None

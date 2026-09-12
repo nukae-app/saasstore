@@ -540,6 +540,110 @@ def test_refill_sugerencias_no_falla_amb_candidats_reals(db, client):
     assert body[0]["proveedor_sugerido_nombre"] == "Distro Refill"
 
 
+def test_ventas_recientes_inclou_venda_que_refill_sugerencias_descarta(db, client):
+    """La venda no és prou urgent per a refill_sugerencias (queda molt
+    d'estoc respecte al ritme de venda), però l'admin la vol veure igualment
+    per decidir si reposa. ventas-recientes no aplica cap llindar."""
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from app.models import Order, OrderItem, OrderStatus
+
+    admin = _admin_token(client, db)
+    release = _seed_release(db, "Zephyr Bones", "Solo Flight")
+
+    item = Item(
+        release_id=release.id, price=Decimal("20.00"), acquisition_cost=Decimal("10.00"),
+        condition=CondicionItem.nou, quantity=10, status=ItemStatus.disponible,
+    )
+    db.add(item)
+    db.flush()
+    order = Order(
+        contact_email="client@example.com", status=OrderStatus.pagado,
+        total=Decimal("20.00"), shipping_method="recogida_tienda",
+    )
+    db.add(order)
+    db.flush()
+    db.add(OrderItem(
+        order_id=order.id, item_id=item.id, release_id=release.id,
+        price=Decimal("20.00"), condition=CondicionItem.nou, quantity=1,
+    ))
+    db.commit()
+
+    refill = client.get("/admin/solicitudes-compra/refill-sugerencias", headers=_auth(admin))
+    assert refill.status_code == 200
+    assert refill.json() == []
+
+    resp = client.get("/admin/solicitudes-compra/ventas-recientes", headers=_auth(admin))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["release_id"] == str(release.id)
+    assert body[0]["unidades_vendidas"] == 1
+    assert body[0]["stock_actual"] == 10
+    assert body[0]["tiene_comanda_abierta"] is False
+
+    afegides = _add_pool(
+        client, admin,
+        [{"release_id": str(release.id), "quantity": 3, "proveedor_sugerido_id": body[0]["proveedor_sugerido_id"]}],
+        origen="manual",
+    )
+    assert afegides[0]["release_id"] == str(release.id)
+    assert afegides[0]["quantity"] == 3
+
+
+def test_ventas_recientes_ignora_vendes_fora_del_rang_de_dates(db, client):
+    from datetime import datetime, timedelta, timezone
+    from decimal import Decimal
+
+    from app.models import Order, OrderItem, OrderStatus
+
+    admin = _admin_token(client, db)
+    release = _seed_release(db, "Vella Venda", "Fa temps")
+    item = Item(
+        release_id=release.id, price=Decimal("15.00"), condition=CondicionItem.nou,
+        quantity=5, status=ItemStatus.disponible,
+    )
+    db.add(item)
+    db.flush()
+    order = Order(
+        contact_email="client@example.com", status=OrderStatus.pagado,
+        total=Decimal("15.00"), shipping_method="recogida_tienda",
+        created_at=datetime.now(timezone.utc) - timedelta(days=120),
+    )
+    db.add(order)
+    db.flush()
+    db.add(OrderItem(
+        order_id=order.id, item_id=item.id, release_id=release.id,
+        price=Decimal("15.00"), condition=CondicionItem.nou, quantity=1,
+    ))
+    db.commit()
+
+    resp = client.get("/admin/solicitudes-compra/ventas-recientes", headers=_auth(admin))
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+    resp = client.get(
+        "/admin/solicitudes-compra/ventas-recientes",
+        params={"desde": (datetime.now(timezone.utc) - timedelta(days=150)).date().isoformat()},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["release_id"] == str(release.id)
+
+
+def test_ventas_recientes_hasta_anterior_a_desde_falla(db, client):
+    admin = _admin_token(client, db)
+    resp = client.get(
+        "/admin/solicitudes-compra/ventas-recientes",
+        params={"desde": "2026-01-10", "hasta": "2026-01-01"},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 422
+
+
 def test_pool_lineas_aplana_i_pagina(db, client):
     """El pool ha de mostrar totes les línies soltes (sense sol·licitud)
     com una sola llista, amb l'artista/títol resolt des del catàleg quan la
