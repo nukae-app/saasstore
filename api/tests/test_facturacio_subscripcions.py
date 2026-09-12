@@ -162,3 +162,13 @@ def test_job_de_celery_factura_a_tots_els_tenants(db, monkeypatch):
 
     resultat = facturar_pendents()
     assert resultat == {"cobraments": 2, "cobrats": 2, "fallits": 0}
+
+
+def test_facturar_pendents_esta_programada_al_beat_schedule():
+    """Regressió (2026-09-12): el job existia i ja era multi-tenant-correcte
+    (test anterior) però mai es va tornar a donar d'alta al beat_schedule
+    després d'arreglar-se — cap tenant estava cobrant renovacions de debò."""
+    from app.celery_app import celery_app
+
+    entrada = celery_app.conf.beat_schedule["facturar-subscripcions-pendents"]
+    assert entrada["task"] == "subscripcions.facturar_pendents"

@@ -124,17 +124,42 @@ automático, esos pedidos **tienen que salir de esa agregación** — si no,
 riesgo de cerrar el mismo 430 dos veces. El TPV de mostrador (sin señal
 real) se queda dependiendo de caja diaria, tal cual hoy.
 
-### 4. Contabilizar el Club del disc
+### 4. Contabilizar el Club del disc — CORREGIDO Y RESUELTO (2026-09-12)
 
-Igual que `post_factura_manual` (va a 705, no a 700 — es un servicio):
-posting en el momento del cobro confirmado por Redsys, con el mismo cierre
-automático del punto 3 (es un cobro Redsys COF/MIT igual que el checkout).
+**El diagnóstico original de este documento era incorrecto.** El Club del
+disc SÍ contabilizaba la venta ya: `confirmar_cobrament`
+(`services/subscripcions.py`) crea un `Order`/`OrderItem` real con IVA
+correcto por artículo y llama a `finalize_payment` — el mismo
+`post_venda` (700, no 705) que cualquier venta web. El grep original solo
+buscó `post_venda` por su nombre y no vio que se llega ahí vía
+`finalize_payment`. **No se ha añadido IVA a `CobramentSubscripcio` ni un
+`JournalSourceType` nuevo — no hacían falta.**
 
-**IVA de la cuota — confirmado con el usuario (2026-09-12): 21% general**,
-como cualquier prestación de servicio. `Subscripcio`/`CobramentSubscripcio`
-no tienen hoy ningún campo de IVA — hay que añadirlo (snapshot del importe
-de IVA en el momento del cobro, mismo criterio que `OrderItem.vat_amount`/
-`Despesa.vat_amount`: nunca recalculado al leer).
+Lo que sí eran gaps reales, todos arreglados:
+
+1. **El cron de facturación mensual no estaba activado**
+   (`facturar-subscripcions-pendents` ausente de `celery_app.py::beat_schedule`,
+   pese a que `tasks/subscripcions.py` ya era multi-tenant-correcto desde
+   hace tiempo — comentario obsoleto). Reactivado, diario a las 6:00.
+2. **El webhook de alta (`subscripcions_public.py::redsys_notify_alta`)
+   verificaba la firma con la clave global** en vez de la del tenant, y
+   usaba `get_db` en vez de `get_db_unscoped` — mismo arreglo de 3 pasos
+   que ya tenía `checkout.py::redsys_notify` (extraer `Ds_Order` sin
+   verificar → buscar `CobramentSubscripcio` sin scope → resolver tenant →
+   verificar con SU clave).
+3. **Regresión propia detectada a tiempo**: al excluir antes los pedidos
+   `payment_method=redsys` de `get_vendes_reals` (punto 3), los pedidos de
+   fulfillment del Club (que también llevan `payment_method="redsys"`)
+   se quedaron sin ninguna vía de cierre — antes al menos los sugería mal
+   caja diaria. Arreglado añadiendo el mismo cierre automático (con
+   comisión `club_targeta`) al final de `confirmar_cobrament`, justo
+   después de `finalize_payment` — el cobro Redsys ya estaba autorizado de
+   antes (posiblemente días), así que no hay nada que esperar.
+
+**Explícitamente descartado por decisión del usuario**: modelar el cobro
+anticipado (cuenta 438) para el hueco entre "se cobra la tarjeta" y "se
+confirma el envío" — hoy ese dinero no genera ningún apunte mientras tanto.
+Es una decisión de modelo nueva, más grande, para otra sesión si hace falta.
 
 ## Remesas de pago a proveedores (SEPA pain.001) — diseño acordado 2026-09-12
 
@@ -223,15 +248,8 @@ get_vendes_reals para no cerrar el 430 dos veces. Propón el modelo/migración
 exactos y discútelo conmigo antes de escribir nada.
 ```
 
-### Prompt — Contabilizar el Club del disc
-
-```
-Lee docs/PLAN_COBRAMENTS_PAGAMENTS.md, punto 4. Antes de nada, confírmame
-el tratamiento de IVA de la cuota del Club del disc (Subscripcio/
-CobramentSubscripcio no tienen hoy ningún campo de IVA). Con eso claro,
-modela el posting del cobro de cuota (post_factura_manual como referencia)
-y su cierre automático vía Redsys.
-```
+(El punto 4, Club del disc, ya está resuelto — ver arriba. No hace falta
+ningún prompt de continuación para esto.)
 
 ### Prompt — Remesas de pago a proveedores (SEPA pain.001)
 

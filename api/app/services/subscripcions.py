@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 
 from ..models import (
     Assignacio,
+    CanalComissio,
     CobramentSubscripcio,
     CondicionItem,
     EstatAssignacio,
@@ -34,6 +35,7 @@ from ..models import (
     EstatSubscripcio,
     Item,
     ItemStatus,
+    JournalSourceType,
     Order,
     OrderItem,
     OrderOrigen,
@@ -44,6 +46,7 @@ from ..models import (
     Subscripcio,
 )
 from . import redsys
+from .comptabilitat_posting import calcula_comissio, post_cobrament_conciliacio
 from .iva import compute_iva_venda
 from .orders import finalize_payment
 
@@ -407,6 +410,21 @@ def confirmar_cobrament(db: Session, cobrament: CobramentSubscripcio) -> Order:
             "No s'ha pogut confirmar: algun dels exemplars assignats ja no estava "
             "disponible (reviseu l'enviament i torneu-hi)"
         )
+
+    # El cobrament Redsys (COF/MIT) ja es va autoritzar a facturar_subscripcio,
+    # potser dies abans — a diferència del checkout web, aquí NO cal esperar
+    # cap confirmació: es tanca el 430 ja mateix, amb la mateixa comissió de
+    # canal club_targeta que web_targeta al checkout (ver
+    # docs/PLAN_COBRAMENTS_PAGAMENTS.md). Mateix source_type/source_id que
+    # obre finalize_payment (post_venda sempre etiqueta venda_web, sigui quin
+    # sigui l'origen real de la comanda).
+    comissio = calcula_comissio(db, CanalComissio.club_targeta, order.total)
+    post_cobrament_conciliacio(
+        db, entry_date=order.paid_at.date(), source_type=JournalSourceType.venda_web, source_id=order.id,
+        amount=order.total, comissio=comissio,
+        description=f"Cobrament Redsys Club del disc #{str(order.id)[:8]}",
+    )
+    db.commit()
     return order
 
 

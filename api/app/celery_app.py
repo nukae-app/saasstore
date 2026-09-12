@@ -40,11 +40,14 @@ celery_app.conf.beat_schedule = {
         "task": "pricing.recompute_all_tenants",
         "schedule": crontab(minute=0, hour="*/6"),
     },
-    # "facturar-subscripcions-pendents" desactivada en la fase 1 del núcleo
-    # multi-tenant (ver plan): usa SessionLocal() directo (no pasa por
-    # get_db) sin iterar tenants, así que con el filtro global de
-    # app/tenancy.py activo dejaría de ver nada (o rompería) en cuanto
-    # hubiera más de un tenant. El club de suscripción está fuera de
-    # alcance de esta fase; se reactiva cuando le toque su propio tratamiento
-    # multi-tenant (mismo patrón que app/tasks/peticiones.py).
+    # Reactivada (2026-09-12, ver docs/PLAN_COBRAMENTS_PAGAMENTS.md): el
+    # comentario que la excluía ("desactivada en la fase 1 del núcleo
+    # multi-tenant") estaba obsoleto — app/tasks/subscripcions.py ya itera
+    # tenants con scoped_to (mismo patrón que tasks/peticiones.py) desde
+    # hace tiempo, solo nunca se volvió a dar de alta aquí. Sin esto, ningún
+    # tenant con Club del disc activo estaba cobrando renovaciones de verdad.
+    "facturar-subscripcions-pendents": {
+        "task": "subscripcions.facturar_pendents",
+        "schedule": crontab(minute=0, hour=6),
+    },
 }

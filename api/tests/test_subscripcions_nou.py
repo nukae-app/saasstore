@@ -9,8 +9,9 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from app.models import (
-    Assignacio, CobramentSubscripcio, CondicionItem, EstatAssignacio, EstatCobrament, EstatSubscripcio,
-    Item, Order, OrderItem, Release, StockHold, Subscripcio, User,
+    Assignacio, CanalComissio, CobramentSubscripcio, ComissioPagament, CondicionItem, EstatAssignacio,
+    EstatCobrament, EstatSubscripcio, Item, JournalEntry, JournalLine, JournalSourceType, ModeComissio, Order,
+    OrderItem, Release, StockHold, Subscripcio, User,
 )
 from app.services.subscripcions import (
     confirmar_cobrament, ometre_assignacio, proposar_assignacio, reassignar_item,
@@ -153,3 +154,53 @@ def test_confirmar_cobrament_vende_y_descuenta_cantidad(db):
 
     db.refresh(assignacions[0])
     assert assignacions[0].estat == EstatAssignacio.confirmada
+
+
+def test_confirmar_cobrament_tanca_automaticament_el_430(db):
+    """El cobrament Redsys (COF/MIT) ja es va autoritzar a facturar_subscripcio
+    — a diferència del checkout web, aquí no hi ha res a l'espera, es tanca
+    ja mateix (ver docs/PLAN_COBRAMENTS_PAGAMENTS.md)."""
+    _, cobrament = _seed_subscripcio(db)
+    _item_nou(db, cantidad=3, precio="22.00")
+    proposar_assignacio(db, cobrament)
+    db.commit()
+
+    order = confirmar_cobrament(db, cobrament)
+
+    entries = db.scalars(
+        select(JournalEntry).where(
+            JournalEntry.source_type == JournalSourceType.venda_web, JournalEntry.source_id == order.id,
+        )
+    ).all()
+    assert len(entries) == 2  # post_venda (obre) + el tancament automàtic (el tanca)
+    tancament = next(e for e in entries if any(l.account.code == "572" for l in e.lines))
+    lines = {l.account.code: (l.debit, l.credit) for l in tancament.lines}
+    assert lines["572"] == (Decimal("25.00"), Decimal("0.00"))
+    assert lines["430"] == (Decimal("0.00"), Decimal("25.00"))
+    assert "626" not in lines
+
+
+def test_confirmar_cobrament_amb_comissio_club_reconeix_626(db):
+    db.add(ComissioPagament(
+        canal=CanalComissio.club_targeta, mode=ModeComissio.deduccio,
+        pct=Decimal("1.00"), fixed_fee=Decimal("0.00"),
+    ))
+    db.commit()
+
+    _, cobrament = _seed_subscripcio(db)
+    _item_nou(db, cantidad=3, precio="22.00")
+    proposar_assignacio(db, cobrament)
+    db.commit()
+
+    order = confirmar_cobrament(db, cobrament)
+
+    tancament = db.scalar(
+        select(JournalEntry).where(
+            JournalEntry.source_type == JournalSourceType.venda_web, JournalEntry.source_id == order.id,
+        ).order_by(JournalEntry.entry_number.desc())
+    )
+    lines = {l.account.code: (l.debit, l.credit) for l in tancament.lines}
+    # 25.00 * 1% = 0.25 de comissió
+    assert lines["626"] == (Decimal("0.25"), Decimal("0.00"))
+    assert lines["572"] == (Decimal("24.75"), Decimal("0.00"))
+    assert lines["430"] == (Decimal("0.00"), Decimal("25.00"))

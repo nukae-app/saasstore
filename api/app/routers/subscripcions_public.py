@@ -20,8 +20,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
-from ..database import get_db
-from ..tenancy import tenant_frontend_url
+from ..database import get_db, get_db_unscoped
+from ..tenancy import scoped_to, tenant_frontend_url
 from ..tenant_secrets import get_tenant_secrets
 from ..models import (
     Address, CobramentSubscripcio, ConfiguracioBotiga, ConfiguracioSubscripcio, EstatCobrament,
@@ -137,55 +137,60 @@ def alta_subscripcio(
 
 
 @router.post("/pay/redsys/notify")
-async def redsys_notify_alta(request: Request, db: Session = Depends(get_db)):
+async def redsys_notify_alta(request: Request, db: Session = Depends(get_db_unscoped)):
     """Notificació server-to-server de Redsys per a l'alta d'una subscripció
     (captura del token COF). Les renovacions periòdiques NO passen per aquí:
     són cobraments síncrons via `services/subscripcions.py::facturar_subscripcio`.
 
-    NOTA (Fase 2): el club de suscripción sigue fuera de alcance — igual que
-    `services/redsys.py::charge_recurring`, esto sigue leyendo
-    `Settings.redsys_secret_key` global en vez de por tenant. Además, a
-    diferencia del webhook de checkout, este usa `get_db` normal (resuelve
-    tenant por Host), que en la práctica ya rechaza esta notificación porque
-    el servidor de Redsys no manda un Host de ningún tenant — necesitaría el
-    mismo tratamiento de `get_db_unscoped` + resolución en dos fases que
-    checkout.py::redsys_notify, y CobramentSubscripcio/Subscripcio aún no
-    tienen tenant_id (Fase 1 tampoco las tocó). No se arregla aquí porque
-    reactivar el club de suscripción está fuera del alcance de esta fase."""
+    Mateix tractament que `checkout.py::redsys_notify` (docs/PLAN_COBRAMENTS_PAGAMENTS.md):
+    la clau de Redsys és per tenant (ver app/tenant_secrets.py), així que cal
+    saber el tenant ABANS de poder verificar la firma — per això són tres
+    passos, no dos: (1) extreure `Ds_Order` SENSE verificar firma, (2) buscar
+    el `CobramentSubscripcio` per aquest `ds_order` (únic a nivell global,
+    sense filtrar per tenant encara — `get_db_unscoped`, no el `get_db`
+    normal que resol tenant pel Host i mai encertaria amb una notificació de
+    Redsys), (3) amb el tenant ja conegut, demanar LA SEVA clau i ARA SÍ
+    verificar la firma."""
     form = await request.form()
     params_b64 = form.get("Ds_MerchantParameters")
     signature = form.get("Ds_Signature")
     if not params_b64 or not signature:
         raise HTTPException(400, "Notificació incompleta")
 
-    params = redsys.verify_signature(params_b64, signature, get_settings().redsys_secret_key)
-    if params is None:
-        raise HTTPException(400, "Firma invàlida")
+    ds_order = redsys.extract_ds_order(params_b64)
+    if ds_order is None:
+        raise HTTPException(400, "Notificació incompleta")
 
-    ds_order = params.get("Ds_Order") or params.get("Ds_Merchant_Order")
     cobrament = db.scalar(select(CobramentSubscripcio).where(CobramentSubscripcio.ds_order == ds_order))
     if cobrament is None:
         raise HTTPException(404, "Cobrament no trobat")
     if cobrament.estat != EstatCobrament.pendent:
         return {"status": "ja processat"}  # idempotència: Redsys pot reintentar la notificació
 
-    cobrament.raw_notification = params
-    subscripcio = db.get(Subscripcio, cobrament.subscripcio_id)
+    db.rollback()
+    with scoped_to(db, cobrament.tenant_id):
+        secret_key = get_tenant_secrets(cobrament.tenant_id).redsys_secret_key
+        params = redsys.verify_signature(params_b64, signature, secret_key or "")
+        if params is None:
+            raise HTTPException(400, "Firma invàlida")
 
-    if redsys.is_authorised(params.get("Ds_Response")):
-        cobrament.estat = EstatCobrament.cobrat
-        subscripcio.redsys_identifier = params.get("Ds_Merchant_Identifier")
-        subscripcio.redsys_cof_txnid = params.get("Ds_Merchant_Cof_Txnid")
-        subscripcio.estat = EstatSubscripcio.activa
-        subscripcio.proxima_facturacio = proxima_facturacio_seguent(cobrament.periode, subscripcio.periodicitat_mesos)
-        db.commit()
-    else:
-        # Descartem l'intent sencer (no només marcar-lo "fallit"): és una
-        # alta que mai ha arribat a existir de cara al client, que pot
-        # tornar-ho a provar des de zero. `cobrament` apunta a `subscripcio`
-        # amb NOT NULL, cal esborrar-lo primer.
-        db.delete(cobrament)
-        db.delete(subscripcio)
-        db.commit()
+        cobrament.raw_notification = params
+        subscripcio = db.get(Subscripcio, cobrament.subscripcio_id)
+
+        if redsys.is_authorised(params.get("Ds_Response")):
+            cobrament.estat = EstatCobrament.cobrat
+            subscripcio.redsys_identifier = params.get("Ds_Merchant_Identifier")
+            subscripcio.redsys_cof_txnid = params.get("Ds_Merchant_Cof_Txnid")
+            subscripcio.estat = EstatSubscripcio.activa
+            subscripcio.proxima_facturacio = proxima_facturacio_seguent(cobrament.periode, subscripcio.periodicitat_mesos)
+            db.commit()
+        else:
+            # Descartem l'intent sencer (no només marcar-lo "fallit"): és una
+            # alta que mai ha arribat a existir de cara al client, que pot
+            # tornar-ho a provar des de zero. `cobrament` apunta a `subscripcio`
+            # amb NOT NULL, cal esborrar-lo primer.
+            db.delete(cobrament)
+            db.delete(subscripcio)
+            db.commit()
 
     return {"status": "ok"}
