@@ -24,6 +24,10 @@ class ComandaLineaOut(BaseModel):
     release_id: uuid.UUID
     artista: str
     titulo: str
+    # Para poder hacer el match local escaneo→línea al recibir mercancía
+    # desde la app nativa (ver docs/ARQUITECTURA_APPS_NATIVAS.md §7sexies/
+    # §7novies) — None si el release no tiene EAN cargado.
+    ean: str | None = None
     quantity: int
     estimated_unit_price: Decimal | None
     received_quantity: int

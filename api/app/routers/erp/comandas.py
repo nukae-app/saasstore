@@ -65,6 +65,7 @@ def _comanda_out(comanda: Comanda) -> dict:
                 "release_id": linea.release_id,
                 "artista": linea.release.artista,
                 "titulo": linea.release.title,
+                "ean": linea.release.ean,
                 "quantity": linea.quantity,
                 "estimated_unit_price": linea.estimated_unit_price,
                 "received_quantity": linea.received_quantity,

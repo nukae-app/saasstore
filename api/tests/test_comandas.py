@@ -68,6 +68,26 @@ def test_crear_comanda(db, client):
     assert body["lineas"][0]["received_quantity"] == 0
 
 
+def test_linea_de_comanda_expone_el_ean_del_release(db, client):
+    """La app nativa hace el match escaneo→línea por EAN al recibir
+    mercancía (ver docs/ARQUITECTURA_APPS_NATIVAS.md) — sin este campo en
+    la salida no tiene con qué comparar."""
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db)
+    release.ean = "8412345678901"
+    db.commit()
+
+    payload = {
+        "proveedor_id": str(prov.id),
+        "date": "2026-06-01T10:00:00",
+        "lineas": [{"release_id": str(release.id), "quantity": 1}],
+    }
+    resp = client.post("/admin/comandas", json=payload, headers=_auth(admin))
+    assert resp.status_code == 201
+    assert resp.json()["lineas"][0]["ean"] == "8412345678901"
+
+
 def test_numeracio_comanda_es_correlativa_per_any(db, client):
     admin = _admin_token(client, db)
     prov = _seed_proveedor(db)
