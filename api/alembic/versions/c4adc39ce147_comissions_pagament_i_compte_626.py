@@ -10,7 +10,7 @@ per confirmar (com el legal_form), es una cuenta estandard que tothom hauria
 de tenir al pla de comptes.
 
 Revision ID: c4adc39ce147
-Revises: 9c1d4f2a6b31
+Revises: c45438ab3d61
 Create Date: 2026-09-12 00:00:00.000000
 
 """
@@ -21,7 +21,7 @@ import sqlalchemy as sa
 
 
 revision: str = 'c4adc39ce147'
-down_revision: Union[str, None] = '9c1d4f2a6b31'
+down_revision: Union[str, None] = 'c45438ab3d61'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
