@@ -48,6 +48,16 @@ def resolve_tenant_by_domain(db: Session, host: str) -> Tenant | None:
     return db.scalar(select(Tenant).where(Tenant.domain == domain, Tenant.activo.is_(True)))
 
 
+def resolve_tenant_by_slug(db: Session, slug: str) -> Tenant | None:
+    """Fallback de resolución de tenant para clientes que no llegan con un
+    Host resoluble por dominio — típicamente una app nativa, que siempre
+    pega al mismo host de API sin importar de qué tienda es (ver
+    `database.py::get_db`, header `X-Tenant-Slug`, y
+    docs/ARQUITECTURA_APPS_NATIVAS.md §3.1). Mismo criterio de "no filtrado
+    por TenantScoped" que `resolve_tenant_by_domain`."""
+    return db.scalar(select(Tenant).where(Tenant.slug == slug, Tenant.activo.is_(True)))
+
+
 def tenant_frontend_url(tenant: Tenant) -> str:
     """URL base del front de este tenant, derivada de `Tenant.domain` — ya
     no es un campo de `Settings` (Fase 2): era global y estaba roto de

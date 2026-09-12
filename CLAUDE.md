@@ -34,7 +34,7 @@ Estas decisiones están tomadas a conciencia; si algo parece que las contradice,
 
 3. **Snapshots en los pedidos.** `order_items.precio` copia el precio al comprar; `orders.direccion_envio` guarda la dirección como JSON. Los pedidos históricos NUNCA cambian aunque cambie el catálogo o la libreta de direcciones. Nunca recalcular totales leyendo precios actuales.
 
-4. **Auth sin contraseñas.** Google (OIDC) + magic link por email. La sesión es propia: JWT de acceso corto (~15 min) + refresh token rotatorio en cookie httpOnly. Solo se guardan hashes de tokens, nunca el token en claro. Tabla `identities` para vincular proveedores externos (hoy Google, mañana otros).
+4. **Tres formas de entrar, una sesión propia.** Google (OIDC), magic link por email y usuario/contraseña (bcrypt) son las tres, todas ya implementadas y en producción (la pestaña de contraseña es la que se muestra por defecto en `web/app/[locale]/login`). Sea cual sea, el resultado es el mismo: JWT de acceso corto (~15 min) + refresh token rotatorio en cookie httpOnly (web) o en el body JSON, guardado en Keychain/Keystore (apps nativas, ver `docs/ARQUITECTURA_APPS_NATIVAS.md`). Solo se guardan hashes de tokens/contraseñas, nunca en claro. Tabla `identities` para vincular proveedores externos (hoy Google, mañana otros).
 
 5. **Guest checkout.** `orders.user_id` es nullable; se puede comprar solo con email. FK con `ON DELETE SET NULL` para poder anonimizar cuentas (RGPD) conservando los pedidos (obligación fiscal de guardar facturas).
 

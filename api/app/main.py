@@ -7,8 +7,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from .config import get_settings
 from .rate_limit import limiter
 from .routers import (
-    admin, admin_newsletter, admin_subscripcions, admin_users, auth, billing_webhooks, blog, cart, catalog,
-    checkout, comptabilitat, configuracio, documents, erp, health, home_blocks, i18n, internal, me,
+    admin, admin_newsletter, admin_subscripcions, admin_users, auth, auth_mobile, billing_webhooks, blog, cart,
+    catalog, checkout, comptabilitat, configuracio, documents, erp, health, home_blocks, i18n, internal, me,
     newsletter_public, spotify, subscripcions_public, superadmin,
 )
 
@@ -28,6 +28,7 @@ app.add_middleware(SessionMiddleware, secret_key=get_settings().secret_key, http
 
 app.include_router(catalog.router)
 app.include_router(auth.router)
+app.include_router(auth_mobile.router)
 app.include_router(cart.router)
 app.include_router(checkout.router)
 app.include_router(admin.router)

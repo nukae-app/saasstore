@@ -29,6 +29,7 @@ from ..services.security import (
     as_utc,
     create_access_token,
     get_current_user,
+    get_or_create_user,
     get_refresh_cookie,
     hash_password,
     issue_refresh_token,
@@ -48,18 +49,6 @@ oauth.register(
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={"scope": "openid email profile", "code_challenge_method": "S256"},
 )
-
-
-def _get_or_create_user(db: Session, email: str, nombre: str | None = None, idioma: str | None = None) -> User:
-    user = db.scalar(select(User).where(User.email == email.lower()))
-    if user is None:
-        # email_verified=True: la posesión del email ya queda probada por el propio
-        # flujo (magic link canjeado o Google con email_verified=True en el id_token).
-        user = User(email=email.lower(), name=nombre, email_verified=True, language=idioma or "ca")
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    return user
 
 
 def _send_verification_email(db: Session, email: str, tenant: Tenant, idioma: str = "ca") -> None:
@@ -214,7 +203,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         user = db.get(User, identity.user_id)
     else:
         # Vinculación por email verificado: si ya existe cuenta con ese email, se enlaza
-        user = _get_or_create_user(db, info["email"], info.get("name"), idioma=locale)
+        user = get_or_create_user(db, info["email"], info.get("name"), idioma=locale)
         db.add(Identity(user_id=user.id, provider="google", provider_user_id=sub))
         db.commit()
 
@@ -270,7 +259,7 @@ def verify_magic_link(token: str, response: Response, db: Session = Depends(get_
     if row is None or row.used_at is not None or as_utc(row.expires_at) < now:
         raise HTTPException(400, "Enlace inválido o caducado, pide uno nuevo")
     row.used_at = now
-    user = _get_or_create_user(db, row.email, idioma=row.idioma)
+    user = get_or_create_user(db, row.email, idioma=row.idioma)
     db.commit()
     return _set_session(response, db, user)
 

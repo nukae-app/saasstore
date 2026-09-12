@@ -27,7 +27,7 @@ def get_db(request: Request):
     # Import diferido: tenancy.py importa app.models, que a su vez importa
     # `Base` de este módulo — un import a nivel de módulo aquí crearía un
     # ciclo (database -> tenancy -> models -> database).
-    from .tenancy import apply_local_tenant, resolve_tenant_by_domain
+    from .tenancy import apply_local_tenant, resolve_tenant_by_domain, resolve_tenant_by_slug
 
     db: Session = SessionLocal()
     try:
@@ -45,6 +45,15 @@ def get_db(request: Request):
         # vía Caddy nunca manda este header, así que no cambia nada ahí.
         host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
         tenant = resolve_tenant_by_domain(db, host)
+        if tenant is None:
+            # Fallback para clientes que no llegan con un Host resoluble
+            # (apps nativas: pegan siempre al mismo host de API). El tráfico
+            # web real nunca manda este header, así que esto no cambia nada
+            # para el flujo por dominio de arriba. Ver
+            # docs/ARQUITECTURA_APPS_NATIVAS.md §3.1.
+            slug = request.headers.get("x-tenant-slug")
+            if slug:
+                tenant = resolve_tenant_by_slug(db, slug)
         if tenant is None:
             raise HTTPException(404, "Tienda no encontrada para este dominio")
         request.state.tenant = tenant

@@ -24,6 +24,21 @@ def as_utc(dt: datetime) -> datetime:
 REFRESH_COOKIE = "ulr_refresh"
 
 
+def get_or_create_user(db: Session, email: str, nombre: str | None = None, idioma: str | None = None) -> User:
+    """Compartido entre los flujos de login web (`routers/auth.py`) y nativo
+    (`routers/auth_mobile.py`) — misma resolución de usuario por email
+    verificado en los dos, una sola implementación."""
+    user = db.scalar(select(User).where(User.email == email.lower()))
+    if user is None:
+        # email_verified=True: la posesión del email ya queda probada por el propio
+        # flujo (magic link canjeado o Google con email_verified=True en el id_token).
+        user = User(email=email.lower(), name=nombre, email_verified=True, language=idioma or "ca")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
+
+
 def create_magic_link_token(db: Session, email: str, expires_delta: timedelta) -> str:
     """Genera un magic link d'un sol ús amb la caducitat indicada i el desa
     (hash) a AuthToken — el mateix mecanisme que /auth/magic-link, però amb
@@ -78,11 +93,38 @@ def issue_refresh_token(db: Session, user: User) -> str:
     return raw
 
 
-def rotate_refresh_token(db: Session, raw: str) -> tuple[User, str] | None:
-    """Valida el refresh token, lo revoca y emite uno nuevo (rotación)."""
-    row = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == _hash(raw)))
+def revoke_all_refresh_tokens(db: Session, user_id: uuid.UUID) -> None:
+    """Revoca todos los refresh tokens activos de un usuario. Se usa como
+    respuesta a un reuso detectado en `rotate_refresh_token` (ver abajo):
+    en vez de limitarse a rechazar el token reutilizado, fuerza relogin en
+    TODOS los dispositivos — la señal de que alguien más tiene una copia
+    afecta a la cuenta entera, no solo a esa sesión."""
+    rows = db.scalars(
+        select(RefreshToken).where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+    )
     now = datetime.now(timezone.utc)
-    if row is None or row.revoked_at is not None or as_utc(row.expires_at) < now:
+    for row in rows:
+        row.revoked_at = now
+    db.commit()
+
+
+def rotate_refresh_token(db: Session, raw: str) -> tuple[User, str] | None:
+    """Valida el refresh token, lo revoca y emite uno nuevo (rotación).
+
+    Detección de reuso: si el token presentado YA estaba revocado (no es
+    una carrera legítima — token_hash es único, solo puede haberse marcado
+    revocado por una rotación o revocación anteriores), es señal de que
+    alguien más tiene una copia de un token viejo — típicamente un refresh
+    token robado de un dispositivo. En vez de solo devolver 401, se revocan
+    todos los refresh tokens activos del usuario."""
+    row = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == _hash(raw)))
+    if row is None:
+        return None
+    if row.revoked_at is not None:
+        revoke_all_refresh_tokens(db, row.user_id)
+        return None
+    now = datetime.now(timezone.utc)
+    if as_utc(row.expires_at) < now:
         return None
     row.revoked_at = now
     user = db.get(User, row.user_id)
