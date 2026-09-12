@@ -146,3 +146,10 @@ class VentaRecienteOut(BaseModel):
     tiene_comanda_abierta: bool
     proveedor_sugerido_id: uuid.UUID | None
     proveedor_sugerido_nombre: str | None
+
+
+class VentasRecientesPage(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    results: list[VentaRecienteOut]

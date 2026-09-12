@@ -16,7 +16,7 @@ from ...models import (
 from ...schemas import (
     ComandaOut, PoolLineasIn, RefillSugerenciaOut, ResoldreEstocIn, SolicitudCompraLineaIn,
     SolicitudCompraLineaOut, SolicitudCompraListPage, SolicitudCompraOut, SolicitudGenerarIn, SolicitudPoolPage,
-    SolicitudResolverIn, VentaRecienteOut,
+    SolicitudResolverIn, VentaRecienteOut, VentasRecientesPage,
 )
 from ...services.documents_numbering import next_document_number
 from ...services.security import require_admin
@@ -258,10 +258,14 @@ def refill_sugerencias(db: Session = Depends(get_db)):
     return candidats
 
 
-@router.get("/solicitudes-compra/ventas-recientes", response_model=list[VentaRecienteOut])
+@router.get("/solicitudes-compra/ventas-recientes", response_model=VentasRecientesPage)
 def ventas_recientes(
     desde: date | None = Query(None, description="Per defecte, 90 dies enrere"),
     hasta: date | None = Query(None, description="Per defecte, avui"),
+    proveedor_id: uuid.UUID | None = None,
+    q: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(30, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
     """Browser complementari a `refill_sugerencias`: llista TOT el que s'ha
@@ -308,12 +312,17 @@ def ventas_recientes(
     stock_por_release = _stock_nou_disponible_por_release(db)
     releases_amb_comanda_pendent = _releases_amb_comanda_pendent(db)
 
+    q_like = q.strip().lower() if q else None
     resultado = []
     for release_id, unidades in unidades_por_release.items():
         release = db.get(Release, release_id)
         if release is None:
             continue
+        if q_like and q_like not in release.artista.lower() and q_like not in release.title.lower():
+            continue
         prov_id, prov_nombre = _suggest_proveedor_para_release(db, release_id, release.artista)
+        if proveedor_id and prov_id != proveedor_id:
+            continue
         resultado.append(VentaRecienteOut(
             release_id=release_id, artista=release.artista, titulo=release.title, formato=release.formato,
             unidades_vendidas=unidades, ultima_venta=ultima_venta_por_release[release_id],
@@ -322,7 +331,13 @@ def ventas_recientes(
             proveedor_sugerido_id=prov_id, proveedor_sugerido_nombre=prov_nombre,
         ))
     resultado.sort(key=lambda r: r.ultima_venta, reverse=True)
-    return resultado
+
+    total = len(resultado)
+    inici_pagina = (page - 1) * page_size
+    return VentasRecientesPage(
+        total=total, page=page, page_size=page_size,
+        results=resultado[inici_pagina:inici_pagina + page_size],
+    )
 
 
 @router.post("/solicitudes-compra/pool", status_code=201, response_model=list[SolicitudCompraLineaOut])

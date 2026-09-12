@@ -577,19 +577,119 @@ def test_ventas_recientes_inclou_venda_que_refill_sugerencias_descarta(db, clien
     resp = client.get("/admin/solicitudes-compra/ventas-recientes", headers=_auth(admin))
     assert resp.status_code == 200
     body = resp.json()
-    assert len(body) == 1
-    assert body[0]["release_id"] == str(release.id)
-    assert body[0]["unidades_vendidas"] == 1
-    assert body[0]["stock_actual"] == 10
-    assert body[0]["tiene_comanda_abierta"] is False
+    assert body["total"] == 1
+    fila = body["results"][0]
+    assert fila["release_id"] == str(release.id)
+    assert fila["unidades_vendidas"] == 1
+    assert fila["stock_actual"] == 10
+    assert fila["tiene_comanda_abierta"] is False
 
     afegides = _add_pool(
         client, admin,
-        [{"release_id": str(release.id), "quantity": 3, "proveedor_sugerido_id": body[0]["proveedor_sugerido_id"]}],
+        [{"release_id": str(release.id), "quantity": 3, "proveedor_sugerido_id": fila["proveedor_sugerido_id"]}],
         origen="manual",
     )
     assert afegides[0]["release_id"] == str(release.id)
     assert afegides[0]["quantity"] == 3
+
+
+def test_ventas_recientes_filtra_per_proveedor_i_cerca(db, client):
+    admin = _admin_token(client, db)
+    proveedor = _seed_proveedor(db, "Distro Vendes")
+    release_amb_hist = _seed_release(db, "Amb Historial", "Disc U")
+    release_sense_hist = _seed_release(db, "Sense Historial", "Disc Dos")
+
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from app.models import HistorialCompra, Order, OrderItem, OrderStatus
+
+    db.add(HistorialCompra(
+        proveedor_id=proveedor.id, date=datetime.now(timezone.utc).date(),
+        artist=release_amb_hist.artista, title=release_amb_hist.title, release_id=release_amb_hist.id,
+        quantity=1, cost_price=Decimal("10.00"),
+    ))
+    db.flush()
+
+    for release in (release_amb_hist, release_sense_hist):
+        item = Item(
+            release_id=release.id, price=Decimal("15.00"), condition=CondicionItem.nou,
+            quantity=5, status=ItemStatus.disponible,
+        )
+        db.add(item)
+        db.flush()
+        order = Order(
+            contact_email="client@example.com", status=OrderStatus.pagado,
+            total=Decimal("15.00"), shipping_method="recogida_tienda",
+        )
+        db.add(order)
+        db.flush()
+        db.add(OrderItem(
+            order_id=order.id, item_id=item.id, release_id=release.id,
+            price=Decimal("15.00"), condition=CondicionItem.nou, quantity=1,
+        ))
+    db.commit()
+
+    resp = client.get(
+        "/admin/solicitudes-compra/ventas-recientes",
+        params={"proveedor_id": str(proveedor.id)},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["results"][0]["release_id"] == str(release_amb_hist.id)
+
+    resp = client.get(
+        "/admin/solicitudes-compra/ventas-recientes", params={"q": "sense historial"}, headers=_auth(admin),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["results"][0]["release_id"] == str(release_sense_hist.id)
+
+
+def test_ventas_recientes_pagina_resultats(db, client):
+    from decimal import Decimal
+
+    from app.models import Order, OrderItem, OrderStatus
+
+    admin = _admin_token(client, db)
+    for i in range(3):
+        release = _seed_release(db, f"Artista {i}", f"Disc {i}")
+        item = Item(
+            release_id=release.id, price=Decimal("15.00"), condition=CondicionItem.nou,
+            quantity=5, status=ItemStatus.disponible,
+        )
+        db.add(item)
+        db.flush()
+        order = Order(
+            contact_email="client@example.com", status=OrderStatus.pagado,
+            total=Decimal("15.00"), shipping_method="recogida_tienda",
+        )
+        db.add(order)
+        db.flush()
+        db.add(OrderItem(
+            order_id=order.id, item_id=item.id, release_id=release.id,
+            price=Decimal("15.00"), condition=CondicionItem.nou, quantity=1,
+        ))
+    db.commit()
+
+    resp = client.get(
+        "/admin/solicitudes-compra/ventas-recientes", params={"page": 1, "page_size": 2}, headers=_auth(admin),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 3
+    assert body["page"] == 1
+    assert body["page_size"] == 2
+    assert len(body["results"]) == 2
+
+    resp = client.get(
+        "/admin/solicitudes-compra/ventas-recientes", params={"page": 2, "page_size": 2}, headers=_auth(admin),
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()["results"]) == 1
 
 
 def test_ventas_recientes_ignora_vendes_fora_del_rang_de_dates(db, client):
@@ -621,7 +721,7 @@ def test_ventas_recientes_ignora_vendes_fora_del_rang_de_dates(db, client):
 
     resp = client.get("/admin/solicitudes-compra/ventas-recientes", headers=_auth(admin))
     assert resp.status_code == 200
-    assert resp.json() == []
+    assert resp.json()["total"] == 0
 
     resp = client.get(
         "/admin/solicitudes-compra/ventas-recientes",
@@ -630,8 +730,8 @@ def test_ventas_recientes_ignora_vendes_fora_del_rang_de_dates(db, client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert len(body) == 1
-    assert body[0]["release_id"] == str(release.id)
+    assert body["total"] == 1
+    assert body["results"][0]["release_id"] == str(release.id)
 
 
 def test_ventas_recientes_hasta_anterior_a_desde_falla(db, client):

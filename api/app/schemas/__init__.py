@@ -98,6 +98,7 @@ from .erp_solicitudes import (
     ResoldreEstocIn,
     RefillSugerenciaOut,
     VentaRecienteOut,
+    VentasRecientesPage,
     SolicitudPoolPage,
     SolicitudCompraListPage,
 )

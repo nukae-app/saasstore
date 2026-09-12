@@ -304,6 +304,7 @@ export default function SolicitudsPage() {
 
       {showVentasModal && (
         <VentasRecientesModal
+          proveedores={proveedores}
           onClose={() => setShowVentasModal(false)}
           onSaved={() => { setShowVentasModal(false); loadPool(); }} />
       )}
@@ -1075,40 +1076,96 @@ function RefillSugerenciesModal({ onClose, onSaved }) {
   );
 }
 
+const VENTAS_PAGE_SIZE = 20;
+// Preajustos a l'estil AWS Cost Explorer: un clic aplica el rang a l'instant;
+// "Personalitzat" revela dos date pickers que NOMÉS es consulten en prémer
+// "Aplicar" (mai en cada dia que es navega dins el calendari, per no
+// disparar una query per clic — veure comentari a `VentasRecientesModal`).
+const VENTAS_PRESETS = [
+  { key: '7', days: 7, label: '7 dies' },
+  { key: '30', days: 30, label: '30 dies' },
+  { key: '90', days: 90, label: '90 dies' },
+  { key: '180', days: 180, label: '180 dies' },
+  { key: 'custom', days: null, label: 'Personalitzat' },
+];
+
+function isoDaysAgo(days) {
+  return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+}
+
 // Browser complementari a RefillSugerenciesModal: llista TOTES les vendes
-// (només còpies noves) en un rang de dates lliure, sense cap llindar
-// d'urgència ni exclusió per comanda oberta — per a vendes puntuals que
-// "Generar suggeriments" descarta perquè encara queda prou estoc pel ritme
-// de venda actual. L'admin decideix què val la pena reposar.
-function VentasRecientesModal({ onClose, onSaved }) {
+// (només còpies noves) en un rang de dates, amb filtres de proveïdor i
+// cerca, i paginat al servidor — per a vendes puntuals que "Generar
+// suggeriments" descarta perquè encara queda prou estoc pel ritme de venda
+// actual. L'admin decideix què val la pena reposar.
+function VentasRecientesModal({ proveedores, onClose, onSaved }) {
   const t = useT();
-  const avui = new Date().toISOString().slice(0, 10);
-  const fa90dies = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
-  const [desde, setDesde] = useState(fa90dies);
+  const avui = isoDaysAgo(0);
+  const [preset, setPreset] = useState('90');
+  const [desde, setDesde] = useState(() => isoDaysAgo(90));
   const [hasta, setHasta] = useState(avui);
+  // Rang personalitzat: esborrany separat de `desde`/`hasta` perquè triar
+  // dates al calendari no dispari cap fetch fins prémer "Aplicar".
+  const [customDesde, setCustomDesde] = useState(() => isoDaysAgo(90));
+  const [customHasta, setCustomHasta] = useState(avui);
+  const [proveedorId, setProveedorId] = useState('');
+  const [qInput, setQInput] = useState('');
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
   const [ventas, setVentas] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(new Set());
+  const [selected, setSelected] = useState(() => new Map());
   const [cantidades, setCantidades] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const qDebounce = useRef(null);
+
+  function applyPreset(key) {
+    setPreset(key);
+    if (key === 'custom') return;
+    const days = VENTAS_PRESETS.find(p => p.key === key).days;
+    const d = isoDaysAgo(days);
+    setDesde(d);
+    setHasta(avui);
+    setCustomDesde(d);
+    setCustomHasta(avui);
+  }
+
+  function applyCustomRange() {
+    setDesde(customDesde);
+    setHasta(customHasta);
+  }
+
+  function handleQInput(val) {
+    setQInput(val);
+    clearTimeout(qDebounce.current);
+    qDebounce.current = setTimeout(() => setQ(val.trim()), 400);
+  }
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const params = new URLSearchParams({ desde, hasta });
+      const params = new URLSearchParams({ desde, hasta, page: String(page), page_size: String(VENTAS_PAGE_SIZE) });
+      if (proveedorId) params.set('proveedor_id', proveedorId);
+      if (q) params.set('q', q);
       const r = await authFetch(`/admin/solicitudes-compra/ventas-recientes?${params.toString()}`);
-      const data = r.ok ? await r.json() : [];
-      setVentas(data);
-      setCantidades(Object.fromEntries(data.map(v => [v.release_id, 1])));
+      const data = r.ok ? await r.json() : { results: [], total: 0 };
+      setVentas(data.results ?? []);
+      setTotal(data.total ?? 0);
+      setCantidades(prev => ({
+        ...prev,
+        ...Object.fromEntries((data.results ?? []).filter(v => prev[v.release_id] == null).map(v => [v.release_id, 1])),
+      }));
       setLoading(false);
     })();
-  }, [desde, hasta]);
+  }, [desde, hasta, proveedorId, q, page]);
+  useEffect(() => { setPage(1); }, [desde, hasta, proveedorId, q]);
 
-  function toggle(releaseId) {
+  function toggle(row) {
     setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(releaseId)) next.delete(releaseId); else next.add(releaseId);
+      const next = new Map(prev);
+      if (next.has(row.release_id)) next.delete(row.release_id); else next.set(row.release_id, row);
       return next;
     });
   }
@@ -1116,26 +1173,11 @@ function VentasRecientesModal({ onClose, onSaved }) {
   function toggleAllVisible(visibleRows) {
     setSelected(prev => {
       const allSelected = visibleRows.length > 0 && visibleRows.every(v => prev.has(v.release_id));
-      const next = new Set(prev);
-      visibleRows.forEach(v => allSelected ? next.delete(v.release_id) : next.add(v.release_id));
+      const next = new Map(prev);
+      visibleRows.forEach(v => allSelected ? next.delete(v.release_id) : next.set(v.release_id, v));
       return next;
     });
   }
-
-  const ventasColumns = {
-    disc: { sortValue: v => `${v.artista ?? ''} ${v.titulo ?? ''}`.toLowerCase() },
-    unidades_vendidas: { sortValue: v => v.unidades_vendidas ?? 0 },
-    ultima_venta: { sortValue: v => v.ultima_venta ?? '' },
-    stock_actual: { sortValue: v => v.stock_actual ?? 0 },
-    proveedor_sugerido_nombre: {
-      sortValue: v => (v.proveedor_sugerido_nombre ?? '').toLowerCase(),
-      filterValue: v => v.proveedor_sugerido_nombre,
-    },
-  };
-  const {
-    rows: ventasSorted, sort: ventSort, toggleSort: toggleVentSort,
-    filters: ventFilters, setFilter: setVentFilter, distinctValues: ventDistinct,
-  } = useSortFilter(ventas, ventasColumns);
 
   async function save(e) {
     e.preventDefault();
@@ -1145,7 +1187,7 @@ function VentasRecientesModal({ onClose, onSaved }) {
     const nota = `${t('purchases.ventas_modal.manual_from_sales', 'Afegit des de Vendes recents')} (${new Date().toLocaleDateString()})`;
     const payload = {
       origen: 'manual',
-      lineas: ventas.filter(v => selected.has(v.release_id)).map(v => ({
+      lineas: [...selected.values()].map(v => ({
         release_id: v.release_id,
         quantity: parseInt(cantidades[v.release_id], 10) || 1,
         proveedor_sugerido_id: v.proveedor_sugerido_id || null,
@@ -1157,6 +1199,9 @@ function VentasRecientesModal({ onClose, onSaved }) {
     if (r.ok) onSaved();
     else setError((await r.json().catch(() => ({}))).detail || t('purchases.request.create_error', 'No s\'ha pogut crear la sol·licitud.'));
   }
+
+  const from = total === 0 ? 0 : (page - 1) * VENTAS_PAGE_SIZE + 1;
+  const to = Math.min(page * VENTAS_PAGE_SIZE, total);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
@@ -1171,71 +1216,113 @@ function VentasRecientesModal({ onClose, onSaved }) {
             {t('purchases.ventas_modal.hint', "Tot el que s'ha venut (només còpies noves) en aquest rang de dates, sense cap filtre d'urgència: útil per a vendes puntuals que \"Generar suggeriments\" no proposa perquè encara queda prou estoc pel ritme de venda actual.")}
           </p>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <label className="flex items-center gap-1.5 text-sm text-on-surface-variant">
-              {t('common.from', 'Des de')}
-              <input type="date" value={desde} onChange={e => setDesde(e.target.value)} max={hasta}
-                className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </label>
-            <label className="flex items-center gap-1.5 text-sm text-on-surface-variant">
-              {t('common.to', 'Fins a')}
-              <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} min={desde} max={avui}
-                className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </label>
+          <div className="space-y-2">
+            <div className="flex items-center gap-1 bg-surface-container-high rounded-lg p-1 w-fit flex-wrap">
+              {VENTAS_PRESETS.map(p => (
+                <button key={p.key} type="button" onClick={() => applyPreset(p.key)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${preset === p.key ? 'bg-card text-on-surface shadow-sm' : 'text-secondary-foreground hover:text-on-surface-variant'}`}>
+                  {p.key === 'custom' ? t('purchases.ventas_modal.preset_custom', p.label) : t(`purchases.ventas_modal.preset_${p.key}`, p.label)}
+                </button>
+              ))}
+            </div>
+            {preset === 'custom' && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+                  {t('common.from', 'Des de')}
+                  <input type="date" value={customDesde} onChange={e => setCustomDesde(e.target.value)} max={customHasta}
+                    className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+                  {t('common.to', 'Fins a')}
+                  <input type="date" value={customHasta} onChange={e => setCustomHasta(e.target.value)} min={customDesde} max={avui}
+                    className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </label>
+                <Button type="button" size="sm" onClick={applyCustomRange} disabled={customDesde === desde && customHasta === hasta}>
+                  {t('common.apply', 'Aplicar')}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <select value={proveedorId} onChange={e => setProveedorId(e.target.value)}
+              className="border border-outline-variant rounded-lg px-2.5 py-1.5 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="">{t('purchases.pool.filter.supplier_all', 'Tots els proveïdors')}</option>
+              {(proveedores ?? []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <input value={qInput} onChange={e => handleQInput(e.target.value)}
+              placeholder={t('purchases.pool.search_ph', 'Cerca per artista o títol...')}
+              className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
 
           {loading ? (
             <div className="text-sm text-secondary-foreground text-center py-8">{t('common.loading')}</div>
           ) : ventas.length === 0 ? (
             <div className="text-sm text-secondary-foreground text-center py-8">
-              {t('purchases.ventas_modal.no_sales', 'No hi ha vendes de còpies noves en aquest rang de dates.')}
+              {t('purchases.ventas_modal.no_sales', 'No hi ha vendes de còpies noves amb aquest filtre.')}
             </div>
           ) : (
             <div className="border border-outline-variant rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
-                  <tr>
-                    <th className="w-8 px-3 py-2">
-                      <input type="checkbox"
-                        checked={ventasSorted.length > 0 && ventasSorted.every(v => selected.has(v.release_id))}
-                        onChange={() => toggleAllVisible(ventasSorted)}
-                        className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
-                    </th>
-                    <SortableTh label={t('tpv.col.record')} sortKey="disc" sort={ventSort} onSort={toggleVentSort} className="px-3 py-2" />
-                    <SortableTh label={t('purchases.ventas_modal.col.units_sold', 'Unitats venudes')} sortKey="unidades_vendidas" sort={ventSort} onSort={toggleVentSort} align="center" className="px-3 py-2" />
-                    <SortableTh label={t('purchases.ventas_modal.col.last_sale', 'Última venda')} sortKey="ultima_venta" sort={ventSort} onSort={toggleVentSort} className="px-3 py-2" />
-                    <SortableTh label={t('catalog.col.stock')} sortKey="stock_actual" sort={ventSort} onSort={toggleVentSort} align="center" className="px-3 py-2" />
-                    <SortableTh label={t('purchases.type.supplier')} sortKey="proveedor_sugerido_nombre" sort={ventSort} onSort={toggleVentSort} className="px-3 py-2"
-                      filterOptions={ventDistinct.proveedor_sugerido_nombre} selected={ventFilters.proveedor_sugerido_nombre} onFilterChange={setVentFilter} />
-                    <th className="px-3 py-2 text-center font-medium">{t('purchases.quantity', 'Quantitat')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant">
-                  {ventasSorted.map(v => (
-                    <tr key={v.release_id} className={selected.has(v.release_id) ? '' : 'opacity-60'}>
-                      <td className="px-3 py-2.5">
-                        <input type="checkbox" checked={selected.has(v.release_id)} onChange={() => toggle(v.release_id)}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
+                    <tr>
+                      <th className="w-8 px-3 py-2">
+                        <input type="checkbox"
+                          checked={ventas.length > 0 && ventas.every(v => selected.has(v.release_id))}
+                          onChange={() => toggleAllVisible(ventas)}
                           className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="font-medium text-on-surface">{v.artista} — {v.titulo}</div>
-                        {v.tiene_comanda_abierta && (
-                          <div className="text-[11px] text-amber-600">{t('purchases.ventas_modal.open_order', 'Ja té una comanda oberta')}</div>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 text-center text-on-surface-variant">{v.unidades_vendidas}</td>
-                      <td className="px-3 py-2.5 text-on-surface-variant">{new Date(v.ultima_venta).toLocaleDateString()}</td>
-                      <td className="px-3 py-2.5 text-center text-on-surface-variant">{v.stock_actual}</td>
-                      <td className="px-3 py-2.5 text-on-surface-variant">{v.proveedor_sugerido_nombre ?? <span className="text-secondary-foreground">—</span>}</td>
-                      <td className="px-3 py-2.5">
-                        <input type="number" min="1" value={cantidades[v.release_id] ?? 1}
-                          onChange={e => setCantidades(prev => ({ ...prev, [v.release_id]: e.target.value }))}
-                          className="w-16 border border-outline-variant rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary" />
-                      </td>
+                      </th>
+                      <th className="px-3 py-2 text-left font-medium">{t('tpv.col.record')}</th>
+                      <th className="px-3 py-2 text-center font-medium">{t('purchases.ventas_modal.col.units_sold', 'Unitats venudes')}</th>
+                      <th className="px-3 py-2 text-left font-medium">{t('purchases.ventas_modal.col.last_sale', 'Última venda')}</th>
+                      <th className="px-3 py-2 text-center font-medium">{t('catalog.col.stock')}</th>
+                      <th className="px-3 py-2 text-left font-medium">{t('purchases.type.supplier')}</th>
+                      <th className="px-3 py-2 text-center font-medium">{t('purchases.quantity', 'Quantitat')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant">
+                    {ventas.map(v => (
+                      <tr key={v.release_id} className={selected.has(v.release_id) ? '' : 'opacity-60'}>
+                        <td className="px-3 py-2.5">
+                          <input type="checkbox" checked={selected.has(v.release_id)} onChange={() => toggle(v)}
+                            className="rounded border-outline-variant text-amber-600 focus:ring-primary" />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="font-medium text-on-surface">{v.artista} — {v.titulo}</div>
+                          {v.tiene_comanda_abierta && (
+                            <div className="text-[11px] text-amber-600">{t('purchases.ventas_modal.open_order', 'Ja té una comanda oberta')}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-center text-on-surface-variant">{v.unidades_vendidas}</td>
+                        <td className="px-3 py-2.5 text-on-surface-variant">{new Date(v.ultima_venta).toLocaleDateString()}</td>
+                        <td className="px-3 py-2.5 text-center text-on-surface-variant">{v.stock_actual}</td>
+                        <td className="px-3 py-2.5 text-on-surface-variant">{v.proveedor_sugerido_nombre ?? <span className="text-secondary-foreground">—</span>}</td>
+                        <td className="px-3 py-2.5">
+                          <input type="number" min="1" value={cantidades[v.release_id] ?? 1}
+                            onChange={e => setCantidades(prev => ({ ...prev, [v.release_id]: e.target.value }))}
+                            className="w-16 border border-outline-variant rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {total > VENTAS_PAGE_SIZE && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-secondary-foreground">
+                  <span>{from}–{to} {t('common.of', 'de')} {total}</span>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                      className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
+                      ← {t('common.previous', 'Anterior')}
+                    </button>
+                    <button type="button" onClick={() => setPage(p => p + 1)} disabled={page * VENTAS_PAGE_SIZE >= total}
+                      className="px-3 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-40 transition-colors">
+                      {t('common.next', 'Següent')} →
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
