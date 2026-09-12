@@ -14,7 +14,10 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from app.config import get_settings
-from app.models import Item, ItemStatus, Order, OrderStatus, Release, User
+from app.models import (
+    CanalComissio, ComissioPagament, Item, ItemStatus, JournalEntry, JournalLine, JournalSourceType, ModeComissio,
+    Order, OrderStatus, Release, User,
+)
 from app.services.metrics import redsys_payment_result_total
 from app.services.reservations import confirm_sale, release_expired, reserve_items
 
@@ -166,6 +169,80 @@ def test_checkout_completo_con_pago_redsys_y_cancelacion(db, client):
     )
     db.expire_all()
     assert db.get(Item, i2.id).status == ItemStatus.disponible
+
+
+def _pagar_con_redsys(client, order_id: str) -> None:
+    pay = client.post(f"/checkout/{order_id}/pay/redsys/start")
+    ds_order = json.loads(base64.b64decode(pay.json()["Ds_MerchantParameters"]))["DS_MERCHANT_ORDER"]
+    params_b64, signature = _sign_as_redsys({
+        "Ds_Order": ds_order, "Ds_Response": "0000", "Ds_AuthorisationCode": "123456",
+    })
+    with contextlib.redirect_stdout(io.StringIO()):
+        notify = client.post(
+            "/checkout/pay/redsys/notify",
+            data={"Ds_SignatureVersion": "HMAC_SHA256_V1", "Ds_MerchantParameters": params_b64, "Ds_Signature": signature},
+        )
+    assert notify.status_code == 200
+
+
+def test_checkout_redsys_tanca_automaticament_el_430_sense_comissio(db, client):
+    """Confirma que ya no hace falta caja diaria ni conciliación bancaria
+    manual para cerrar una venta web pagada con Redsys — ver
+    docs/PLAN_COBRAMENTS_PAGAMENTS.md."""
+    _, i1, _ = _seed(db)
+    assert client.post("/cart/items", json={"item_id": str(i1.id)}).status_code == 201
+    assert client.post("/checkout/start").status_code == 200
+    conf = client.post(
+        "/checkout/confirm",
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda"},
+    )
+    order_id = conf.json()["id"]
+
+    _pagar_con_redsys(client, order_id)
+
+    entries = db.scalars(
+        select(JournalEntry).where(
+            JournalEntry.source_type == JournalSourceType.venda_web, JournalEntry.source_id == uuid.UUID(order_id),
+        )
+    ).all()
+    # post_venda (abre 430) + el cierre automático (lo cierra) — dos asientos
+    # con el mismo source, mismo criterio que ya usa la conciliación manual.
+    assert len(entries) == 2
+    cierre = next(e for e in entries if any(l.account.code == "572" for l in e.lines))
+    lines = {l.account.code: (l.debit, l.credit) for l in cierre.lines}
+    assert lines["572"] == (Decimal("22.00"), Decimal("0.00"))
+    assert lines["430"] == (Decimal("0.00"), Decimal("22.00"))
+    assert "626" not in lines
+
+
+def test_checkout_redsys_con_comision_configurada_reconoce_626(db, client):
+    db.add(ComissioPagament(
+        canal=CanalComissio.web_targeta, mode=ModeComissio.deduccio,
+        pct=Decimal("1.00"), fixed_fee=Decimal("0.10"),
+    ))
+    db.commit()
+
+    _, i1, _ = _seed(db)
+    assert client.post("/cart/items", json={"item_id": str(i1.id)}).status_code == 201
+    assert client.post("/checkout/start").status_code == 200
+    conf = client.post(
+        "/checkout/confirm",
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda"},
+    )
+    order_id = conf.json()["id"]
+
+    _pagar_con_redsys(client, order_id)
+
+    cierre = db.scalar(
+        select(JournalEntry).where(
+            JournalEntry.source_type == JournalSourceType.venda_web, JournalEntry.source_id == uuid.UUID(order_id),
+        ).order_by(JournalEntry.entry_number.desc())
+    )
+    lines = {l.account.code: (l.debit, l.credit) for l in cierre.lines}
+    # 22.00 * 1% + 0.10 = 0.32 de comisión
+    assert lines["626"] == (Decimal("0.32"), Decimal("0.00"))
+    assert lines["572"] == (Decimal("21.68"), Decimal("0.00"))
+    assert lines["430"] == (Decimal("0.00"), Decimal("22.00"))
 
 
 def test_checkout_pago_denegado_libera_el_ejemplar(db, client):

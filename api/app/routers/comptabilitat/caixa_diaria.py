@@ -9,7 +9,7 @@ from sqlalchemy import extract, func, select
 from sqlalchemy.orm import Session
 
 from ...database import get_db
-from ...models import CaixaDiaria, CanalVenta, MetodoPago, Order, OrderItem, OrderStatus, PeriodeComptable, VentaExterna
+from ...models import CaixaDiaria, CanalVenta, MetodoPago, PeriodeComptable, VentaExterna
 from ...schemas import (
     CAIXA_DIARIA_CAMPS, CaixaDiariaLiniaIn, CaixaDiariaLiniaOut, CaixaDiariaMesOut, VendesRealsLiniaOut,
 )
@@ -80,13 +80,17 @@ _PREFIX_PER_METODE = {
 @router.get("/caixa-diaria/{year}/{mes}/vendes-reals", response_model=list[VendesRealsLiniaOut])
 def get_vendes_reals(year: int, mes: int, db: Session = Depends(get_db)):
     """Reconstrueix targeta/efectiu/bizum/bono cultural per dia a partir de
-    vendes reals, perquè l'admin no hagi de teclejar-les: vendes web pagades
-    amb Redsys (sempre targeta) i vendes de mostrador (TPV, `VentaExterna.canal
-    == mostrador`) amb el mètode de pagament que es va triar al cobrar. Deixa
-    fora Discogs (cobrament fora de la nostra caixa) i les comandes web 'paga
-    en recollir' (un cop cobrades a mostrador no queda registrat si van pagar
-    en efectiu o targeta) — aquests casos, com paypal/transferència, s'ajusten
-    a mà."""
+    vendes reals, perquè l'admin no hagi de teclejar-les: vendes de mostrador
+    (TPV, `VentaExterna.canal == mostrador`) amb el mètode de pagament que es
+    va triar al cobrar. Deixa fora Discogs (cobrament fora de la nostra
+    caixa) i les comandes web 'paga en recollir' (un cop cobrades a mostrador
+    no queda registrat si van pagar en efectiu o targeta) — aquests casos,
+    com paypal/transferència, s'ajusten a mà.
+
+    Les vendes web pagades amb Redsys JA NO hi surten: es tanquen soles en
+    confirmar-se el pagament (ver routers/checkout.py::redsys_notify +
+    docs/PLAN_COBRAMENTS_PAGAMENTS.md) — incloure-les aquí duplicaria el
+    tancament del seu 430 si l'admin desés la caixa diària."""
     _validar_mes(mes)
 
     def _mes_filter(col):
@@ -102,19 +106,6 @@ def get_vendes_reals(year: int, mes: int, db: Session = Depends(get_db)):
             "cultural_voucher": Decimal("0"),
         })
         fila[camp] += import_
-
-    web_rows = db.execute(
-        select(func.date(Order.created_at), OrderItem.vat_pct, func.sum(OrderItem.price))
-        .join(Order, Order.id == OrderItem.order_id)
-        .where(_mes_filter(Order.created_at))
-        .where(Order.status.in_([OrderStatus.pagado, OrderStatus.enviado, OrderStatus.entregado]))
-        .where(Order.payment_method == "redsys")
-        .group_by(func.date(Order.created_at), OrderItem.vat_pct)
-    ).all()
-    for dia, iva_pct, total in web_rows:
-        camp = _camp_iva("card", iva_pct)
-        if camp and total:
-            _afegeix(dia, camp, total)
 
     tpv_rows = db.execute(
         select(func.date(VentaExterna.date), VentaExterna.payment_method, VentaExterna.vat_pct,

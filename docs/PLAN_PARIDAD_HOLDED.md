@@ -16,6 +16,15 @@ Este documento fija el *orden* y el *alcance*, no cierra el diseño de cada
 bloque — eso se hace al empezarlo, como se hizo con Fases 1-5 de
 Comptabilitat.
 
+**Aviso (2026-09-12): B1, B3 y B5 ya se construyeron** en sesiones
+posteriores a la redacción original de este documento, y B2 tiene ya una
+capa base en producción. Verificado leyendo el código real, no la prosa de
+este archivo — sus secciones de abajo quedan como registro de lo que se
+decidió hacer, pero **para el estado actual y lo que falta de verdad en
+contabilidad (B2 VeriFactu, exportación AEAT, Modelo 347), usa
+`docs/PLAN_COMPTABILITAT.md`**, no esta tabla. B4/B6/B7/B8/B9 siguen tal
+cual estaban: sin construir.
+
 ## Restricciones que aplican a todos los bloques
 
 - **Coste**: VPS de 10-20€/mes (ver `CLAUDE.md`). Cualquier bloque que
@@ -62,17 +71,17 @@ de abajo.
 
 ## Vista general de bloques
 
-| Bloque | Qué cubre | Prioridad | Riesgo | Depende de |
-|---|---|---|---|---|
-| B1 — Documentos comerciales no fiscales | Presupuestos, albaranes, formalizar factura de compra en PDF | Alta | 🟢 Bajo | — |
-| B2 — Facturación de venta propia | Factura de venta numerada, plantillas, envío | Alta | 🔴 Alto (VeriFactu) | B1 (motor de PDF/numeración) |
-| B3 — Tesorería avanzada | Conciliación con reglas/sugerencias, flujo de caja proyectado | Media | 🟡 Medio (build vs. buy en sync bancaria) | — |
-| B4 — Inventario | Alarmas de stock, multi-almacén, listas de precio | Media | 🟢 Bajo | — |
-| B5 — Cierre contable formal | Cuentas anuales, punteado de asientos, Modelo 200 | Media | 🔴 Alto (Modelo 200) | — |
-| B6 — Remesas y domiciliaciones SEPA | Generación de fichero SEPA (pain.008), gestión de recibos | Baja | 🟡 Medio | B1/B2 |
-| B7 — CRM ligero | Pipeline de oportunidades, actividades, notas, tags | Media | 🟢 Bajo | — |
-| B8 — OCR de gastos | Autocompletar Despesa desde foto/PDF de ticket | Baja | 🟡 Medio (coste API) | B1 |
-| B9 — Cumplimiento telemático | SII, modelos IRPF, TicketBAI | Muy baja | 🔴 Muy alto | B2 |
+| Bloque | Qué cubre | Prioridad | Riesgo | Depende de | Estado (2026-09-12) |
+|---|---|---|---|---|---|
+| B1 — Documentos comerciales no fiscales | Presupuestos, albaranes, formalizar factura de compra en PDF | Alta | 🟢 Bajo | — | ✅ Hecho |
+| B2 — Facturación de venta propia | Factura de venta numerada, plantillas, envío | Alta | 🔴 Alto (VeriFactu) | B1 (motor de PDF/numeración) | 🟡 Capa base hecha (sin VeriFactu) — ver `docs/PLAN_COMPTABILITAT.md` |
+| B3 — Tesorería avanzada | Conciliación con reglas/sugerencias, flujo de caja proyectado | Media | 🟡 Medio (build vs. buy en sync bancaria) | — | ✅ Hecho (excepto sync PSD2, descartada) |
+| B4 — Inventario | Alarmas de stock, multi-almacén, listas de precio | Media | 🟢 Bajo | — | Sin construir |
+| B5 — Cierre contable formal | Cuentas anuales, punteado de asientos, Modelo 200 | Media | 🔴 Alto (Modelo 200) | — | ✅ Hecho (Modelo 200 como informe de apoyo, sin presentación) |
+| B6 — Remesas y domiciliaciones SEPA | Generación de fichero SEPA (pain.008), gestión de recibos | Baja | 🟡 Medio | B1/B2 | Sin construir |
+| B7 — CRM ligero | Pipeline de oportunidades, actividades, notas, tags | Media | 🟢 Bajo | — | Sin construir |
+| B8 — OCR de gastos | Autocompletar Despesa desde foto/PDF de ticket | Baja | 🟡 Medio (coste API) | B1 | Sin construir |
+| B9 — Cumplimiento telemático | SII, modelos IRPF, TicketBAI | Muy baja | 🔴 Muy alto | B2 | Sin construir |
 
 La prioridad refleja impacto percibido para un cliente que viene de Holded
 vs. esfuerzo, **no** un orden de ejecución obligatorio — eso se decide al
@@ -80,7 +89,11 @@ final de este documento.
 
 ---
 
-## B1 — Documentos comerciales no fiscales
+## B1 — Documentos comerciales no fiscales ✅ HECHO
+
+Ver `docs/PLAN_COMPTABILITAT.md` ("Estado actual verificado") para el detalle
+de lo construido. Se deja el resto de esta sección como registro de lo que
+se decidió hacer en su momento.
 
 **Por qué primero**: es la base técnica (generación de PDF, numeración
 correlativa, plantilla) que reutilizarán B2 y B6, y no tiene riesgo legal
@@ -107,7 +120,12 @@ Alcance:
 Qué NO decide este bloque: numeración legal de facturas ni nada de
 VeriFactu — eso es B2.
 
-## B2 — Facturación de venta propia
+## B2 — Facturación de venta propia 🟡 CAPA BASE HECHA, VeriFactu PENDIENTE
+
+La capa base (`Factura`, numeración legal, PDF, sin VeriFactu) ya está en
+producción — ver `docs/PLAN_COMPTABILITAT.md` punto 3 de "Gaps reales" para
+el estado exacto y el prompt para retomar la decisión de VeriFactu. El resto
+de esta sección queda como contexto de la decisión pendiente.
 
 **El gap más visible de todos** frente a Holded: hoy no se emite ningún
 documento fiscal de venta, solo se registra la venta internamente
@@ -138,7 +156,12 @@ proponer un esquema de `Factura` hasta saberlo. Cuando se decida:
   catálogo).
 - Envío de factura con acuse: reutilizar `services/emailer.py`.
 
-## B3 — Tesorería avanzada
+## B3 — Tesorería avanzada ✅ HECHO (excepto sync PSD2)
+
+Conciliación con reglas, sugerencias automáticas y flujo de caja proyectado
+ya están en producción — ver `docs/PLAN_COMPTABILITAT.md`. La sync bancaria
+automática (PSD2) sigue sin construir, tal como se recomendaba abajo por
+defecto. Se deja el resto de esta sección como contexto histórico.
 
 - **Conciliación con reglas**: reglas guardadas tipo "todo movimiento con
   concepto que contenga X → conciliar automáticamente con proveedor Y" —
@@ -174,7 +197,13 @@ proponer un esquema de `Factura` hasta saberlo. Cuando se decida:
   valor evidente para el negocio actual — revisar prioridad real con el
   usuario antes de meterlo en un sprint concreto.
 
-## B5 — Cierre contable formal
+## B5 — Cierre contable formal ✅ HECHO (Modelo 200 como informe de apoyo)
+
+Cierre/regularización de ejercicio y punteado de asientos ya están en
+producción — ver `docs/PLAN_COMPTABILITAT.md`. El Modelo 200 (Impuesto de
+Sociedades) se implementó como informe de apoyo con caselles, exactamente
+con el criterio que se proponía abajo, no como presentación oficial. Se deja
+el resto de esta sección como contexto histórico.
 
 - **Cuentas anuales / cierre de ejercicio**: hoy el balance interino usa una
   línea sintética "129* Resultat de l'exercici (provisional)" porque no

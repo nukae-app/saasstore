@@ -102,10 +102,12 @@ def test_requereix_admin(client, db):
     assert r.status_code == 403
 
 
-def test_vendes_reals_combina_web_i_tpv_per_iva(client, db):
+def test_vendes_reals_exclou_web_i_combina_tpv_per_iva(client, db):
     admin = _admin_token(client, db)
 
-    # Venda web pagada amb Redsys (targeta), IVA 21%
+    # Venda web pagada amb Redsys: NO ha d'entrar aquí — es tanca sola en
+    # confirmar-se el pagament (ver checkout.py::redsys_notify), incloure-la
+    # aquí duplicaria el tancament del seu 430 (docs/PLAN_COBRAMENTS_PAGAMENTS.md).
     order = Order(
         status=OrderStatus.pagado, contact_email="client@example.com",
         total=Decimal("100.00"), shipping_method="envio",
@@ -149,7 +151,8 @@ def test_vendes_reals_combina_web_i_tpv_per_iva(client, db):
     assert r.status_code == 200
     dies = {d["date"]: d for d in r.json()}
 
-    assert float(dies["2026-04-05"]["card_21"]) == 100.00
+    # la venda web (100€) no hi apareix — es tanca sola via Redsys
+    assert float(dies["2026-04-05"]["card_21"]) == 0.00
     assert float(dies["2026-04-05"]["cash_4"]) == 15.00
 
     assert float(dies["2026-04-06"]["card_21"]) == 30.00

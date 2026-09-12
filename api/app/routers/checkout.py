@@ -29,11 +29,12 @@ from sqlalchemy.orm import Session, selectinload
 from ..config import get_settings
 from ..database import get_db, get_db_unscoped
 from ..models import (
-    Cart, CartItem, CondicionItem, ConfiguracioBotiga, Item, Order, OrderItem, OrderStatus, Payment,
-    PaymentStatus, StockHold, User,
+    Cart, CartItem, CanalComissio, CondicionItem, ConfiguracioBotiga, Item, JournalSourceType, Order, OrderItem,
+    OrderStatus, Payment, PaymentStatus, StockHold, User,
 )
 from ..schemas import CheckoutConfirm, CouponApplyResultOut, OrderOut
 from ..services import redsys
+from ..services.comptabilitat_posting import calcula_comissio, post_cobrament_conciliacio
 from ..tenancy import scoped_to
 from ..tenant_secrets import get_tenant_secrets
 from ..services.metrics import redsys_payment_result_total
@@ -412,6 +413,19 @@ async def redsys_notify(request: Request, db: Session = Depends(get_db_unscoped)
                 redsys_payment_result_total.labels(result="stock_gone").inc()
                 return {"status": "error", "detail": "No se pudo reservar el stock tras el pago"}
             payment.status = PaymentStatus.autorizado
+
+            # Redsys ya ha confirmado el cobro de verdad: a diferencia del TPV de
+            # mostrador (sin señal real, ver docs/PLAN_COBRAMENTS_PAGAMENTS.md),
+            # aquí no hace falta esperar a la caja diaria ni a la conciliación
+            # bancaria manual — se cierra el 430 (post_venda, dentro de
+            # finalize_payment) ya mismo, descontando la comisión si el canal
+            # web_targeta tiene una configurada en modo `deduccio`.
+            comissio = calcula_comissio(db, CanalComissio.web_targeta, order.total)
+            post_cobrament_conciliacio(
+                db, entry_date=order.paid_at.date(), source_type=JournalSourceType.venda_web,
+                source_id=order.id, amount=order.total, comissio=comissio,
+                description=f"Cobrament Redsys venda web #{str(order.id)[:8]}",
+            )
             db.commit()
             redsys_payment_result_total.labels(result="autorizado").inc()
         else:

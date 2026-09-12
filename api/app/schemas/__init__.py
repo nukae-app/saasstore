@@ -159,6 +159,8 @@ from .comptabilitat import (
     ConciliarMovimentIn,
     ReglaConciliacioIn,
     ReglaConciliacioOut,
+    ComissioPagamentIn,
+    ComissioPagamentOut,
     DespesaSuggerimentOut,
     AccountingAccountOut,
     ApuntManualIn,

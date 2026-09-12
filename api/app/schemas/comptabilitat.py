@@ -39,7 +39,7 @@ class TipusIvaOut(BaseModel):
 
 CATEGORIES_DESPESA = Literal[
     "compres_material", "subministraments", "lloguer", "comunicacions",
-    "serveis_professionals", "transport", "material_oficina", "publicitat", "altres"
+    "serveis_professionals", "transport", "material_oficina", "publicitat", "comissions_bancaries", "altres"
 ]
 
 
@@ -209,6 +209,30 @@ class ReglaConciliacioOut(BaseModel):
     proveidor_nom: str
     active: bool
     created_at: datetime
+
+
+CANALS_COMISSIO = Literal["web_targeta", "mostrador_targeta", "club_targeta"]
+MODES_COMISSIO = Literal["deduccio", "cobrament_apart"]
+
+
+class ComissioPagamentIn(BaseModel):
+    canal: CANALS_COMISSIO
+    mode: MODES_COMISSIO
+    pct: Decimal = Decimal("0")
+    fixed_fee: Decimal = Decimal("0")
+    active: bool = True
+
+
+class ComissioPagamentOut(BaseModel):
+    id: int
+    canal: CANALS_COMISSIO
+    mode: MODES_COMISSIO
+    pct: Decimal
+    fixed_fee: Decimal
+    active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class DespesaSuggerimentOut(BaseModel):

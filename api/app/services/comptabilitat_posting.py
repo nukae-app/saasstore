@@ -20,8 +20,8 @@ from sqlalchemy.orm import Session
 
 from .comptabilitat_seed import ASSET_CATEGORY_ACCOUNT_ES, DESPESA_CATEGORY_ACCOUNT_ES
 from ..models import (
-    AccountingAccount, AssetDepreciationEntry, CaixaDiaria, Despesa, Factura, FixedAsset, JournalEntry,
-    JournalEntryCounter, JournalLine, JournalSourceType, PeriodeComptable,
+    AccountingAccount, AssetDepreciationEntry, CaixaDiaria, CanalComissio, ComissioPagament, Despesa, Factura,
+    FixedAsset, JournalEntry, JournalEntryCounter, JournalLine, JournalSourceType, ModeComissio, PeriodeComptable,
 )
 
 
@@ -144,15 +144,40 @@ def post_venda(
     )
 
 
+def calcula_comissio(db: Session, canal: CanalComissio, import_brut: Decimal) -> Decimal:
+    """Comissió bancària a reconèixer (626) EN EL MOMENT DE TANCAR el
+    cobrament d'aquest canal — només si el mode configurat és `deduccio`
+    (el banc ingressa l'import ja net de comissió). En mode
+    `cobrament_apart`, o si el canal no té cap `ComissioPagament` activa
+    configurada, retorna 0: la comissió es factura a part més endavant com
+    una `Despesa` normal (categoria `comissions_bancaries`), no toca aquest
+    tancament (ver docs/PLAN_COBRAMENTS_PAGAMENTS.md)."""
+    config = db.scalar(
+        select(ComissioPagament).where(ComissioPagament.canal == canal, ComissioPagament.active == True)
+    )
+    if config is None or config.mode != ModeComissio.deduccio:
+        return Decimal("0.00")
+    return ((import_brut * config.pct / 100) + config.fixed_fee).quantize(Decimal("0.01"))
+
+
 def post_cobrament_conciliacio(
     db: Session, *, entry_date: date, source_type: JournalSourceType, source_id: uuid.UUID, amount: Decimal,
-    description: str,
+    description: str, comissio: Decimal = Decimal("0.00"),
 ) -> JournalEntry:
-    """Cobrament confirmat d'una venda ja postejada (conciliació bancària, o
-    agregat de caixa diària): tanca el 430 obert per `post_venda`."""
+    """Cobrament confirmat d'una venda ja postejada (conciliació bancària,
+    agregat de caixa diària, o confirmació immediata del PSP): tanca el 430
+    obert per `post_venda`. `comissio` (ver `calcula_comissio`) descompta
+    del 572 el que el banc s'ha quedat i ho reconeix a 626 — si és 0 (sense
+    comissió configurada, o mode `cobrament_apart`) el comportament és
+    idèntic al d'abans."""
+    net = amount - comissio
+    lines: list[tuple[str, Decimal, Decimal]] = [("572", net, Decimal("0"))]
+    if comissio:
+        lines.append(("626", comissio, Decimal("0")))
+    lines.append(("430", Decimal("0"), amount))
     return post_entry(
         db, entry_date=entry_date, description=description, source_type=source_type, source_id=source_id,
-        lines=[("572", amount, Decimal("0")), ("430", Decimal("0"), amount)],
+        lines=lines,
     )
 
 
@@ -228,23 +253,35 @@ def post_amortitzacio(db: Session, dep: AssetDepreciationEntry, actiu: FixedAsse
 
 def post_caixa_diaria(db: Session, caixa: CaixaDiaria) -> JournalEntry | None:
     """Idempotent: esborra el que hi hagués abans per aquest dia i el
-    torna a postejar amb els totals actuals (l'endpoint és un upsert)."""
+    torna a postejar amb els totals actuals (l'endpoint és un upsert).
+
+    La comissió del datàfon de mostrador (`CanalComissio.mostrador_targeta`)
+    NOMÉS s'aplica sobre `card_21`/`card_4` — bizum/paypal/transferència/bono
+    cultural es reconeixen sempre íntegres aquí (encara sense comissió
+    configurable pròpia, ver docs/PLAN_COBRAMENTS_PAGAMENTS.md, que ho deixa
+    fora d'abast a propòsit)."""
     unpost_source(db, JournalSourceType.caixa_diaria, caixa.id)
 
     cash_total = caixa.cash_21 + caixa.cash_4
-    bank_total = (
-        caixa.card_21 + caixa.card_4 + caixa.bizum_21 + caixa.bizum_4
-        + caixa.paypal_21 + caixa.paypal_4 + caixa.transfer_21 + caixa.cultural_voucher
+    card_total = caixa.card_21 + caixa.card_4
+    altres_bank_total = (
+        caixa.bizum_21 + caixa.bizum_4 + caixa.paypal_21 + caixa.paypal_4
+        + caixa.transfer_21 + caixa.cultural_voucher
     )
-    total = cash_total + bank_total
+    total = cash_total + card_total + altres_bank_total
     if total == 0:
         return None
+
+    comissio = calcula_comissio(db, CanalComissio.mostrador_targeta, card_total) if card_total else Decimal("0.00")
+    bank_total_net = card_total - comissio + altres_bank_total
 
     lines: list[tuple[str, Decimal, Decimal]] = []
     if cash_total:
         lines.append(("570", cash_total, Decimal("0")))
-    if bank_total:
-        lines.append(("572", bank_total, Decimal("0")))
+    if bank_total_net:
+        lines.append(("572", bank_total_net, Decimal("0")))
+    if comissio:
+        lines.append(("626", comissio, Decimal("0")))
     lines.append(("430", Decimal("0"), total))
     return post_entry(
         db, entry_date=caixa.date, description=f"Caixa diària {caixa.date.isoformat()}",

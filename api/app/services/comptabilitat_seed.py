@@ -70,6 +70,7 @@ def seed_pgc_es(legal_form: str) -> list[AccountSeed]:
         AccountSeed("627", "Publicitat, propaganda i relacions públiques", 6, AccountType.despesa),
         AccountSeed("628", "Subministraments", 6, AccountType.despesa),
         AccountSeed("629", "Altres serveis", 6, AccountType.despesa),
+        AccountSeed("626", "Serveis bancaris i similars", 6, AccountType.despesa),
         AccountSeed("681", "Amortització de l'immobilitzat material", 6, AccountType.despesa),
         AccountSeed("700", "Vendes de mercaderies", 7, AccountType.ingres),
         AccountSeed("705", "Prestació de serveis", 7, AccountType.ingres),
@@ -103,6 +104,7 @@ DESPESA_CATEGORY_ACCOUNT_ES: dict[str, str] = {
     "transport": "624",
     "material_oficina": "629",
     "publicitat": "627",
+    "comissions_bancaries": "626",
     "altres": "629",
 }
 

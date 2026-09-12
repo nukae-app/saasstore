@@ -8,8 +8,11 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from app.models import CondicionItem, Item, JournalEntry, JournalLine, JournalSourceType, Release, User
-from app.services.comptabilitat_posting import next_entry_number, post_entry
+from app.models import (
+    CanalComissio, ComissioPagament, CondicionItem, Item, JournalEntry, JournalLine, JournalSourceType,
+    ModeComissio, Release, User,
+)
+from app.services.comptabilitat_posting import calcula_comissio, next_entry_number, post_cobrament_conciliacio, post_entry
 
 
 def _seed_release(db, artista="Artista", titulo="Àlbum", formato="LP") -> Release:
@@ -211,3 +214,129 @@ def test_caixa_diaria_reeditar_no_duplica_assentaments(client, db):
     lines = {l.account.code: (l.debit, l.credit) for l in db.scalars(select(JournalLine).where(JournalLine.entry_id == entries[0].id))}
     assert lines["570"] == (Decimal("80.00"), Decimal("0.00"))
     assert lines["430"] == (Decimal("0.00"), Decimal("80.00"))
+
+
+def test_calcula_comissio_sense_config_retorna_zero(db):
+    assert calcula_comissio(db, CanalComissio.web_targeta, Decimal("100.00")) == Decimal("0.00")
+
+
+def test_calcula_comissio_mode_deduccio_aplica_pct_i_fixed_fee(db):
+    db.add(ComissioPagament(
+        canal=CanalComissio.web_targeta, mode=ModeComissio.deduccio,
+        pct=Decimal("0.30"), fixed_fee=Decimal("0.10"),
+    ))
+    db.commit()
+    # 100.00 * 0.30% + 0.10 = 0.40
+    assert calcula_comissio(db, CanalComissio.web_targeta, Decimal("100.00")) == Decimal("0.40")
+
+
+def test_calcula_comissio_mode_cobrament_apart_retorna_zero(db):
+    """En aquest mode el banc ingressa l'import íntegre; la comissió es
+    factura a part com una Despesa normal — no toca cap tancament."""
+    db.add(ComissioPagament(
+        canal=CanalComissio.mostrador_targeta, mode=ModeComissio.cobrament_apart,
+        pct=Decimal("1.00"), fixed_fee=Decimal("0.00"),
+    ))
+    db.commit()
+    assert calcula_comissio(db, CanalComissio.mostrador_targeta, Decimal("100.00")) == Decimal("0.00")
+
+
+def test_calcula_comissio_inactiva_es_ignora(db):
+    db.add(ComissioPagament(
+        canal=CanalComissio.web_targeta, mode=ModeComissio.deduccio,
+        pct=Decimal("5.00"), fixed_fee=Decimal("0.00"), active=False,
+    ))
+    db.commit()
+    assert calcula_comissio(db, CanalComissio.web_targeta, Decimal("100.00")) == Decimal("0.00")
+
+
+def test_post_cobrament_conciliacio_amb_comissio_genera_626(db):
+    entry = post_cobrament_conciliacio(
+        db, entry_date=date(2026, 6, 1), source_type=JournalSourceType.venda_web, source_id=uuid.uuid4(),
+        amount=Decimal("100.00"), comissio=Decimal("0.40"), description="test comissió",
+    )
+    db.commit()
+    lines = {l.account.code: (l.debit, l.credit) for l in db.scalars(select(JournalLine).where(JournalLine.entry_id == entry.id))}
+    assert lines["572"] == (Decimal("99.60"), Decimal("0.00"))
+    assert lines["626"] == (Decimal("0.40"), Decimal("0.00"))
+    assert lines["430"] == (Decimal("0.00"), Decimal("100.00"))
+
+
+def test_post_cobrament_conciliacio_sense_comissio_no_toca_626(db):
+    entry = post_cobrament_conciliacio(
+        db, entry_date=date(2026, 6, 1), source_type=JournalSourceType.venda_web, source_id=uuid.uuid4(),
+        amount=Decimal("50.00"), description="test sense comissió",
+    )
+    db.commit()
+    codis = {l.account.code for l in db.scalars(select(JournalLine).where(JournalLine.entry_id == entry.id))}
+    assert codis == {"572", "430"}
+
+
+def test_caixa_diaria_amb_comissio_targeta_mostrador_genera_626(client, db):
+    db.add(ComissioPagament(
+        canal=CanalComissio.mostrador_targeta, mode=ModeComissio.deduccio,
+        pct=Decimal("1.00"), fixed_fee=Decimal("0.00"),
+    ))
+    db.commit()
+    token = _admin_token(client, db)
+    resp = client.put(
+        "/admin/caixa-diaria/2026/7",
+        json=[{"date": "2026-07-05", "card_21": "100.00", "cash_21": "20.00"}],
+        headers=_auth(token),
+    )
+    assert resp.status_code == 200
+
+    entry = db.scalar(select(JournalEntry).where(JournalEntry.source_type == JournalSourceType.caixa_diaria))
+    lines = {l.account.code: (l.debit, l.credit) for l in db.scalars(select(JournalLine).where(JournalLine.entry_id == entry.id))}
+    # 100.00 de targeta amb 1% de comissió (1.00) -> 99.00 net + 20.00 efectiu = 119.00 a tresoreria
+    assert lines["570"] == (Decimal("20.00"), Decimal("0.00"))
+    assert lines["572"] == (Decimal("99.00"), Decimal("0.00"))
+    assert lines["626"] == (Decimal("1.00"), Decimal("0.00"))
+    assert lines["430"] == (Decimal("0.00"), Decimal("120.00"))
+
+
+def test_caixa_diaria_sense_comissio_configurada_es_comporta_igual_que_abans(client, db):
+    token = _admin_token(client, db)
+    resp = client.put(
+        "/admin/caixa-diaria/2026/8",
+        json=[{"date": "2026-08-05", "card_21": "100.00", "bizum_21": "10.00"}],
+        headers=_auth(token),
+    )
+    assert resp.status_code == 200
+    entry = db.scalar(select(JournalEntry).where(JournalEntry.source_type == JournalSourceType.caixa_diaria))
+    lines = {l.account.code: (l.debit, l.credit) for l in db.scalars(select(JournalLine).where(JournalLine.entry_id == entry.id))}
+    assert lines["572"] == (Decimal("110.00"), Decimal("0.00"))
+    assert "626" not in lines
+    assert lines["430"] == (Decimal("0.00"), Decimal("110.00"))
+
+
+def test_comissions_pagament_crud(client, db):
+    token = _admin_token(client, db)
+    resp = client.post(
+        "/admin/comissions-pagament",
+        json={"canal": "web_targeta", "mode": "deduccio", "pct": "0.30", "fixed_fee": "0.10"},
+        headers=_auth(token),
+    )
+    assert resp.status_code == 201
+    comissio_id = resp.json()["id"]
+
+    # No es pot duplicar canal
+    dup = client.post(
+        "/admin/comissions-pagament",
+        json={"canal": "web_targeta", "mode": "cobrament_apart", "pct": "0", "fixed_fee": "0"},
+        headers=_auth(token),
+    )
+    assert dup.status_code == 409
+
+    llistat = client.get("/admin/comissions-pagament", headers=_auth(token))
+    assert llistat.status_code == 200 and len(llistat.json()) == 1
+
+    patch = client.patch(
+        f"/admin/comissions-pagament/{comissio_id}",
+        json={"canal": "web_targeta", "mode": "cobrament_apart", "pct": "0", "fixed_fee": "0", "active": True},
+        headers=_auth(token),
+    )
+    assert patch.status_code == 200 and patch.json()["mode"] == "cobrament_apart"
+
+    assert client.delete(f"/admin/comissions-pagament/{comissio_id}", headers=_auth(token)).status_code == 204
+    assert client.get("/admin/comissions-pagament", headers=_auth(token)).json() == []

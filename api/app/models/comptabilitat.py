@@ -32,6 +32,10 @@ class CategoriaDespesa(str, enum.Enum):
     transport = "transport"
     material_oficina = "material_oficina"
     publicitat = "publicitat"
+    # Comissió bancària facturada a part (mode `cobrament_apart` de
+    # `ComissioPagament`) — quan el banc no la dedueix del cobrament sinó
+    # que la carrega com una factura/càrrec periòdic propi.
+    comissions_bancaries = "comissions_bancaries"
     altres = "altres"
 
 
@@ -249,6 +253,48 @@ class ReglaConciliacio(TenantScoped, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     proveidor: Mapped["Proveedor"] = relationship()
+
+
+class CanalComissio(str, enum.Enum):
+    """Canal de cobrament amb targeta al qual pot aplicar una comissió
+    bancària diferent — cadascun es liquida per una via diferent (ver
+    docs/PLAN_COBRAMENTS_PAGAMENTS.md): `web_targeta` es tanca sol en
+    confirmar Redsys, `mostrador_targeta` es tanca via caixa diària,
+    `club_targeta` és el cobrament recurrent COF/MIT del Club del disc."""
+    web_targeta = "web_targeta"
+    mostrador_targeta = "mostrador_targeta"
+    club_targeta = "club_targeta"
+
+
+class ModeComissio(str, enum.Enum):
+    # El banc ingressa el cobrament ja net de comissió — es reconeix la
+    # comissió (626) al mateix moment de tancar el 430.
+    deduccio = "deduccio"
+    # El banc ingressa el cobrament íntegre; la comissió es factura o es
+    # carrega a part, més tard — es tracta com una Despesa normal
+    # (categoria `comissions_bancaries`), no toca el tancament del cobrament.
+    cobrament_apart = "cobrament_apart"
+
+
+class ComissioPagament(TenantScoped, Base):
+    """Configuració de comissió bancària per canal de cobrament amb
+    targeta — un tenant pot tenir un mode diferent per canal (p. ex. Redsys
+    web en `deduccio` i el datàfon de mostrador en `cobrament_apart`), i
+    fins i tot no tenir cap fila per a un canal (equival a comissió zero).
+    Sense historial de canvis a propòsit: si canvia la comissió pactada amb
+    el banc, s'edita la fila existent — mateix nivell de simplicitat que
+    `TipusIva`/`TramEnviament`."""
+
+    __tablename__ = "comissions_pagament"
+    __table_args__ = (UniqueConstraint("tenant_id", "canal"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    canal: Mapped[CanalComissio] = mapped_column(Enum(CanalComissio, name="canal_comissio"), index=True)
+    mode: Mapped[ModeComissio] = mapped_column(Enum(ModeComissio, name="mode_comissio"))
+    pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0"), server_default="0")
+    fixed_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"), server_default="0")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class PeriodeComptable(TenantScoped, Base):
