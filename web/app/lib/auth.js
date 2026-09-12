@@ -24,6 +24,28 @@ function notifySessionExpired() {
   sessionExpiredListeners.forEach((cb) => cb());
 }
 
+// Compartit entre totes les crides concurrents: si el panell dispara varies
+// peticions en paral·lel just quan l'access token caduca, NOMÉS la primera
+// crida `/auth/refresh` real — la resta esperen la mateixa promesa en comptes
+// de presentar cadascuna el mateix refresh token ja rotat (el backend tracta
+// això com a reús — possible robatori — i revoca TOTS els refresh tokens de
+// l'usuari, tancant la sessió sencera per una carrera benigna).
+let refreshPromise = null;
+
+async function refreshAccessToken(base) {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${base}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      .then(async (r) => {
+        if (!r.ok) throw new Error('refresh_failed');
+        const { access_token } = await r.json();
+        setToken(access_token);
+        return access_token;
+      })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
 export async function authFetch(path, options = {}) {
   const base = '/api';
   const token = getToken();
@@ -43,15 +65,10 @@ export async function authFetch(path, options = {}) {
   let res = await makeReq(token);
 
   if (res.status === 401) {
-    const refresh = await fetch(`${base}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-    });
-    if (refresh.ok) {
-      const { access_token } = await refresh.json();
-      setToken(access_token);
-      res = await makeReq(access_token);
-    } else {
+    try {
+      const newToken = await refreshAccessToken(base);
+      res = await makeReq(newToken);
+    } catch {
       clearToken();
       notifySessionExpired();
       throw new Error('401');
