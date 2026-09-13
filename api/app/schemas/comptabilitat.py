@@ -147,6 +147,7 @@ class CompteBancariIn(BaseModel):
     name: str
     iban: str | None = None
     bank: str | None = None
+    bic: str | None = None
     opening_balance: Decimal = Decimal("0")
     opening_balance_date: date | None = None
 
@@ -156,6 +157,7 @@ class CompteBancariOut(BaseModel):
     name: str
     iban: str | None
     bank: str | None
+    bic: str | None
     active: bool
     opening_balance: Decimal
     opening_balance_date: date | None
@@ -179,6 +181,7 @@ class MovimentBancariOut(BaseModel):
     despesa_id: uuid.UUID | None
     order_id: uuid.UUID | None
     venta_externa_id: uuid.UUID | None
+    remesa_pagament_id: uuid.UUID | None = None
     reconciliation_notes: str | None
     created_at: datetime
     # Enriquit
@@ -193,7 +196,46 @@ class ConciliarMovimentIn(BaseModel):
     despesa_id: uuid.UUID | None = None
     order_id: uuid.UUID | None = None
     venta_externa_id: uuid.UUID | None = None
+    # Quan el banc liquida tota una RemesaPagament en un únic càrrec, en
+    # lloc d'una línia per proveïdor — ver docs/PLAN_COBRAMENTS_PAGAMENTS.md.
+    remesa_pagament_id: uuid.UUID | None = None
     reconciliation_notes: str | None = None
+
+
+class DespesaElegibleRemesaOut(BaseModel):
+    despesa_id: uuid.UUID
+    supplier_name: str
+    due_date: date | None
+    net_a_pagar: Decimal
+
+
+class RemesaPagamentGenerarIn(BaseModel):
+    compte_bancari_id: int
+    execution_date: date
+    despesa_ids: list[uuid.UUID]
+
+
+class RemesaPagamentLiniaOut(BaseModel):
+    despesa_id: uuid.UUID
+    supplier_name: str
+    import_: Decimal = Field(serialization_alias="import")
+    end_to_end_id: str
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class RemesaPagamentOut(BaseModel):
+    id: uuid.UUID
+    fiscal_year: int
+    number: int
+    status: str
+    compte_bancari_id: int
+    execution_date: date
+    total: Decimal
+    created_at: datetime
+    lines: list[RemesaPagamentLiniaOut]
+
+    model_config = {"from_attributes": True}
 
 
 class ReglaConciliacioIn(BaseModel):

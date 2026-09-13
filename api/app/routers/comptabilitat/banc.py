@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import (
     CompteBancari, Despesa, EstatConciliacio, EstatPagamentDespesa, JournalSourceType, MovimentBancari, Order,
-    Proveedor, ReglaConciliacio, VentaExterna,
+    Proveedor, ReglaConciliacio, RemesaPagament, VentaExterna,
 )
 from ...schemas import (
     CompteBancariIn, CompteBancariOut, ConciliarMovimentIn, DespesaSuggerimentOut, MovimentBancariOut,
@@ -229,10 +229,23 @@ def conciliar_moviment(
     if mov.status == EstatConciliacio.conciliat:
         raise HTTPException(409, "El moviment ja està conciliat")
 
+    if payload.status == "conciliat" and payload.remesa_pagament_id:
+        remesa = db.get(RemesaPagament, payload.remesa_pagament_id)
+        if remesa is None:
+            raise HTTPException(404, "Remesa no trobada")
+        if abs(mov.movement_amount) != remesa.total:
+            raise HTTPException(
+                422,
+                f"L'import del moviment ({abs(mov.movement_amount)}) no coincideix amb el total de la "
+                f"remesa ({remesa.total}) — si el banc ha liquidat només algunes línies, concilia-les "
+                "una a una en comptes de contra tota la remesa.",
+            )
+
     mov.status = EstatConciliacio(payload.status)
     mov.despesa_id = payload.despesa_id
     mov.order_id = payload.order_id
     mov.venta_externa_id = payload.venta_externa_id
+    mov.remesa_pagament_id = payload.remesa_pagament_id
     mov.reconciliation_notes = payload.reconciliation_notes
 
     # Si conciliem amb una despesa, la marquem com a pagada
@@ -255,6 +268,20 @@ def conciliar_moviment(
                 source_id=venta.id, amount=abs(mov.movement_amount),
                 description=f"Cobrament venda {venta.channel.value} #{str(venta.ticket_id)[:8]}",
             )
+
+    # Si conciliem contra tota una remesa de pagament (el banc liquida en
+    # bloc, no línia a línia): tanca cada Despesa que encara no s'hagués
+    # pagat per una altra via, totes amb el mateix moviment.
+    if payload.status == "conciliat" and payload.remesa_pagament_id:
+        remesa = db.get(RemesaPagament, payload.remesa_pagament_id)
+        for linia in remesa.lines:
+            despesa = linia.despesa
+            if despesa.payment_status != EstatPagamentDespesa.pagat:
+                despesa.payment_status = EstatPagamentDespesa.pagat
+                despesa.payment_date = mov.operation_date
+                post_despesa_pagament(
+                    db, despesa, payment_date=mov.operation_date, amount=linia.import_, cash=False,
+                )
 
     # Si conciliem amb un order, el marquem com a cobrat
     if payload.status == "conciliat" and payload.order_id:

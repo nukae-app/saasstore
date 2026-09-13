@@ -41,6 +41,12 @@ class CategoriaDespesa(str, enum.Enum):
 
 class EstatPagamentDespesa(str, enum.Enum):
     pendent = "pendent"
+    # Inclosa en una RemesaPagament ja generada (fitxer SEPA pain.001 pujat
+    # al banc), a l'espera que s'executi de veritat — evita que la mateixa
+    # despesa es colgui en una segona remesa mentre s'espera (ver
+    # docs/PLAN_COBRAMENTS_PAGAMENTS.md). Passa a `pagat` quan es concilia,
+    # línia a línia o contra tota la remesa segons com liquidi el banc.
+    en_remesa = "en_remesa"
     pagat = "pagat"
     vencut = "vencut"
 
@@ -187,6 +193,10 @@ class CompteBancari(TenantScoped, Base):
     name: Mapped[str] = mapped_column(String(200))
     iban: Mapped[str | None] = mapped_column(String(34))
     bank: Mapped[str | None] = mapped_column(String(100))   # "CaixaBank", "BBVA"...
+    # Opcional: ja no és obligatori per a transferències SEPA dins la UE des
+    # de 2012/2016, però convé informar-lo si es coneix (algunes remeses
+    # pain.001 el fan servir per al DbtrAgt) — ver services/sepa_pain001.py.
+    bic: Mapped[str | None] = mapped_column(String(11))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     opening_balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
     opening_balance_date: Mapped[date | None] = mapped_column(Date)
@@ -226,6 +236,13 @@ class MovimentBancari(TenantScoped, Base):
     venta_externa_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("ventas_externas.id", ondelete="SET NULL"), index=True
     )
+    # Quart "un sol d'aquests quan conciliat": quan el banc liquida tota una
+    # remesa de pagament (SEPA pain.001) en un únic càrrec, en lloc d'una
+    # línia per proveïdor — ver docs/PLAN_COBRAMENTS_PAGAMENTS.md i
+    # routers/comptabilitat/banc.py::conciliar_moviment.
+    remesa_pagament_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("remeses_pagament.id", ondelete="SET NULL"), index=True
+    )
     reconciliation_notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -233,6 +250,7 @@ class MovimentBancari(TenantScoped, Base):
     despesa: Mapped["Despesa | None"] = relationship(back_populates="moviments", foreign_keys=[despesa_id])
     order: Mapped["Order | None"] = relationship(foreign_keys=[order_id])
     venta_externa: Mapped["VentaExterna | None"] = relationship(foreign_keys=[venta_externa_id])
+    remesa_pagament: Mapped["RemesaPagament | None"] = relationship(foreign_keys=[remesa_pagament_id])
 
 
 class ReglaConciliacio(TenantScoped, Base):
@@ -253,6 +271,70 @@ class ReglaConciliacio(TenantScoped, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     proveidor: Mapped["Proveedor"] = relationship()
+
+
+class RemesaPagamentStatus(str, enum.Enum):
+    generada = "generada"
+    anullada = "anullada"
+
+
+class RemesaPagament(TenantScoped, Base):
+    """Remesa de pagament a proveïdors (fitxer SEPA pain.001.001.03,
+    transferència — NO domiciliació) — ver docs/PLAN_COBRAMENTS_PAGAMENTS.md.
+
+    NOMÉS genera el fitxer; mai l'envia al banc (això seria un servei PISP,
+    mateixa paret regulatòria que l'AISP descartat per a la conciliació
+    automàtica — ver el mateix document). L'admin sempre puja el XML a mà
+    al portal del seu banc.
+
+    `xml_content` es guarda tal qual es va generar i mai es torna a crear:
+    un cop `generada`, és immutable (mateix criteri que `Factura` un cop
+    `emesa`) — per corregir alguna cosa cal anul·lar-la i generar-ne una de
+    nova, no editar-la. El tancament real (marcar les `Despesa` `pagat`) NO
+    passa per aquí: és la conciliació bancària de sempre (línia a línia, o
+    contra tota la remesa si el banc liquida en bloc — ver `MovimentBancari.
+    remesa_pagament_id`), mai un botó de "confirmar remesa" apart."""
+
+    __tablename__ = "remeses_pagament"
+    __table_args__ = (UniqueConstraint("tenant_id", "fiscal_year", "number"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    fiscal_year: Mapped[int] = mapped_column(Integer, index=True)
+    number: Mapped[int] = mapped_column(Integer)
+    status: Mapped[RemesaPagamentStatus] = mapped_column(
+        Enum(RemesaPagamentStatus, name="remesa_pagament_status"),
+        default=RemesaPagamentStatus.generada, server_default="generada", index=True,
+    )
+    compte_bancari_id: Mapped[int] = mapped_column(ForeignKey("comptes_bancaris.id", ondelete="RESTRICT"), index=True)
+    execution_date: Mapped[date] = mapped_column(Date)
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    xml_content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    compte_bancari: Mapped["CompteBancari"] = relationship()
+    lines: Mapped[list["RemesaPagamentLinia"]] = relationship(
+        back_populates="remesa", cascade="all, delete-orphan", order_by="RemesaPagamentLinia.position"
+    )
+
+
+class RemesaPagamentLinia(TenantScoped, Base):
+    """Una `Despesa` dins d'una remesa. `import_` és sempre el NET
+    (`Despesa.total - Despesa.retencio_import`) — el que de veritat surt cap
+    al proveïdor si hi ha retenció d'IRPF practicada (la part retinguda no
+    se li transfereix, es deu a Hisenda, ver `post_despesa_alta`), mateix
+    criteri que ja fa servir `rank_despesa_candidates`."""
+
+    __tablename__ = "remesa_pagament_linies"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    remesa_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("remeses_pagament.id", ondelete="CASCADE"), index=True)
+    despesa_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("despeses.id", ondelete="RESTRICT"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    import_: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    end_to_end_id: Mapped[str] = mapped_column(String(35))
+
+    remesa: Mapped["RemesaPagament"] = relationship(back_populates="lines")
+    despesa: Mapped["Despesa"] = relationship()
 
 
 class CanalComissio(str, enum.Enum):

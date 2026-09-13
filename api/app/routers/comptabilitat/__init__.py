@@ -8,12 +8,12 @@ from fastapi import APIRouter
 
 from . import (
     actius, aeat, banc, caixa_diaria, comissions, despeses, flux_caixa, holded, llibres, periodes, proveedores,
-    resultat, tancament,
+    remeses_pagament, resultat, tancament,
 )
 
 router = APIRouter()
 for _modulo in (
     proveedores, despeses, banc, resultat, llibres, actius, holded, aeat, periodes, caixa_diaria,
-    flux_caixa, tancament, comissions,
+    flux_caixa, tancament, comissions, remeses_pagament,
 ):
     router.include_router(_modulo.router)

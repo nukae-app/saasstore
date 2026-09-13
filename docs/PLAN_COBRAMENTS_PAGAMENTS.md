@@ -161,6 +161,15 @@ anticipado (cuenta 438) para el hueco entre "se cobra la tarjeta" y "se
 confirma el envío" — hoy ese dinero no genera ningún apunte mientras tanto.
 Es una decisión de modelo nueva, más grande, para otra sesión si hace falta.
 
+**Implementado (2026-09-13)**: modelos (`RemesaPagament`/`RemesaPagamentLinia`,
+`en_remesa`, `CompteBancari.bic`, `MovimentBancari.remesa_pagament_id`),
+generador `services/sepa_pain001.py` (con transliteración al charset SEPA),
+endpoints en `routers/comptabilitat/remeses_pagament.py` (elegibles, generar,
+listar, detalle, descargar XML, anular), y la extensión de
+`conciliar_moviment` para cerrar toda una remesa de golpe. Migración
+`8e3e6b825f8c`. Tests en `test_sepa_pain001.py` y `test_remeses_pagament.py`.
+Pendiente: desplegar con confirmación.
+
 ## Remesas de pago a proveedores (SEPA pain.001) — diseño acordado 2026-09-12
 
 No confundir con el B6 de `PLAN_PARIDAD_HOLDED.md` (domiciliaciones
