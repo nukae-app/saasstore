@@ -34,13 +34,14 @@ def upgrade() -> None:
 
     op.add_column('tipus_iva', sa.Column('exempt', sa.Boolean(), server_default='false', nullable=False))
 
+    # A diferencia de sa.Enum() dins d'un op.create_table (que crea el tipus
+    # sol), op.add_column sobre una taula EXISTENT no emet el CREATE TYPE —
+    # cal fer-ho explícit abans, o Postgres falla amb "type does not exist".
+    destino_iva_enum = sa.Enum('activitat_gravada', 'activitat_exempta', 'comu', name='destino_iva')
+    destino_iva_enum.create(op.get_bind(), checkfirst=True)
     op.add_column(
         'despeses',
-        sa.Column(
-            'destino_iva',
-            sa.Enum('activitat_gravada', 'activitat_exempta', 'comu', name='destino_iva'),
-            server_default='activitat_gravada', nullable=False,
-        ),
+        sa.Column('destino_iva', destino_iva_enum, server_default='activitat_gravada', nullable=False),
     )
     op.create_index(op.f('ix_despeses_destino_iva'), 'despeses', ['destino_iva'], unique=False)
     op.add_column(
