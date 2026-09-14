@@ -136,6 +136,23 @@ class DespesaOut(BaseModel):
     importacio_diferida: bool
     compra_ids: list[uuid.UUID] = []
     notes: str | None
+    source_document_url: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+DESPESA_IMPORT_STATUS = Literal["pendent", "processat", "error", "confirmat", "descartat"]
+
+
+class DespesaImportOut(BaseModel):
+    id: uuid.UUID
+    file_url: str
+    original_filename: str
+    status: DESPESA_IMPORT_STATUS
+    extracted_data: dict | None
+    error_message: str | None
+    despesa_id: uuid.UUID | None
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -4,6 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     Date,
@@ -199,6 +200,10 @@ class Despesa(TenantScoped, Base):
     payment_method: Mapped[str | None] = mapped_column(String(30))
 
     notes: Mapped[str | None] = mapped_column(Text)
+    # Justificant original (factura del proveïdor en PDF), si es té — via
+    # importació OCR (DespesaImport) o penjat directament en l'alta manual.
+    # Mai obligatori: moltes despeses antigues o donades d'alta a mà no en tenen.
+    source_document_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     proveidor: Mapped["Proveedor | None"] = relationship(back_populates="despeses", foreign_keys=[proveidor_id])
@@ -207,6 +212,40 @@ class Despesa(TenantScoped, Base):
     compras: Mapped[list["Compra"]] = relationship(back_populates="despesa")
     moviments: Mapped[list["MovimentBancari"]] = relationship(back_populates="despesa")
     tipus_iva: Mapped["TipusIva | None"] = relationship()
+    despesa_import: Mapped["DespesaImport | None"] = relationship(back_populates="despesa", uselist=False)
+
+
+class DespesaImportStatus(str, enum.Enum):
+    pendent = "pendent"        # pujat, extracció encara no llançada o en curs
+    processat = "processat"    # la IA ha tornat dades, pendent de revisió humana
+    error = "error"            # ha fallat l'extracció (PDF il·legible, timeout...)
+    confirmat = "confirmat"    # revisat i convertit en Despesa
+    descartat = "descartat"    # descartat sense crear cap Despesa
+
+
+class DespesaImport(TenantScoped, Base):
+    """Cua de revisió per a l'alta de Despeses a partir d'un PDF de factura.
+
+    `extracted_data` és sempre un ESBORRANY (JSON, no columnes tipades):
+    el que ha llegit la IA, mai dades contables definitives — només serveix
+    per prellenar el formulari de `Despesa`, que és qui valida i contabilitza
+    de veritat. Veure services/despesa_extraction.py."""
+
+    __tablename__ = "despesa_imports"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    file_url: Mapped[str] = mapped_column(String(500))
+    original_filename: Mapped[str] = mapped_column(String(300))
+    status: Mapped[DespesaImportStatus] = mapped_column(
+        Enum(DespesaImportStatus, name="despesa_import_status"),
+        default=DespesaImportStatus.pendent, server_default="pendent", index=True,
+    )
+    extracted_data: Mapped[dict | None] = mapped_column(JSON)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    despesa_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("despeses.id", ondelete="SET NULL"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    despesa: Mapped["Despesa | None"] = relationship(back_populates="despesa_import")
 
 
 class CompteBancari(TenantScoped, Base):

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
 import { useSortFilter } from '../../../components/admin/table/useSortFilter';
@@ -58,27 +58,51 @@ export default function DespesesPage() {
   const [pendents, setPendents] = useState([]);
   const [proveidors, setProveidors] = useState([]);
   const [tipusIva, setTipusIva] = useState([]);
+  const [imports, setImports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('totes'); // totes | pendents
   const [showModal, setShowModal] = useState(false);
   const [editDespesa, setEditDespesa] = useState(null);
+  const [reviewImport, setReviewImport] = useState(null);
   const [expanded, setExpanded] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   async function loadAll() {
     setLoading(true);
-    const [dRes, pRes, provRes, ivaRes] = await Promise.all([
+    const [dRes, pRes, provRes, ivaRes, impRes] = await Promise.all([
       authFetch('/admin/despeses'),
       authFetch('/admin/despeses/pendents'),
       authFetch('/admin/proveedores'),
       authFetch('/admin/tipus-iva?nomes_actius=true'),
+      authFetch('/admin/despeses/imports'),
     ]);
     setDespeses(await dRes.json());
     setPendents(await pRes.json());
     setProveidors(await provRes.json());
     setTipusIva(await ivaRes.json());
+    setImports((await impRes.json()).filter(i => i.status === 'processat' || i.status === 'error'));
     setLoading(false);
   }
   useEffect(() => { loadAll(); }, []);
+
+  async function handleFilesSelected(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (files.length === 0) return;
+    setUploading(true);
+    for (const file of files) {
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        await authFetch('/admin/despeses/imports', { method: 'POST', body: form });
+      } catch {
+        // best-effort: si una falla per xarxa, seguim amb la resta
+      }
+    }
+    setUploading(false);
+    await loadAll();
+  }
 
   const baseList = tab === 'pendents' ? pendents : despeses;
 
@@ -107,10 +131,48 @@ export default function DespesesPage() {
     <div className="space-y-5 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-on-surface">{t('despeses.title', 'Despeses i factures')}</h2>
-        <Button onClick={() => { setEditDespesa(null); setShowModal(true); }}>
-          <MIcon name="add" size={16} /> {t('despeses.new', 'Nova despesa')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <input ref={fileInputRef} type="file" accept="application/pdf" multiple hidden onChange={handleFilesSelected} />
+          <Button variant="secondary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+            <MIcon name={uploading ? 'progress_activity' : 'upload_file'} size={16} />
+            {uploading ? t('despeses.import.uploading', 'Pujant...') : t('despeses.import.button', 'Importar PDF')}
+          </Button>
+          <Button onClick={() => { setEditDespesa(null); setShowModal(true); }}>
+            <MIcon name="add" size={16} /> {t('despeses.new', 'Nova despesa')}
+          </Button>
+        </div>
       </div>
+
+      {/* Cua de PDFs importats pendents de revisar */}
+      {imports.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-blue-800">
+            <MIcon name="draft" size={18} />
+            {t('despeses.import.queue_title', 'PDFs importats pendents de revisar')} ({imports.length})
+          </div>
+          <div className="space-y-1.5">
+            {imports.map(imp => (
+              <div key={imp.id} className="flex items-center justify-between bg-card rounded-lg px-3 py-2 text-sm border border-blue-100">
+                <div className="flex items-center gap-2 min-w-0">
+                  <MIcon name={imp.status === 'error' ? 'error' : 'description'} size={16} className={imp.status === 'error' ? 'text-red-500 shrink-0' : 'text-blue-500 shrink-0'} />
+                  <span className="truncate text-on-surface">{imp.original_filename}</span>
+                  {imp.status === 'error' && <span className="text-xs text-red-600 shrink-0">— {imp.error_message || t('despeses.import.extraction_failed', "No s'ha pogut llegir")}</span>}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={() => setReviewImport(imp)}
+                    className="text-xs font-medium text-primary hover:underline px-2 py-1">
+                    {t('despeses.import.review', 'Revisar')}
+                  </button>
+                  <button onClick={async () => { if (confirm(t('despeses.import.confirm_discard', 'Descartar aquest PDF? No es crearà cap despesa.'))) { await authFetch(`/admin/despeses/imports/${imp.id}`, { method: 'DELETE' }); loadAll(); } }}
+                    className="text-secondary-foreground hover:text-red-500 p-1 rounded hover:bg-surface-container-high">
+                    <MIcon name="close" size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Resum pendent */}
       {(totalPendent > 0 || totalVençut > 0) && (
@@ -240,31 +302,48 @@ export default function DespesesPage() {
           onSaved={() => { setShowModal(false); loadAll(); }}
         />
       )}
+
+      {reviewImport && (
+        <DespesaModal
+          importRecord={reviewImport}
+          proveidors={proveidors}
+          tipusIva={tipusIva}
+          categories={CATEGORIES}
+          metodes={METODES}
+          onClose={() => setReviewImport(null)}
+          onSaved={() => { setReviewImport(null); loadAll(); }}
+          onDiscarded={() => { setReviewImport(null); loadAll(); }}
+        />
+      )}
     </div>
   );
 }
 
-function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onClose, onSaved }) {
+function DespesaModal({ despesa, importRecord, proveidors, tipusIva, categories, metodes, onClose, onSaved, onDiscarded }) {
   const t = useT();
   const isEdit = !!despesa;
+  const isImport = !!importRecord;
   const today = new Date().toISOString().slice(0, 10);
+  const ext = importRecord?.extracted_data || {};
 
-  const [proveidorId, setProveidorId] = useState(despesa?.proveidor_id || '');
-  const [proveidorNom, setProveidorNom] = useState(despesa?.supplier_name || '');
-  const [categoria, setCategoria] = useState(despesa?.category || 'subministraments');
-  const [concepte, setConcepte] = useState(despesa?.concept || '');
-  const [numFactura, setNumFactura] = useState(despesa?.invoice_number || '');
-  const [dataFactura, setDataFactura] = useState(despesa?.invoice_date || today);
+  const [proveidorId, setProveidorId] = useState(despesa?.proveidor_id || ext.proveidor_id || '');
+  const [proveidorNom, setProveidorNom] = useState(despesa?.supplier_name || ext.supplier_name || '');
+  const [categoria, setCategoria] = useState(despesa?.category || ext.category || 'subministraments');
+  const [concepte, setConcepte] = useState(despesa?.concept || ext.concept || '');
+  const [numFactura, setNumFactura] = useState(despesa?.invoice_number || ext.invoice_number || '');
+  const [dataFactura, setDataFactura] = useState(despesa?.invoice_date || ext.invoice_date || today);
   const [dataVenciment, setDataVenciment] = useState(despesa?.due_date || '');
-  const [base, setBase] = useState(despesa?.taxable_base || '');
+  const [base, setBase] = useState(despesa?.taxable_base ?? (ext.taxable_base != null ? String(ext.taxable_base) : ''));
   const [tipusIvaId, setTipusIvaId] = useState(despesa?.tipus_iva_id || '');
-  const [ivaPct, setIvaPct] = useState(despesa?.vat_pct || '21.00');
-  const [total, setTotal] = useState(despesa?.total || '');
+  const [ivaPct, setIvaPct] = useState(despesa?.vat_pct ?? (ext.vat_pct != null ? String(ext.vat_pct) : '21.00'));
+  const [total, setTotal] = useState(despesa?.total ?? (ext.total != null ? String(ext.total) : ''));
   const [retencioTipus, setRetencioTipus] = useState(despesa?.retencio_tipus || '');
   const [retencioPct, setRetencioPct] = useState(despesa?.retencio_pct || '');
   const [estat, setEstat] = useState(despesa?.payment_status || 'pendent');
   const [dataPagament, setDataPagament] = useState(despesa?.payment_date || '');
   const [metodePagament, setMetodePagament] = useState(despesa?.payment_method || '');
+  const [destinoIva, setDestinoIva] = useState(despesa?.destino_iva || 'activitat_gravada');
+  const [importacioDiferida, setImportacioDiferida] = useState(despesa?.importacio_diferida || false);
   const [notes, setNotes] = useState(despesa?.notes || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -328,13 +407,24 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
       payment_status: estat,
       payment_date: dataPagament || null,
       payment_method: metodePagament || null,
+      destino_iva: destinoIva,
+      importacio_diferida: importacioDiferida,
       notes: notes || null,
     };
-    const url = isEdit ? `/admin/despeses/${despesa.id}` : '/admin/despeses';
-    const method = isEdit ? 'PATCH' : 'POST';
+    const url = isImport ? `/admin/despeses/imports/${importRecord.id}/confirmar` : isEdit ? `/admin/despeses/${despesa.id}` : '/admin/despeses';
+    const method = isImport || !isEdit ? 'POST' : 'PATCH';
     const r = await authFetch(url, { method, body: JSON.stringify(payload) });
     setSaving(false);
     if (r.ok) onSaved();
+    else setError((await r.json()).detail || t('common.error_saving', 'Error desant'));
+  }
+
+  async function discard() {
+    if (!confirm(t('despeses.import.confirm_discard', 'Descartar aquest PDF? No es crearà cap despesa.'))) return;
+    setSaving(true);
+    const r = await authFetch(`/admin/despeses/imports/${importRecord.id}`, { method: 'DELETE' });
+    setSaving(false);
+    if (r.ok) onDiscarded();
     else setError((await r.json()).detail || t('common.error_saving', 'Error desant'));
   }
 
@@ -342,10 +432,29 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
-          <h3 className="text-lg font-bold text-on-surface">{isEdit ? t('despeses.edit', 'Editar despesa') : t('despeses.new', 'Nova despesa')}</h3>
+          <h3 className="text-lg font-bold text-on-surface">
+            {isImport ? t('despeses.import.review_title', 'Revisar factura importada') : isEdit ? t('despeses.edit', 'Editar despesa') : t('despeses.new', 'Nova despesa')}
+          </h3>
           <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
         </div>
         <form onSubmit={save} className="p-6 space-y-4">
+          {isImport && (
+            <div className="border border-outline-variant rounded-xl overflow-hidden">
+              <div className="px-4 py-2 bg-surface-container-high text-xs font-medium text-secondary-foreground flex items-center justify-between gap-2">
+                <span className="truncate">{t('despeses.import.original_pdf', 'PDF original')}: {importRecord.original_filename}</span>
+                <a href={importRecord.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline shrink-0">
+                  {t('despeses.import.open_new_tab', 'Obrir en pestanya nova')}
+                </a>
+              </div>
+              <iframe src={importRecord.file_url} title={importRecord.original_filename} className="w-full h-64 bg-surface-container-high" />
+              {ext.confidence && ext.confidence !== 'alta' && (
+                <div className="px-4 py-2 bg-amber-50 text-xs text-amber-700 flex items-center gap-1.5">
+                  <MIcon name="info" size={14} />
+                  {t('despeses.import.low_confidence', 'La lectura automàtica té poca seguretat — revisa bé els imports abans de confirmar.')}
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('despeses.supplier_system', 'Proveïdor (del sistema)')}</label>
@@ -423,6 +532,26 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
             </div>
           </div>
 
+          {/* Model 303: prorrata especial / importació diferida */}
+          <div className="border border-outline-variant rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-on-surface-variant">{t('despeses.model303', 'Model 303 (opcional)')}</div>
+            <div className="grid grid-cols-2 gap-3 items-end">
+              <div>
+                <label className="block text-xs text-secondary-foreground mb-1">{t('despeses.destino_iva', 'Destí (prorrata especial)')}</label>
+                <select value={destinoIva} onChange={e => setDestinoIva(e.target.value)}
+                  className="w-full border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
+                  <option value="activitat_gravada">{t('despeses.destino_iva.gravada', 'Activitat gravada (dedueix 100%)')}</option>
+                  <option value="activitat_exempta">{t('despeses.destino_iva.exempta', 'Activitat exempta (dedueix 0%)')}</option>
+                  <option value="comu">{t('despeses.destino_iva.comu', 'Comú (dedueix al % de prorrata)')}</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-on-surface-variant pb-1.5">
+                <input type="checkbox" checked={importacioDiferida} onChange={e => setImportacioDiferida(e.target.checked)} />
+                {t('despeses.importacio_diferida', "Importació amb IVA diferit (Duanes) — va a la casella 77, no a 28/29")}
+              </label>
+            </div>
+          </div>
+
           {/* Retenció IRPF */}
           <div className="border border-outline-variant rounded-xl p-4 space-y-3">
             <div className="text-sm font-semibold text-on-surface-variant">{t('despeses.retencio', 'Retenció IRPF')}</div>
@@ -496,8 +625,15 @@ function DespesaModal({ despesa, proveidors, tipusIva, categories, metodes, onCl
 
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">
+            {isImport && (
+              <Button type="button" variant="secondary" onClick={discard} disabled={saving}>
+                {t('despeses.import.discard', 'Descartar PDF')}
+              </Button>
+            )}
             <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel', "Cancel·lar")}</Button>
-            <Button type="submit" disabled={saving}>{saving ? t('common.saving', 'Desant...') : isEdit ? t('despeses.save_changes', 'Desar canvis') : t('despeses.create', 'Crear despesa')}</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? t('common.saving', 'Desant...') : isImport ? t('despeses.import.confirm', 'Confirmar i crear despesa') : isEdit ? t('despeses.save_changes', 'Desar canvis') : t('despeses.create', 'Crear despesa')}
+            </Button>
           </div>
         </form>
       </div>

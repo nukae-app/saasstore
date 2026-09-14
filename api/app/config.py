@@ -2,6 +2,7 @@ import json
 import os
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -113,7 +114,14 @@ class Settings(BaseSettings):
     # Si es defineix, s'envia un resum per email després de cada sincronització.
     catalog_sync_notify_email: str = ""
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    # Claude (API d'Anthropic) per a l'extracció automàtica de dades de
+    # factures de Despesa a partir del PDF pujat (veure
+    # services/despesa_extraction.py). Secret de plataforma, no per tenant
+    # (el cost el paga la plataforma, com redsys_secret_key). A
+    # Secrets Manager viu com `CLAUDE_KEY_INVOICE` dins `nukaesaas/prod`.
+    anthropic_api_key: str = Field(default="", alias="CLAUDE_KEY_INVOICE")
+
+    model_config = {"env_file": ".env", "extra": "ignore", "populate_by_name": True}
 
 
 @lru_cache

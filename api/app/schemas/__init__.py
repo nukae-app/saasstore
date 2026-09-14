@@ -153,6 +153,7 @@ from .comptabilitat import (
     DespesaUpdate,
     DespesaOut,
     DespesaDesDeComprasIn,
+    DespesaImportOut,
     CompteBancariIn,
     CompteBancariOut,
     MovimentBancariOut,

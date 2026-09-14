@@ -117,6 +117,8 @@ from .comptabilitat import (
     RetencioTipus,
     TipusIva,
     Despesa,
+    DespesaImport,
+    DespesaImportStatus,
     CompteBancari,
     MovimentBancari,
     ReglaConciliacio,

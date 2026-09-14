@@ -56,7 +56,8 @@ def _despesa_out(d: Despesa) -> dict:
         "payment_status": d.payment_status,
         "payment_date": d.payment_date, "payment_method": d.payment_method,
         "destino_iva": d.destino_iva, "importacio_diferida": d.importacio_diferida,
-        "compra_ids": [c.id for c in d.compras], "notes": d.notes, "created_at": d.created_at,
+        "compra_ids": [c.id for c in d.compras], "notes": d.notes,
+        "source_document_url": d.source_document_url, "created_at": d.created_at,
     }
 
 
@@ -66,8 +67,11 @@ def _calc_retencio(base: Decimal, pct: Decimal | None) -> Decimal | None:
     return (base * pct / 100).quantize(Decimal("0.01"))
 
 
-@router.post("/despeses", status_code=201, response_model=DespesaOut)
-def create_despesa(payload: DespesaIn, db: Session = Depends(get_db)):
+def _build_despesa(payload: DespesaIn, db: Session) -> Despesa:
+    """Crea i contabilitza una `Despesa` a partir de `payload` (add+flush+posting,
+    sense commit: qui crida decideix quan tancar la transacció). Compartit entre
+    l'alta manual i la confirmació d'un `DespesaImport` (OCR) perquè la lògica
+    comptable (retenció, IVA, venciment, posting) no es pot duplicar."""
     prov = db.get(Proveedor, payload.proveidor_id) if payload.proveidor_id else None
 
     # Si es tria un tipus d'IVA del catàleg, el seu percentatge mana sobre el vat_pct enviat.
@@ -119,6 +123,12 @@ def create_despesa(payload: DespesaIn, db: Session = Depends(get_db)):
             db, despesa, payment_date=despesa.payment_date or despesa.invoice_date,
             amount=despesa.total - (retencio_import or Decimal("0")), cash=(despesa.payment_method == "efectiu"),
         )
+    return despesa
+
+
+@router.post("/despeses", status_code=201, response_model=DespesaOut)
+def create_despesa(payload: DespesaIn, db: Session = Depends(get_db)):
+    despesa = _build_despesa(payload, db)
     db.commit()
     db.refresh(despesa)
     return _despesa_out(despesa)
