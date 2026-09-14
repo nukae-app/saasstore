@@ -14,6 +14,7 @@ os.environ["REDSYS_NOTIFY_URL"] = "https://testserver/api/checkout/pay/redsys/no
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 import pytest
+from botocore.exceptions import ClientError
 from fastapi.testclient import TestClient
 
 from app import models  # noqa: F401  registra las tablas
@@ -85,6 +86,55 @@ def db():
     yield session
     session.close()
     Base.metadata.drop_all(engine)
+
+
+class _FakeSecretsManagerClient:
+    """Sustituto en memoria del cliente boto3 de Secrets Manager para tests.
+    Implementa solo lo que usa app/tenant_secrets.py (get/put_secret_value,
+    create_secret) con los mismos códigos de error que la API real, para que
+    _is_not_found() y el fallback de create_secret en set_tenant_secret()
+    sigan funcionando igual."""
+
+    def __init__(self):
+        self._store: dict[str, str] = {}
+
+    @staticmethod
+    def _error(code: str, op: str, secret_id: str) -> ClientError:
+        return ClientError({"Error": {"Code": code, "Message": secret_id}}, op)
+
+    def get_secret_value(self, SecretId):
+        if SecretId not in self._store:
+            raise self._error("ResourceNotFoundException", "GetSecretValue", SecretId)
+        return {"SecretString": self._store[SecretId]}
+
+    def put_secret_value(self, SecretId, SecretString):
+        if SecretId not in self._store:
+            raise self._error("ResourceNotFoundException", "PutSecretValue", SecretId)
+        self._store[SecretId] = SecretString
+        return {}
+
+    def create_secret(self, Name, SecretString):
+        if Name in self._store:
+            raise self._error("ResourceExistsException", "CreateSecret", Name)
+        self._store[Name] = SecretString
+        return {}
+
+
+@pytest.fixture(autouse=True)
+def _no_real_aws_secrets(monkeypatch):
+    """Red de seguridad: ningún test debe llegar jamás al AWS Secrets Manager
+    real. `_fake_tenant_secrets` de abajo solo mockea `get_tenant_secrets` en
+    los routers que lo importan explícitamente — no cubre
+    `provision_tenant_secret` (alta de tenant, routers/superadmin.py) ni
+    `set_tenant_secret` (routers/configuracio.py). Sin esto, cada
+    `POST /superadmin/tenants` en test_superadmin_roles.py creaba un secreto
+    real en la cuenta de AWS de quien corriera los tests (encontrados 85
+    secretos huérfanos `saaswebstore/tenants/<uuid>` acumulados en
+    producción, nunca borrados, ~34€/mes de coste). Mockear aquí a nivel de
+    `_sm_client` cubre TODO el módulo de una vez, para que ningún test futuro
+    dependa de acordarse de mockear la función concreta que le toque."""
+    fake_client = _FakeSecretsManagerClient()
+    monkeypatch.setattr("app.tenant_secrets._sm_client", lambda: fake_client)
 
 
 @pytest.fixture(autouse=True)
