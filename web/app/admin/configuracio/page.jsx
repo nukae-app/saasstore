@@ -72,6 +72,8 @@ function DadesFiscalsPanel({ config, onSaved }) {
   const [nif, setNif] = useState(config.nif || '');
   const [adreca, setAdreca] = useState(config.address || '');
   const [formaJuridica, setFormaJuridica] = useState(config.legal_form || '');
+  const [reccActiu, setReccActiu] = useState(config.recc_actiu || false);
+  const [prorrataPct, setProrrataPct] = useState(config.prorrata_pct_provisional ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -81,7 +83,11 @@ function DadesFiscalsPanel({ config, onSaved }) {
     setSaving(true);
     setError('');
     setSaved(false);
-    const payload = { fiscal_name: nomFiscal, nif, address: adreca };
+    const payload = {
+      fiscal_name: nomFiscal, nif, address: adreca,
+      recc_actiu: reccActiu,
+      prorrata_pct_provisional: prorrataPct === '' ? null : Number(prorrataPct),
+    };
     // Només s'envia si encara no estava fixada — un cop hi ha pla de comptes
     // sembrat, l'API bloqueja canviar-la (409), ver routers/configuracio.py.
     if (!config.legal_form && formaJuridica) payload.legal_form = formaJuridica;
@@ -142,6 +148,27 @@ function DadesFiscalsPanel({ config, onSaved }) {
             </p>
           </>
         )}
+      </div>
+      <div className="border-t border-outline-variant pt-4 space-y-3">
+        <div>
+          <p className="text-sm font-semibold text-on-surface">{t('config.fiscal.regims_especials', 'Model 303 — règims especials')}</p>
+          <p className="text-xs text-secondary-foreground mt-0.5">
+            {t('config.fiscal.regims_especials_hint', "Només activa-ho si el negoci ja té aquests règims donats d'alta davant Hisenda de veritat — canvia com es calcula i es presenta el Model 303.")}
+          </p>
+        </div>
+        <label className="flex items-start gap-2 text-sm text-on-surface-variant">
+          <input type="checkbox" checked={reccActiu} onChange={e => setReccActiu(e.target.checked)} className="mt-0.5" />
+          <span>{t('config.fiscal.recc', "Règim especial del criteri de caixa (RECC) — l'IVA es merita en cobrar/pagar, no en facturar")}</span>
+        </label>
+        <div>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.fiscal.prorrata', 'Prorrata especial — % provisional')}</label>
+          <input type="number" step="0.01" min="0" max="100" value={prorrataPct} onChange={e => setProrrataPct(e.target.value)}
+            placeholder={t('config.fiscal.prorrata_ph', 'Buit = sense prorrata especial')}
+            className="w-full max-w-[200px] border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          <p className="text-xs text-secondary-foreground mt-1">
+            {t('config.fiscal.prorrata_hint', "Es regularitza al 4t trimestre amb el % definitiu de l'any, també introduït a mà.")}
+          </p>
+        </div>
       </div>
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex items-center gap-3">
@@ -603,6 +630,7 @@ function TipusIvaPanel() {
                 <th className="px-4 py-3 text-left font-medium">{t('common.name')}</th>
                 <th className="px-4 py-3 text-right font-medium">%</th>
                 <th className="px-4 py-3 text-center font-medium">{t('config.vat.rebu', 'REBU')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('config.vat.exempt', 'Exempt')}</th>
                 <th className="px-4 py-3 text-center font-medium">{t('config.default_new', 'Per defecte: nou')}</th>
                 <th className="px-4 py-3 text-center font-medium">{t('config.default_used', 'Per defecte: 2a mà')}</th>
                 <th className="px-4 py-3 text-center font-medium">{t('purchases.col.status', 'Actiu')}</th>
@@ -615,6 +643,7 @@ function TipusIvaPanel() {
                   <td className="px-4 py-3 font-medium text-on-surface">{row.name}</td>
                   <td className="px-4 py-3 text-right">{parseFloat(row.percentage).toFixed(2)}%</td>
                   <td className="px-4 py-3 text-center">{row.is_rebu ? t('config.yes', 'Sí') : '—'}</td>
+                  <td className="px-4 py-3 text-center">{row.exempt ? t('config.yes', 'Sí') : '—'}</td>
                   <td className="px-4 py-3 text-center">
                     {row.default_new ? (
                       <MIcon name="star" size={16} className="inline text-amber-500 fill-amber-500" />
@@ -663,6 +692,7 @@ function TipusIvaForm({ tipus, onClose, onSaved }) {
   const [name, setName] = useState(tipus?.name || '');
   const [percentage, setPercentage] = useState(tipus?.percentage || '21.00');
   const [esRebu, setEsRebu] = useState(tipus?.is_rebu || false);
+  const [esExempt, setEsExempt] = useState(tipus?.exempt || false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -670,7 +700,7 @@ function TipusIvaForm({ tipus, onClose, onSaved }) {
     e.preventDefault();
     setSaving(true);
     setError('');
-    const payload = { name, percentage: parseFloat(percentage), is_rebu: esRebu };
+    const payload = { name, percentage: parseFloat(percentage), is_rebu: esRebu, exempt: esExempt };
     const url = isEdit ? `/admin/tipus-iva/${tipus.id}` : '/admin/tipus-iva';
     const method = isEdit ? 'PATCH' : 'POST';
     const r = await authFetch(url, { method, body: JSON.stringify(payload) });
@@ -700,6 +730,10 @@ function TipusIvaForm({ tipus, onClose, onSaved }) {
           <label className="flex items-center gap-2 text-sm text-on-surface-variant">
             <input type="checkbox" checked={esRebu} onChange={e => setEsRebu(e.target.checked)} />
             {t('config.vat.rebu_checkbox', "Règim especial de béns usats (REBU) — l'IVA es calcula sobre el marge, no sobre el preu")}
+          </label>
+          <label className="flex items-center gap-2 text-sm text-on-surface-variant">
+            <input type="checkbox" checked={esExempt} onChange={e => setEsExempt(e.target.checked)} />
+            {t('config.vat.exempt_checkbox', "Operació exempta d'IVA (per a prorrata especial) — no és el mateix que un 0% gravat")}
           </label>
           {error && <p className="text-red-500 text-xs">{error}</p>}
           <div className="flex justify-end gap-3">

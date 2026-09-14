@@ -73,6 +73,8 @@ function getNavGroups(config) {
         { href: '/admin/factures',    key: 'nav.factures',    label: 'Factures',      icon: 'description' },
         { href: '/admin/despeses',    key: 'nav.despeses',    label: 'Despeses',      icon: 'payments' },
         { href: '/admin/banc',        key: 'nav.banc',        label: 'Banc',          icon: 'account_balance' },
+        { href: '/admin/comissions',  key: 'nav.comissions',  label: 'Comissions',    icon: 'percent' },
+        { href: '/admin/remeses-pagament', key: 'nav.remeses_pagament', label: 'Remeses de pagament', icon: 'file_upload' },
         { href: '/admin/proveidors',  key: 'nav.proveidors',  label: 'Proveïdors',    icon: 'factory' },
         { href: '/admin/resultat',    key: 'nav.resultat',    label: 'Resultat',      icon: 'trending_up' },
         { href: '/admin/flux-caixa',  key: 'nav.flux_caixa',  label: 'Flux de caixa', icon: 'show_chart' },

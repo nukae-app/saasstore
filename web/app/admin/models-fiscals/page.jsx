@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { authFetch } from '../../lib/auth';
+import { Button } from '../../../components/ui/button';
 import MIcon from '../../../components/ui/m-icon';
 import { useT } from '../../lib/i18n';
 
@@ -182,7 +183,7 @@ export default function ModelsFiscalsPage() {
             : t('iva.no_data', 'Sense dades')}
         </div>
       ) : model === '303' ? (
-        <Model303View data={data} t={t} />
+        <Model303View data={data} t={t} year={year} trimestre={trim} />
       ) : model === '390' ? (
         <Model390View data={data} t={t} />
       ) : model === '130' ? (
@@ -200,9 +201,34 @@ export default function ModelsFiscalsPage() {
   );
 }
 
-function Model303View({ data, t }) {
+const TIPUS_DECLARACIO_303 = [
+  { value: 'I', label: "I — Ingrés" },
+  { value: 'D', label: "D — Devolució" },
+  { value: 'N', label: "N — Sense activitat / resultat 0" },
+  { value: 'C', label: "C — Sol·licitud de compensació" },
+  { value: 'G', label: "G — Compte corrent tributària (deute)" },
+  { value: 'V', label: "V — Compte corrent tributària (devolució)" },
+  { value: 'U', label: "U — Domiciliació de l'ingrés" },
+  { value: 'X', label: "X — Devolució per transferència a l'estranger" },
+];
+
+function Model303View({ data, t, year, trimestre }) {
+  const [showFitxer, setShowFitxer] = useState(false);
+  const hasRecc = parseFloat(data.casella_62_devengat_recc || 0) !== 0
+    || parseFloat(data.casella_63_cuota_recc || 0) !== 0
+    || parseFloat(data.casella_74_base_recc_suportat || 0) !== 0
+    || parseFloat(data.casella_75_cuota_recc_suportat || 0) !== 0;
+  const hasImportDiferit = parseFloat(data.casella_77_iva_importacio_diferit || 0) !== 0;
+  const hasCompensacio = parseFloat(data.casella_110_compensacio_pendent_anterior || 0) !== 0;
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setShowFitxer(true)}>
+          <MIcon name="download" size={16} /> {t('models_fiscals.303.generar_fitxer', 'Generar fitxer AEAT')}
+        </Button>
+      </div>
+
       {data.nota_rebu && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
           <MIcon name="warning" size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
@@ -233,12 +259,154 @@ function Model303View({ data, t }) {
         </div>
       </div>
 
+      {hasRecc && (
+        <div>
+          <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-2">{t('models_fiscals.303.recc', 'Criteri de caixa (RECC) — informatiu')}</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Casella num="62" label={t('models_fiscals.303.casella_62', 'Meritat base')} value={data.casella_62_devengat_recc} sign="+" />
+            <Casella num="63" label={t('models_fiscals.303.casella_63', 'Meritat quota')} value={data.casella_63_cuota_recc} sign="+" />
+            <Casella num="74" label={t('models_fiscals.303.casella_74', 'Suportat base')} value={data.casella_74_base_recc_suportat} sign="" />
+            <Casella num="75" label={t('models_fiscals.303.casella_75', 'Suportat quota')} value={data.casella_75_cuota_recc_suportat} sign="–" />
+          </div>
+        </div>
+      )}
+
+      {hasImportDiferit && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <Casella num="77" label={t('models_fiscals.303.casella_77', 'IVA importació diferit')} value={data.casella_77_iva_importacio_diferit} sign="" />
+        </div>
+      )}
+
+      {hasCompensacio && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <Casella num="110" label={t('models_fiscals.303.casella_110', "Compensació pendent d'exercicis anteriors")} value={data.casella_110_compensacio_pendent_anterior} sign="" />
+        </div>
+      )}
+
       <div className={`rounded-xl p-4 border ${parseFloat(data.casella_64_resultat_liquidacio) >= 0 ? 'bg-orange-50 border-orange-200' : 'bg-emerald-50 border-emerald-200'}`}>
         <div className="text-xs text-secondary-foreground mb-1">{t('models_fiscals.303.casella_64', 'Casella 64 · Resultat de la liquidació')}</div>
         <div className="text-xl font-bold text-on-surface">{fmtEur(data.casella_64_resultat_liquidacio)}</div>
       </div>
 
       <ForaAbast items={data.fora_abast} t={t} />
+
+      {showFitxer && (
+        <GenerarFitxer303Modal
+          year={year} trimestre={trimestre}
+          casella110={parseFloat(data.casella_110_compensacio_pendent_anterior || 0)}
+          onClose={() => setShowFitxer(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function GenerarFitxer303Modal({ year, trimestre, casella110, onClose }) {
+  const t = useT();
+  const [tipoDeclaracion, setTipoDeclaracion] = useState('I');
+  const [esComplementaria, setEsComplementaria] = useState(false);
+  const [numeroJustificantAnterior, setNumeroJustificantAnterior] = useState('');
+  const [importCompensacioAplicada, setImportCompensacioAplicada] = useState('0.00');
+  const [cnaeCode, setCnaeCode] = useState('');
+  const [ibanDevolucio, setIbanDevolucio] = useState('');
+  const [bicDevolucio, setBicDevolucio] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
+
+  async function generar(e) {
+    e.preventDefault();
+    setGenerating(true);
+    setError('');
+    const payload = {
+      tipo_declaracion: tipoDeclaracion,
+      es_complementaria: esComplementaria,
+      numero_justificante_anterior: esComplementaria ? (numeroJustificantAnterior || null) : null,
+      import_compensacio_aplicada: parseFloat(importCompensacioAplicada || '0'),
+      cnae_code: cnaeCode || null,
+      iban_devolucio: ibanDevolucio || null,
+      bic_devolucio: bicDevolucio || null,
+    };
+    const r = await authFetch(`/admin/aeat/303/${year}/${trimestre}/fitxer`, { method: 'POST', body: JSON.stringify(payload) });
+    if (r.ok) {
+      const blob = await r.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `303_${year}_${trimestre}T.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setGenerating(false);
+      onClose();
+    } else {
+      setGenerating(false);
+      setError((await r.json()).detail || t('common.error_saving', 'Error generant el fitxer'));
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+          <h3 className="text-lg font-bold text-on-surface">{t('models_fiscals.303.generar_fitxer_title', 'Generar fitxer Model 303')} — {trimestre}T {year}</h3>
+          <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
+        </div>
+        <form onSubmit={generar} className="p-6 space-y-4">
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+            <MIcon name="warning" size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+            {t('models_fiscals.303.fitxer_warning', "Fitxer no verificat contra una presentació real — prova'l amb el validador de la Seu Electrònica abans de confiar-hi en producció.")}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('models_fiscals.303.tipo_declaracion', 'Tipus de declaració')} *</label>
+            <select value={tipoDeclaracion} onChange={e => setTipoDeclaracion(e.target.value)}
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary">
+              {TIPUS_DECLARACIO_303.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-on-surface-variant">
+            <input type="checkbox" checked={esComplementaria} onChange={e => setEsComplementaria(e.target.checked)} />
+            {t('models_fiscals.303.es_complementaria', 'És una declaració complementària')}
+          </label>
+          {esComplementaria && (
+            <div>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('models_fiscals.303.numero_justificant_anterior', 'Nº justificant de la declaració anterior')}</label>
+              <input value={numeroJustificantAnterior} onChange={e => setNumeroJustificantAnterior(e.target.value)}
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+          )}
+          {casella110 > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('models_fiscals.303.compensacio_aplicada', 'Import de compensació a aplicar')} (€)</label>
+              <input type="number" step="0.01" min="0" max={casella110} value={importCompensacioAplicada} onChange={e => setImportCompensacioAplicada(e.target.value)}
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <p className="text-xs text-secondary-foreground mt-1">{t('models_fiscals.303.compensacio_disponible', 'Disponible')}: {fmtEur(casella110)}</p>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('models_fiscals.303.cnae', 'Codi CNAE')} <span className="text-secondary-foreground font-normal">({t('models_fiscals.303.cnae_hint', 'obligatori només si hi ha prorrata especial configurada')})</span></label>
+            <input value={cnaeCode} onChange={e => setCnaeCode(e.target.value)} placeholder="476"
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('models_fiscals.303.iban', 'IBAN devolució/domiciliació')}</label>
+              <input value={ibanDevolucio} onChange={e => setIbanDevolucio(e.target.value)} placeholder="ES..."
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">BIC</label>
+              <input value={bicDevolucio} onChange={e => setBicDevolucio(e.target.value)}
+                className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+          </div>
+          {error && <p className="text-red-500 text-xs">{error}</p>}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel', "Cancel·lar")}</Button>
+            <Button type="submit" disabled={generating}>{generating ? t('common.saving', 'Generant...') : t('models_fiscals.303.descarregar', 'Descarregar fitxer')}</Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
