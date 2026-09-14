@@ -239,6 +239,7 @@ from .actius import (
 from .aeat import (
     Model303TipusOut,
     Model303Out,
+    Model303FitxerIn,
     Model390TrimestreOut,
     Model390Out,
     Model130Out,

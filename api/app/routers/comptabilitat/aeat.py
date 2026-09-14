@@ -1,31 +1,38 @@
 """Caselles dels models AEAT que aquest negoci pot necessitar (IVA trimestral/anual,
-retencions d'IRPF a proveïdors) — NO genera cap fitxer oficial de presentació (ver
-docstring original del mòdul de contabilitat: no es va poder verificar el disseny de
-registre oficial des d'aquest entorn). Números per copiar a mà a la seu electrònica o
-passar a la gestoria; res d'això substitueix la validació amb una gestoria real.
+retencions d'IRPF a proveïdors) — per a la majoria, NO genera cap fitxer oficial de
+presentació: números per copiar a mà a la seu electrònica o passar a la gestoria; res
+d'això substitueix la validació amb una gestoria real. **Excepció: el Model 303 SÍ té
+generador de fitxer oficial** (`GET /aeat/303/{year}/{trimestre}/fitxer`, ver
+`services/aeat_303_fitxer.py` i docs/PLAN_MODELO303_FITXER.md) — no verificat contra
+una presentació real, provar-lo contra el validador de la Seu Electrònica abans de
+confiar-hi en producció.
 
-Fora d'abast deliberat a TOTS els models d'aquest fitxer: intracomunitàries,
-importacions, prorrata, compensació de quotes/exercicis anteriors. A més, als models
+Fora d'abast deliberat a TOTS els models d'aquest fitxer excepte el 303: intracomunitàries,
+importacions, prorrata, compensació de quotes/exercicis anteriors (el 303 sí els cobreix,
+ver docs/PLAN_MODELO303_FITXER.md per l'abast exacte). A més, als models
 de retenció (111/115): rendiments del treball (nòmines) — aquest negoci no modela
 empleats, ver docs/PLAN_PARIDAD_HOLDED.md bloc "RR.HH./Nóminas"."""
 
+import io
 import uuid
 from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import extract, select
 from sqlalchemy.orm import Session
 
 from ...database import get_db
 from ...models import (
-    AccountType, ConfiguracioBotiga, Despesa, FixedAsset, Item, Order, OrderItem, OrderStatus, Proveedor,
-    RetencioTipus, VentaExterna,
+    AccountType, ConfiguracioBotiga, Despesa, DestinoIva, EstatPagamentDespesa, FixedAsset, Item,
+    IvaCompensacioPendent, Order, OrderItem, OrderStatus, Proveedor, RetencioTipus, VentaExterna,
 )
 from ...schemas import (
-    Model130Out, Model200Out, Model202Out, Model303Out, Model303TipusOut, Model390Out, Model390TrimestreOut,
-    ModelRetencioAnualOut, ModelRetencioOut, ModelRetencioTrimestreOut, RetencioProveidorOut,
+    Model130Out, Model200Out, Model202Out, Model303FitxerIn, Model303Out, Model303TipusOut, Model390Out,
+    Model390TrimestreOut, ModelRetencioAnualOut, ModelRetencioOut, ModelRetencioTrimestreOut, RetencioProveidorOut,
 )
+from ...services.aeat_303_fitxer import Model303Caselles, Model303Identificacio, build_model303_fitxer
 from ...services.security import require_admin
 from .llibres import _fi_de_mes, _saldos_per_tipus
 
@@ -36,20 +43,31 @@ TRAMS_OFICIALS = {Decimal("21.00"): "general", Decimal("10.00"): "reduit", Decim
 
 def _calcula_303(db: Session, year: int, trimestre: int) -> Model303Out:
     mesos = [(trimestre - 1) * 3 + i for i in range(1, 4)]
+    config = db.scalar(select(ConfiguracioBotiga))
+    recc_actiu = bool(config and config.recc_actiu)
+    prorrata_pct = (config.prorrata_pct_provisional if config and config.prorrata_pct_provisional else None)
 
     def _in_trimestre(col):
         return (extract("year", col) == year) & (extract("month", col).in_(mesos))
 
-    # --- IVA repercutit (01-09/27) — mateixa font que iva_trimestral existent ---
+    # --- IVA repercutit (01-09/27) — mateixa font que iva_trimestral existent.
+    # Sota RECC, la data efectiva és la de cobrament real (Order.paid_at /
+    # VentaExterna.paid_at, ja existents) en comptes de la d'emissió —
+    # aquest negoci sempre cobra abans d'entregar, així que la meritació
+    # forçosa als 31/12 de l'any següent (art. 163 terdecies LIVA) no pot
+    # arribar a donar-se pel costat de vendes, ver docs/PLAN_MODELO303_FITXER.md ---
+    data_web = Order.paid_at if recc_actiu else Order.created_at
+    data_ve = VentaExterna.paid_at if recc_actiu else VentaExterna.date
+
     web_rows = db.execute(
         select(OrderItem.vat_pct, OrderItem.price, OrderItem.quantity, OrderItem.vat_amount)
         .join(Order, Order.id == OrderItem.order_id)
-        .where(_in_trimestre(Order.created_at))
+        .where(_in_trimestre(data_web))
         .where(Order.status.in_([OrderStatus.pagado, OrderStatus.enviado, OrderStatus.entregado]))
     ).all()
     ve_rows = db.execute(
         select(VentaExterna.vat_pct, VentaExterna.sale_price, VentaExterna.vat_amount)
-        .where(_in_trimestre(VentaExterna.date))
+        .where(_in_trimestre(data_ve))
     ).all()
 
     trams: dict[Decimal, list[Decimal]] = {}
@@ -77,12 +95,52 @@ def _calcula_303(db: Session, year: int, trimestre: int) -> Model303Out:
     ]
     casella_27 = sum((v[1] for k, v in trams.items()), Decimal("0"))
 
-    # --- IVA suportat corrent (28/29) — totes les Despesa, mai un actiu ---
-    corrent = db.execute(
-        select(Despesa.taxable_base, Despesa.vat_amount).where(_in_trimestre(Despesa.invoice_date))
-    ).all()
+    # --- IVA suportat corrent (28/29) — totes les Despesa que no siguin
+    # d'importació diferida (van a 77, ver més avall), mai un actiu.
+    # Sota RECC, només compta el que ja s'ha pagat de veritat (payment_date),
+    # més la meritació forçosa de despeses de l'any anterior encara no
+    # pagades al tancar el 4t trimestre de l'any en curs.
+    query_corrent = select(
+        Despesa.taxable_base, Despesa.vat_amount, Despesa.destino_iva,
+    ).where(Despesa.importacio_diferida == False)  # noqa: E712
+
+    if recc_actiu:
+        condicio_normal = _in_trimestre(Despesa.payment_date) & (Despesa.payment_status == EstatPagamentDespesa.pagat)
+        if trimestre == 4:
+            meritacio_forcosa = (
+                (extract("year", Despesa.invoice_date) == year - 1)
+                & (Despesa.payment_status != EstatPagamentDespesa.pagat)
+            )
+            query_corrent = query_corrent.where(condicio_normal | meritacio_forcosa)
+        else:
+            query_corrent = query_corrent.where(condicio_normal)
+    else:
+        query_corrent = query_corrent.where(_in_trimestre(Despesa.invoice_date))
+
+    corrent = db.execute(query_corrent).all()
     casella_28 = sum((r[0] for r in corrent), Decimal("0"))
-    casella_29 = sum((r[1] or Decimal("0") for r in corrent), Decimal("0"))
+    # Prorrata especial (art. 103.Dos.1º LIVA): activitat_gravada es dedueix
+    # al 100%, activitat_exempta al 0%, comu al % provisional configurat.
+    # Sense prorrata_pct_provisional informat, comú es tracta com gravat
+    # (comportament actual, deducció 100%) — no s'assumeix cap prorrata sense
+    # que l'usuari l'hagi configurat expressament.
+    casella_29 = Decimal("0.00")
+    for base, vat_amount, destino in corrent:
+        quota = vat_amount or Decimal("0")
+        if destino == DestinoIva.activitat_exempta:
+            continue
+        if destino == DestinoIva.comu and prorrata_pct is not None:
+            quota = (quota * prorrata_pct / 100).quantize(Decimal("0.01"))
+        casella_29 += quota
+
+    # --- IVA a la importació diferit (77) — Despesa.importacio_diferida=True,
+    # autoliquidat en aquesta mateixa declaració, mai a 28/29.
+    importacio = db.execute(
+        select(Despesa.vat_amount)
+        .where(Despesa.importacio_diferida == True)  # noqa: E712
+        .where(_in_trimestre(Despesa.invoice_date))
+    ).all()
+    casella_77 = sum((r[0] or Decimal("0") for r in importacio), Decimal("0"))
 
     # --- IVA suportat béns d'inversió (30/31) — actius fixos donats d'alta al trimestre ---
     inversio = db.execute(
@@ -93,6 +151,28 @@ def _calcula_303(db: Session, year: int, trimestre: int) -> Model303Out:
 
     casella_45 = casella_29 + casella_31
     casella_46 = casella_27 - casella_45
+
+    # --- RECC: desglossat purament informatiu (62/63/74/75) — quan actiu,
+    # TOTES les operacions del tenant ho són, així que coincideix amb el que
+    # ja s'ha comptat a 27/28-29.
+    if recc_actiu:
+        casella_62 = sum((v[0] for v in trams.values()), Decimal("0"))
+        casella_63 = casella_27
+        casella_74 = casella_28
+        casella_75 = casella_29
+    else:
+        casella_62 = casella_63 = casella_74 = casella_75 = Decimal("0.00")
+
+    # --- Compensació de quotes pendents d'exercicis anteriors (110) — el
+    # que ja hi havia pendent EN ENTRAR a aquest trimestre (trimestre - 1,
+    # o el 4t de l'any anterior si és el 1r trimestre).
+    trimestre_anterior, any_anterior = (4, year - 1) if trimestre == 1 else (trimestre - 1, year)
+    pendent = db.scalar(
+        select(IvaCompensacioPendent.import_pendent).where(
+            IvaCompensacioPendent.fiscal_year == any_anterior, IvaCompensacioPendent.trimestre == trimestre_anterior,
+        )
+    )
+    casella_110 = pendent or Decimal("0.00")
 
     hay_rebu = db.execute(
         select(VentaExterna)
@@ -111,6 +191,10 @@ def _calcula_303(db: Session, year: int, trimestre: int) -> Model303Out:
         casella_30_base_inversio=casella_30, casella_31_cuota_inversio=casella_31,
         casella_45_total_a_deduir=casella_45,
         casella_46_resultat_regim_general=casella_46, casella_64_resultat_liquidacio=casella_46,
+        casella_62_devengat_recc=casella_62, casella_63_cuota_recc=casella_63,
+        casella_74_base_recc_suportat=casella_74, casella_75_cuota_recc_suportat=casella_75,
+        casella_77_iva_importacio_diferit=casella_77,
+        casella_110_compensacio_pendent_anterior=casella_110,
         nota_rebu=hay_rebu,
     )
 
@@ -120,6 +204,85 @@ def model_303(year: int, trimestre: int, db: Session = Depends(get_db)):
     if not (1 <= trimestre <= 4):
         raise HTTPException(422, "Trimestre ha de ser entre 1 i 4")
     return _calcula_303(db, year, trimestre)
+
+
+@router.post("/aeat/303/{year}/{trimestre}/fitxer")
+def generar_fitxer_303(year: int, trimestre: int, payload: Model303FitxerIn, db: Session = Depends(get_db)):
+    """Genera el fitxer oficial `<T303...>` per pujar a la Seu Electrònica —
+    NO el presenta telemàticament. Ver services/aeat_303_fitxer.py per
+    l'abast exacte i l'avís de "no verificat contra una presentació real".
+
+    Efecte secundari: desa/actualitza `IvaCompensacioPendent` d'aquest
+    trimestre amb la casella [87] resultant, perquè el trimestre següent la
+    trobi com a la seva [110] — per això és POST i no GET (a diferència de
+    la resta de models AEAT, purament de lectura)."""
+    if not (1 <= trimestre <= 4):
+        raise HTTPException(422, "Trimestre ha de ser entre 1 i 4")
+
+    config = db.scalar(select(ConfiguracioBotiga))
+    if config is None or not config.nif:
+        raise HTTPException(422, "Cal informar el NIF a la configuració de la botiga abans de generar el fitxer")
+
+    calc = _calcula_303(db, year, trimestre)
+
+    if payload.import_compensacio_aplicada < 0 or payload.import_compensacio_aplicada > calc.casella_110_compensacio_pendent_anterior:
+        raise HTTPException(
+            422,
+            f"L'import de compensació aplicada ha d'estar entre 0 i la casella 110 pendent "
+            f"({calc.casella_110_compensacio_pendent_anterior})",
+        )
+
+    prorrata_pct = config.prorrata_pct_provisional
+    if prorrata_pct is not None and not payload.cnae_code:
+        raise HTTPException(422, "Cal informar el codi CNAE (prorrata especial configurada) per generar el fitxer")
+
+    ident = Model303Identificacio(
+        nif=config.nif, raho_social=config.fiscal_name, year=year, trimestre=trimestre,
+        tipo_declaracion=payload.tipo_declaracion, recc_actiu=config.recc_actiu,
+    )
+    caselles = Model303Caselles(
+        repercutit_general_base=calc.repercutit_general.base if calc.repercutit_general else Decimal("0.00"),
+        repercutit_general_cuota=calc.repercutit_general.cuota if calc.repercutit_general else Decimal("0.00"),
+        repercutit_reduit_base=calc.repercutit_reduit.base if calc.repercutit_reduit else Decimal("0.00"),
+        repercutit_reduit_cuota=calc.repercutit_reduit.cuota if calc.repercutit_reduit else Decimal("0.00"),
+        repercutit_superreduit_base=calc.repercutit_superreduit.base if calc.repercutit_superreduit else Decimal("0.00"),
+        repercutit_superreduit_cuota=calc.repercutit_superreduit.cuota if calc.repercutit_superreduit else Decimal("0.00"),
+        casella_27=calc.casella_27_cuota_meritada,
+        casella_28=calc.casella_28_base_corrent, casella_29=calc.casella_29_cuota_corrent,
+        casella_30=calc.casella_30_base_inversio, casella_31=calc.casella_31_cuota_inversio,
+        casella_45=calc.casella_45_total_a_deduir, casella_46=calc.casella_46_resultat_regim_general,
+        casella_62=calc.casella_62_devengat_recc, casella_63=calc.casella_63_cuota_recc,
+        casella_74=calc.casella_74_base_recc_suportat, casella_75=calc.casella_75_cuota_recc_suportat,
+        casella_77=calc.casella_77_iva_importacio_diferit, casella_110=calc.casella_110_compensacio_pendent_anterior,
+    )
+
+    fitxer = build_model303_fitxer(
+        ident, caselles,
+        import_compensacio_aplicada=payload.import_compensacio_aplicada, es_complementaria=payload.es_complementaria,
+        numero_justificant_anterior=payload.numero_justificante_anterior,
+        iban_devolucio=payload.iban_devolucio, bic_devolucio=payload.bic_devolucio,
+        prorrata_pct=prorrata_pct, cnae_code=payload.cnae_code,
+        import_operacions_prorrata=caselles.casella_27 + caselles.casella_28,
+    )
+
+    casella_87 = calc.casella_110_compensacio_pendent_anterior - payload.import_compensacio_aplicada
+    pendent = db.scalar(
+        select(IvaCompensacioPendent).where(
+            IvaCompensacioPendent.fiscal_year == year, IvaCompensacioPendent.trimestre == trimestre,
+        )
+    )
+    if pendent is None:
+        pendent = IvaCompensacioPendent(fiscal_year=year, trimestre=trimestre, import_pendent=casella_87)
+        db.add(pendent)
+    else:
+        pendent.import_pendent = casella_87
+    db.commit()
+
+    filename = f"303_{year}_{trimestre}T.txt"
+    return StreamingResponse(
+        io.BytesIO(fitxer.encode("iso-8859-1", errors="replace")), media_type="text/plain",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/aeat/390/{year}", response_model=Model390Out)

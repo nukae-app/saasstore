@@ -10,6 +10,7 @@ class TipusIvaIn(BaseModel):
     name: str
     percentage: Decimal
     is_rebu: bool = False
+    exempt: bool = False
     default_new: bool = False
     default_used: bool = False
     active: bool = True
@@ -19,6 +20,7 @@ class TipusIvaUpdate(BaseModel):
     name: str | None = None
     percentage: Decimal | None = None
     is_rebu: bool | None = None
+    exempt: bool | None = None
     default_new: bool | None = None
     default_used: bool | None = None
     active: bool | None = None
@@ -29,6 +31,7 @@ class TipusIvaOut(BaseModel):
     name: str
     percentage: Decimal
     is_rebu: bool
+    exempt: bool
     default_new: bool
     default_used: bool
     active: bool
@@ -47,6 +50,9 @@ ESTATS_PAGAMENT = Literal["pendent", "pagat", "vencut"]
 
 
 METODES_PAGAMENT_DESPESA = Literal["transferencia", "rebut_domiciliat", "targeta", "efectiu", "paypal_altres"]
+
+# Prorrata especial (art. 103.Dos.1º LIVA) — ver docs/PLAN_MODELO303_FITXER.md
+DESTINO_IVA = Literal["activitat_gravada", "activitat_exempta", "comu"]
 
 # professional -> Model 111 (factures de professionals amb retenció d'IRPF)
 # lloguer -> Model 115 (lloguer del local a arrendador persona física)
@@ -72,6 +78,8 @@ class DespesaIn(BaseModel):
     payment_status: ESTATS_PAGAMENT = "pendent"
     payment_date: date | None = None
     payment_method: METODES_PAGAMENT_DESPESA | None = None
+    destino_iva: DESTINO_IVA = "activitat_gravada"
+    importacio_diferida: bool = False
     notes: str | None = None
 
     @computed_field
@@ -98,6 +106,8 @@ class DespesaUpdate(BaseModel):
     payment_status: ESTATS_PAGAMENT | None = None
     payment_date: date | None = None
     payment_method: METODES_PAGAMENT_DESPESA | None = None
+    destino_iva: DESTINO_IVA | None = None
+    importacio_diferida: bool | None = None
     notes: str | None = None
 
 
@@ -122,6 +132,8 @@ class DespesaOut(BaseModel):
     payment_status: str
     payment_date: date | None
     payment_method: str | None
+    destino_iva: str
+    importacio_diferida: bool
     compra_ids: list[uuid.UUID] = []
     notes: str | None
     created_at: datetime

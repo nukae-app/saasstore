@@ -137,6 +137,16 @@ class ConfiguracioBotiga(TenantScoped, Base):
     # services/sanitize.py::sanitize_custom_css) i injectat tal qual en un
     # <style> després dels tokens de dalt, així pot sobreescriure'ls.
     custom_css: Mapped[str | None] = mapped_column(Text)
+    # Elecció davant Hisenda (art. 163 undecies LIVA) de tot el negoci, no
+    # operació a operació: quan actiu, el Model 303 declara l'IVA segons
+    # data de cobrament/pagament real en lloc de data de meritació — ver
+    # docs/PLAN_MODELO303_FITXER.md.
+    recc_actiu: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # % provisional de prorrata especial de l'exercici en curs (art. 105
+    # LIVA) — sempre introduït a mà, aquest sistema no el calcula sol (depèn
+    # del volum d'operacions exemptes/gravades de l'exercici anterior). Es
+    # regularitza al 4T amb el % definitiu de l'any, també introduït a mà.
+    prorrata_pct_provisional: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

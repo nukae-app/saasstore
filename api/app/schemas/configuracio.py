@@ -108,6 +108,8 @@ class ConfiguracioBotigaOut(BaseModel):
     logo_url: str | None
     theme: dict
     custom_css: str | None
+    recc_actiu: bool
+    prorrata_pct_provisional: Decimal | None
     updated_at: datetime
 
     model_config = {"from_attributes": True}
@@ -134,6 +136,9 @@ class ConfiguracioBotigaUpdate(BaseModel):
     catalog_genre_filter: bool | None = None
     maintenance_active: bool | None = None
     discogs_habilitat: bool | None = None
+    # RECC/prorrata especial (Model 303) — ver docs/PLAN_MODELO303_FITXER.md
+    recc_actiu: bool | None = None
+    prorrata_pct_provisional: Decimal | None = None
 
 
 HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")

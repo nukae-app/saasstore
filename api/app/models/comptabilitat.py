@@ -57,6 +57,17 @@ class EstatConciliacio(str, enum.Enum):
     ignorat = "ignorat"   # transferència entre comptes propis, etc.
 
 
+class DestinoIva(str, enum.Enum):
+    """A quina activitat es destina una Despesa, per calcular correctament
+    l'IVA deduïble sota prorrata especial (art. 103.Dos.1º LIVA) — ver
+    docs/PLAN_MODELO303_FITXER.md. `activitat_gravada` és el valor per
+    defecte i reprodueix el comportament actual (deducció 100%) per a qui
+    no fa servir prorrata."""
+    activitat_gravada = "activitat_gravada"
+    activitat_exempta = "activitat_exempta"
+    comu = "comu"
+
+
 class RetencioTipus(str, enum.Enum):
     """Quina casella d'AEAT alimenta la retenció d'IRPF practicada en una
     Despesa: professional (factures de professionals -> Model 111) o lloguer
@@ -118,6 +129,10 @@ class TipusIva(TenantScoped, Base):
     # de columna que fijó la Etapa A.
     name: Mapped[str] = mapped_column(String(200))
     percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2))
+    # Operació exempta d'IVA (no és el mateix que un 0% gravat: l'exempta no
+    # dona dret a deduir directament l'IVA suportat atribuïble) — necessari
+    # per a la prorrata especial, ver docs/PLAN_MODELO303_FITXER.md.
+    exempt: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     # Règim especial de béns usats: l'IVA es calcula sobre el marge (venda - cost), no sobre el preu.
     is_rebu: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     default_new: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
@@ -153,6 +168,16 @@ class Despesa(TenantScoped, Base):
     vat_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2))    # snapshot del percentatge triat
     vat_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    destino_iva: Mapped[DestinoIva] = mapped_column(
+        Enum(DestinoIva, name="destino_iva"),
+        default=DestinoIva.activitat_gravada, server_default="activitat_gravada", index=True,
+    )
+    # Compra a fora de la UE amb el règim de diferiment de l'IVA a la
+    # importació ja donat d'alta a Duanes: l'IVA d'aquesta despesa es
+    # reconeix a la casella 77 del Model 303 (autoliquidat, neutre de
+    # tresoreria), no com a IVA suportat normal (28/29) — ver
+    # docs/PLAN_MODELO303_FITXER.md.
+    importacio_diferida: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     # Retenció d'IRPF practicada al proveïdor (Model 111/115) — ver RetencioTipus.
     # `retencio_import` és sempre un snapshot (base * pct/100), mai recalculat en
@@ -376,6 +401,23 @@ class ComissioPagament(TenantScoped, Base):
     pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0"), server_default="0")
     fixed_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"), server_default="0")
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class IvaCompensacioPendent(TenantScoped, Base):
+    """Quota d'IVA pendent de compensar (casella [87] del Model 303) que un
+    trimestre trasllada al següent — ver docs/PLAN_MODELO303_FITXER.md. Es
+    desa NOMÉS en generar el fitxer d'un trimestre amb `tipo_declaracion=
+    "C"` i resultat negatiu; el trimestre següent llegeix el registre
+    anterior com la seva casella [110]. No es recalcula sol."""
+
+    __tablename__ = "iva_compensacio_pendent"
+    __table_args__ = (UniqueConstraint("tenant_id", "fiscal_year", "trimestre"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fiscal_year: Mapped[int] = mapped_column(Integer, index=True)
+    trimestre: Mapped[int] = mapped_column(Integer)
+    import_pendent: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

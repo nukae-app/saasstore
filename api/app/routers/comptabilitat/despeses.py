@@ -9,7 +9,9 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
-from ...models import CategoriaDespesa, Compra, Despesa, EstatPagamentDespesa, Proveedor, RetencioTipus, TipusIva
+from ...models import (
+    CategoriaDespesa, Compra, Despesa, DestinoIva, EstatPagamentDespesa, Proveedor, RetencioTipus, TipusIva,
+)
 from ...schemas import DespesaDesDeComprasIn, DespesaIn, DespesaOut, DespesaUpdate
 from ...services.comptabilitat_posting import post_despesa_alta, post_despesa_pagament
 from ...services.documents_pdf import generate_despesa_pdf
@@ -53,6 +55,7 @@ def _despesa_out(d: Despesa) -> dict:
         "net_a_pagar": d.total - (d.retencio_import or Decimal("0")),
         "payment_status": d.payment_status,
         "payment_date": d.payment_date, "payment_method": d.payment_method,
+        "destino_iva": d.destino_iva, "importacio_diferida": d.importacio_diferida,
         "compra_ids": [c.id for c in d.compras], "notes": d.notes, "created_at": d.created_at,
     }
 
@@ -100,6 +103,8 @@ def create_despesa(payload: DespesaIn, db: Session = Depends(get_db)):
         payment_status=EstatPagamentDespesa(payload.payment_status),
         payment_date=payload.payment_date,
         payment_method=payload.payment_method,
+        destino_iva=DestinoIva(payload.destino_iva),
+        importacio_diferida=payload.importacio_diferida,
         notes=payload.notes,
     )
     db.add(despesa)

@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -38,12 +39,57 @@ class Model303Out(BaseModel):
     casella_46_resultat_regim_general: Decimal
     casella_64_resultat_liquidacio: Decimal
 
+    # RECC (art. 163 undecies LIVA) — desglossat purament informatiu quan
+    # ConfiguracioBotiga.recc_actiu és actiu: mateixes dades que ja formen
+    # part de 27/28/29 (quan RECC és actiu, TOTES les operacions del tenant
+    # ho són), reportades a part perquè AEAT ho exigeix. Sempre 0 si RECC no
+    # és actiu — ver docs/PLAN_MODELO303_FITXER.md.
+    casella_62_devengat_recc: Decimal = Decimal("0.00")
+    casella_63_cuota_recc: Decimal = Decimal("0.00")
+    casella_74_base_recc_suportat: Decimal = Decimal("0.00")
+    casella_75_cuota_recc_suportat: Decimal = Decimal("0.00")
+
+    # IVA a la importació diferit (Despesa.importacio_diferida=True) — NO va
+    # a 28/29, es reconeix aquí (autoliquidat, neutre de tresoreria).
+    casella_77_iva_importacio_diferit: Decimal = Decimal("0.00")
+
+    # Compensació de quotes d'exercicis anteriors — el que ja hi ha pendent
+    # ABANS d'aquest trimestre (ver IvaCompensacioPendent). Quant se n'aplica
+    # (casella 78) és una decisió que només es pren en generar el fitxer de
+    # veritat, no en aquesta vista informativa — ver
+    # routers/comptabilitat/aeat.py::generar_fitxer_303.
+    casella_110_compensacio_pendent_anterior: Decimal = Decimal("0.00")
+
     # Fora d'abast, informatiu: si n'hi ha, aquest informe no és suficient
     # per si sol i cal revisar-ho amb la gestoria.
     nota_rebu: bool
     fora_abast: list[str] = [
-        "Operacions intracomunitàries", "Importacions", "Prorrata", "Compensació de quotes d'exercicis anteriors",
+        "Operacions intracomunitàries", "Exportacions", "Règim simplificat", "Tributació foral",
+        "Regularització de quotes art. 80.cinco.5a LIVA (impagats)", "Casella 70 'A deduir'",
     ]
+
+
+class Model303FitxerIn(BaseModel):
+    """Dades que NOMÉS es decideixen en generar el fitxer de veritat (mai
+    caselles calculades) — ver docs/PLAN_MODELO303_FITXER.md.
+
+    `tipo_declaracion`: I=ingrés, D=devolució, N=sense activitat/resultat 0,
+    C=sol·licitud de compensació, G/V=compte corrent tributària,
+    U=domiciliació de l'ingrés, X=devolució per transferència a l'estranger
+    (només 3T/4T o períodes 07-12)."""
+    tipo_declaracion: Literal["I", "D", "N", "C", "G", "V", "U", "X"]
+    es_complementaria: bool = False
+    numero_justificante_anterior: str | None = None
+    # Import de la casella 110 (compensacio_pendent_anterior) que es vol
+    # aplicar en aquest període — mai s'assumeix automàticament: quant
+    # compensar és una decisió de l'empresa, no un càlcul.
+    import_compensacio_aplicada: Decimal = Decimal("0.00")
+    # Obligatori si ConfiguracioBotiga.prorrata_pct_provisional està
+    # informat (casella [500] de la pàgina de prorrates) — aquest sistema
+    # no té cap altre lloc on guardar el codi CNAE de l'activitat.
+    cnae_code: str | None = None
+    iban_devolucio: str | None = None
+    bic_devolucio: str | None = None
 
 
 class Model390TrimestreOut(BaseModel):
