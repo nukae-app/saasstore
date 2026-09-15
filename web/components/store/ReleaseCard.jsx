@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
 import { Link } from '../../i18n/navigation';
 import Image from 'next/image';
 import PriceTag from './PriceTag';
@@ -16,6 +17,16 @@ const VINYL_SVG = (
 
 export default function ReleaseCard({ release }) {
   const t = useTranslations('crate');
+  // Tema "Recordstore": el mockup inverteix la jerarquia (artista petit a
+  // dalt, TÍTOL en negreta gran, preu a sota en línia pròpia) — mateix
+  // patró de fetch client-side que StorefrontNav/CatalogFilters.
+  const [recordstore, setRecordstore] = useState(false);
+  useEffect(() => {
+    fetch('/api/config/public')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data?.theme?.preset === 'recordstore') setRecordstore(true); })
+      .catch(() => {});
+  }, []);
   // Para nou (stock agregado), status se mantiene 'disponible' aunque no
   // quede ninguna unidad libre (cantidad - cantidad_reservada): hay que
   // comprobarlo aparte, si no un disco nuevo agotado seguiría pareciendo
@@ -65,24 +76,41 @@ export default function ReleaseCard({ release }) {
           </div>
         )}
       </div>
-      <div>
-        <p className="font-medium text-sm leading-snug truncate text-zinc-900 group-hover:text-zinc-500 transition-colors">
-          {release.artista}
-        </p>
-        <p className="font-serif italic text-sm text-zinc-500 truncate leading-snug">
-          {release.title}
-        </p>
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-xs text-zinc-500 truncate">
+      {recordstore ? (
+        <div>
+          <p className="text-xs text-zinc-500 truncate leading-snug">{release.artista}</p>
+          <p className="text-xs text-zinc-500 truncate leading-snug">
             {[release.formato, release.sello].filter(Boolean).join(' · ')}
-          </span>
+          </p>
+          <p className="font-serif uppercase text-base leading-snug truncate text-black group-hover:opacity-60 transition-opacity mt-1">
+            {release.title}
+          </p>
           {minItem !== null && (
-            <span className="shrink-0 ml-1">
+            <div className="mt-1">
               <PriceTag price={minItem.price} listPrice={minItem.list_price} size="text-sm" />
-            </span>
+            </div>
           )}
         </div>
-      </div>
+      ) : (
+        <div>
+          <p className="font-medium text-sm leading-snug truncate text-zinc-900 group-hover:text-zinc-500 transition-colors">
+            {release.artista}
+          </p>
+          <p className="font-serif italic text-sm text-zinc-500 truncate leading-snug">
+            {release.title}
+          </p>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-xs text-zinc-500 truncate">
+              {[release.formato, release.sello].filter(Boolean).join(' · ')}
+            </span>
+            {minItem !== null && (
+              <span className="shrink-0 ml-1">
+                <PriceTag price={minItem.price} listPrice={minItem.list_price} size="text-sm" />
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </Link>
   );
 }

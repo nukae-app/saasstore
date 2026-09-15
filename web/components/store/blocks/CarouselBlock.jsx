@@ -1,6 +1,6 @@
 import { Link } from '../../../i18n/navigation';
 import Image from 'next/image';
-import { Package } from 'lucide-react';
+import { Package, Plus } from 'lucide-react';
 import ReleaseCarousel from '../ReleaseCarousel';
 import ReleaseCard from '../ReleaseCard';
 import AutoplayTrack from './AutoplayTrack';
@@ -13,8 +13,12 @@ const MAX_FEATURED_SIDE = 4;
 // ::CAROUSEL_LAYOUTS per a les 8 disposicions). `heading`/`subtitle`/
 // `cta_label` són copy del tenant; `releases` és el catàleg filtrat per
 // `props.etiqueta_slug`, el resol page.jsx igual que fetchAllByEtiqueta() ja
-// feia abans — mai dades de catàleg dins d'aquest component.
-export default function CarouselBlock({ id, layout = 'classic', heading, subtitle, cta_label, releases = [] }) {
+// feia abans — mai dades de catàleg dins d'aquest component. `recordstore`/
+// `sectionIndex` són l'únic senyal de tema que rep aquest bloc (el resol
+// [locale]/page.jsx comptant els blocs "de graella" en ordre, ver comentari
+// allà) — permeten alternar blanc/gris entre "Novetats"/"Ofertes"/
+// "Recomanem" com al mockup, sense inventar-se un prop de color nou.
+export default function CarouselBlock({ id, layout = 'classic', heading, subtitle, cta_label, releases = [], recordstore = false, sectionIndex = 0 }) {
   if (releases.length === 0) return null;
 
   let body;
@@ -53,7 +57,7 @@ export default function CarouselBlock({ id, layout = 'classic', heading, subtitl
         paddingBottom: 'var(--spacing-density)',
         borderTop: 'var(--section-divider, none)',
       }}
-      className="px-5 md:px-16 bg-white"
+      className={`px-5 md:px-16 ${recordstore && sectionIndex % 2 === 1 ? 'bg-accent' : 'bg-white'}`}
     >
       <div className="max-w-[var(--content-width,1280px)] mx-auto">
         <div className="flex justify-between items-baseline mb-12 md:mb-16">
@@ -61,7 +65,11 @@ export default function CarouselBlock({ id, layout = 'classic', heading, subtitl
             {heading && <h2 data-field="heading" className="font-serif italic text-3xl md:text-4xl">{heading}</h2>}
             {subtitle && <p data-field="subtitle" className="text-zinc-500 mt-2">{subtitle}</p>}
           </div>
-          {cta_label && (
+          {recordstore ? (
+            <Link href="/cataleg" aria-label={heading || cta_label || 'Cataleg'} className="text-black hover:opacity-60 transition-opacity">
+              <Plus size={28} strokeWidth={2.5} />
+            </Link>
+          ) : cta_label && (
             <Link
               href="/cataleg"
               style={{ textTransform: 'var(--eyebrow-style, uppercase)' }}

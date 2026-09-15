@@ -38,10 +38,10 @@ export default function StorefrontFooter() {
     <footer className={recordstore ? 'bg-black text-white/70 mt-auto' : 'bg-zinc-50 text-zinc-500 mt-auto'}>
       <div className="container py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
         <div>
-          {config.logo_url ? (
-            <img src={config.logo_url} alt={config.nombre} className={`h-9 w-auto mb-3 ${recordstore ? '' : 'invert'}`} />
-          ) : recordstore ? (
+          {recordstore ? (
             <p className="font-serif text-lg uppercase tracking-tight text-white mb-3">{config.nombre}</p>
+          ) : config.logo_url ? (
+            <img src={config.logo_url} alt={config.nombre} className="h-9 w-auto mb-3 invert" />
           ) : (
             <p className="font-serif italic text-lg text-zinc-900 mb-3">{config.nombre}</p>
           )}

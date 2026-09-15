@@ -15,6 +15,7 @@ const LAYOUT_OPTIONS = [
   { value: 'solid_color', label: 'Bloc de color sòlid' },
   { value: 'no_image', label: 'Sense imatge' },
   { value: 'logo_tagline', label: 'Logo gran + eslògan' },
+  { value: 'illustration_band', label: 'Franja negra amb il·lustració' },
 ];
 
 const TEXT_ALIGN_OPTIONS = [
@@ -24,7 +25,7 @@ const TEXT_ALIGN_OPTIONS = [
 ];
 
 const USES_FEATURED_LABEL = new Set(['image_right', 'image_left', 'dual_featured']);
-const USES_BACKGROUND_FIELDSET = new Set(['background_center', 'background_left', 'solid_color']);
+const USES_BACKGROUND_FIELDSET = new Set(['background_center', 'background_left', 'solid_color', 'illustration_band']);
 
 // Formulari de props del bloc "hero" dins del Sheet d'edició de
 // web/app/admin/disseny-web — camps 1:1 amb api/app/blocks/registry.py::HeroProps.
@@ -139,6 +140,10 @@ export default function HeroPropsForm({ props, onChange, onFieldChange }) {
 
       {layout === 'logo_tagline' && (
         <p className="text-xs text-zinc-400">Fa servir el logo de la botiga (Configuració → Botiga). Si no en tens, es mostra el nom de la botiga.</p>
+      )}
+
+      {layout === 'illustration_band' && (
+        <p className="text-xs text-zinc-400">Franja negra a sang amb només una imatge — ignora eyebrow/títol/subtítol/botó, siguin quins siguin. Puja-hi la il·lustració a "Imatge" de sota.</p>
       )}
 
       {USES_BACKGROUND_FIELDSET.has(layout) && (

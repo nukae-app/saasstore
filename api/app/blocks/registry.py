@@ -29,6 +29,12 @@ HERO_LAYOUTS = (
     "image_right", "image_left", "dual_featured", "mosaic",
     "background_center", "background_left", "background_video",
     "solid_color", "no_image", "logo_tagline",
+    # Franja negra a sang, només una imatge (l'admin la puja via
+    # BackgroundFieldset, mateix camp background_image_url que ja fan
+    # servir background_center/background_left) — sense cap text ni CTA,
+    # a diferència de la resta de layouts. Afegit per reproduir el mockup
+    # d'Ultra Local Records (il·lustració de línia sobre banda negra).
+    "illustration_band",
 )
 
 

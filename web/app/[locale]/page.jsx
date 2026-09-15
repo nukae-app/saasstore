@@ -100,11 +100,24 @@ export default async function HomePage() {
             <p className="font-serif italic text-2xl">{config?.nombre || ''}</p>
           </div>
         ) : (
-          blocks.map((block) => {
-            const Block = BLOCK_COMPONENTS[block.block_type];
-            if (!Block) return null;
-            return <Block key={block.id} id={block.id} {...resolveBlockProps(block, { featured, config, recomanats, releasesByEtiqueta })} />;
-          })
+          (() => {
+            // sectionIndex només per als blocs "carousel" — alterna blanc/gris
+            // entre "Novetats"/"Ofertes"/"Recomanem" com al mockup Recordstore;
+            // compta només aquest tipus de bloc (no la posició global), perquè
+            // un hero o un genre_grid pel mig no trenqui el ritme.
+            let carouselIndex = 0;
+            const recordstore = config?.theme?.preset === 'recordstore';
+            return blocks.map((block) => {
+              const Block = BLOCK_COMPONENTS[block.block_type];
+              if (!Block) return null;
+              const props = resolveBlockProps(block, { featured, config, recomanats, releasesByEtiqueta });
+              if (block.block_type === 'carousel') {
+                props.recordstore = recordstore;
+                props.sectionIndex = carouselIndex++;
+              }
+              return <Block key={block.id} id={block.id} {...props} />;
+            });
+          })()
         )}
       </main>
 

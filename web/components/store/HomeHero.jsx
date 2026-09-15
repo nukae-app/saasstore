@@ -23,15 +23,34 @@ export default async function HomeHero({
   featured_label, background_color, background_image_url, background_video_url, text_align,
 }) {
   const t = await getTranslations('home');
+  const recordstore = config?.theme?.preset === 'recordstore';
+
+  // Franja negra a sang, només imatge — cap altre layout comparteix aquest
+  // wrapper (min-h-[70vh], padding lateral, text/CTA...), així que es
+  // resol sencer aquí, abans del switch de sota.
+  if (layout === 'illustration_band') {
+    if (!background_image_url) return null;
+    return (
+      <section data-block-id={id} className="bg-black py-12 md:py-16 mb-16 md:mb-24">
+        <div className="max-w-3xl mx-auto px-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={background_image_url} alt="" className="w-full h-auto" />
+        </div>
+      </section>
+    );
+  }
+
   const dark = layout === 'background_center' || layout === 'background_left' || layout === 'background_video';
-  const align = layout === 'background_center' || layout === 'solid_color' || layout === 'no_image' || layout === 'logo_tagline'
-    ? 'center' : 'left';
+  const align = recordstore && layout === 'no_image'
+    ? 'left'
+    : layout === 'background_center' || layout === 'solid_color' || layout === 'no_image' || layout === 'logo_tagline'
+      ? 'center' : 'left';
 
   const textContent = (
     <TextContent eyebrow={eyebrow} title={title} subtitle={subtitle} align={align} dark={dark} />
   );
   const ctaButtons = (
-    <CtaButtons cta_href={cta_href} cta_label={cta_label} t={t} dark={dark} align={align} />
+    <CtaButtons cta_href={cta_href} cta_label={cta_label} t={t} dark={dark} align={align} recordstore={recordstore} />
   );
 
   // background_video és l'únic layout amb alineació triable per l'admin
@@ -154,7 +173,14 @@ export default async function HomeHero({
       break;
 
     case 'no_image':
-      body = (
+      body = recordstore ? (
+        <div className="max-w-[var(--content-width,1280px)] mx-auto w-full py-12">
+          <div className="space-y-6 max-w-2xl">
+            {textContent}
+            {ctaButtons}
+          </div>
+        </div>
+      ) : (
         <div className="max-w-[var(--content-width,1280px)] mx-auto w-full py-12 text-center">
           <div className="space-y-10 mx-auto max-w-2xl flex flex-col items-center">
             {textContent}
@@ -246,8 +272,25 @@ function TextContent({ eyebrow, title, subtitle, align, dark }) {
   );
 }
 
-function CtaButtons({ cta_href, cta_label, t, dark, align }) {
+function CtaButtons({ cta_href, cta_label, t, dark, align, recordstore }) {
   const justifyClass = align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : '';
+  // Mockup: un sol enllaç de text pla ("ver más"), sense caixa ni segon
+  // enllaç al carret — diferent de la resta de layouts, que sí porten dos
+  // botons amb caixa (per això és una branca a part, no més tokens).
+  if (recordstore) {
+    return (
+      <div className={`flex ${justifyClass}`}>
+        <Link
+          href={cta_href}
+          data-field="cta_href"
+          data-attr="href"
+          className="text-base text-zinc-500 hover:text-black transition-colors"
+        >
+          <span data-field="cta_label">{cta_label || t('explore')}</span>
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className={`flex flex-wrap gap-5 ${justifyClass}`}>
       <Link

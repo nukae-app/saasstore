@@ -67,10 +67,13 @@ export default function StorefrontNav() {
       )}
       <div className="container flex items-center h-16 gap-8">
         <Link href="/" className="shrink-0 opacity-90 hover:opacity-100 transition-opacity">
-          {config.logo_url ? (
-            <img src={config.logo_url} alt={config.nombre} className={`h-8 md:h-10 w-auto ${recordstore ? '' : 'invert'}`} />
-          ) : recordstore ? (
+          {recordstore ? (
+            // Mockup: sempre wordmark de text pla, mai el logo en caixa —
+            // encara que el tenant tingui un logo_url pujat (ver
+            // StorefrontFooter.jsx pel mateix criteri).
             <span className="font-serif text-xl md:text-2xl uppercase tracking-tight text-white">{config.nombre}</span>
+          ) : config.logo_url ? (
+            <img src={config.logo_url} alt={config.nombre} className="h-8 md:h-10 w-auto invert" />
           ) : (
             <span className="font-serif italic text-xl md:text-2xl text-zinc-900">{config.nombre}</span>
           )}
