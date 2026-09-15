@@ -544,6 +544,7 @@
     "copiesSold": "{count, plural, one {+ # còpia venuda} other {+ # còpies venudes}}",
     "tracklist": "Llista de cançons",
     "credits": "Crèdits",
+    "relatedProducts": "Productes relacionats",
     "infoTab": "Info",
     "listenTab": "Escolta'l",
     "requestFailed": "No s'ha pogut registrar la petició.",

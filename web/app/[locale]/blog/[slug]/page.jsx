@@ -36,6 +36,11 @@ export default async function PostPage({ params }) {
   } catch {
     notFound();
   }
+  let config = null;
+  try {
+    config = await api('/config/public');
+  } catch {}
+  const recordstore = config?.theme?.preset === 'recordstore';
 
   return (
     <>
@@ -53,7 +58,7 @@ export default async function PostPage({ params }) {
             <time className="block text-zinc-500 text-xs font-semibold tracking-[0.15em] uppercase mb-4">
               {formatDate(post.published_at, locale)}
             </time>
-            <h1 className="font-serif italic text-3xl md:text-4xl lg:text-5xl leading-tight">
+            <h1 className={`text-3xl md:text-4xl lg:text-5xl leading-tight ${recordstore ? 'font-serif uppercase' : 'font-serif italic'}`}>
               {post.title}
             </h1>
           </div>

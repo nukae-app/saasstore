@@ -41,11 +41,13 @@ export default async function RootLayout({ children }) {
     config = await api('/config/public');
   } catch {}
 
-  // `custom_fonts` és estructurat (family + faces), no un valor CSS — es
-  // filtra abans de convertir la resta de `theme` en variables --clau: valor.
+  // `custom_fonts` és estructurat (family + faces), no un valor CSS; `preset`
+  // no és tampoc una variable CSS sinó una clau que s'aplica com a atribut
+  // (ver data-theme-preset avall) — es filtren tots dos abans de convertir la
+  // resta de `theme` en variables --clau: valor.
   const themeVars = config?.theme
     ? Object.entries(config.theme)
-        .filter(([key, value]) => key !== 'custom_fonts' && value)
+        .filter(([key, value]) => key !== 'custom_fonts' && key !== 'preset' && value)
         .map(([key, value]) => `--${key.replace(/_/g, '-')}: ${value};`)
         .join('')
     : '';
@@ -64,7 +66,7 @@ export default async function RootLayout({ children }) {
     : '';
 
   return (
-    <html lang={locale}>
+    <html lang={locale} data-theme-preset={config?.theme?.preset || undefined}>
       <head>
         {/* Tokens de tema del tenant, sobreescriben las variables de
             globals.css — luego custom_css, para que pueda sobreescribir

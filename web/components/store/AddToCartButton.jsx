@@ -39,14 +39,15 @@ export default function AddToCartButton({ itemId, cantidad = 1, className }) {
     <button
       onClick={handleAdd}
       disabled={state === 'loading' || state === 'done'}
+      style={{ borderRadius: 'var(--radius-button, 9999px)' }}
       className={cn(
-        'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all',
+        'inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-all',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         state === 'done'
           ? 'bg-green-500 text-white cursor-default'
           : state === 'error'
           ? 'bg-red-100 text-red-700 border border-red-200'
-          : 'bg-zinc-900 hover:bg-zinc-800 text-white shadow-sm disabled:opacity-60',
+          : 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm disabled:opacity-60',
         className,
       )}
     >

@@ -544,6 +544,7 @@
     "copiesSold": "{count, plural, one {+# copy sold} other {+# copies sold}}",
     "tracklist": "Tracklist",
     "credits": "Credits",
+    "relatedProducts": "Related products",
     "infoTab": "Info",
     "listenTab": "Listen",
     "requestFailed": "Couldn't register your request.",

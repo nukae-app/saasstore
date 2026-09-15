@@ -40,8 +40,9 @@ export default function RequestReleaseButton({ releaseId, className }) {
     return (
       <Link
         href="/login"
+        style={{ borderRadius: 'var(--radius-button, 9999px)' }}
         className={cn(
-          'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-colors',
+          'inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors',
           'border border-zinc-300 text-zinc-700 hover:bg-zinc-50',
           className,
         )}
@@ -59,8 +60,9 @@ export default function RequestReleaseButton({ releaseId, className }) {
     <button
       onClick={handleRequest}
       disabled={state === 'loading' || state === 'done'}
+      style={{ borderRadius: 'var(--radius-button, 9999px)' }}
       className={cn(
-        'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all',
+        'inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-all',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         state === 'done'
           ? 'bg-green-500 text-white cursor-default'

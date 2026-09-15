@@ -30,6 +30,12 @@ export default function StorefrontNav() {
   const config = useTenantConfig();
   const pathname = usePathname();
   const links = subscripcionsActives ? [...navLinks, { href: '/subscripcio', label: t('club') }] : navLinks;
+  // Tema "Recordstore" (ver globals.css :: [data-theme-preset]) — aquest
+  // component és dels pocs del storefront que no és token-driven (bg-white/
+  // border-zinc en dur), així que la barra negra/majúscules necessita un
+  // canvi de component real, no només CSS. Es dedueix de config.theme
+  // (mateix /config/public que ja es consultava) en lloc d'una prop nova.
+  const recordstore = config.theme?.preset === 'recordstore';
 
   useEffect(() => {
     fetch('/api/pagines')
@@ -47,7 +53,13 @@ export default function StorefrontNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-zinc-200 text-zinc-900">
+    <header
+      className={
+        recordstore
+          ? 'sticky top-0 z-40 bg-black text-white border-b border-black'
+          : 'sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-zinc-200 text-zinc-900'
+      }
+    >
       {manteniment && (
         <div className="bg-amber-500 text-white text-xs md:text-sm text-center py-2 px-4">
           {t('maintenanceBanner')}
@@ -56,21 +68,29 @@ export default function StorefrontNav() {
       <div className="container flex items-center h-16 gap-8">
         <Link href="/" className="shrink-0 opacity-90 hover:opacity-100 transition-opacity">
           {config.logo_url ? (
-            <img src={config.logo_url} alt={config.nombre} className="h-8 md:h-10 w-auto invert" />
+            <img src={config.logo_url} alt={config.nombre} className={`h-8 md:h-10 w-auto ${recordstore ? '' : 'invert'}`} />
+          ) : recordstore ? (
+            <span className="font-serif text-xl md:text-2xl uppercase tracking-tight text-white">{config.nombre}</span>
           ) : (
             <span className="font-serif italic text-xl md:text-2xl text-zinc-900">{config.nombre}</span>
           )}
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6 text-sm text-zinc-500 flex-1">
-          {links.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`hover:text-zinc-900 transition-colors ${pathname.startsWith(href) ? 'text-zinc-900 font-medium' : ''}`}
-            >
-              {label}
-            </Link>
+        <nav className={`hidden md:flex items-center flex-1 ${recordstore ? 'gap-1 text-sm uppercase tracking-wide' : 'gap-6 text-sm text-zinc-500'}`}>
+          {links.map(({ href, label }, i) => (
+            <span key={href} className="flex items-center">
+              {recordstore && i > 0 && <span className="mx-3 text-white/40" aria-hidden="true">•</span>}
+              <Link
+                href={href}
+                className={
+                  recordstore
+                    ? `transition-colors ${pathname.startsWith(href) ? 'text-white font-semibold' : 'text-white/70 hover:text-white'}`
+                    : `hover:text-zinc-900 transition-colors ${pathname.startsWith(href) ? 'text-zinc-900 font-medium' : ''}`
+                }
+              >
+                {label}
+              </Link>
+            </span>
           ))}
         </nav>
 
@@ -78,10 +98,13 @@ export default function StorefrontNav() {
           <LanguageSwitcher className="hidden md:flex" />
 
           {/* Cart */}
-          <Link href="/carret" className="relative w-11 h-11 flex items-center justify-center text-zinc-500 hover:text-zinc-900 transition-colors">
+          <Link
+            href="/carret"
+            className={`relative w-11 h-11 flex items-center justify-center transition-colors ${recordstore ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
+          >
             <ShoppingBag size={20} />
             {itemCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 bg-zinc-900 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5">
+              <span className={`absolute top-1.5 right-1.5 text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5 ${recordstore ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`}>
                 {itemCount > 9 ? '9+' : itemCount}
               </span>
             )}
@@ -92,7 +115,7 @@ export default function StorefrontNav() {
             <div className="relative">
               <button
                 onClick={() => setUserMenu(v => !v)}
-                className="flex items-center gap-1.5 h-11 px-2 -mr-2 text-zinc-500 hover:text-zinc-900 transition-colors"
+                className={`flex items-center gap-1.5 h-11 px-2 -mr-2 transition-colors ${recordstore ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
               >
                 <User size={20} />
                 <span className="hidden md:block text-xs max-w-[100px] truncate">
@@ -139,7 +162,7 @@ export default function StorefrontNav() {
           ) : (
             <Link
               href="/login"
-              className="hidden md:flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-900 transition-colors p-1"
+              className={`hidden md:flex items-center gap-1.5 text-xs transition-colors p-1 ${recordstore ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
             >
               <User size={18} /> {t('login')}
             </Link>
@@ -147,7 +170,7 @@ export default function StorefrontNav() {
 
           {/* Mobile menu */}
           <button
-            className="md:hidden w-11 h-11 -mr-2 flex items-center justify-center text-zinc-500 hover:text-zinc-900"
+            className={`md:hidden w-11 h-11 -mr-2 flex items-center justify-center ${recordstore ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
             onClick={() => setOpen(v => !v)}
           >
             {open ? <X size={20} /> : <Menu size={20} />}
@@ -156,28 +179,30 @@ export default function StorefrontNav() {
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-zinc-200 py-4 px-4 flex flex-col gap-0.5 animate-fade-in">
+        <div className={`md:hidden border-t py-4 px-4 flex flex-col gap-0.5 animate-fade-in ${recordstore ? 'border-white/20 uppercase tracking-wide' : 'border-zinc-200'}`}>
           {links.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               onClick={() => setOpen(false)}
-              className="py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors"
+              className={recordstore
+                ? 'py-2.5 px-2 text-sm text-white/80 hover:text-white transition-colors'
+                : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors'}
             >
               {label}
             </Link>
           ))}
-          <div className="border-t border-zinc-200 mt-2 pt-2 pb-2">
+          <div className={`border-t mt-2 pt-2 pb-2 ${recordstore ? 'border-white/20' : 'border-zinc-200'}`}>
             <LanguageSwitcher />
           </div>
-          <div className="border-t border-zinc-200 mt-2 pt-2">
+          <div className={`border-t mt-2 pt-2 ${recordstore ? 'border-white/20' : 'border-zinc-200'}`}>
             {user ? (
               <>
-                <Link href="/compte" onClick={() => setOpen(false)} className="py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block">
+                <Link href="/compte" onClick={() => setOpen(false)} className={recordstore ? 'py-2.5 px-2 text-sm text-white/80 hover:text-white transition-colors block' : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block'}>
                   {t('myAccount')}
                 </Link>
                 {user.role === 'admin' && (
-                  <NextLink href="/admin" onClick={() => setOpen(false)} className="py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors flex items-center gap-2">
+                  <NextLink href="/admin" onClick={() => setOpen(false)} className={recordstore ? 'py-2.5 px-2 text-sm text-white/80 hover:text-white transition-colors flex items-center gap-2' : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors flex items-center gap-2'}>
                     <LayoutDashboard size={14} /> {t('adminPanel')}
                   </NextLink>
                 )}
@@ -186,7 +211,7 @@ export default function StorefrontNav() {
                 </button>
               </>
             ) : (
-              <Link href="/login" onClick={() => setOpen(false)} className="py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block">
+              <Link href="/login" onClick={() => setOpen(false)} className={recordstore ? 'py-2.5 px-2 text-sm text-white/80 hover:text-white transition-colors block' : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block'}>
                 {t('loginRegister')}
               </Link>
             )}

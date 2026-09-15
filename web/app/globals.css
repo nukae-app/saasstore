@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&family=Hanken+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&family=Hanken+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -290,6 +290,75 @@
     --color-sidebar-active-foreground: #ffffff;
   }
 
+  /* Tema "Recordstore" — seleccionable per tenant des de Disseny web
+     (ThemeTokens.preset, ver api/app/schemas/configuracio.py), NO el nou
+     valor per defecte del vertical: mentre un tenant no el trii
+     explícitament, `data-theme-preset` no s'estampa a <html> (ver
+     web/app/layout.jsx) i aquest bloc no aplica. Identitat editorial
+     negre/crema, cantonades a 0, sense ombra — oposada al Bodoni Moda +
+     cantonades rodones que porta el tema per defecte del storefront.
+
+     Mateix avís que [data-admin-theme='m3'] de dalt: sobreescriu sempre
+     --color-<nom>/--font-serif/--font-sans (els noms que Tailwind deriva
+     dins @theme) A MÉS dels noms base (--background, --font-headline...);
+     un component que llegeixi el nom base directament (body, h1-h3) ja en
+     té prou amb el segon, però qualsevol utility de Tailwind (bg-primary,
+     font-serif) només reacciona al primer per l'indirecció congelada a
+     build time. */
+  [data-theme-preset='recordstore'] {
+    --background: #f3f2ee;
+    --foreground: #121212;
+    --primary: #111111;
+    --primary-foreground: #ffffff;
+    --secondary: #ffffff;
+    --secondary-foreground: #111111;
+    --accent: #ececea;
+    --accent-foreground: #111111;
+    --muted: #ececea;
+    --muted-foreground: #5c5c5c;
+    --border: #111111;
+    --font-headline: 'Anton', 'Archivo Black', Impact, sans-serif;
+    --font-body: 'Hanken Grotesk', system-ui, sans-serif;
+    --radius: 0px;
+
+    --color-background: #f3f2ee;
+    --color-foreground: #121212;
+    --color-card: #ffffff;
+    --color-card-foreground: #121212;
+    --color-popover: #ffffff;
+    --color-popover-foreground: #121212;
+    --color-primary: #111111;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #ffffff;
+    --color-secondary-foreground: #111111;
+    --color-accent: #ececea;
+    --color-accent-foreground: #111111;
+    --color-muted: #ececea;
+    --color-muted-foreground: #5c5c5c;
+    --color-border: #111111;
+    --color-input: #111111;
+    --color-ring: #111111;
+    --font-serif: 'Anton', 'Archivo Black', Impact, sans-serif;
+    --font-sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --radius-lg: 0px;
+    --radius-md: 0px;
+    --radius-sm: 0px;
+
+    /* Presets d'aparença (ver ThemeTokens/RADIUS_CARD_OPTIONS a
+       app/admin/disseny-web/page.jsx) — mateixos noms que ja consumeix cada
+       component amb var(--x, fallback), no calen canvis de component. Un
+       admin que trii valors propis des de Disseny web els sobreescriu
+       igualment (el <style> per-tenant de layout.jsx ve després en el
+       document i guanya). */
+    --radius-card: 0px;
+    --radius-button: 0px;
+    --shadow-card: none;
+    --border-card: 1px solid #111111;
+    --image-treatment: none;
+    --eyebrow-style: uppercase;
+    --section-divider: none;
+  }
+
   .hero-featured-image {
     filter: var(--image-treatment, grayscale(15%));
   }
@@ -312,6 +381,22 @@
   h1, h2, h3 {
     font-family: var(--font-headline);
   }
+}
+
+/* Fora de @layer a propòsit: Tailwind declara `@layer theme, base,
+   components, utilities` (ver comentari de dalt sobre [data-admin-theme=
+   'm3']) i una capa sempre guanya per ordre de capa abans que per
+   especificitat — una regla dins @layer base MAI venç una utility de
+   Tailwind (.italic, .uppercase...) encara que tingui més especificitat,
+   perquè @layer utilities és una capa posterior. Una regla sense @layer és
+   l'única manera d'estar per sobre de totes les capes. */
+[data-theme-preset='recordstore'] [data-field='title'],
+[data-theme-preset='recordstore'] [data-field='heading'] {
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+[data-theme-preset='recordstore'] .italic {
+  font-style: normal;
 }
 
 /* Blog post HTML content (renderitzat des de la BD) */

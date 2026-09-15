@@ -15,10 +15,22 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
   const [etiquetes, setEtiquetes] = useState([]);
+  // Tema "Recordstore" (ver StorefrontNav.jsx per al mateix patró) — etiquetes
+  // dels filtres en majúscules/negreta en comptes del "font-medium" gris pla
+  // del tema per defecte.
+  const [recordstore, setRecordstore] = useState(false);
 
   useEffect(() => {
     api('/catalog/etiquetes').then(setEtiquetes).catch(() => {});
+    fetch('/api/config/public')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data?.theme?.preset === 'recordstore') setRecordstore(true); })
+      .catch(() => {});
   }, []);
+
+  const labelClass = recordstore
+    ? 'font-semibold text-black uppercase tracking-wide text-xs mb-2'
+    : 'font-medium text-zinc-700 mb-2';
 
   function getParam(key) {
     return searchParams.get(key) || '';
@@ -54,7 +66,7 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
 
       {/* Search */}
       <div>
-        <p className="font-medium text-zinc-700 mb-2">{t('search')}</p>
+        <p className={labelClass}>{t('search')}</p>
         <input
           type="text"
           placeholder={t('searchPlaceholder')}
@@ -68,7 +80,7 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
       {/* Format — vocabulari de format musical, només per a vinils */}
       {showFormatFilter && (
         <div>
-          <p className="font-medium text-zinc-700 mb-2">{t('format')}</p>
+          <p className={labelClass}>{t('format')}</p>
           <div className="flex flex-wrap gap-1.5">
             {FORMATS.map(f => {
               const active = getParam('format') === f;
@@ -93,7 +105,7 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
       {/* Etiquetes */}
       {etiquetes.length > 0 && (
         <div>
-          <p className="font-medium text-zinc-700 mb-2">{t('tags')}</p>
+          <p className={labelClass}>{t('tags')}</p>
           <div className="flex flex-wrap gap-1.5">
             {etiquetes.map(et => {
               const active = getParam('etiqueta') === et.slug;
@@ -117,7 +129,7 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
       {/* Genre — vocabulari musical, només per a vinils */}
       {showGenreFilter && (
         <div>
-          <p className="font-medium text-zinc-700 mb-2">{t('genre')}</p>
+          <p className={labelClass}>{t('genre')}</p>
           <input
             type="text"
             placeholder="Jazz, Rock, Electronic…"
@@ -132,7 +144,7 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
 
       {/* Price */}
       <div>
-        <p className="font-medium text-zinc-700 mb-2">{t('priceEur')}</p>
+        <p className={labelClass}>{t('priceEur')}</p>
         <div className="flex items-center gap-2">
           <input
             type="number"

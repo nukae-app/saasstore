@@ -10,6 +10,7 @@ import RequestReleaseButton from '../../../../components/store/RequestReleaseBut
 import DiscInfoTabs from '../../../../components/store/DiscInfoTabs';
 import NouStockLine from '../../../../components/store/NouStockLine';
 import PriceTag from '../../../../components/store/PriceTag';
+import ReleaseCarousel from '../../../../components/store/ReleaseCarousel';
 
 export async function generateMetadata({ params }) {
   const { id, locale } = await params;
@@ -61,6 +62,7 @@ export default async function DiscPage({ params }) {
     config = await api('/config/public');
   } catch {}
   const isVinils = !config || config.vertical === 'records';
+  const recordstore = config?.theme?.preset === 'recordstore';
 
   // Para nou (stock agregado), `status` se mantiene 'disponible' mientras la
   // línea no se retire a mano: la disponibilidad real depende de si queda
@@ -75,6 +77,17 @@ export default async function DiscPage({ params }) {
   const disponiblesSegonaMa = disponibles.filter(i => i.condition !== 'nou');
   const totalUnidadesDisponibles = disponiblesSegonaMa.length
     + disponiblesNou.reduce((sum, i) => sum + (i.quantity - i.reserved_quantity), 0);
+
+  // "Productes relacionats" (mateix gènere) — només tema Recordstore per ara;
+  // el tema per defecte no compon aquesta secció a la fitxa.
+  let relacionats = [];
+  if (recordstore && isVinils && release.genero) {
+    try {
+      const qs = new URLSearchParams({ genero: release.genero, page_size: '8' });
+      const data = await api(`/catalog?${qs}`);
+      relacionats = data.results.filter(r => r.id !== release.id).slice(0, 4);
+    } catch {}
+  }
 
   return (
     <>
@@ -125,7 +138,7 @@ export default async function DiscPage({ params }) {
                   {release.formato}
                 </p>
               )}
-              <h1 className="font-serif italic text-3xl md:text-4xl leading-tight mb-1">
+              <h1 className={`text-3xl md:text-4xl leading-tight mb-1 ${recordstore ? 'font-serif uppercase' : 'font-serif italic'}`}>
                 {release.title}
               </h1>
               <p className="text-xl font-medium text-zinc-700 mb-4">{release.artista}</p>
@@ -224,7 +237,8 @@ export default async function DiscPage({ params }) {
                   {disponiblesSegonaMa.map(item => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between gap-4 p-4 border border-zinc-200 rounded-xl hover:border-zinc-300 transition-colors bg-white"
+                      style={{ borderRadius: 'var(--radius-card, 12px)' }}
+                      className="flex items-center justify-between gap-4 p-4 border border-zinc-200 hover:border-zinc-300 transition-colors bg-white"
                     >
                       <div className="flex items-center gap-3 flex-wrap">
                         {isVinils ? (
@@ -249,7 +263,10 @@ export default async function DiscPage({ params }) {
                   ))}
                 </div>
               ) : (
-                <div className="p-4 bg-zinc-50 rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] text-center space-y-3">
+                <div
+                  style={{ borderRadius: 'var(--radius-card, 12px)', boxShadow: 'var(--shadow-card, 0 2px 20px -6px rgba(15,23,42,0.08))' }}
+                  className="p-4 bg-zinc-50 text-center space-y-3"
+                >
                   <p className="text-zinc-500 text-sm">{t('noStockRightNow')}</p>
                   <RequestReleaseButton releaseId={release.id} className="w-full" />
                   <div>
@@ -310,6 +327,13 @@ export default async function DiscPage({ params }) {
                 </div>
               )}
 
+            </div>
+          )}
+
+          {relacionats.length > 0 && (
+            <div className="mt-12">
+              <h2 className="font-serif text-xl md:text-2xl uppercase mb-6">{t('relatedProducts')}</h2>
+              <ReleaseCarousel releases={relacionats} />
             </div>
           )}
         </div>

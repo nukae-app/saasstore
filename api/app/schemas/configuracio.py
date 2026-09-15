@@ -196,6 +196,16 @@ class ThemeTokens(BaseModel):
     eyebrow_style: str | None = Field(default=None, max_length=50)
     spacing_density: str | None = Field(default=None, max_length=20)
     section_divider: str | None = Field(default=None, max_length=100)
+    # Nom d'un tema visual complet (ver web/app/globals.css ::
+    # [data-theme-preset]) — a diferència de la resta de camps d'aquest
+    # esquema, no és un valor CSS resolt sinó una clau que activa tant un
+    # bloc de CSS agrupat (colors/tipografia/radius per defecte del tema)
+    # com variants de component sencers al front (Nav/Footer/filtres/fitxa
+    # de producte). Text lliure igual que font_headline/font_body: un valor
+    # que no coincideix amb cap tema conegut és inert (no hi ha
+    # `[data-theme-preset="..."]` que el reculli), no cal validar-lo contra
+    # una llista tancada.
+    preset: str | None = Field(default=None, max_length=40)
 
 
 class CustomCssUpdateIn(BaseModel):

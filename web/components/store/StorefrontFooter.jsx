@@ -28,12 +28,20 @@ export default function StorefrontFooter() {
       .catch(() => {});
   }, []);
 
+  // Mateix criteri que StorefrontNav.jsx: aquest component tampoc és
+  // token-driven (bg-zinc-50 en dur), el footer negre del tema "Recordstore"
+  // necessita el mateix canvi de component.
+  const recordstore = config.theme?.preset === 'recordstore';
+  const linkClass = recordstore ? 'text-white/70 hover:text-white transition-colors' : 'hover:text-zinc-900 transition-colors';
+
   return (
-    <footer className="bg-zinc-50 text-zinc-500 mt-auto">
+    <footer className={recordstore ? 'bg-black text-white/70 mt-auto' : 'bg-zinc-50 text-zinc-500 mt-auto'}>
       <div className="container py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
         <div>
           {config.logo_url ? (
-            <img src={config.logo_url} alt={config.nombre} className="h-9 w-auto mb-3 invert" />
+            <img src={config.logo_url} alt={config.nombre} className={`h-9 w-auto mb-3 ${recordstore ? '' : 'invert'}`} />
+          ) : recordstore ? (
+            <p className="font-serif text-lg uppercase tracking-tight text-white mb-3">{config.nombre}</p>
           ) : (
             <p className="font-serif italic text-lg text-zinc-900 mb-3">{config.nombre}</p>
           )}
@@ -47,7 +55,7 @@ export default function StorefrontFooter() {
               {config.phone && <>{config.phone}<br /></>}
               {config.contact_email && <>{config.contact_email}<br /></>}
               {config.instagram_url && (
-                <a href={config.instagram_url} target="_blank" rel="noopener" className="hover:text-zinc-900 transition-colors">
+                <a href={config.instagram_url} target="_blank" rel="noopener" className={linkClass}>
                   Instagram
                 </a>
               )}
@@ -56,7 +64,7 @@ export default function StorefrontFooter() {
         </div>
 
         <div>
-          <p className="text-zinc-900 text-sm font-medium mb-3">{t('schedule')}</p>
+          <p className={`text-sm font-medium mb-3 ${recordstore ? 'text-white' : 'text-zinc-900'}`}>{t('schedule')}</p>
           <p className="text-sm leading-relaxed">
             {(config.hours || FALLBACK.hours).split('\n').map((linia, i) => (
               <span key={i}>{linia}<br /></span>
@@ -65,13 +73,13 @@ export default function StorefrontFooter() {
         </div>
 
         <div>
-          <p className="text-zinc-900 text-sm font-medium mb-3">{t('links')}</p>
+          <p className={`text-sm font-medium mb-3 ${recordstore ? 'text-white' : 'text-zinc-900'}`}>{t('links')}</p>
           <nav className="flex flex-col gap-1.5 text-sm">
-            <Link href="/cataleg" className="hover:text-zinc-900 transition-colors">{tNav('catalog')}</Link>
-            <Link href="/blog" className="hover:text-zinc-900 transition-colors">{tNav('blog')}</Link>
-            <Link href="/agenda" className="hover:text-zinc-900 transition-colors">{tNav('agenda')}</Link>
+            <Link href="/cataleg" className={linkClass}>{tNav('catalog')}</Link>
+            <Link href="/blog" className={linkClass}>{tNav('blog')}</Link>
+            <Link href="/agenda" className={linkClass}>{tNav('agenda')}</Link>
             {config.vertical === 'records' && (
-              <a href="https://www.discogs.com" target="_blank" rel="noopener" className="hover:text-zinc-900 transition-colors">
+              <a href="https://www.discogs.com" target="_blank" rel="noopener" className={linkClass}>
                 Discogs
               </a>
             )}
@@ -79,12 +87,12 @@ export default function StorefrontFooter() {
         </div>
       </div>
 
-      <div className="border-t border-zinc-200 py-4">
-        <div className="container flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-zinc-400">
+      <div className={`border-t py-4 ${recordstore ? 'border-white/20' : 'border-zinc-200'}`}>
+        <div className={`container flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs ${recordstore ? 'text-white/50' : 'text-zinc-400'}`}>
           <span>© {new Date().getFullYear()} {config.nombre} · {t('allRightsReserved')}</span>
           <nav className="flex gap-4">
-            <Link href="/privacitat" className="hover:text-zinc-600 transition-colors">{t('privacyPolicy')}</Link>
-            <Link href="/termes" className="hover:text-zinc-600 transition-colors">{t('termsOfUse')}</Link>
+            <Link href="/privacitat" className={recordstore ? 'hover:text-white transition-colors' : 'hover:text-zinc-600 transition-colors'}>{t('privacyPolicy')}</Link>
+            <Link href="/termes" className={recordstore ? 'hover:text-white transition-colors' : 'hover:text-zinc-600 transition-colors'}>{t('termsOfUse')}</Link>
           </nav>
         </div>
       </div>

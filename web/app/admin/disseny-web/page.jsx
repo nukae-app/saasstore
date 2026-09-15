@@ -97,6 +97,16 @@ const SECTION_DIVIDER_OPTIONS = [
   { label: 'Cap', value: 'none' },
   { label: 'Línia', value: '1px solid var(--border)' },
 ];
+// A diferència de la resta de THEME_FIELDS/*_OPTIONS d'aquest fitxer (valors
+// CSS resolts), "preset" no és cap propietat CSS — és una clau que activa
+// [data-theme-preset='...'] a web/app/globals.css (colors/tipografia/radius
+// agrupats en un sol lloc) més variants de component sencers (StorefrontNav,
+// StorefrontFooter, GenreGrid). Per això es desa a l'instant en triar-lo, no
+// s'espera al "Guardar canvis" del formulari com la resta d'aquest panell.
+const THEME_PRESETS = [
+  { label: 'Per defecte', value: '' },
+  { label: 'Recordstore', value: 'recordstore' },
+];
 
 function PresetField({ label, options, value, onChange }) {
   return (
@@ -565,6 +575,25 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [pickerRole, setPickerRole] = useState(null); // null | 'headline' | 'body'
+  const [preset, setPreset] = useState(config.theme?.preset || '');
+  const [presetSaving, setPresetSaving] = useState(false);
+
+  async function choosePreset(value) {
+    setPresetSaving(true);
+    const r = await authFetch('/admin/configuracio/theme', {
+      method: 'PATCH',
+      body: JSON.stringify({ preset: value || null }),
+    });
+    setPresetSaving(false);
+    if (r.ok) {
+      setPreset(value);
+      onSaved();
+      // El bloc [data-theme-preset] i les variants de component (Nav/Footer/
+      // GenreGrid) es resolen al render del servidor, no reaccionen a un
+      // simple canvi de --variable com la resta d'aquest panell.
+      sendPreview({ type: 'reload' });
+    }
+  }
 
   function onFontDownloaded(newConfig) {
     setFontHeadline(newConfig.theme?.font_headline || '');
@@ -648,6 +677,14 @@ function DissenyPanel({ config, onSaved, sendPreview }) {
   return (
     <form onSubmit={save} className="space-y-5">
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
+        <div>
+          <PresetField label={t('config.design.theme', 'Tema')} options={THEME_PRESETS} value={preset} onChange={choosePreset} />
+          <p className="text-xs text-secondary-foreground mt-2">
+            {t('config.design.theme_hint', "Un tema aplica de cop colors, tipografia i disposició. Els ajustos de sota et deixen afinar-lo per sobre.")}
+            {presetSaving && ` ${t('config.design.saving', 'Desant…')}`}
+          </p>
+        </div>
+
         <p className="text-sm text-secondary-foreground">
           {t('config.design.hint', "Colors i tipografia propis de la teva botiga. Si has encarregat un disseny, pots copiar aquí els valors exactes (hex, nom de la font) que et doni el/la dissenyador/a.")}
         </p>

@@ -39,10 +39,17 @@ function hasAudio(content) {
 // Post card (llista-posts)
 // ---------------------------------------------------------------------------
 
-function PostCard({ post, locale, t }) {
+function PostCard({ post, locale, t, recordstore }) {
   const audio = hasAudio(post.content);
   return (
-    <Link href={`/blog/${post.slug}`} className="group block bg-white rounded-2xl overflow-hidden shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] hover:border-zinc-200 hover:shadow-md transition-all duration-200">
+    <Link
+      href={`/blog/${post.slug}`}
+      style={{
+        borderRadius: 'var(--radius-card, 16px)',
+        boxShadow: 'var(--shadow-card, 0 2px 20px -6px rgba(15,23,42,0.08))',
+      }}
+      className="group block bg-white overflow-hidden hover:border-zinc-200 hover:shadow-md transition-all duration-200"
+    >
       <div className="aspect-[4/3] bg-zinc-100 overflow-hidden relative">
         {post.thumbnail_url ? (
           <img src={post.thumbnail_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -61,11 +68,16 @@ function PostCard({ post, locale, t }) {
         <time className="text-[11px] text-zinc-500 font-semibold tracking-wide uppercase">
           {formatDate(post.published_at, locale)}
         </time>
-        <h2 className="font-serif italic text-lg leading-snug mt-1.5 text-zinc-900 group-hover:text-zinc-500 transition-colors line-clamp-2">
+        <h2 className={`text-lg leading-snug mt-1.5 text-zinc-900 group-hover:text-zinc-500 transition-colors line-clamp-2 ${recordstore ? 'font-serif uppercase' : 'font-serif italic'}`}>
           {post.title}
         </h2>
         {post.excerpt && (
           <p className="text-zinc-500 text-xs leading-relaxed mt-2 line-clamp-3">{post.excerpt}</p>
+        )}
+        {recordstore && (
+          <span className="inline-block text-xs font-bold uppercase tracking-wide mt-3 text-black">
+            {t('moreInfo')} →
+          </span>
         )}
       </div>
     </Link>
@@ -76,7 +88,7 @@ function PostCard({ post, locale, t }) {
 // Pàgina tipus llista-posts
 // ---------------------------------------------------------------------------
 
-async function LlistaPostsPage({ pagina, searchParams, locale, config }) {
+async function LlistaPostsPage({ pagina, searchParams, locale, config, recordstore }) {
   const t = await getTranslations({ locale, namespace: 'pagina' });
   const sp = await searchParams;
   const page  = Number(sp?.page  ?? 1);
@@ -105,7 +117,7 @@ async function LlistaPostsPage({ pagina, searchParams, locale, config }) {
           <p className="text-zinc-500 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
             {config.nombre}
           </p>
-          <h1 className="font-serif italic text-4xl md:text-5xl leading-tight">{heading}</h1>
+          <h1 className={`text-4xl md:text-5xl leading-tight ${recordstore ? 'font-serif uppercase' : 'font-serif italic'}`}>{heading}</h1>
           {!year && (
             <p className="text-zinc-500 mt-3 text-base max-w-lg">
               {t('blogSubtitle')}
@@ -136,17 +148,21 @@ async function LlistaPostsPage({ pagina, searchParams, locale, config }) {
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {posts.map(post => <PostCard key={post.slug} post={post} locale={locale} t={t} />)}
+                  {posts.map(post => <PostCard key={post.slug} post={post} locale={locale} t={t} recordstore={recordstore} />)}
                 </div>
-                <div className="flex items-center justify-between mt-10 pt-8 border-t border-zinc-100">
+                <div className={`flex items-center justify-between mt-10 pt-8 border-t ${recordstore ? 'border-black/10' : 'border-zinc-100'}`}>
                   {page > 1 ? (
                     <Link href={`/${slug}?${new URLSearchParams({ ...(year ? {year} : {}), ...(month ? {month} : {}), page: page - 1 })}`}
-                      className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors">{t('previous')}</Link>
+                      className={recordstore ? 'text-xs font-bold uppercase tracking-wide text-black hover:opacity-60 transition-opacity' : 'text-sm text-zinc-600 hover:text-zinc-900 transition-colors'}>
+                      {recordstore ? `← ${t('previous')}` : t('previous')}
+                    </Link>
                   ) : <span />}
-                  <span className="text-xs text-zinc-400">{t('pageN', { page })}</span>
+                  <span className={recordstore ? 'text-xs font-bold uppercase tracking-wide text-zinc-500' : 'text-xs text-zinc-400'}>{t('pageN', { page })}</span>
                   {posts.length === 6 ? (
                     <Link href={`/${slug}?${new URLSearchParams({ ...(year ? {year} : {}), ...(month ? {month} : {}), page: page + 1 })}`}
-                      className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors">{t('next')}</Link>
+                      className={recordstore ? 'text-xs font-bold uppercase tracking-wide text-black hover:opacity-60 transition-opacity' : 'text-sm text-zinc-600 hover:text-zinc-900 transition-colors'}>
+                      {recordstore ? `${t('next')} →` : t('next')}
+                    </Link>
                   ) : <span />}
                 </div>
               </>
@@ -162,13 +178,13 @@ async function LlistaPostsPage({ pagina, searchParams, locale, config }) {
 // Pàgina estàtica
 // ---------------------------------------------------------------------------
 
-async function EstaticaPage({ pagina, locale }) {
+async function EstaticaPage({ pagina, locale, recordstore }) {
   const t = await getTranslations({ locale, namespace: 'pagina' });
   return (
     <main className="flex-1">
       <section className="bg-zinc-50 text-zinc-900 py-14 md:py-18">
         <div className="container max-w-3xl">
-          <h1 className="font-serif italic text-4xl md:text-5xl leading-tight">{pagina.name}</h1>
+          <h1 className={`text-4xl md:text-5xl leading-tight ${recordstore ? 'font-serif uppercase' : 'font-serif italic'}`}>{pagina.name}</h1>
         </div>
       </section>
       <div className="container max-w-3xl py-12 md:py-16">
@@ -186,7 +202,7 @@ async function EstaticaPage({ pagina, locale }) {
 // Pàgina d'agenda
 // ---------------------------------------------------------------------------
 
-async function AgendaPage({ pagina, locale, config }) {
+async function AgendaPage({ pagina, locale, config, recordstore }) {
   const t = await getTranslations({ locale, namespace: 'pagina' });
   let events = [];
   try { events = await api('/events'); } catch {}
@@ -204,7 +220,7 @@ async function AgendaPage({ pagina, locale, config }) {
           <p className="text-zinc-500 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
             {config.nombre}
           </p>
-          <h1 className="font-serif italic text-4xl md:text-5xl leading-tight">{t('agenda')}</h1>
+          <h1 className={`text-4xl md:text-5xl leading-tight ${recordstore ? 'font-serif uppercase' : 'font-serif italic'}`}>{t('agenda')}</h1>
           <p className="text-zinc-500 mt-3 max-w-lg">{t('agendaSubtitle')}</p>
         </div>
       </section>
@@ -279,15 +295,16 @@ export default async function PaginaDinamica({ params, searchParams }) {
   } catch {
     notFound();
   }
+  const recordstore = config?.theme?.preset === 'recordstore';
 
   return (
     <>
       <StorefrontNav />
       {pagina.type === 'llista-posts' && (
-        <LlistaPostsPage pagina={pagina} searchParams={searchParams} locale={locale} config={config} />
+        <LlistaPostsPage pagina={pagina} searchParams={searchParams} locale={locale} config={config} recordstore={recordstore} />
       )}
-      {pagina.type === 'estatica' && <EstaticaPage pagina={pagina} locale={locale} />}
-      {pagina.type === 'agenda' && <AgendaPage pagina={pagina} locale={locale} config={config} />}
+      {pagina.type === 'estatica' && <EstaticaPage pagina={pagina} locale={locale} recordstore={recordstore} />}
+      {pagina.type === 'agenda' && <AgendaPage pagina={pagina} locale={locale} config={config} recordstore={recordstore} />}
       <StorefrontFooter />
     </>
   );

@@ -11,7 +11,10 @@ export default function NouStockLine({ itemId, precio, precioTarifa, disponibles
   const [cantidad, setCantidad] = useState(1);
 
   return (
-    <div className="flex items-center justify-between gap-4 p-4 border border-zinc-200 rounded-xl hover:border-zinc-300 transition-colors bg-white">
+    <div
+      style={{ borderRadius: 'var(--radius-card, 12px)' }}
+      className="flex items-center justify-between gap-4 p-4 border border-zinc-200 hover:border-zinc-300 transition-colors bg-white"
+    >
       <div className="flex items-center gap-3 flex-wrap">
         <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
           {t('newBadge')}
@@ -21,7 +24,7 @@ export default function NouStockLine({ itemId, precio, precioTarifa, disponibles
       <div className="flex items-center gap-3 shrink-0">
         <PriceTag price={precio} listPrice={precioTarifa} />
         {disponibles > 1 && (
-          <div className="flex items-center border border-zinc-200 rounded-full">
+          <div style={{ borderRadius: 'var(--radius-button, 9999px)' }} className="flex items-center border border-zinc-200">
             <button
               type="button"
               onClick={() => setCantidad(c => Math.max(1, c - 1))}

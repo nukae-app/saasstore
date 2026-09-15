@@ -15,7 +15,15 @@ export async function generateMetadata({ params }) {
   return { title: t('title') };
 }
 
-async function CatalogResults({ searchParams }) {
+// Números de pàgina a mostrar al voltant de `current` — mateix patró "1 2 …
+// 58" del mockup Recordstore, sense fer una llista de totes les pàgines. El
+// tema per defecte no ho fa servir (manté prev/next), ver CatalogResults.
+function paginationRange(current, total) {
+  const pages = new Set([1, 2, total - 1, total, current - 1, current, current + 1]);
+  return [...pages].filter(n => n >= 1 && n <= total).sort((a, b) => a - b);
+}
+
+async function CatalogResults({ searchParams, recordstore }) {
   const t = await getTranslations('cataleg');
   const tc = await getTranslations('common');
   const p = await searchParams;
@@ -77,27 +85,54 @@ async function CatalogResults({ searchParams }) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <nav className="flex justify-center items-center gap-2 mt-12" aria-label={t('pagination')}>
-          {currentPage > 1 && (
-            <Link
-              href={pageUrl(currentPage - 1)}
-              className="px-4 py-2 rounded-lg border border-zinc-200 text-sm hover:bg-zinc-50 transition-colors"
-            >
-              ← {tc('previous')}
-            </Link>
-          )}
-          <span className="text-sm text-zinc-500 px-4">
-            {currentPage} / {totalPages}
-          </span>
-          {currentPage < totalPages && (
-            <Link
-              href={pageUrl(currentPage + 1)}
-              className="px-4 py-2 rounded-lg border border-zinc-200 text-sm hover:bg-zinc-50 transition-colors"
-            >
-              {tc('next')} →
-            </Link>
-          )}
-        </nav>
+        recordstore ? (
+          <nav className="flex justify-center items-center gap-1 mt-12" aria-label={t('pagination')}>
+            {paginationRange(currentPage, totalPages).map((n, i, arr) => (
+              <span key={n} className="flex items-center">
+                {i > 0 && n - arr[i - 1] > 1 && <span className="w-8 text-center text-zinc-400">–</span>}
+                <Link
+                  href={pageUrl(n)}
+                  className={`w-8 h-8 flex items-center justify-center text-sm font-medium transition-colors ${
+                    n === currentPage ? 'bg-black text-white' : 'text-zinc-700 hover:bg-zinc-200'
+                  }`}
+                >
+                  {n}
+                </Link>
+              </span>
+            ))}
+            {currentPage < totalPages && (
+              <Link
+                href={pageUrl(currentPage + 1)}
+                aria-label={tc('next')}
+                className="w-8 h-8 flex items-center justify-center text-sm text-zinc-700 hover:bg-zinc-200 transition-colors"
+              >
+                →
+              </Link>
+            )}
+          </nav>
+        ) : (
+          <nav className="flex justify-center items-center gap-2 mt-12" aria-label={t('pagination')}>
+            {currentPage > 1 && (
+              <Link
+                href={pageUrl(currentPage - 1)}
+                className="px-4 py-2 rounded-lg border border-zinc-200 text-sm hover:bg-zinc-50 transition-colors"
+              >
+                ← {tc('previous')}
+              </Link>
+            )}
+            <span className="text-sm text-zinc-500 px-4">
+              {currentPage} / {totalPages}
+            </span>
+            {currentPage < totalPages && (
+              <Link
+                href={pageUrl(currentPage + 1)}
+                className="px-4 py-2 rounded-lg border border-zinc-200 text-sm hover:bg-zinc-50 transition-colors"
+              >
+                {tc('next')} →
+              </Link>
+            )}
+          </nav>
+        )
       )}
     </>
   );
@@ -153,13 +188,14 @@ export default async function CatalogPage({ searchParams }) {
   const formatFilterEnabled = isVinils && (!config || config.catalog_format_filter);
   const genreFilterEnabled = isVinils && (!config || config.catalog_genre_filter);
   const mode = browseModeEnabled && p.mode === 'remena' ? 'remena' : 'graella';
+  const recordstore = config?.theme?.preset === 'recordstore';
 
   return (
     <>
       <StorefrontNav />
 
       <main className="flex-1 container py-8">
-        <h1 className="font-serif italic text-3xl md:text-4xl mb-4">{t('title')}</h1>
+        <h1 className={`text-3xl md:text-4xl mb-4 ${recordstore ? 'font-serif uppercase' : 'font-serif italic'}`}>{t('title')}</h1>
 
         {browseModeEnabled && (
           <Suspense>
@@ -198,7 +234,7 @@ export default async function CatalogPage({ searchParams }) {
                     </div>
                   }
                 >
-                  <CatalogResults searchParams={searchParams} />
+                  <CatalogResults searchParams={searchParams} recordstore={recordstore} />
                 </Suspense>
               </div>
             </div>

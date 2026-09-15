@@ -544,6 +544,7 @@
     "copiesSold": "{count, plural, one {+ # copia vendida} other {+ # copias vendidas}}",
     "tracklist": "Lista de canciones",
     "credits": "Créditos",
+    "relatedProducts": "Productos relacionados",
     "infoTab": "Info",
     "listenTab": "Escúchalo",
     "requestFailed": "No se ha podido registrar la petición.",
