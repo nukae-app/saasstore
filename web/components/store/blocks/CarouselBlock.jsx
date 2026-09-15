@@ -36,7 +36,7 @@ export default function CarouselBlock({ id, layout = 'classic', heading, subtitl
       body = <MinimalTrack releases={releases} />;
       break;
     case 'grid':
-      body = <StaticGrid releases={releases.slice(0, MAX_GRID)} />;
+      body = <StaticGrid releases={releases.slice(0, MAX_GRID)} recordstore={recordstore} />;
       break;
     case 'autoplay':
       body = <AutoplayTrack releases={releases} />;
@@ -234,9 +234,12 @@ function MinimalTrack({ releases }) {
 }
 
 // Les targetes clàssiques del catàleg, en graella fixa sense scroll.
-function StaticGrid({ releases }) {
+// Sota Recordstore: sense gap entre portades (es toquen, com al mockup
+// "Novedades") — ReleaseCard hi posa espai de sobres entre imatge i text
+// quan rep el mateix `recordstore`, així no queda tot apilat.
+function StaticGrid({ releases, recordstore = false }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+    <div className={recordstore ? 'grid grid-cols-2 md:grid-cols-4' : 'grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8'}>
       {releases.map((r) => <ReleaseCard key={r.id} release={r} />)}
     </div>
   );

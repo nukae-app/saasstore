@@ -43,8 +43,15 @@ export default function ReleaseCard({ release }) {
   return (
     <Link href={`/disc/${release.id}`} className="group block">
       <div
-        style={{ borderRadius: 'var(--radius-card, 24px)' }}
-        className="aspect-square overflow-hidden bg-zinc-100 mb-4 flex items-center justify-center relative shadow-[0_2px_20px_-6px_rgba(15,23,42,0.06)] group-hover:shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)] transition-shadow"
+        style={{
+          borderRadius: 'var(--radius-card, 24px)',
+          // Nomes es fixa el box-shadow inline sota Recordstore (--shadow-card
+          // hi val "none") — un style inline sempre guanya a una classe, així
+          // que fer-ho incondicional trencaria el group-hover:shadow-* de sota
+          // per al tema per defecte (mai podria guanyar a l'inline).
+          ...(recordstore ? { boxShadow: 'var(--shadow-card, none)' } : {}),
+        }}
+        className={`aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center relative transition-shadow ${recordstore ? 'mb-6 md:mb-8' : 'mb-4 shadow-[0_2px_20px_-6px_rgba(15,23,42,0.06)] group-hover:shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)]'}`}
       >
         {release.image_url ? (
           <Image
