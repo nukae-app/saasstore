@@ -206,10 +206,10 @@ const TIPUS_DECLARACIO_303 = [
   { value: 'D', label: "D — Devolució" },
   { value: 'N', label: "N — Sense activitat / resultat 0" },
   { value: 'C', label: "C — Sol·licitud de compensació" },
-  { value: 'G', label: "G — Compte corrent tributària (deute)" },
+  { value: 'G', label: "G — Compte corrent tributària (ingrés)" },
   { value: 'V', label: "V — Compte corrent tributària (devolució)" },
   { value: 'U', label: "U — Domiciliació de l'ingrés" },
-  { value: 'X', label: "X — Devolució per transferència a l'estranger" },
+  { value: 'X', label: "X — Devolució per transferència a l'estranger (3T/4T)" },
 ];
 
 function Model303View({ data, t, year, trimestre }) {
@@ -385,7 +385,7 @@ function GenerarFitxer303Modal({ year, trimestre, casella110, onClose }) {
           )}
           <div>
             <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('models_fiscals.303.cnae', 'Codi CNAE')} <span className="text-secondary-foreground font-normal">({t('models_fiscals.303.cnae_hint', 'obligatori només si hi ha prorrata especial configurada')})</span></label>
-            <input value={cnaeCode} onChange={e => setCnaeCode(e.target.value)} placeholder="476"
+            <input value={cnaeCode} onChange={e => setCnaeCode(e.target.value)} placeholder="476" maxLength={3}
               className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div className="grid grid-cols-2 gap-3">
