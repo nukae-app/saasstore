@@ -76,7 +76,7 @@ async function CatalogResults({ searchParams, recordstore }) {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className={recordstore ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6'}>
           {catalog.results.map(r => (
             <ReleaseCard key={r.id} release={r} />
           ))}
@@ -138,7 +138,7 @@ async function CatalogResults({ searchParams, recordstore }) {
   );
 }
 
-async function ModeToggle({ searchParams }) {
+async function ModeToggle({ searchParams, recordstore }) {
   const t = await getTranslations('cataleg');
   const p = await searchParams;
   const mode = p.mode === 'remena' ? 'remena' : 'graella';
@@ -150,6 +150,20 @@ async function ModeToggle({ searchParams }) {
     if (m === 'remena') qs.set('mode', 'remena');
     const s = qs.toString();
     return `/cataleg${s ? `?${s}` : ''}`;
+  }
+
+  if (recordstore) {
+    return (
+      <div className="flex items-center gap-4 mb-8 text-sm font-bold uppercase tracking-wide">
+        <Link href={modeUrl('graella')} className={mode === 'graella' ? 'text-black' : 'text-zinc-400 hover:text-black transition-colors'}>
+          {t('gridMode')}
+        </Link>
+        <span className="text-zinc-300">•</span>
+        <Link href={modeUrl('remena')} className={mode === 'remena' ? 'text-black' : 'text-zinc-400 hover:text-black transition-colors'}>
+          {t('browseMode')}
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -199,7 +213,7 @@ export default async function CatalogPage({ searchParams }) {
 
         {browseModeEnabled && (
           <Suspense>
-            <ModeToggle searchParams={searchParams} />
+            <ModeToggle searchParams={searchParams} recordstore={recordstore} />
           </Suspense>
         )}
 
@@ -211,19 +225,31 @@ export default async function CatalogPage({ searchParams }) {
               <MobileFilterSheet showFormatFilter={formatFilterEnabled} showGenreFilter={genreFilterEnabled} />
             </Suspense>
 
-            <div className="flex gap-10">
-              {/* Sidebar filters (desktop) */}
-              <aside className="hidden md:block w-48 shrink-0 pt-0.5">
+            {recordstore ? (
+              // Mockup: filtres en una banda horitzontal a dalt (buscador +
+              // files formato/etiquetes/gènere/preu), graella a sota a tot
+              // l'ample — més espai per a les portades que la barra lateral
+              // estreta del tema per defecte.
+              <div className="hidden md:block">
                 <Suspense>
-                  <CatalogFilters showFormatFilter={formatFilterEnabled} showGenreFilter={genreFilterEnabled} />
+                  <CatalogFilters showFormatFilter={formatFilterEnabled} showGenreFilter={genreFilterEnabled} layout="horizontal" />
                 </Suspense>
-              </aside>
+              </div>
+            ) : null}
 
-              {/* Results */}
+            <div className={recordstore ? '' : 'flex gap-10'}>
+              {!recordstore && (
+                <aside className="hidden md:block w-48 shrink-0 pt-0.5">
+                  <Suspense>
+                    <CatalogFilters showFormatFilter={formatFilterEnabled} showGenreFilter={genreFilterEnabled} />
+                  </Suspense>
+                </aside>
+              )}
+
               <div className="flex-1 min-w-0">
                 <Suspense
                   fallback={
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                    <div className={recordstore ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6'}>
                       {Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className="animate-pulse">
                           <div style={{ borderRadius: 'var(--radius-card, 16px)' }} className="aspect-square bg-zinc-100 mb-3" />

@@ -4,17 +4,23 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from '../../../i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
-import { X } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import { api } from '../../lib/api';
 
 const FORMATS = ['LP', '12"', '10"', '7"', 'CD', 'Cassette', 'EP'];
 
-export default function CatalogFilters({ className = '', showFormatFilter = true, showGenreFilter = true }) {
+// `layout="horizontal"` és la banda de filtres a dalt del catàleg sota
+// Recordstore (ver [locale]/cataleg/page.jsx) — `layout="vertical"`
+// (per defecte) és la barra lateral del tema per defecte I el panell
+// mòbil (MobileFilterSheet.jsx sempre la fa servir, cap tema hi cap una
+// banda horitzontal dins d'un sheet estret).
+export default function CatalogFilters({ className = '', showFormatFilter = true, showGenreFilter = true, layout = 'vertical' }) {
   const t = useTranslations('cataleg');
   const router = useRouter();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
   const [etiquetes, setEtiquetes] = useState([]);
+  const [generes, setGeneres] = useState([]);
   // Tema "Recordstore" (ver StorefrontNav.jsx per al mateix patró) — etiquetes
   // dels filtres en majúscules/negreta en comptes del "font-medium" gris pla
   // del tema per defecte.
@@ -22,15 +28,12 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
 
   useEffect(() => {
     api('/catalog/etiquetes').then(setEtiquetes).catch(() => {});
+    api('/catalog/generes?limit=24').then(setGeneres).catch(() => {});
     fetch('/api/config/public')
       .then(r => (r.ok ? r.json() : null))
       .then(data => { if (data?.theme?.preset === 'recordstore') setRecordstore(true); })
       .catch(() => {});
   }, []);
-
-  const labelClass = recordstore
-    ? 'font-semibold text-black uppercase tracking-wide text-xs mb-2'
-    : 'font-medium text-zinc-700 mb-2';
 
   function getParam(key) {
     return searchParams.get(key) || '';
@@ -52,6 +55,105 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
   }
 
   const hasFilters = ['q', 'format', 'genre', 'etiqueta', 'min', 'max'].some(k => searchParams.has(k));
+
+  if (recordstore && layout === 'horizontal') {
+    return (
+      <div className={`border-b-2 border-black pb-8 mb-10 ${className}`}>
+        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-4 md:gap-10">
+          <div className="flex items-start justify-between md:block">
+            <p className="font-serif text-2xl uppercase tracking-tight text-black">{t('filters')}</p>
+            {hasFilters && (
+              <button
+                onClick={clearAll}
+                className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-zinc-500 hover:text-black transition-colors md:mt-3"
+              >
+                <X size={12} /> {t('clearFilters')}
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="relative">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder={t('searchPlaceholder')}
+                defaultValue={getParam('q')}
+                onKeyDown={e => { if (e.key === 'Enter') setParam('q', e.target.value); }}
+                onBlur={e => setParam('q', e.target.value)}
+                className="w-full border border-black pl-10 pr-3 py-3 text-sm uppercase tracking-wide placeholder:text-zinc-400 focus:outline-none"
+              />
+            </div>
+
+            {showFormatFilter && (
+              <FilterRow label={t('format')}>
+                {FORMATS.map(f => {
+                  const active = getParam('format') === f;
+                  return (
+                    <Pill key={f} active={active} onClick={() => setParam('format', active ? '' : f)}>
+                      {f}
+                    </Pill>
+                  );
+                })}
+              </FilterRow>
+            )}
+
+            {etiquetes.length > 0 && (
+              <FilterRow label={t('tags')}>
+                {etiquetes.map(et => {
+                  const active = getParam('etiqueta') === et.slug;
+                  return (
+                    <Pill key={et.id} active={active} onClick={() => setParam('etiqueta', active ? '' : et.slug)}>
+                      {et.name_ca}
+                    </Pill>
+                  );
+                })}
+              </FilterRow>
+            )}
+
+            {showGenreFilter && (
+              <FilterRow label={t('genre')}>
+                <select
+                  value={getParam('genre')}
+                  onChange={e => setParam('genre', e.target.value)}
+                  className="border border-black px-3 py-2 text-sm uppercase tracking-wide bg-white focus:outline-none"
+                >
+                  <option value="">{t('allGenres')}</option>
+                  {generes.map(({ genero }) => (
+                    <option key={genero} value={genero}>{genero}</option>
+                  ))}
+                </select>
+              </FilterRow>
+            )}
+
+            <FilterRow label={t('priceEur')}>
+              <input
+                type="number"
+                min="0"
+                placeholder={t('min')}
+                defaultValue={getParam('min')}
+                onBlur={e => setParam('min', e.target.value)}
+                className="w-24 border border-black px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none"
+              />
+              <span className="text-zinc-400">–</span>
+              <input
+                type="number"
+                min="0"
+                placeholder={t('max')}
+                defaultValue={getParam('max')}
+                onBlur={e => setParam('max', e.target.value)}
+                className="w-24 border border-black px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none"
+              />
+            </FilterRow>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const labelClass = recordstore
+    ? 'font-semibold text-black uppercase tracking-wide text-xs mb-2'
+    : 'font-medium text-zinc-700 mb-2';
 
   return (
     <div className={`space-y-6 text-sm ${className}`}>
@@ -166,5 +268,27 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
         </div>
       </div>
     </div>
+  );
+}
+
+function FilterRow({ label, children }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 md:gap-4">
+      <span className="text-xs font-bold uppercase tracking-wide text-black w-20 shrink-0">{label}</span>
+      <div className="flex flex-wrap items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
+function Pill({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border-2 transition-colors ${
+        active ? 'bg-black text-white border-black' : 'border-black text-black hover:bg-black hover:text-white'
+      }`}
+    >
+      {children}
+    </button>
   );
 }

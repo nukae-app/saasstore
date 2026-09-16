@@ -48,6 +48,7 @@
     "format": "Format",
     "tags": "Etiquetes",
     "genre": "Gènere",
+    "allGenres": "Tots els gèneres",
     "priceEur": "Preu (€)",
     "min": "Mínim",
     "max": "Màxim",
