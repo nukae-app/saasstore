@@ -526,6 +526,7 @@
   "disc": {
     "record": "Record",
     "newBadge": "New",
+    "fromPrice": "From",
     "home": "Home",
     "label": "Label",
     "year": "Year",

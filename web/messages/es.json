@@ -526,6 +526,7 @@
   "disc": {
     "record": "Disco",
     "newBadge": "Nuevo",
+    "fromPrice": "Desde",
     "home": "Inicio",
     "label": "Sello",
     "year": "Año",

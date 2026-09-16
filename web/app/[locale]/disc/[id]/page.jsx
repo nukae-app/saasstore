@@ -78,6 +78,15 @@ export default async function DiscPage({ params }) {
   const totalUnidadesDisponibles = disponiblesSegonaMa.length
     + disponiblesNou.reduce((sum, i) => sum + (i.quantity - i.reserved_quantity), 0);
 
+  // Preu prop del títol (mockup) — només té sentit quan és inequívoc. Amb
+  // segona_ma cada còpia pot tenir un preu diferent (ver CLAUDE.md, punt 1
+  // "releases vs items"), així que amb més d'un preu real es mostra "Des de"
+  // amb el mínim en comptes d'un preu únic fals.
+  const preusDisponibles = [...new Set(disponibles.map(i => parseFloat(i.price)))];
+  const preuUnic = preusDisponibles.length === 1 ? preusDisponibles[0] : null;
+  const preuDesDe = preusDisponibles.length > 0 ? Math.min(...preusDisponibles) : null;
+  const esNou = disponibles.some(i => i.condition === 'nou');
+
   // "Productes relacionats" (mateix gènere) — només tema Recordstore per ara;
   // el tema per defecte no compon aquesta secció a la fitxa.
   let relacionats = [];
@@ -141,7 +150,25 @@ export default async function DiscPage({ params }) {
               <h1 className={`text-3xl md:text-4xl leading-tight mb-1 ${recordstore ? 'font-serif uppercase' : 'font-serif italic'}`}>
                 {release.title}
               </h1>
-              <p className="text-xl font-medium text-zinc-700 mb-4">{release.artista}</p>
+              <p className={recordstore ? 'font-serif text-xl md:text-2xl uppercase tracking-tight text-black mb-4' : 'text-xl font-medium text-zinc-700 mb-4'}>
+                {release.artista}
+              </p>
+
+              {recordstore && preuUnic !== null && (
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="font-serif text-2xl">{preuUnic.toFixed(2)} €</span>
+                  {esNou && (
+                    <span className="bg-black text-white text-xs font-bold uppercase tracking-wide px-3 py-1">
+                      {t('newBadge')}
+                    </span>
+                  )}
+                </div>
+              )}
+              {recordstore && preuUnic === null && preuDesDe !== null && (
+                <p className="text-sm text-zinc-500 mb-6">
+                  {t('fromPrice')} <span className="font-serif text-2xl text-black">{preuDesDe.toFixed(2)} €</span>
+                </p>
+              )}
 
               <DiscInfoTabs
                 spotifyAlbumId={isVinils ? release.spotify_album_id : null}
@@ -295,7 +322,7 @@ export default async function DiscPage({ params }) {
 
               {release.tracklist?.length > 0 && (
                 <div>
-                  <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest mb-4">{t('tracklist')}</h2>
+                  <h2 className={recordstore ? 'font-serif text-xl md:text-2xl uppercase mb-6' : 'text-sm font-semibold text-zinc-500 uppercase tracking-widest mb-4'}>{t('tracklist')}</h2>
                   <ol className="divide-y divide-zinc-100">
                     {release.tracklist.map((t, i) => (
                       <li key={i} className="flex items-baseline gap-4 py-2.5 text-sm">
@@ -312,7 +339,7 @@ export default async function DiscPage({ params }) {
 
               {release.credits?.length > 0 && (
                 <div>
-                  <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest mb-4">{t('credits')}</h2>
+                  <h2 className={recordstore ? 'font-serif text-xl md:text-2xl uppercase mb-6' : 'text-sm font-semibold text-zinc-500 uppercase tracking-widest mb-4'}>{t('credits')}</h2>
                   <dl className="divide-y divide-zinc-100">
                     {release.credits.map((c, i) => (
                       <div key={i} className="flex gap-4 py-2.5 text-sm">

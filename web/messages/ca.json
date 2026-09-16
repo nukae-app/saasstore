@@ -526,6 +526,7 @@
   "disc": {
     "record": "Disc",
     "newBadge": "Nou",
+    "fromPrice": "Des de",
     "home": "Inici",
     "label": "Segell",
     "year": "Any",
