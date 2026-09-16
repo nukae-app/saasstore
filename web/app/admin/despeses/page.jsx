@@ -67,6 +67,7 @@ export default function DespesesPage() {
   const [expanded, setExpanded] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   async function loadAll() {
     setLoading(true);
@@ -86,9 +87,7 @@ export default function DespesesPage() {
   }
   useEffect(() => { loadAll(); }, []);
 
-  async function handleFilesSelected(e) {
-    const files = Array.from(e.target.files || []);
-    e.target.value = '';
+  async function uploadFiles(files) {
     if (files.length === 0) return;
     setUploading(true);
     for (const file of files) {
@@ -102,6 +101,12 @@ export default function DespesesPage() {
     }
     setUploading(false);
     await loadAll();
+  }
+
+  function handleFilesSelected(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    uploadFiles(files);
   }
 
   const baseList = tab === 'pendents' ? pendents : despeses;
@@ -129,26 +134,31 @@ export default function DespesesPage() {
 
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-y-2">
         <h2 className="text-2xl font-bold text-on-surface">{t('despeses.title', 'Despeses i factures')}</h2>
-        <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept="application/pdf" multiple hidden onChange={handleFilesSelected} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <input ref={fileInputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp" multiple hidden onChange={handleFilesSelected} />
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={handleFilesSelected} />
+          <Button variant="secondary" disabled={uploading} onClick={() => cameraInputRef.current?.click()}>
+            <MIcon name={uploading ? 'progress_activity' : 'photo_camera'} size={16} />
+            <span className="hidden sm:inline">{t('despeses.import.camera', 'Fer foto')}</span>
+          </Button>
           <Button variant="secondary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
             <MIcon name={uploading ? 'progress_activity' : 'upload_file'} size={16} />
-            {uploading ? t('despeses.import.uploading', 'Pujant...') : t('despeses.import.button', 'Importar PDF')}
+            <span className="hidden sm:inline">{uploading ? t('despeses.import.uploading', 'Pujant...') : t('despeses.import.button', 'Importar factura')}</span>
           </Button>
           <Button onClick={() => { setEditDespesa(null); setShowModal(true); }}>
-            <MIcon name="add" size={16} /> {t('despeses.new', 'Nova despesa')}
+            <MIcon name="add" size={16} /> <span className="hidden sm:inline">{t('despeses.new', 'Nova despesa')}</span>
           </Button>
         </div>
       </div>
 
-      {/* Cua de PDFs importats pendents de revisar */}
+      {/* Cua de factures importades (PDF o foto) pendents de revisar */}
       {imports.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-blue-800">
             <MIcon name="draft" size={18} />
-            {t('despeses.import.queue_title', 'PDFs importats pendents de revisar')} ({imports.length})
+            {t('despeses.import.queue_title', 'Factures importades pendents de revisar')} ({imports.length})
           </div>
           <div className="space-y-1.5">
             {imports.map(imp => (
@@ -163,7 +173,7 @@ export default function DespesesPage() {
                     className="text-xs font-medium text-primary hover:underline px-2 py-1">
                     {t('despeses.import.review', 'Revisar')}
                   </button>
-                  <button onClick={async () => { if (confirm(t('despeses.import.confirm_discard', 'Descartar aquest PDF? No es crearà cap despesa.'))) { await authFetch(`/admin/despeses/imports/${imp.id}`, { method: 'DELETE' }); loadAll(); } }}
+                  <button onClick={async () => { if (confirm(t('despeses.import.confirm_discard', 'Descartar aquest document? No es crearà cap despesa.'))) { await authFetch(`/admin/despeses/imports/${imp.id}`, { method: 'DELETE' }); loadAll(); } }}
                     className="text-secondary-foreground hover:text-red-500 p-1 rounded hover:bg-surface-container-high">
                     <MIcon name="close" size={14} />
                   </button>
@@ -420,7 +430,7 @@ function DespesaModal({ despesa, importRecord, proveidors, tipusIva, categories,
   }
 
   async function discard() {
-    if (!confirm(t('despeses.import.confirm_discard', 'Descartar aquest PDF? No es crearà cap despesa.'))) return;
+    if (!confirm(t('despeses.import.confirm_discard', 'Descartar aquest document? No es crearà cap despesa.'))) return;
     setSaving(true);
     const r = await authFetch(`/admin/despeses/imports/${importRecord.id}`, { method: 'DELETE' });
     setSaving(false);
@@ -441,12 +451,16 @@ function DespesaModal({ despesa, importRecord, proveidors, tipusIva, categories,
           {isImport && (
             <div className="border border-outline-variant rounded-xl overflow-hidden">
               <div className="px-4 py-2 bg-surface-container-high text-xs font-medium text-secondary-foreground flex items-center justify-between gap-2">
-                <span className="truncate">{t('despeses.import.original_pdf', 'PDF original')}: {importRecord.original_filename}</span>
+                <span className="truncate">{t('despeses.import.original_document', 'Document original')}: {importRecord.original_filename}</span>
                 <a href={importRecord.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline shrink-0">
                   {t('despeses.import.open_new_tab', 'Obrir en pestanya nova')}
                 </a>
               </div>
-              <iframe src={importRecord.file_url} title={importRecord.original_filename} className="w-full h-64 bg-surface-container-high" />
+              {/\.(jpe?g|png|webp)$/i.test(importRecord.file_url) ? (
+                <img src={importRecord.file_url} alt={importRecord.original_filename} className="w-full h-64 object-contain bg-surface-container-high" />
+              ) : (
+                <iframe src={importRecord.file_url} title={importRecord.original_filename} className="w-full h-64 bg-surface-container-high" />
+              )}
               {ext.confidence && ext.confidence !== 'alta' && (
                 <div className="px-4 py-2 bg-amber-50 text-xs text-amber-700 flex items-center gap-1.5">
                   <MIcon name="info" size={14} />
@@ -627,7 +641,7 @@ function DespesaModal({ despesa, importRecord, proveidors, tipusIva, categories,
           <div className="flex justify-end gap-3">
             {isImport && (
               <Button type="button" variant="secondary" onClick={discard} disabled={saving}>
-                {t('despeses.import.discard', 'Descartar PDF')}
+                {t('despeses.import.discard', 'Descartar')}
               </Button>
             )}
             <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel', "Cancel·lar")}</Button>

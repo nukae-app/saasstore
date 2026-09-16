@@ -1,4 +1,4 @@
-"""Extracció automàtica de dades d'una factura de proveïdor en PDF, per
+"""Extracció automàtica de dades d'una factura de proveïdor (PDF o foto), per
 prellenar l'alta de `Despesa` (veure `routers/comptabilitat/despeses_imports.py`).
 
 Sempre és un ESBORRANY: el resultat es guarda a `DespesaImport.extracted_data`
@@ -27,8 +27,10 @@ MODEL = "claude-sonnet-5"
 _CATEGORIES = ", ".join(c.value for c in CategoriaDespesa)
 
 PROMPT = f"""Ets un assistent que llegeix factures de proveïdor d'una botiga de \
-discos a Barcelona i n'extreu dades per a comptabilitat. Analitza el PDF adjunt \
-i retorna NOMÉS un JSON vàlid (sense markdown, sense explicació) amb aquesta forma:
+discos a Barcelona i n'extreu dades per a comptabilitat. Analitza el document \
+adjunt (pot ser un PDF o una foto feta amb el mòbil, potser torta o amb \
+ombres) i retorna NOMÉS un JSON vàlid (sense markdown, sense explicació) amb \
+aquesta forma:
 
 {{
   "supplier_name": string o null,
@@ -81,11 +83,26 @@ def _match_proveidor(db: Session, nif: str | None, name: str | None) -> "str | N
     return None
 
 
-async def extract_despesa_data(pdf_bytes: bytes, db: Session, settings: Settings) -> tuple[dict | None, str | None]:
+async def extract_despesa_data(
+    file_bytes: bytes, content_type: str, db: Session, settings: Settings
+) -> tuple[dict | None, str | None]:
     """Retorna (extracted_data, error_message) — sempre l'un o l'altre, mai
-    els dos. `extracted_data` inclou `proveidor_id` si s'ha pogut fer match."""
+    els dos. `extracted_data` inclou `proveidor_id` si s'ha pogut fer match.
+    `content_type` decideix si s'envia a Claude com a `document` (PDF) o
+    `image` (foto feta amb el mòbil) — mateixos content types que accepta
+    l'endpoint, veure ALLOWED_CONTENT_TYPES a despeses_imports.py."""
     if not settings.anthropic_api_key:
         return None, "No hi ha cap clau de Claude configurada (CLAUDE_KEY_INVOICE)"
+
+    block_type = "document" if content_type == "application/pdf" else "image"
+    file_block = {
+        "type": block_type,
+        "source": {
+            "type": "base64",
+            "media_type": content_type,
+            "data": base64.b64encode(file_bytes).decode("ascii"),
+        },
+    }
 
     try:
         client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
@@ -94,17 +111,7 @@ async def extract_despesa_data(pdf_bytes: bytes, db: Session, settings: Settings
             max_tokens=1024,
             messages=[{
                 "role": "user",
-                "content": [
-                    {
-                        "type": "document",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "application/pdf",
-                            "data": base64.b64encode(pdf_bytes).decode("ascii"),
-                        },
-                    },
-                    {"type": "text", "text": PROMPT},
-                ],
+                "content": [file_block, {"type": "text", "text": PROMPT}],
             }],
         )
         raw = message.content[0].text

@@ -23,6 +23,16 @@ router = APIRouter(prefix="/admin", tags=["comptabilitat"], dependencies=[Depend
 UPLOADS_ROOT = "/app/uploads"
 UPLOADS_DIR = os.path.join(UPLOADS_ROOT, "despeses")
 
+# Factura en PDF o foto (mòbil, capture de càmera) — Claude llegeix totes dues
+# nativament, veure services/despesa_extraction.py. Sense HEIC: l'API de
+# Claude no l'accepta i els navegadors mòbils ja converteixen a JPEG en pujar.
+ALLOWED_CONTENT_TYPES = {
+    "application/pdf": ".pdf",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
+
 
 @router.post("/despeses/imports", status_code=201, response_model=DespesaImportOut)
 async def crear_despesa_import(
@@ -30,13 +40,15 @@ async def crear_despesa_import(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
-    if (file.content_type or "") != "application/pdf" and not (file.filename or "").lower().endswith(".pdf"):
-        raise HTTPException(422, "Només s'accepten fitxers PDF")
+    content_type = (file.content_type or "").lower()
+    ext = ALLOWED_CONTENT_TYPES.get(content_type)
+    if ext is None:
+        raise HTTPException(422, "Només s'accepten PDF o fotos (JPEG, PNG, WebP, HEIC)")
 
     content = await file.read()
 
     os.makedirs(UPLOADS_DIR, exist_ok=True)
-    filename = f"{uuid.uuid4()}.pdf"
+    filename = f"{uuid.uuid4()}{ext}"
     with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
         f.write(content)
     file_url = f"/uploads/despeses/{filename}"
@@ -49,7 +61,7 @@ async def crear_despesa_import(
     db.add(imp)
     db.flush()
 
-    extracted_data, error_message = await extract_despesa_data(content, db, settings)
+    extracted_data, error_message = await extract_despesa_data(content, content_type, db, settings)
     if error_message:
         imp.status = DespesaImportStatus.error
         imp.error_message = error_message

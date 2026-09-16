@@ -47,7 +47,7 @@ def _auth(token: str) -> dict:
 
 
 def _mock_extraction(monkeypatch, data=None, error=None):
-    async def fake(pdf_bytes, db, settings):
+    async def fake(file_bytes, content_type, db, settings):
         return (data, error)
     monkeypatch.setattr(despeses_imports_router, "extract_despesa_data", AsyncMock(side_effect=fake))
 
@@ -92,7 +92,7 @@ def test_upload_pdf_error_queda_error(client, db, monkeypatch):
     assert body["extracted_data"] is None
 
 
-def test_upload_rebutja_no_pdf(client, db, monkeypatch):
+def test_upload_rebutja_tipus_no_suportat(client, db, monkeypatch):
     admin = _admin_token(client, db)
     resp = client.post(
         "/admin/despeses/imports",
@@ -100,6 +100,26 @@ def test_upload_rebutja_no_pdf(client, db, monkeypatch):
         headers=_auth(admin),
     )
     assert resp.status_code == 422
+
+
+def test_upload_accepta_foto_jpeg(client, db, monkeypatch):
+    admin = _admin_token(client, db)
+    extracted = {
+        "supplier_name": "DistroX", "supplier_nif": None, "invoice_number": None, "invoice_date": "2026-06-01",
+        "taxable_base": 10.0, "vat_pct": 21.0, "total": 12.1, "category": "altres",
+        "concept": "Foto factura", "confidence": "mitjana", "proveidor_id": None,
+    }
+    _mock_extraction(monkeypatch, data=extracted)
+
+    resp = client.post(
+        "/admin/despeses/imports",
+        files={"file": ("factura.jpg", b"\xff\xd8\xff fake jpeg", "image/jpeg")},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["file_url"].endswith(".jpg")
+    assert body["status"] == "processat"
 
 
 def test_confirmar_crea_despesa_i_enllaça_pdf(client, db, monkeypatch):
