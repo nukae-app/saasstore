@@ -62,11 +62,16 @@ async function CatalogResults({ searchParams, recordstore }) {
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-6">
-        <p className="text-sm text-zinc-500">
-          {catalog.total === 0 ? t('noResults') : t('resultCount', { count: catalog.total })}
-        </p>
-      </div>
+      {/* Sota Recordstore el mockup no porta comptador de resultats — es
+          manté només el missatge de "cap resultat", que és informació real
+          que l'usuari necessita, no un simple recompte decoratiu. */}
+      {(!recordstore || catalog.total === 0) && (
+        <div className="flex items-baseline justify-between mb-6">
+          <p className="text-sm text-zinc-500">
+            {catalog.total === 0 ? t('noResults') : t('resultCount', { count: catalog.total })}
+          </p>
+        </div>
+      )}
 
       {catalog.results.length === 0 ? (
         <div className="py-20 text-center">

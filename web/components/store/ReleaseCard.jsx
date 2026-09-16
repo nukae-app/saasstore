@@ -51,7 +51,7 @@ export default function ReleaseCard({ release }) {
           // per al tema per defecte (mai podria guanyar a l'inline).
           ...(recordstore ? { boxShadow: 'var(--shadow-card, none)' } : {}),
         }}
-        className={`aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center relative transition-shadow ${recordstore ? 'mb-6 md:mb-8' : 'mb-4 shadow-[0_2px_20px_-6px_rgba(15,23,42,0.06)] group-hover:shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)]'}`}
+        className={`aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center relative transition-shadow ${recordstore ? 'mb-2' : 'mb-4 shadow-[0_2px_20px_-6px_rgba(15,23,42,0.06)] group-hover:shadow-[0_8px_32px_-8px_rgba(15,23,42,0.12)]'}`}
       >
         {release.image_url ? (
           <Image
@@ -84,7 +84,11 @@ export default function ReleaseCard({ release }) {
         )}
       </div>
       {recordstore ? (
-        <div>
+        // El text va enganxat a la seva pròpia portada (mb-2 de dalt) — tot
+        // l'espai "de respir" viu aquí sota, com a padding-bottom del bloc
+        // sencer, perquè quedi abans de la fila següent, no entre la
+        // imatge i el seu propi text.
+        <div className="pb-6 md:pb-8">
           <p className="text-xs text-zinc-500 truncate leading-snug">{release.artista}</p>
           <p className="text-xs text-zinc-500 truncate leading-snug">
             {[release.formato, release.sello].filter(Boolean).join(' · ')}

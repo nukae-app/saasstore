@@ -58,7 +58,7 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
 
   if (recordstore && layout === 'horizontal') {
     return (
-      <div className={`border-b-2 border-black pb-8 mb-10 ${className}`}>
+      <div className={`pb-8 mb-10 ${className}`}>
         <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-4 md:gap-10">
           <div className="flex items-start justify-between md:block">
             <p className="font-serif text-2xl uppercase tracking-tight text-black">{t('filters')}</p>
