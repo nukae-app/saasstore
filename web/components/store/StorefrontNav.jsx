@@ -65,13 +65,16 @@ export default function StorefrontNav() {
           {t('maintenanceBanner')}
         </div>
       )}
-      <div className="container flex items-center h-16 gap-8">
+      <div className={`container flex items-center gap-8 ${recordstore ? 'h-20 md:h-28' : 'h-16'}`}>
         <Link href="/" className="shrink-0 opacity-90 hover:opacity-100 transition-opacity">
           {recordstore ? (
             // Mockup: sempre wordmark de text pla, mai el logo en caixa —
             // encara que el tenant tingui un logo_url pujat (ver
-            // StorefrontFooter.jsx pel mateix criteri).
-            <span className="font-serif text-xl md:text-2xl uppercase tracking-tight text-white">{config.nombre}</span>
+            // StorefrontFooter.jsx pel mateix criteri). Mida gran, a prop
+            // de la dels enllaços del nav (al mockup pesen pràcticament
+            // igual), no la mida petita "de marca discreta" del tema per
+            // defecte.
+            <span className="font-serif text-2xl md:text-4xl uppercase tracking-tight text-white leading-none">{config.nombre}</span>
           ) : config.logo_url ? (
             <img src={config.logo_url} alt={config.nombre} className="h-8 md:h-10 w-auto invert" />
           ) : (
@@ -79,15 +82,15 @@ export default function StorefrontNav() {
           )}
         </Link>
 
-        <nav className={`hidden md:flex items-center flex-1 ${recordstore ? 'gap-1 text-sm uppercase tracking-wide' : 'gap-6 text-sm text-zinc-500'}`}>
+        <nav className={`hidden md:flex items-center flex-1 ${recordstore ? 'gap-1 font-serif text-xl md:text-3xl uppercase tracking-tight' : 'gap-6 text-sm text-zinc-500'}`}>
           {links.map(({ href, label }, i) => (
             <span key={href} className="flex items-center">
-              {recordstore && i > 0 && <span className="mx-3 text-white/40" aria-hidden="true">•</span>}
+              {recordstore && i > 0 && <span className="mx-3 md:mx-4 text-white/50" aria-hidden="true">•</span>}
               <Link
                 href={href}
                 className={
                   recordstore
-                    ? `transition-colors ${pathname.startsWith(href) ? 'text-white font-semibold' : 'text-white/70 hover:text-white'}`
+                    ? `text-white transition-opacity hover:opacity-70 ${pathname.startsWith(href) ? '' : 'opacity-90'}`
                     : `hover:text-zinc-900 transition-colors ${pathname.startsWith(href) ? 'text-zinc-900 font-medium' : ''}`
                 }
               >
