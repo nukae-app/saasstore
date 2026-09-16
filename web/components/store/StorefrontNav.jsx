@@ -36,6 +36,12 @@ export default function StorefrontNav() {
   // canvi de component real, no només CSS. Es dedueix de config.theme
   // (mateix /config/public que ja es consultava) en lloc d'una prop nova.
   const recordstore = config.theme?.preset === 'recordstore';
+  // Als mockups la barra només és negra al home (on continua visualment amb
+  // la franja negra de la il·lustració de sota) — a la resta de pàgines es
+  // fon amb el fons clar de la pàgina, amb text fosc. `recordstore` decideix
+  // l'estructura (mida, font, separadors); `dark` només decideix quin joc
+  // de colors s'hi aplica per sobre.
+  const dark = recordstore && pathname === '/';
 
   useEffect(() => {
     fetch('/api/pagines')
@@ -56,7 +62,9 @@ export default function StorefrontNav() {
     <header
       className={
         recordstore
-          ? 'sticky top-0 z-40 bg-black text-white border-b border-black'
+          ? dark
+            ? 'sticky top-0 z-40 bg-black text-white border-b border-black'
+            : 'sticky top-0 z-40 bg-background text-foreground border-b border-black/10'
           : 'sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-zinc-200 text-zinc-900'
       }
     >
@@ -74,7 +82,7 @@ export default function StorefrontNav() {
             // de la dels enllaços del nav (al mockup pesen pràcticament
             // igual), no la mida petita "de marca discreta" del tema per
             // defecte.
-            <span className="font-serif text-2xl md:text-4xl uppercase tracking-tight text-white leading-none">{config.nombre}</span>
+            <span className={`font-serif text-2xl md:text-4xl uppercase tracking-tight leading-none ${dark ? 'text-white' : 'text-black'}`}>{config.nombre}</span>
           ) : config.logo_url ? (
             <img src={config.logo_url} alt={config.nombre} className="h-8 md:h-10 w-auto invert" />
           ) : (
@@ -85,12 +93,14 @@ export default function StorefrontNav() {
         <nav className={`hidden md:flex items-center flex-1 ${recordstore ? 'gap-1 font-serif text-xl md:text-3xl uppercase tracking-tight' : 'gap-6 text-sm text-zinc-500'}`}>
           {links.map(({ href, label }, i) => (
             <span key={href} className="flex items-center">
-              {recordstore && i > 0 && <span className="mx-3 md:mx-4 text-white/50" aria-hidden="true">•</span>}
+              {recordstore && i > 0 && (
+                <span className={`mx-3 md:mx-4 ${dark ? 'text-white/50' : 'text-black/30'}`} aria-hidden="true">•</span>
+              )}
               <Link
                 href={href}
                 className={
                   recordstore
-                    ? `text-white transition-opacity hover:opacity-70 ${pathname.startsWith(href) ? '' : 'opacity-90'}`
+                    ? `transition-opacity hover:opacity-70 ${dark ? 'text-white' : 'text-black'} ${pathname.startsWith(href) ? '' : 'opacity-90'}`
                     : `hover:text-zinc-900 transition-colors ${pathname.startsWith(href) ? 'text-zinc-900 font-medium' : ''}`
                 }
               >
@@ -101,16 +111,16 @@ export default function StorefrontNav() {
         </nav>
 
         <div className="flex items-center gap-3 ml-auto md:ml-0">
-          <LanguageSwitcher className="hidden md:flex" />
+          <LanguageSwitcher className="hidden md:flex" dark={dark} />
 
           {/* Cart */}
           <Link
             href="/carret"
-            className={`relative w-11 h-11 flex items-center justify-center transition-colors ${recordstore ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
+            className={`relative w-11 h-11 flex items-center justify-center transition-colors ${recordstore ? (dark ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black') : 'text-zinc-500 hover:text-zinc-900'}`}
           >
             <ShoppingBag size={20} />
             {itemCount > 0 && (
-              <span className={`absolute top-1.5 right-1.5 text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5 ${recordstore ? 'bg-white text-black' : 'bg-zinc-900 text-white'}`}>
+              <span className={`absolute top-1.5 right-1.5 text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5 ${recordstore ? (dark ? 'bg-white text-black' : 'bg-black text-white') : 'bg-zinc-900 text-white'}`}>
                 {itemCount > 9 ? '9+' : itemCount}
               </span>
             )}
@@ -121,7 +131,7 @@ export default function StorefrontNav() {
             <div className="relative">
               <button
                 onClick={() => setUserMenu(v => !v)}
-                className={`flex items-center gap-1.5 h-11 px-2 -mr-2 transition-colors ${recordstore ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
+                className={`flex items-center gap-1.5 h-11 px-2 -mr-2 transition-colors ${recordstore ? (dark ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black') : 'text-zinc-500 hover:text-zinc-900'}`}
               >
                 <User size={20} />
                 <span className="hidden md:block text-xs max-w-[100px] truncate">
@@ -168,7 +178,7 @@ export default function StorefrontNav() {
           ) : (
             <Link
               href="/login"
-              className={`hidden md:flex items-center gap-1.5 text-xs transition-colors p-1 ${recordstore ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
+              className={`hidden md:flex items-center gap-1.5 text-xs transition-colors p-1 ${recordstore ? (dark ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black') : 'text-zinc-500 hover:text-zinc-900'}`}
             >
               <User size={18} /> {t('login')}
             </Link>
@@ -176,7 +186,7 @@ export default function StorefrontNav() {
 
           {/* Mobile menu */}
           <button
-            className={`md:hidden w-11 h-11 -mr-2 flex items-center justify-center ${recordstore ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
+            className={`md:hidden w-11 h-11 -mr-2 flex items-center justify-center ${recordstore ? (dark ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black') : 'text-zinc-500 hover:text-zinc-900'}`}
             onClick={() => setOpen(v => !v)}
           >
             {open ? <X size={20} /> : <Menu size={20} />}
@@ -185,30 +195,30 @@ export default function StorefrontNav() {
       </div>
 
       {open && (
-        <div className={`md:hidden border-t py-4 px-4 flex flex-col gap-0.5 animate-fade-in ${recordstore ? 'border-white/20 uppercase tracking-wide' : 'border-zinc-200'}`}>
+        <div className={`md:hidden border-t py-4 px-4 flex flex-col gap-0.5 animate-fade-in ${recordstore ? `uppercase tracking-wide ${dark ? 'border-white/20' : 'border-black/10'}` : 'border-zinc-200'}`}>
           {links.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               onClick={() => setOpen(false)}
               className={recordstore
-                ? 'py-2.5 px-2 text-sm text-white/80 hover:text-white transition-colors'
+                ? `py-2.5 px-2 text-sm transition-colors ${dark ? 'text-white/80 hover:text-white' : 'text-black/70 hover:text-black'}`
                 : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors'}
             >
               {label}
             </Link>
           ))}
-          <div className={`border-t mt-2 pt-2 pb-2 ${recordstore ? 'border-white/20' : 'border-zinc-200'}`}>
-            <LanguageSwitcher />
+          <div className={`border-t mt-2 pt-2 pb-2 ${recordstore ? (dark ? 'border-white/20' : 'border-black/10') : 'border-zinc-200'}`}>
+            <LanguageSwitcher dark={dark} />
           </div>
-          <div className={`border-t mt-2 pt-2 ${recordstore ? 'border-white/20' : 'border-zinc-200'}`}>
+          <div className={`border-t mt-2 pt-2 ${recordstore ? (dark ? 'border-white/20' : 'border-black/10') : 'border-zinc-200'}`}>
             {user ? (
               <>
-                <Link href="/compte" onClick={() => setOpen(false)} className={recordstore ? 'py-2.5 px-2 text-sm text-white/80 hover:text-white transition-colors block' : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block'}>
+                <Link href="/compte" onClick={() => setOpen(false)} className={recordstore ? `py-2.5 px-2 text-sm transition-colors block ${dark ? 'text-white/80 hover:text-white' : 'text-black/70 hover:text-black'}` : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block'}>
                   {t('myAccount')}
                 </Link>
                 {user.role === 'admin' && (
-                  <NextLink href="/admin" onClick={() => setOpen(false)} className={recordstore ? 'py-2.5 px-2 text-sm text-white/80 hover:text-white transition-colors flex items-center gap-2' : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors flex items-center gap-2'}>
+                  <NextLink href="/admin" onClick={() => setOpen(false)} className={recordstore ? `py-2.5 px-2 text-sm transition-colors flex items-center gap-2 ${dark ? 'text-white/80 hover:text-white' : 'text-black/70 hover:text-black'}` : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors flex items-center gap-2'}>
                     <LayoutDashboard size={14} /> {t('adminPanel')}
                   </NextLink>
                 )}
@@ -217,7 +227,7 @@ export default function StorefrontNav() {
                 </button>
               </>
             ) : (
-              <Link href="/login" onClick={() => setOpen(false)} className={recordstore ? 'py-2.5 px-2 text-sm text-white/80 hover:text-white transition-colors block' : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block'}>
+              <Link href="/login" onClick={() => setOpen(false)} className={recordstore ? `py-2.5 px-2 text-sm transition-colors block ${dark ? 'text-white/80 hover:text-white' : 'text-black/70 hover:text-black'}` : 'py-2.5 px-2 text-sm text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition-colors block'}>
                 {t('loginRegister')}
               </Link>
             )}
