@@ -119,7 +119,7 @@ export default async function DiscPage({ params }) {
             {/* Cover */}
             <div
               style={{ borderRadius: 'var(--radius-card, 12px)' }}
-              className="relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center sticky top-24"
+              className="relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center md:sticky md:top-24"
             >
               {release.image_url ? (
                 <Image

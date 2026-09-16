@@ -49,7 +49,7 @@ export default function CompteLayoutClient({ children }) {
     <>
       <StorefrontNav />
       <main className="flex-1 container py-8 md:py-12">
-        <div className="flex gap-8 items-start">
+        <div className="flex flex-col md:flex-row gap-8 items-start">
           {/* Sidebar */}
           <aside className="hidden md:block w-52 shrink-0">
             <div className="bg-white rounded-xl shadow-[0_2px_20px_-6px_rgba(15,23,42,0.08)] overflow-hidden">

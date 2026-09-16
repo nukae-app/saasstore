@@ -248,7 +248,7 @@ export default function CatalogoPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-2xl font-bold text-on-surface">{t('catalog.title')}</h2>
         {tab === 'llistat' && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <button onClick={handleExport} disabled={exporting}
             className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors disabled:opacity-60">
             {exporting ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="download" size={13} />}

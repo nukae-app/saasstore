@@ -89,6 +89,7 @@ const EYEBROW_STYLE_OPTIONS = [
   { label: 'Normal', value: 'none' },
 ];
 const SPACING_DENSITY_OPTIONS = [
+  { label: 'Ultra compacte', value: '24px' },
   { label: 'Compacte', value: '48px' },
   { label: 'Normal', value: '96px' },
   { label: 'Espaiós', value: '128px' },
