@@ -13,12 +13,9 @@ const MAX_FEATURED_SIDE = 4;
 // ::CAROUSEL_LAYOUTS per a les 8 disposicions). `heading`/`subtitle`/
 // `cta_label` són copy del tenant; `releases` és el catàleg filtrat per
 // `props.etiqueta_slug`, el resol page.jsx igual que fetchAllByEtiqueta() ja
-// feia abans — mai dades de catàleg dins d'aquest component. `recordstore`/
-// `sectionIndex` són l'únic senyal de tema que rep aquest bloc (el resol
-// [locale]/page.jsx comptant els blocs "de graella" en ordre, ver comentari
-// allà) — permeten alternar blanc/gris entre "Novetats"/"Ofertes"/
-// "Recomanem" com al mockup, sense inventar-se un prop de color nou.
-export default function CarouselBlock({ id, layout = 'classic', heading, subtitle, cta_label, releases = [], recordstore = false, sectionIndex = 0 }) {
+// feia abans — mai dades de catàleg dins d'aquest component. `recordstore`
+// és l'únic senyal de tema que rep aquest bloc.
+export default function CarouselBlock({ id, layout = 'classic', heading, subtitle, cta_label, releases = [], recordstore = false }) {
   if (releases.length === 0) return null;
 
   let body;
@@ -62,7 +59,7 @@ export default function CarouselBlock({ id, layout = 'classic', heading, subtitl
         paddingBottom: 'var(--spacing-density)',
         borderTop: 'var(--section-divider, none)',
       }}
-      className={`px-5 md:px-16 ${recordstore && sectionIndex % 2 === 1 ? 'bg-accent' : 'bg-white'}`}
+      className="px-5 md:px-16 bg-white"
     >
       <div className="max-w-[var(--content-width,1280px)] mx-auto">
         <div className={`flex justify-between items-baseline ${recordstore ? 'mb-6 md:mb-8' : 'mb-12 md:mb-16'}`}>
