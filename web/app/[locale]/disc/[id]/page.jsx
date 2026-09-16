@@ -249,9 +249,11 @@ export default async function DiscPage({ params }) {
               <div className="mt-6">
               {disponibles.length > 0 ? (
                 <div className="space-y-3">
-                  <p className="text-sm font-medium text-zinc-700">
-                    {t('copiesAvailable', { count: totalUnidadesDisponibles })}
-                  </p>
+                  {!recordstore && (
+                    <p className="text-sm font-medium text-zinc-700">
+                      {t('copiesAvailable', { count: totalUnidadesDisponibles })}
+                    </p>
+                  )}
                   {disponiblesNou.map(item => (
                     <NouStockLine
                       key={item.id}
@@ -262,31 +264,58 @@ export default async function DiscPage({ params }) {
                     />
                   ))}
                   {disponiblesSegonaMa.map(item => (
-                    <div
-                      key={item.id}
-                      style={{ borderRadius: 'var(--radius-card, 12px)' }}
-                      className="flex items-center justify-between gap-4 p-4 border border-zinc-200 hover:border-zinc-300 transition-colors bg-white"
-                    >
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {isVinils ? (
-                          <>
-                            <ConditionBadge value={item.condition} />
-                            {item.estado_disco && (
-                              <span className="text-xs text-zinc-500">{t('vinylCondition')}: {item.estado_disco}</span>
+                    recordstore ? (
+                      // Cada còpia de segona mà té preu i estat propis (ver
+                      // CLAUDE.md, punt 1): a diferència de nou, aquí sí cal
+                      // repetir el preu — el que canvia és fer-ho més gran i
+                      // separar-ho del botó, que passa a ocupar tota l'amplada.
+                      <div key={item.id} className="border-2 border-black p-4 space-y-4">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          <div className="flex items-center gap-3 flex-wrap text-xs uppercase tracking-wide text-zinc-600">
+                            {isVinils ? (
+                              <>
+                                <ConditionBadge value={item.condition} />
+                                {item.estado_disco && <span>{t('vinylCondition')}: {item.estado_disco}</span>}
+                                {item.estado_funda && <span>{t('sleeveCondition')}: {item.estado_funda}</span>}
+                              </>
+                            ) : (
+                              <span>{t('usedItem')}</span>
                             )}
-                            {item.estado_funda && (
-                              <span className="text-xs text-zinc-500">{t('sleeveCondition')}: {item.estado_funda}</span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-xs text-zinc-500">{t('usedItem')}</span>
-                        )}
+                          </div>
+                          <PriceTag price={item.price} listPrice={item.list_price} size="text-xl" />
+                        </div>
+                        <AddToCartButton
+                          itemId={item.id}
+                          className="w-full h-14 text-base font-bold uppercase tracking-wide px-6"
+                        />
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <PriceTag price={item.price} listPrice={item.list_price} />
-                        <AddToCartButton itemId={item.id} />
+                    ) : (
+                      <div
+                        key={item.id}
+                        style={{ borderRadius: 'var(--radius-card, 12px)' }}
+                        className="flex items-center justify-between gap-4 p-4 border border-zinc-200 hover:border-zinc-300 transition-colors bg-white"
+                      >
+                        <div className="flex items-center gap-3 flex-wrap">
+                          {isVinils ? (
+                            <>
+                              <ConditionBadge value={item.condition} />
+                              {item.estado_disco && (
+                                <span className="text-xs text-zinc-500">{t('vinylCondition')}: {item.estado_disco}</span>
+                              )}
+                              {item.estado_funda && (
+                                <span className="text-xs text-zinc-500">{t('sleeveCondition')}: {item.estado_funda}</span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-zinc-500">{t('usedItem')}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <PriceTag price={item.price} listPrice={item.list_price} />
+                          <AddToCartButton itemId={item.id} />
+                        </div>
                       </div>
-                    </div>
+                    )
                   ))}
                 </div>
               ) : (
