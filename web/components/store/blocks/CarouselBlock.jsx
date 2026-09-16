@@ -65,7 +65,7 @@ export default function CarouselBlock({ id, layout = 'classic', heading, subtitl
       className={`px-5 md:px-16 ${recordstore && sectionIndex % 2 === 1 ? 'bg-accent' : 'bg-white'}`}
     >
       <div className="max-w-[var(--content-width,1280px)] mx-auto">
-        <div className="flex justify-between items-baseline mb-12 md:mb-16">
+        <div className={`flex justify-between items-baseline ${recordstore ? 'mb-6 md:mb-8' : 'mb-12 md:mb-16'}`}>
           <div>
             {heading && <h2 data-field="heading" className="font-serif italic text-3xl md:text-4xl">{heading}</h2>}
             {subtitle && <p data-field="subtitle" className="text-zinc-500 mt-2">{subtitle}</p>}

@@ -59,7 +59,7 @@ export default function ReleaseCard({ release }) {
             alt={`${release.artista} — ${release.title}`}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className={recordstore ? 'object-cover' : 'object-cover group-hover:scale-105 transition-transform duration-500'}
           />
         ) : (
           <div className="flex items-center justify-center w-full h-full">
