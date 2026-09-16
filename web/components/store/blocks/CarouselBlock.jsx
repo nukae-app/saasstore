@@ -38,6 +38,11 @@ export default function CarouselBlock({ id, layout = 'classic', heading, subtitl
     case 'grid':
       body = <StaticGrid releases={releases.slice(0, MAX_GRID)} recordstore={recordstore} />;
       break;
+    case 'grid_scroll':
+      // Sense MAX_GRID a propòsit: el sentit d'aquest layout és no haver
+      // de tallar la llista quan n'hi ha més de 8, a diferència de "grid".
+      body = <ScrollGrid releases={releases} />;
+      break;
     case 'autoplay':
       body = <AutoplayTrack releases={releases} />;
       break;
@@ -241,6 +246,21 @@ function StaticGrid({ releases, recordstore = false }) {
   return (
     <div className={recordstore ? 'grid grid-cols-2 md:grid-cols-4' : 'grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8'}>
       {releases.map((r) => <ReleaseCard key={r.id} release={r} />)}
+    </div>
+  );
+}
+
+// Mateixa targeta que "grid" (portades quadrades a tocar, ReleaseCard fa la
+// resta), però en una sola fila amb scroll horitzontal — per a llistes on
+// no té sentit tallar a MAX_GRID ni embolicar en files noves.
+function ScrollGrid({ releases }) {
+  return (
+    <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      {releases.map((r) => (
+        <div key={r.id} className="w-1/2 sm:w-1/3 md:w-1/4 shrink-0 snap-start">
+          <ReleaseCard release={r} />
+        </div>
+      ))}
     </div>
   );
 }

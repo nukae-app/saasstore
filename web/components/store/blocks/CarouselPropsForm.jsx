@@ -11,6 +11,7 @@ const LAYOUT_OPTIONS = [
   { value: 'list_rows', label: 'Llista vertical (una fila per disc)' },
   { value: 'minimal', label: 'Minimal, sense preu' },
   { value: 'grid', label: 'Graella fixa, sense scroll' },
+  { value: 'grid_scroll', label: 'Graella amb desplaçament horitzontal' },
   { value: 'autoplay', label: 'Desplaçament automàtic' },
   { value: 'oferta', label: 'Amb el preu destacat' },
 ];

@@ -62,6 +62,10 @@ class HeroProps(BackgroundProps):
 CAROUSEL_LAYOUTS = (
     "classic", "overlay", "featured_large", "list_rows",
     "minimal", "grid", "autoplay", "oferta",
+    # Com "grid" (portades quadrades a tocar, mateixa ReleaseCard) però en
+    # una sola fila amb scroll horitzontal en comptes d'embolicar en files
+    # noves — per a llistes llargues que no s'han de tallar a MAX_GRID.
+    "grid_scroll",
 )
 
 
