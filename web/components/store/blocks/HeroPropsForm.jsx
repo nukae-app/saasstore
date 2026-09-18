@@ -24,6 +24,14 @@ const TEXT_ALIGN_OPTIONS = [
   { value: 'right', label: 'Dreta' },
 ];
 
+// Mateixes claus que api/app/blocks/registry.py::ILLUSTRATION_SIZES.
+const ILLUSTRATION_SIZE_OPTIONS = [
+  { value: 'small', label: 'Petita' },
+  { value: 'medium', label: 'Mitjana' },
+  { value: 'large', label: 'Gran' },
+  { value: 'full_bleed', label: 'Sang a sang' },
+];
+
 const USES_FEATURED_LABEL = new Set(['image_right', 'image_left', 'dual_featured']);
 const USES_BACKGROUND_FIELDSET = new Set(['background_center', 'background_left', 'solid_color', 'illustration_band']);
 
@@ -143,7 +151,21 @@ export default function HeroPropsForm({ props, onChange, onFieldChange }) {
       )}
 
       {layout === 'illustration_band' && (
-        <p className="text-xs text-zinc-400">Franja negra a sang amb només una imatge — ignora eyebrow/títol/subtítol/botó, siguin quins siguin. Puja-hi la il·lustració a "Imatge" de sota.</p>
+        <>
+          <p className="text-xs text-zinc-400">Franja negra a sang amb només una imatge — ignora eyebrow/títol/subtítol/botó, siguin quins siguin. Puja-hi la il·lustració a "Imatge" de sota.</p>
+          <div>
+            <label className="block text-xs font-medium text-zinc-600 mb-1">Mida de la il·lustració</label>
+            <select
+              value={props.illustration_size || 'medium'}
+              onChange={(e) => set('illustration_size', e.target.value)}
+              className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+            >
+              {ILLUSTRATION_SIZE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </>
       )}
 
       {USES_BACKGROUND_FIELDSET.has(layout) && (

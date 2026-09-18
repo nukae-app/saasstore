@@ -37,6 +37,11 @@ HERO_LAYOUTS = (
     "illustration_band",
 )
 
+# Mides de la il·lustració a layout="illustration_band" — ver
+# web/components/store/HomeHero.jsx per als amples que representa cada
+# valor i web/components/store/blocks/HeroPropsForm.jsx per al selector.
+ILLUSTRATION_SIZES = ("small", "medium", "large", "full_bleed")
+
 
 class HeroProps(BackgroundProps):
     layout: str = "image_right"
@@ -55,6 +60,8 @@ class HeroProps(BackgroundProps):
     # Només rellevant amb layout="background_video" — als altres layouts
     # l'alineació ja ve fixada pel propi layout (image_right/image_left...).
     text_align: str = "center"
+    # Només rellevant amb layout="illustration_band" (ver ILLUSTRATION_SIZES).
+    illustration_size: str = "medium"
 
 
 # Variants de disposició del bloc "carousel" — ver

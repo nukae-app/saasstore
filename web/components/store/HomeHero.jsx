@@ -17,10 +17,21 @@ const GENERIC_BACKGROUND_LAYOUTS = new Set(['image_right', 'image_left', 'dual_f
 // ::HERO_LAYOUTS per a les 10 disposicions). `featured`/`featured2`/
 // `mosaicReleases`/`config` segueixen sent dades en viu (catàleg/config del
 // tenant), les resol [locale]/page.jsx a cada request — mai props d'admin.
+// Amples del contenidor de la il·lustració a layout="illustration_band" —
+// ver api/app/blocks/registry.py::ILLUSTRATION_SIZES. "full_bleed" treu
+// contenidor i padding: la imatge ocupa tota l'amplada de la franja.
+const ILLUSTRATION_SIZE_CLASSES = {
+  small: 'max-w-xl mx-auto px-8',
+  medium: 'max-w-3xl mx-auto px-8',
+  large: 'max-w-5xl mx-auto px-8',
+  full_bleed: 'w-full',
+};
+
 export default async function HomeHero({
   id, layout = 'image_right', eyebrow, title, subtitle, cta_label, cta_href = '/cataleg',
   featured, featured2, mosaicReleases = [], config,
   featured_label, background_color, background_image_url, background_video_url, text_align,
+  illustration_size = 'medium',
 }) {
   const t = await getTranslations('home');
   const recordstore = config?.theme?.preset === 'recordstore';
@@ -32,7 +43,7 @@ export default async function HomeHero({
     if (!background_image_url) return null;
     return (
       <section data-block-id={id} className="bg-black py-12 md:py-16 mb-16 md:mb-24">
-        <div className="max-w-3xl mx-auto px-8">
+        <div className={ILLUSTRATION_SIZE_CLASSES[illustration_size] || ILLUSTRATION_SIZE_CLASSES.medium}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={background_image_url} alt="" className="w-full h-auto" />
         </div>
