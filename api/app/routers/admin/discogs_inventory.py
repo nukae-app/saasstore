@@ -38,10 +38,20 @@ class InventoryJobIn(BaseModel):
     reobrir_adopcio: bool = False
 
 
-def _estat(tenant_id, job: dict | None) -> dict:
-    """Treball actual + context que la pantalla necessita per decidir què mostrar."""
+def _run_out(r, current: dict | None) -> dict:
+    return {
+        "id": r.id, "kind": r.kind, "status": channel_runs.effective_status(r, current), "summary": r.summary,
+        "error": r.error, "error_kind": r.error_kind, "rows_count": r.rows_count, "options": r.options,
+        "created_at": r.created_at, "started_at": r.started_at, "finished_at": r.finished_at,
+    }
+
+
+def _estat(db: Session, tenant_id, job: dict | None) -> dict:
+    """Trabajo en curso (uno solo: comparten el presupuesto de llamadas del token) + el ÚLTIMO resultado de cada
+    tipo, para que cada pestaña conserve el suyo aunque se lance un trabajo de otro tipo."""
     dry = jobs.last_dry_run(tenant_id)
-    return {"job": job, "ultima_simulacio": dry}
+    ultims = {kind: _run_out(r, job) for kind, r in channel_runs.latest_by_kind(db).items()}
+    return {"job": job, "ultima_simulacio": dry, "ultims": ultims}
 
 
 @router.post("/jobs", status_code=202)
@@ -69,27 +79,26 @@ def start_inventory_job(payload: InventoryJobIn, request: Request, db: Session =
         jobs.update_job(tenant_id, job["id"], status="error", error=f"No s'ha pogut encuar el treball: {exc}")
         channel_runs.update_run(db, job["id"], status="error", error=f"No s'ha pogut encuar el treball: {exc}")
         raise HTTPException(503, "No s'ha pogut llançar el treball en segon pla (cua no disponible).")
-    return _estat(tenant_id, job)
+    return _estat(db, tenant_id, job)
 
 
 @router.get("/jobs/current")
-def current_inventory_job(request: Request):
+def current_inventory_job(request: Request, db: Session = Depends(get_db)):
     tenant_id = request.state.tenant.id
-    return _estat(tenant_id, jobs.get_job(tenant_id))
+    return _estat(db, tenant_id, jobs.get_job(tenant_id))
 
 
 @router.get("/runs")
-def inventory_runs(request: Request, limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
-    """Historial persistente de sincronitzacions (sobreviu a la caducitat de Redis)."""
+def inventory_runs(
+    request: Request, limit: int = Query(20, ge=1, le=100), kinds: str | None = Query(None, description="tipos separados por comas"),
+    db: Session = Depends(get_db),
+):
+    """Historial persistente de ejecuciones. Con `kinds` solo las de esas funcionalidades (cada pestaña pide
+    el suyo, sin mezclar informes); sin él, todas."""
     current = jobs.get_job(request.state.tenant.id)
-    return [
-        {
-            "id": r.id, "kind": r.kind, "status": channel_runs.effective_status(r, current),
-            "summary": r.summary, "error": r.error, "rows_count": r.rows_count, "options": r.options,
-            "created_at": r.created_at, "started_at": r.started_at, "finished_at": r.finished_at,
-        }
-        for r in channel_runs.list_runs(db, limit)
-    ]
+    wanted = [k for k in (kinds or "").split(",") if k]
+    runs = channel_runs.list_runs_by_kind(db, wanted, limit) if wanted else channel_runs.list_runs(db, limit)
+    return [_run_out(r, current) for r in runs]
 
 
 def _rows_or_404(db: Session, tenant_id, job_id: str) -> list[dict]:

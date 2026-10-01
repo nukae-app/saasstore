@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '../../../../components/ui/button';
 import MIcon from '../../../../components/ui/m-icon';
-import { Badge, CH, ErrorBox, ProgressPanel, api, fmtDate } from './shared';
+import { Badge, CH, ErrorBox, ProgressPanel, Results, RunHistory, api, fmtDate } from './shared';
 
 const KINDS = {
   order_sense_match: 'Comanda sense coincidència', order_conflict: 'Conflicte de comanda',
@@ -24,8 +24,10 @@ export default function AlertsTab({ t, account, estat, reload, goTab }) {
   const [error, setError] = useState('');
   const [auditing, setAuditing] = useState(false);
   const job = estat?.job;
-  const auditJob = job && job.mode === 'audit' ? job : null;
-  const running = !!auditJob && ['queued', 'running'].includes(auditJob.status);
+  const auditJob = job && job.mode === 'audit' && ['queued', 'running'].includes(job.status) ? job : null;
+  const running = !!auditJob;
+  const lastAudit = estat?.ultims?.audit || null;   // último resultado de ESTA funcionalidad
+  const [viewRun, setViewRun] = useState(null);
 
   const load = useCallback(async () => {
     const p = new URLSearchParams({ status, limit: '100' });
@@ -68,7 +70,7 @@ export default function AlertsTab({ t, account, estat, reload, goTab }) {
         </Button>
       </div>
       {running && <ProgressPanel t={t} job={auditJob} />}
-      {auditJob && auditJob.status === 'error' && <ErrorBox>{auditJob.error}</ErrorBox>}
+      {!running && lastAudit && lastAudit.status === 'error' && <ErrorBox>{lastAudit.error}</ErrorBox>}
 
       <div className="flex items-center gap-3 flex-wrap">
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="border border-outline-variant rounded-xl px-3 py-2 text-sm bg-card">
@@ -115,6 +117,9 @@ export default function AlertsTab({ t, account, estat, reload, goTab }) {
           <div className="p-10 text-center text-sm text-secondary-foreground">{t('discogs.alerts.none', 'Cap alerta. Tot en ordre.')}</div>
         )}
       </div>
+
+      <RunHistory t={t} kinds={['audit']} refreshKey={`${job?.id}-${job?.status}`} viewId={viewRun?.id} onView={setViewRun} />
+      {viewRun && <Results t={t} jobId={viewRun.id} />}
     </div>
   );
 }

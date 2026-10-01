@@ -53,6 +53,28 @@ def list_runs(db: Session, limit: int = 20, channel: str = CHANNEL_DISCOGS) -> l
     ).all())
 
 
+KINDS = ("inventory_dry_run", "inventory_apply", "reconcile_apply", "audit", "pricing_preview")
+
+
+def list_runs_by_kind(db: Session, kinds: list[str], limit: int = 20, channel: str = CHANNEL_DISCOGS) -> list[ChannelSyncRun]:
+    """Historial de UNA funcionalidad (cada pestaña ve solo el suyo, sin mezclar informes de otras)."""
+    return list(db.scalars(
+        select(ChannelSyncRun).where(ChannelSyncRun.channel == channel, ChannelSyncRun.kind.in_(kinds))
+        .order_by(ChannelSyncRun.created_at.desc()).limit(limit)
+    ).all())
+
+
+def latest_by_kind(db: Session, channel: str = CHANNEL_DISCOGS) -> dict[str, ChannelSyncRun]:
+    """Última ejecución de cada tipo: cada pestaña muestra SU último resultado aunque después se haya
+    lanzado un trabajo de otro tipo (la ranura de "trabajo en curso" es única, la de resultados no)."""
+    latest: dict[str, ChannelSyncRun] = {}
+    for run in db.scalars(
+        select(ChannelSyncRun).where(ChannelSyncRun.channel == channel).order_by(ChannelSyncRun.created_at.desc()).limit(80)
+    ).all():
+        latest.setdefault(run.kind, run)
+    return latest
+
+
 def load_report(db: Session, run_id: str) -> list[dict] | None:
     run = db.get(ChannelSyncRun, run_id)
     return run.report if run is not None else None

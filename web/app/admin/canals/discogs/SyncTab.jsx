@@ -8,25 +8,25 @@ import { authFetch } from '../../../lib/auth';
 import { Button } from '../../../../components/ui/button';
 import MIcon from '../../../../components/ui/m-icon';
 import {
-  INV, DAY_MS, RUN_KIND, RUN_STATUS, fmtDate, ProgressPanel, JobError, Results, ErrorBox,
+  INV, DAY_MS, fmtDate, ProgressPanel, JobError, Results, ErrorBox, RunHistory,
 } from './shared';
+
+const KINDS = ['inventory_dry_run', 'inventory_apply'];
 
 export default function SyncTab({ t, account, estat, reload, reloadAccount }) {
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
-  const [runs, setRuns] = useState([]);
   const [viewRun, setViewRun] = useState(null);
 
   const job = estat?.job || null;
   const running = !!job && ['queued', 'running'].includes(job.status);
   const isInventory = !!job && ['dry_run', 'apply'].includes(job.mode);
+  // Último resultado de ESTA funcionalidad (simulación o carga), aunque después se haya lanzado otro tipo de trabajo.
+  const ult = estat?.ultims || {};
+  const latest = [ult.inventory_dry_run, ult.inventory_apply].filter(Boolean)
+    .sort((x, y) => new Date(y.created_at) - new Date(x.created_at))[0] || null;
+  const latestDone = latest && latest.status === 'done' ? latest : null;
 
-  const loadRuns = useCallback(async () => {
-    const r = await authFetch(`${INV}/runs`);
-    if (r.ok) setRuns(await r.json());
-  }, []);
-  // L'historial es refresca en canviar l'estat del treball actual (nou, acabat...).
-  useEffect(() => { loadRuns(); }, [loadRuns, job?.id, job?.status]);
   // Quan una execució real acaba, l'estat d'adopció del compte canvia.
   useEffect(() => {
     if (job?.mode === 'apply' && job?.status === 'done') reloadAccount();
@@ -57,23 +57,23 @@ export default function SyncTab({ t, account, estat, reload, reloadAccount }) {
       <ErrorBox>{error}</ErrorBox>
 
       <StepSimulation
-        t={t} running={running} starting={starting} job={isInventory ? job : null} adopcioFeta={adopcioFeta}
+        t={t} running={running && isInventory} starting={starting} adopcioFeta={adopcioFeta}
+        job={latest ? { mode: latest.kind === 'inventory_dry_run' ? 'dry_run' : 'apply', status: latest.status } : null}
         onStart={() => start('dry_run')}
       />
 
-      {isInventory && job.status === 'error' && <JobError t={t} job={job} />}
       {isInventory && running && <ProgressPanel t={t} job={job} />}
+      {!running && latest && latest.status === 'error' && <JobError t={t} job={latest} />}
 
-      {isInventory && job.status === 'done' && job.mode === 'dry_run' && (
+      {!running && latestDone && (
         <>
-          <Summary t={t} summary={job.summary} title={t('discogs.canal.sim_result', 'Resultat de la simulació (res s\'ha guardat)')} />
-          <Results t={t} jobId={job.id} />
-        </>
-      )}
-      {isInventory && job.status === 'done' && job.mode === 'apply' && (
-        <>
-          <Summary t={t} summary={job.summary} title={t('discogs.canal.apply_result', 'Sincronització aplicada')} applied />
-          <Results t={t} jobId={job.id} />
+          <Summary
+            t={t} summary={latestDone.summary} applied={latestDone.kind === 'inventory_apply'}
+            title={latestDone.kind === 'inventory_apply'
+              ? t('discogs.canal.apply_result', 'Sincronització aplicada')
+              : t('discogs.canal.sim_result', 'Resultat de la simulació (res s\'ha guardat)')}
+          />
+          <Results t={t} jobId={latestDone.id} />
         </>
       )}
 
@@ -81,15 +81,13 @@ export default function SyncTab({ t, account, estat, reload, reloadAccount }) {
         <ApplyPanel t={t} simulacio={simulacio} starting={starting} onApply={(force) => start('apply', { force })} />
       )}
 
-      <HistoryPanel t={t} runs={runs} viewId={viewRun?.id} onView={setViewRun} />
-      {viewRun && (
+      <RunHistory t={t} kinds={KINDS} refreshKey={`${job?.id}-${job?.status}`} viewId={viewRun?.id} onView={setViewRun} />
+      {viewRun && viewRun.summary && viewRun.id !== latestDone?.id && (
         <>
-          {viewRun.summary && ['inventory_dry_run', 'inventory_apply'].includes(viewRun.kind) && (
-            <Summary
-              t={t} summary={viewRun.summary} applied={viewRun.kind === 'inventory_apply'}
-              title={`${t('discogs.canal.history_report', 'Informe de l\'execució')} · ${fmtDate(viewRun.created_at)}`}
-            />
-          )}
+          <Summary
+            t={t} summary={viewRun.summary} applied={viewRun.kind === 'inventory_apply'}
+            title={`${t('discogs.canal.history_report', 'Informe de l\'execució')} · ${fmtDate(viewRun.created_at)}`}
+          />
           <Results t={t} jobId={viewRun.id} />
         </>
       )}
@@ -200,62 +198,6 @@ function ApplyPanel({ t, simulacio, starting, onApply }) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function runSummary(s) {
-  if (s.mode === 'reconcile') return `${s.publicats} publicats · ${s.actualitzats} preus · ${s.retirats} retirats · ${s.errors} errors`;
-  if (s.mode === 'audit') return `${s.orfes} orfes · ${s.no_a_discogs} ja no hi són · ${s.preus} de preu`;
-  if (s.mode === 'pricing_preview') return `${s.puja} pugen · ${s.baixa} baixen · ${s.igual} igual · ${s.sense_suggeriment} sense suggeriment`;
-  return `${s.creats} creats · ${s.sumats} sumats · ${s.actualitzats} actualitzats · ${s.retirats} retirats · ${s.errors} errors`;
-}
-
-function HistoryPanel({ t, runs, viewId, onView }) {
-  if (!runs || runs.length === 0) return null;
-  return (
-    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-      <p className="px-5 pt-4 pb-2 text-sm font-semibold text-on-surface">{t('discogs.canal.history', 'Historial')}</p>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-xs text-secondary-foreground border-b border-outline-variant">
-            <tr>
-              <th className="px-5 py-2 text-left font-medium">{t('discogs.canal.col_date', 'Data')}</th>
-              <th className="px-3 py-2 text-left font-medium">{t('discogs.canal.col_type', 'Tipus')}</th>
-              <th className="px-3 py-2 text-left font-medium">{t('discogs.canal.col_status', 'Estat')}</th>
-              <th className="px-3 py-2 text-left font-medium">{t('discogs.canal.col_result', 'Resultat')}</th>
-              <th className="px-3 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {runs.map((r) => {
-              const st = RUN_STATUS[r.status] || RUN_STATUS.queued;
-              const s = r.summary;
-              return (
-                <tr key={r.id} className="border-b border-outline-variant last:border-0">
-                  <td className="px-5 py-2 text-secondary-foreground">{fmtDate(r.created_at)}</td>
-                  <td className="px-3 py-2">{RUN_KIND[r.kind] || r.kind}</td>
-                  <td className="px-3 py-2">
-                    <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-secondary-foreground">
-                    {r.error
-                      ? r.error
-                      : s ? runSummary(s) : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    {r.status === 'done' && r.rows_count > 0 && (
-                      <Button variant="secondary" size="sm" onClick={() => onView(viewId === r.id ? null : r)}>
-                        {viewId === r.id ? t('discogs.canal.hide', 'Amaga') : t('discogs.canal.view_report', 'Veure informe')}
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '../../../../components/ui/button';
 import MIcon from '../../../../components/ui/m-icon';
-import { ACTIONS, Badge, CH, ErrorBox, INV, Panel, ProgressPanel, api, fmtPrice } from './shared';
+import { ACTIONS, Badge, CH, ErrorBox, INV, Panel, ProgressPanel, Results, RunHistory, api, fmtPrice } from './shared';
 
 const inputCls = 'border border-outline-variant rounded-xl px-3 py-2 text-sm bg-card w-full';
 
@@ -27,8 +27,11 @@ export default function PricesTab({ t, estat, reload, goTab }) {
   const [busy, setBusy] = useState(false);
 
   const job = estat?.job;
-  const priceJob = job && job.mode === 'pricing_preview' ? job : null;
-  const running = !!priceJob && ['queued', 'running'].includes(priceJob.status);
+  // En curso y último resultado de ESTA funcionalidad: no desaparece si se lanza otro tipo de trabajo.
+  const runningJob = job && job.mode === 'pricing_preview' && ['queued', 'running'].includes(job.status) ? job : null;
+  const running = !!runningJob;
+  const priceJob = estat?.ultims?.pricing_preview || null;
+  const [viewRun, setViewRun] = useState(null);
 
   async function lookup() {
     setError('');
@@ -69,8 +72,8 @@ export default function PricesTab({ t, estat, reload, goTab }) {
     setSelected(new Set(all.filter((x) => ['repreu_puja', 'repreu_baixa'].includes(x.accio)).map((x) => x.item_id)));
   }, []);
   useEffect(() => {
-    if (priceJob && priceJob.status === 'done') loadRows(priceJob.id);
-  }, [priceJob?.id, priceJob?.status, loadRows]);
+    if (!running && priceJob && priceJob.status === 'done') loadRows(priceJob.id);
+  }, [priceJob?.id, priceJob?.status, running, loadRows]);
 
   async function apply() {
     setBusy(true);
@@ -135,11 +138,11 @@ export default function PricesTab({ t, estat, reload, goTab }) {
         </div>
       </Panel>
 
-      {running && <ProgressPanel t={t} job={priceJob} />}
-      {priceJob && priceJob.status === 'error' && <ErrorBox>{priceJob.error}</ErrorBox>}
+      {runningJob && <ProgressPanel t={t} job={runningJob} />}
+      {!running && priceJob && priceJob.status === 'error' && <ErrorBox>{priceJob.error}</ErrorBox>}
       {msg && <div className="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{msg} <button type="button" className="underline ml-2" onClick={() => goTab('listings', { accio: 'actualitzar_preu' })}>{t('discogs.prices.go_listings', 'Propagar a Discogs (Listings)')}</button></div>}
 
-      {priceJob && priceJob.status === 'done' && rows && (
+      {!running && priceJob && priceJob.status === 'done' && priceJob.summary && rows && (
         <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
           <div className="p-4 flex items-center justify-between gap-3 flex-wrap border-b border-outline-variant">
             <p className="text-sm text-on-surface">
@@ -185,6 +188,9 @@ export default function PricesTab({ t, estat, reload, goTab }) {
           </div>
         </div>
       )}
+
+      <RunHistory t={t} kinds={['pricing_preview']} refreshKey={`${job?.id}-${job?.status}`} viewId={viewRun?.id} onView={setViewRun} />
+      {viewRun && viewRun.id !== priceJob?.id && <Results t={t} jobId={viewRun.id} />}
     </div>
   );
 }

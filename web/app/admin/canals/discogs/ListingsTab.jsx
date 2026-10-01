@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '../../../../components/ui/button';
 import MIcon from '../../../../components/ui/m-icon';
 import {
-  ACTIONS, Badge, CH, ErrorBox, PAGE, ProgressPanel, Results, api, fmtPrice, fmtDate,
+  ACTIONS, Badge, CH, ErrorBox, PAGE, ProgressPanel, Results, RunHistory, api, fmtPrice, fmtDate,
 } from './shared';
 
 const ESTATS = {
@@ -34,8 +34,11 @@ export default function ListingsTab({ t, account, estat, reload, initial }) {
   const [expanded, setExpanded] = useState(null);
 
   const job = estat?.job;
-  const reconcileJob = job && job.mode === 'reconcile' ? job : null;
-  const running = !!reconcileJob && ['queued', 'running'].includes(reconcileJob.status);
+  // En curso (si es una reconciliación) y último resultado de ESTA funcionalidad, aunque después se lance otro tipo.
+  const runningJob = job && job.mode === 'reconcile' && ['queued', 'running'].includes(job.status) ? job : null;
+  const running = !!runningJob;
+  const lastRec = estat?.ultims?.reconcile_apply || null;
+  const [viewRun, setViewRun] = useState(null);
   const readOnly = !!account?.solo_lectura;
 
   const load = useCallback(async () => {
@@ -103,16 +106,16 @@ export default function ListingsTab({ t, account, estat, reload, initial }) {
         </Button>
       </div>
 
-      {reconcileJob && running && <ProgressPanel t={t} job={reconcileJob} />}
-      {reconcileJob && reconcileJob.status === 'error' && <ErrorBox>{reconcileJob.error}</ErrorBox>}
-      {reconcileJob && reconcileJob.status === 'done' && (
+      {runningJob && <ProgressPanel t={t} job={runningJob} />}
+      {!runningJob && lastRec && lastRec.status === 'error' && <ErrorBox>{lastRec.error}</ErrorBox>}
+      {!runningJob && lastRec && lastRec.status === 'done' && lastRec.summary && (
         <div className="bg-card rounded-2xl border border-outline-variant p-4 space-y-3">
           <p className="text-sm font-semibold text-on-surface">
-            {t('discogs.listings.done', 'Reconciliació acabada')}: {reconcileJob.summary.publicats} {t('discogs.listings.published', 'publicats')} ·{' '}
-            {reconcileJob.summary.actualitzats} {t('discogs.listings.prices', 'preus')} · {reconcileJob.summary.retirats} {t('discogs.listings.retired', 'retirats')} ·{' '}
-            {reconcileJob.summary.errors} errors
+            {t('discogs.listings.done', 'Última reconciliació')} ({fmtDate(lastRec.finished_at)}): {lastRec.summary.publicats} {t('discogs.listings.published', 'publicats')} ·{' '}
+            {lastRec.summary.actualitzats} {t('discogs.listings.prices', 'preus')} · {lastRec.summary.retirats} {t('discogs.listings.retired', 'retirats')} ·{' '}
+            {lastRec.summary.errors} errors
           </p>
-          <Results t={t} jobId={reconcileJob.id} />
+          <Results t={t} jobId={lastRec.id} />
         </div>
       )}
 
@@ -216,6 +219,9 @@ export default function ListingsTab({ t, account, estat, reload, initial }) {
           </div>
         </div>
       </div>
+
+      <RunHistory t={t} kinds={['reconcile_apply']} refreshKey={`${job?.id}-${job?.status}`} viewId={viewRun?.id} onView={setViewRun} />
+      {viewRun && viewRun.id !== lastRec?.id && <Results t={t} jobId={viewRun.id} />}
 
       {preview && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">

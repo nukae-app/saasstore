@@ -249,3 +249,68 @@ export async function api(path, { method = 'GET', body } = {}) {
   const data = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, data };
 }
+
+export function runSummary(s) {
+  if (s.mode === 'reconcile') return `${s.publicats} publicats · ${s.actualitzats} preus · ${s.retirats} retirats · ${s.errors} errors`;
+  if (s.mode === 'audit') return `${s.orfes} orfes · ${s.no_a_discogs} ja no hi són · ${s.preus} de preu`;
+  if (s.mode === 'pricing_preview') return `${s.puja} pugen · ${s.baixa} baixen · ${s.igual} igual · ${s.sense_suggeriment} sense suggeriment`;
+  return `${s.creats} creats · ${s.sumats} sumats · ${s.actualitzats} actualitzats · ${s.retirats} retirats · ${s.errors} errors`;
+}
+
+export function RunHistory({ t, kinds, refreshKey, viewId, onView }) {
+  const [runs, setRuns] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    authFetch(`${INV}/runs?kinds=${kinds.join(',')}`).then(async (r) => {
+      if (r.ok && !cancelled) setRuns(await r.json());
+    });
+    return () => { cancelled = true; };
+  }, [kinds.join(','), refreshKey]);
+  if (runs.length === 0) return null;
+  return (
+    <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+      <p className="px-5 pt-4 pb-2 text-sm font-semibold text-on-surface">{t('discogs.canal.history', 'Historial')}</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs text-secondary-foreground border-b border-outline-variant">
+            <tr>
+              <th className="px-5 py-2 text-left font-medium">{t('discogs.canal.col_date', 'Data')}</th>
+              <th className="px-3 py-2 text-left font-medium">{t('discogs.canal.col_type', 'Tipus')}</th>
+              <th className="px-3 py-2 text-left font-medium">{t('discogs.canal.col_status', 'Estat')}</th>
+              <th className="px-3 py-2 text-left font-medium">{t('discogs.canal.col_result', 'Resultat')}</th>
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {runs.map((r) => {
+              const st = RUN_STATUS[r.status] || RUN_STATUS.queued;
+              const s = r.summary;
+              return (
+                <tr key={r.id} className="border-b border-outline-variant last:border-0">
+                  <td className="px-5 py-2 text-secondary-foreground">{fmtDate(r.created_at)}</td>
+                  <td className="px-3 py-2">{RUN_KIND[r.kind] || r.kind}</td>
+                  <td className="px-3 py-2">
+                    <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-secondary-foreground">
+                    {r.error
+                      ? r.error
+                      : s ? runSummary(s) : '—'}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {r.status === 'done' && r.rows_count > 0 && (
+                      <Button variant="secondary" size="sm" onClick={() => onView(viewId === r.id ? null : r)}>
+                        {viewId === r.id ? t('discogs.canal.hide', 'Amaga') : t('discogs.canal.view_report', 'Veure informe')}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
