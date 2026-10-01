@@ -207,7 +207,7 @@ def test_resolver_linia_de_pool_sense_consolidar_falla(db, client):
         json={
             "proveedor_id": str(prov.id),
             "date": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": lineas[0]["id"]}],
+            "lineas": [{"solicitud_linea_id": lineas[0]["id"], "estimated_unit_price": "10.00"}],
         },
         headers=_auth(admin),
     )
@@ -226,7 +226,7 @@ def test_resolver_solicitud_sense_release_falla(db, client):
         json={
             "proveedor_id": str(prov.id),
             "date": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": linea_id}],
+            "lineas": [{"solicitud_linea_id": linea_id, "estimated_unit_price": "10.00"}],
         },
         headers=_auth(admin),
     )
@@ -252,7 +252,7 @@ def test_resolver_solicitud_amb_release_id_al_payload_resol_linia_sense_cataloga
         json={
             "proveedor_id": str(prov.id),
             "date": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": linea_id, "release_id": str(release.id)}],
+            "lineas": [{"solicitud_linea_id": linea_id, "release_id": str(release.id), "estimated_unit_price": "10.00"}],
         },
         headers=_auth(admin),
     )
@@ -279,7 +279,7 @@ def test_resolver_solicitud_amb_release_id_inexistent_falla(db, client):
         json={
             "proveedor_id": str(prov.id),
             "date": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": linea_id, "release_id": str(uuid.uuid4())}],
+            "lineas": [{"solicitud_linea_id": linea_id, "release_id": str(uuid.uuid4()), "estimated_unit_price": "10.00"}],
         },
         headers=_auth(admin),
     )
@@ -295,7 +295,7 @@ def test_resolver_linia_ya_resuelta_falla(db, client):
     linea_id = solicitud["lineas"][0]["id"]
     resolver_payload = {
         "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
-        "lineas": [{"solicitud_linea_id": linea_id}],
+        "lineas": [{"solicitud_linea_id": linea_id, "estimated_unit_price": "10.00"}],
     }
     assert client.post("/admin/solicitudes-compra/resolver", json=resolver_payload, headers=_auth(admin)).status_code == 201
 
@@ -319,7 +319,7 @@ def test_partial_resolution_manté_solicitud_oberta(db, client):
         "/admin/solicitudes-compra/resolver",
         json={
             "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": linea1_id}],
+            "lineas": [{"solicitud_linea_id": linea1_id, "estimated_unit_price": "10.00"}],
         },
         headers=_auth(admin),
     )
@@ -343,7 +343,7 @@ def test_eliminar_linia_resolta_falla(db, client):
         "/admin/solicitudes-compra/resolver",
         json={
             "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
-            "lineas": [{"solicitud_linea_id": linea_id}],
+            "lineas": [{"solicitud_linea_id": linea_id, "estimated_unit_price": "10.00"}],
         },
         headers=_auth(admin),
     )
@@ -834,3 +834,55 @@ def test_solicituds_tenen_numero_correlatiu_per_any(db, client):
 
     assert s1["numero"] == f"SOL-{any_actual}-000001"
     assert s2["numero"] == f"SOL-{any_actual}-000002"
+
+
+def test_resolver_solicitud_exigeix_cost_de_compra(db, client):
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db)
+    solicitud = _crear_solicitud(client, admin, [{"release_id": str(release.id), "quantity": 1}])
+    linea_id = solicitud["lineas"][0]["id"]
+
+    resp = client.post(
+        "/admin/solicitudes-compra/resolver",
+        json={"proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00", "lineas": [{"solicitud_linea_id": linea_id}]},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 422
+
+    resp = client.post(
+        "/admin/solicitudes-compra/resolver",
+        json={"proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+              "lineas": [{"solicitud_linea_id": linea_id, "estimated_unit_price": None}]},
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 422
+
+
+def test_ultims_costos_retorna_el_cost_mes_recent_per_release(db, client):
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from app.models import Item
+
+    admin = _admin_token(client, db)
+    release = _seed_release(db)
+    sense_historial = _seed_release(db)
+    db.add_all([
+        Item(release_id=release.id, price=Decimal("20"), condition="segona_ma", acquisition_cost=Decimal("7.00"),
+             entry_date=datetime(2026, 1, 1, tzinfo=timezone.utc)),
+        Item(release_id=release.id, price=Decimal("25"), condition="segona_ma", acquisition_cost=Decimal("9.50"),
+             entry_date=datetime(2026, 5, 1, tzinfo=timezone.utc)),
+        Item(release_id=release.id, price=Decimal("25"), condition="segona_ma", acquisition_cost=None,
+             entry_date=datetime(2026, 8, 1, tzinfo=timezone.utc)),
+    ])
+    db.commit()
+
+    resp = client.get(
+        f"/admin/solicitudes-compra/ultims-costos?release_ids={release.id}&release_ids={sense_historial.id}",
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert float(body[str(release.id)]) == 9.5
+    assert str(sense_historial.id) not in body

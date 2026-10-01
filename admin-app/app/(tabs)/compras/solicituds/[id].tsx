@@ -183,7 +183,7 @@ export default function SolicitudDetail() {
 
   async function onConfirmResolver() {
     const included = resolveLines.filter((rl) => rl.include);
-    if (!proveedorId || included.length === 0 || included.some((rl) => !rl.releaseId)) return;
+    if (!proveedorId || included.length === 0 || included.some((rl) => !rl.releaseId || rl.price === "")) return;
     await runAction("resolver", async () => {
       const comanda = await resolverSolicitud(tenantSlug as string, accessToken as string, {
         proveedor_id: proveedorId,
@@ -191,7 +191,7 @@ export default function SolicitudDetail() {
         lineas: included.map((rl) => ({
           solicitud_linea_id: rl.linea.id,
           quantity: Number(rl.quantity) || rl.linea.quantity,
-          ...(rl.price ? { estimated_unit_price: rl.price } : {}),
+          estimated_unit_price: rl.price.replace(",", "."),
           ...(rl.releaseId !== rl.linea.release_id ? { release_id: rl.releaseId as string } : {}),
         })),
       });
@@ -269,7 +269,7 @@ export default function SolicitudDetail() {
                   />
                   <Input
                     className="flex-1"
-                    placeholder="Preu unitat"
+                    placeholder="Cost compra (sense IVA)"
                     keyboardType="decimal-pad"
                     value={rl.price}
                     onChangeText={(v) =>
@@ -285,7 +285,8 @@ export default function SolicitudDetail() {
             disabled={
               !proveedorId ||
               resolveLines.every((rl) => !rl.include) ||
-              resolveLines.some((rl) => rl.include && !rl.releaseId)
+              resolveLines.some((rl) => rl.include && !rl.releaseId) ||
+              resolveLines.some((rl) => rl.include && (rl.price === "" || isNaN(Number(rl.price.replace(",", ".")))))
             }
             loading={busyAction === "resolver"}
             onPress={onConfirmResolver}

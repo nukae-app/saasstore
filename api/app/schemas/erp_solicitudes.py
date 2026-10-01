@@ -81,7 +81,9 @@ class SolicitudCompraOut(BaseModel):
 class SolicitudResolverLineaIn(BaseModel):
     solicitud_linea_id: uuid.UUID
     quantity: int | None = None  # per defecte, la cantidad demanada a la línia
-    estimated_unit_price: Decimal | None = None
+    # Cost de compra unitari SENSE IVA: obligatori, en depèn el marge i el PVP
+    # a la recepció (veure services/preu_compra.py).
+    estimated_unit_price: Decimal = Field(ge=0)
     # Si la línia es va crear a mà (sense release_id, disc encara no al
     # catàleg), el frontend el resol aquí mateix (cerca a Discogs + alta
     # automàtica, o alta manual) en comptes d'obligar a sortir d'aquesta

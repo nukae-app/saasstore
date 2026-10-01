@@ -698,6 +698,30 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
   // de poder-les incloure a la comanda.
   const [seleccio, setSeleccio] = useState(() => new Set(pendents.filter(l => l.release_id).map(l => l.id)));
   const [preus, setPreus] = useState(() => Object.fromEntries(pendents.map(l => [l.id, ''])));
+  // Línies amb el preu suggerit (últim cost de compra conegut) encara sense tocar.
+  const [suggerits, setSuggerits] = useState(() => new Set());
+  useEffect(() => {
+    const ids = [...new Set(pendents.map(l => l.release_id).filter(Boolean))];
+    if (ids.length === 0) return;
+    (async () => {
+      const r = await authFetch(`/admin/solicitudes-compra/ultims-costos?${ids.map(id => `release_ids=${id}`).join('&')}`);
+      if (!r.ok) return;
+      const costos = await r.json();
+      const aplicats = new Set();
+      setPreus(prev => {
+        const next = { ...prev };
+        for (const l of pendents) {
+          if (l.release_id && costos[l.release_id] != null && !next[l.id]) {
+            next[l.id] = String(Number(costos[l.release_id]));
+            aplicats.add(l.id);
+          }
+        }
+        return next;
+      });
+      setSuggerits(aplicats);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -752,6 +776,10 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
   async function save(e) {
     e.preventDefault();
     if (seleccio.size === 0) return;
+    if (pendents.some(l => seleccio.has(l.id) && (preus[l.id] === '' || preus[l.id] == null))) {
+      setError(t('purchases.resolve_request_modal.missing_cost', 'Falta el cost de compra en alguna línia.'));
+      return;
+    }
     setSaving(true);
     setError('');
     const payload = {
@@ -760,7 +788,7 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
       notes: notas || null,
       lineas: pendents.filter(l => seleccio.has(l.id)).map(l => ({
         solicitud_linea_id: l.id,
-        estimated_unit_price: preus[l.id] ? parseFloat(preus[l.id]) : null,
+        estimated_unit_price: parseFloat(preus[l.id]),
         release_id: l.release_id ? undefined : resolvedReleases[l.id]?.id,
       })),
     };
@@ -831,9 +859,20 @@ function ResoldreSolicitudModal({ lineas, proveedores, onClose, onSaved }) {
                       </div>
                     </div>
                     {catalogat ? (
-                      <input type="number" step="0.01" min="0" placeholder={t('purchases.est_price', 'Preu est.')} value={preus[l.id] ?? ''}
-                        onChange={e => setPreus(prev => ({ ...prev, [l.id]: e.target.value }))}
-                        className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                      <div className="text-right">
+                        <input type="number" step="0.01" min="0" required={seleccio.has(l.id)}
+                          placeholder={t('purchases.purchase_cost_short', 'Cost compra')}
+                          title={t('purchases.resolve_request_modal.cost_hint', 'Cost de compra unitari, sense IVA')}
+                          value={preus[l.id] ?? ''}
+                          onChange={e => {
+                            setPreus(prev => ({ ...prev, [l.id]: e.target.value }));
+                            setSuggerits(prev => { const n = new Set(prev); n.delete(l.id); return n; });
+                          }}
+                          className="w-28 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                        {suggerits.has(l.id) && (
+                          <div className="text-[11px] text-secondary-foreground mt-0.5">{t('purchases.resolve_request_modal.last_cost', 'últim cost')} · {t('purchases.excl_vat', 'sense IVA')}</div>
+                        )}
+                      </div>
                     ) : (
                       <Button type="button" variant="secondary" size="sm" onClick={() => openResolver(l)}
                         disabled={resolvingLineaId === l.id}>

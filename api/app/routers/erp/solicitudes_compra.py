@@ -134,6 +134,23 @@ def _suggest_proveedor_para_release(db: Session, release_id: uuid.UUID, artista:
     return (prov.id, prov.name) if prov else (None, None)
 
 
+@router.get("/solicitudes-compra/ultims-costos")
+def ultims_costos(release_ids: list[uuid.UUID] = Query(default=[]), db: Session = Depends(get_db)) -> dict[str, Decimal]:
+    """Últim cost de compra (sense IVA) conegut de cada release, per suggerir
+    el preu en resoldre una sol·licitud. Surt de l'`acquisition_cost` de l'ítem
+    d'estoc més recent amb cost; els releases sense historial no hi surten."""
+    if not release_ids:
+        return {}
+    costos: dict[str, Decimal] = {}
+    for release_id, cost in db.execute(
+        select(Item.release_id, Item.acquisition_cost)
+        .where(Item.release_id.in_(release_ids), Item.acquisition_cost.isnot(None))
+        .order_by(func.coalesce(Item.entry_date, Item.created_at).desc())
+    ).all():
+        costos.setdefault(str(release_id), cost)
+    return costos
+
+
 @router.get("/solicitudes-compra/refill-sugerencias", response_model=list[RefillSugerenciaOut])
 def refill_sugerencias(db: Session = Depends(get_db)):
     """Previsualització (no crea res) de discos candidats a reposició:

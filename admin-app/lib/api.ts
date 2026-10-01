@@ -416,7 +416,8 @@ export function cancelarSolicitud(tenantSlug: string, accessToken: string, id: s
 export interface ResolverSolicitudLinea {
   solicitud_linea_id: string;
   quantity?: number;
-  estimated_unit_price?: string;
+  // Cost de compra unitari sense IVA: obligatori (en depèn el marge i el PVP).
+  estimated_unit_price: string;
   release_id?: string;
 }
 
