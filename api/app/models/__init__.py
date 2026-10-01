@@ -42,6 +42,7 @@ from .channels import (
     ChannelSettings,
     ChannelAlert,
     NotificationPref,
+    ChannelBackup,
 )
 
 from .stock import (

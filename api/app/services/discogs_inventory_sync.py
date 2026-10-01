@@ -24,6 +24,7 @@ from ..models import (
 from ..tenant_secrets import get_tenant_secrets
 from . import discogs
 from .catalog_sync import clean, derive_condicion
+from .catalog_backup import create_snapshot
 from .channel_listings import backfill_discogs_listings
 from .discogs_sync import adopcio_feta, marcar_adopcio_feta, resolve_discogs_token
 
@@ -265,7 +266,7 @@ def _noop(*_a, **_k) -> None:
 
 def run_inventory_sync(
     db, tenant: Tenant, *, dry_run: bool, limit: int = 0, max_retire_pct: float = 20.0,
-    force: bool = False, reobrir_adopcio: bool = False, log=print, progress=_noop,
+    force: bool = False, reobrir_adopcio: bool = False, log=print, progress=_noop, actor: str | None = None,
 ) -> InventorySyncResult:
     """Executa (o simula, amb `dry_run`) la sincronització. La sessió ha d'estar
     fixada al tenant (`scoped_to`). En dry-run tot es fa igualment i es
@@ -312,6 +313,14 @@ def run_inventory_sync(
         if not (dry_run or force):
             raise InventorySyncAbort(f"{missatge} S'avorta. Revisa el token.")
         avis(missatge)
+
+    # Punto de restauración automático ANTES de tocar nada (una execució real modifica el catàleg en bloc):
+    # si no es pot guardar, s'avorta. Es pot tornar enrere des de Configuració › Còpies de seguretat.
+    copia_previa = None
+    if not dry_run:
+        log("Guardant una còpia del catàleg abans de modificar-lo...")
+        copia_previa = create_snapshot(db, label="Abans de la càrrega inicial", trigger="pre_load", actor=actor).id
+        db.commit()
 
     progress("consolidacio", 0, 0)
     log("Consolidant línies `nou` duplicades (herència d'abans del stock agregat)...")
@@ -508,6 +517,7 @@ def run_inventory_sync(
         "dry_run": dry_run, "compte_discogs": username, "listings": len(listings), "creats": creados,
         "sumats": sumados, "actualitzats": actualizados, "retirats": retirados, "errors": errores,
         "pct_retirar": round(pct_retirar, 1), "avisos": avisos, "limit": limit, "adopcio_marcada": False,
+        "copia_previa": copia_previa,
     }
 
     if dry_run:

@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import (
-    JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func,
+    JSON, Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint, func,
 )
 from sqlalchemy import event, inspect, select
 from sqlalchemy.orm import Mapped, Session, deferred, mapped_column, relationship
@@ -180,6 +180,31 @@ class NotificationPref(TenantScoped, Base):
     event_key: Mapped[str] = mapped_column(String(40))
     email: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
+
+
+BACKUP_CATALOG = "catalog"
+BACKUP_DISCOGS = "discogs_inventory"
+
+
+class ChannelBackup(TenantScoped, Base):
+    """Copia de seguridad guardada en la app, solo del catálogo de este tenant (nunca de toda la base de datos):
+    `catalog` = foto de releases, items, vínculos con Discogs y listings (permite restaurar el catálogo) y
+    `discogs_inventory` = el inventario y pedidos de Discogs en el momento de la copia (solo consulta/descarga).
+    El contenido va comprimido (gzip de JSON) en `payload`, que no se carga salvo que se pida."""
+
+    __tablename__ = "channel_backups"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    channel: Mapped[str] = mapped_column(String(30), default=CHANNEL_DISCOGS, server_default=CHANNEL_DISCOGS, index=True)
+    kind: Mapped[str] = mapped_column(String(24), index=True)
+    # manual | pre_load | pre_prices | pre_restore (las automáticas antes de una operación que cambia el catálogo)
+    trigger: Mapped[str] = mapped_column(String(24), default="manual", server_default="manual")
+    label: Mapped[str | None] = mapped_column(String(200))
+    summary: Mapped[dict | None] = mapped_column(JSON)
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    payload: Mapped[bytes | None] = deferred(mapped_column(LargeBinary))
+    created_by: Mapped[str | None] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 # ---------------------------------------------------------------------------------------------
 # Reflejo automático codi_discogs -> channel_listings

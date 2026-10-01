@@ -16,7 +16,9 @@ from ..models import CHANNEL_DISCOGS, ChannelSyncRun
 from ..models.channels import RUN_QUEUED, RUN_RUNNING
 
 STALE_AFTER = timedelta(minutes=10)
-_KIND_BY_MODE = {"reconcile": "reconcile_apply", "audit": "audit", "pricing_preview": "pricing_preview"}
+_KIND_BY_MODE = {
+    "reconcile": "reconcile_apply", "audit": "audit", "pricing_preview": "pricing_preview", "discogs_backup": "discogs_backup",
+}
 
 
 def _json_safe(value):
@@ -53,7 +55,7 @@ def list_runs(db: Session, limit: int = 20, channel: str = CHANNEL_DISCOGS) -> l
     ).all())
 
 
-KINDS = ("inventory_dry_run", "inventory_apply", "reconcile_apply", "audit", "pricing_preview")
+KINDS = ("inventory_dry_run", "inventory_apply", "reconcile_apply", "audit", "pricing_preview", "discogs_backup")
 
 
 def list_runs_by_kind(db: Session, kinds: list[str], limit: int = 20, channel: str = CHANNEL_DISCOGS) -> list[ChannelSyncRun]:

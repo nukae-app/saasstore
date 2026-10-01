@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ...database import get_db
+from ...models import User
 from ...services import channel_runs, discogs_jobs as jobs
 from ...services.discogs_inventory_sync import INFORME_COLUMNES
 from ...services.discogs_sync import adopcio_feta, resolve_discogs_token
@@ -55,7 +56,9 @@ def _estat(db: Session, tenant_id, job: dict | None) -> dict:
 
 
 @router.post("/jobs", status_code=202)
-def start_inventory_job(payload: InventoryJobIn, request: Request, db: Session = Depends(get_db)):
+def start_inventory_job(
+    payload: InventoryJobIn, request: Request, db: Session = Depends(get_db), admin: User = Depends(require_admin),
+):
     tenant_id = request.state.tenant.id
     if not resolve_discogs_token(get_tenant_secrets(tenant_id)):
         raise HTTPException(409, "El tenant no té cap token de Discogs configurat (Configuració).")
@@ -65,7 +68,8 @@ def start_inventory_job(payload: InventoryJobIn, request: Request, db: Session =
     try:
         job = jobs.start_job(
             tenant_id, payload.mode,
-            {"limit": payload.limit, "force": payload.force, "reobrir_adopcio": payload.reobrir_adopcio},
+            {"limit": payload.limit, "force": payload.force, "reobrir_adopcio": payload.reobrir_adopcio,
+             "actor": admin.email},
         )
     except jobs.JobConflict as exc:
         raise HTTPException(409, str(exc))

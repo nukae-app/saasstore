@@ -19,6 +19,7 @@ from ..services.channel_alerts import raise_alert
 from ..services.channel_apply import ReconcileAbort, run_reconcile, scheduled_actions
 from ..services.channel_audit import AuditAbort, run_audit
 from ..services.channel_notifications import send_pending
+from ..services.discogs_backup import BackupAbort, run_discogs_backup
 from ..services.channel_pricing import PricingAbort, run_pricing_preview
 from ..services.channel_orders import OrdersPullError, is_due, pull_orders
 from ..services.channel_settings import get_settings
@@ -49,7 +50,7 @@ def _run_inventory(db, tenant, job, log_fn, progress):
     opts = job["options"]
     return run_inventory_sync(
         db, tenant, dry_run=job["mode"] == "dry_run", limit=opts.get("limit", 0), force=opts.get("force", False),
-        reobrir_adopcio=opts.get("reobrir_adopcio", False), log=log_fn, progress=progress,
+        reobrir_adopcio=opts.get("reobrir_adopcio", False), log=log_fn, progress=progress, actor=opts.get("actor"),
     )
 
 
@@ -69,6 +70,13 @@ def _run_pricing(db, tenant, job, log_fn, progress):
         db, tenant, item_ids={uuid.UUID(x) for x in opts["item_ids"]} if opts.get("item_ids") else None,
         limit=opts.get("limit", 200), factor=opts.get("factor", 1.0), step=opts.get("step", 0.5),
         min_diff_pct=opts.get("min_diff_pct", 5.0), log_fn=log_fn, progress=progress,
+    )
+
+
+def _run_backup(db, tenant, job, log_fn, progress):
+    opts = job["options"]
+    return run_discogs_backup(
+        db, tenant, orders=opts.get("orders", True), actor=opts.get("actor"), log_fn=log_fn, progress=progress,
     )
 
 
@@ -122,7 +130,7 @@ def _execute(tenant_id: str, job_id: str, runner) -> None:
             jobs.record_dry_run(tenant_id, job_id, result.summary)
         with scoped_to(db, tenant_uuid):
             send_pending(db)  # avisos de las alertas que haya generado el propio trabajo
-    except (InventorySyncAbort, ReconcileAbort, AuditAbort, PricingAbort) as exc:
+    except (InventorySyncAbort, ReconcileAbort, AuditAbort, PricingAbort, BackupAbort) as exc:
         db.rollback()
         jobs.update_job(tenant_id, job_id, status="error", error=str(exc), error_kind="abort", finished_at=_now_iso())
         _persist(db, tenant_uuid, job_id, status="error", error=str(exc), error_kind="abort",
@@ -146,6 +154,11 @@ def _execute(tenant_id: str, job_id: str, runner) -> None:
 @celery_app.task(name="discogs.inventory_sync")
 def inventory_sync(tenant_id: str, job_id: str) -> None:
     _execute(tenant_id, job_id, _run_inventory)
+
+
+@celery_app.task(name="discogs.backup")
+def backup(tenant_id: str, job_id: str) -> None:
+    _execute(tenant_id, job_id, _run_backup)
 
 
 @celery_app.task(name="discogs.pricing_preview")

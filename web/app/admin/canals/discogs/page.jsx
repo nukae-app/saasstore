@@ -29,10 +29,12 @@ const TABS = [
   { key: 'config', label: 'Configuració', icon: 'settings' },
 ];
 // Pestaña que ya muestra el progreso de cada tipo de trabajo (el aviso global no se repite allí)
-const TAB_OF_MODE = { dry_run: 'sync', apply: 'sync', reconcile: 'listings', pricing_preview: 'preus', audit: 'alertes' };
+const TAB_OF_MODE = {
+  dry_run: 'sync', apply: 'sync', reconcile: 'listings', pricing_preview: 'preus', audit: 'alertes', discogs_backup: 'config',
+};
 const MODE_LABEL = {
   dry_run: 'Simulació de càrrega', apply: 'Càrrega inicial', reconcile: 'Reconciliació amb Discogs',
-  pricing_preview: 'Simulació de preus', audit: 'Auditoria',
+  pricing_preview: 'Simulació de preus', audit: 'Auditoria', discogs_backup: 'Còpia de Discogs',
 };
 
 function AccountCard({ t, account }) {

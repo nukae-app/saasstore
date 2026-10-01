@@ -33,56 +33,16 @@ import httpx
 
 from app.services import discogs
 
-# "For Sale" és l'imprescindible; la resta es proven de manera tolerant (si
-# Discogs rebutja algun estat, es deixa constància al manifest i se segueix).
-STATUSES = ["For Sale", "Draft", "Suspended", "Expired"]
-
-CSV_COLUMNES = [
-    "listing_id", "status", "release_id", "descripcio", "format", "cat_no", "preu", "moneda",
-    "condicio", "condicio_funda", "comentaris", "external_id", "ubicacio", "posted", "permet_ofertes",
-]
-
-
-def _get(path: str, token: str, params: dict) -> dict:
-    """GET amb throttle i reintent davant 429 (rate limit)."""
-    for attempt in range(4):
-        discogs._throttle()
-        with discogs._client(token) as c:
-            r = c.get(path, params=params)
-        if r.status_code == 429 and attempt < 3:
-            wait = 65 * (attempt + 1)
-            print(f"  429 rate limit — esperant {wait}s...", flush=True)
-            time.sleep(wait)
-            continue
-        r.raise_for_status()
-        return r.json()
-    raise RuntimeError("inabastable")  # pragma: no cover
+from app.services.discogs_backup import (  # noqa: E402 — el núcleo es compartido con la pantalla
+    CSV_COLUMNES, STATUSES, fila_csv as _fila_csv, get_json as _get, get_paged as _get_paged_core,
+)
 
 
 def _get_paged(path: str, token: str, key: str, params: dict) -> list[dict]:
-    items: list[dict] = []
-    page = 1
-    while True:
-        data = _get(path, token, {**params, "per_page": 100, "page": page})
-        items.extend(data.get(key, []))
-        pages = (data.get("pagination") or {}).get("pages", 1)
-        print(f"  {path} {params.get('status', '')} pàg. {page}/{pages} ({len(items)} fins ara)", flush=True)
-        if page >= pages:
-            return items
-        page += 1
+    def on_page(page, pages, n):
+        print(f"  {path} {params.get('status', '')} pàg. {page}/{pages} ({n} fins ara)", flush=True)
 
-
-def _fila_csv(listing: dict) -> dict:
-    rel = listing.get("release") or {}
-    preu = listing.get("price") or {}
-    return {
-        "listing_id": listing.get("id"), "status": listing.get("status"), "release_id": rel.get("id"),
-        "descripcio": rel.get("description"), "format": rel.get("format"), "cat_no": rel.get("catalog_number"),
-        "preu": preu.get("value"), "moneda": preu.get("currency"), "condicio": listing.get("condition"),
-        "condicio_funda": listing.get("sleeve_condition"), "comentaris": listing.get("comments"),
-        "external_id": listing.get("external_id"), "ubicacio": listing.get("location"),
-        "posted": listing.get("posted"), "permet_ofertes": listing.get("allow_offers"),
-    }
+    return _get_paged_core(path, token, key, params, on_page=on_page)
 
 
 def run(token: str, out_dir: Path, orders: bool = False) -> Path:

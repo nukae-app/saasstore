@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Badge, CH, ErrorBox, Panel, api } from './shared';
+import BackupsPanel from './BackupsPanel';
 
 function Toggle({ on, onChange, disabled }) {
   return (
@@ -28,7 +29,7 @@ function Row({ title, hint, children }) {
   );
 }
 
-export default function SettingsTab({ t, account }) {
+export default function SettingsTab({ t, account, estat, reload }) {
   const [s, setS] = useState(null);
   const [notif, setNotif] = useState(null);
   const [recargo, setRecargo] = useState('');
@@ -60,7 +61,7 @@ export default function SettingsTab({ t, account }) {
   if (!s) return <div className="p-10 text-center text-sm text-secondary-foreground">{t('common.loading')}</div>;
 
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className="space-y-5 max-w-5xl">
       <ErrorBox>{error}</ErrorBox>
       {saved && <p className="text-xs text-green-700">{saved}</p>}
 
@@ -104,6 +105,8 @@ export default function SettingsTab({ t, account }) {
           </div>
         </Row>
       </Panel>
+
+      <BackupsPanel t={t} estat={estat} reload={reload} />
 
       <Panel title={t('discogs.settings.notifications', 'Els meus avisos per correu')}>
         <p className="text-xs text-secondary-foreground max-w-xl">

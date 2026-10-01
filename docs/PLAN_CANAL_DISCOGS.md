@@ -292,6 +292,26 @@ Abiertas:
   quitar el código antiguo, y separar las rutas del catálogo (`/admin/catalog-provider/*`). Tampoco se ha tocado
   `scripts/run_discogs_sync.sh` (de recordshop).
 
+- **H. Còpies de seguretat — HECHA en código (2026-10-01).** Sección en Configuració del canal Discogs
+  (`BackupsPanel`). Migración `f7d4b1e83c69` (`channel_backups`, con RLS; el contenido va comprimido en la propia
+  tabla). **Alcance: solo el catálogo del tenant, nunca toda la base de datos** (la BD es compartida entre tiendas y
+  un restore de RDS crea una instancia nueva, así que eso queda para el snapshot manual de AWS).
+  - **Punto de restauración del catálogo** (`services/catalog_backup.py`): foto de `releases`, `release_records`,
+    `items`, `record_stock_details` y `channel_listings` del tenant. A demanda y **automática antes de la carga
+    inicial real** (si no se puede guardar, la carga aborta), **antes de aplicar precios** y **antes de restaurar**
+    (para deshacer la propia restauración). Las automáticas se podan a 15; las manuales no.
+  - **Restaurar** calcula primero qué cambiaría (filas a recrear, a corregir con valor actual y de la copia, y a
+    eliminar) y lo enseña. **No toca lo que ya no es seguro:** un item vendido, reservado, en un carrito o con
+    pedidos, devoluciones, peticiones o asignaciones POSTERIORES a la copia se deja como está y se lista como
+    conflicto (si no, volvería a ponerse a la venta algo ya vendido); tampoco se borra una release que aún tiene
+    items. Se aplica en una sola transacción (o entra todo o nada), con Core SQL, y los códigos únicos que cambian
+    de item no chocan. Probado en Postgres real con claves foráneas activas.
+  - **Copia de Discogs** (`services/discogs_backup.py`, compartido con `scripts/backup_discogs_inventory.py`):
+    trabajo en segundo plano que lee todo el inventario (y, a elección, el histórico de pedidos); descarga en
+    JSON o CSV. Solo lectura de Discogs: funciona en modo solo lectura.
+  - **Límite a tener presente:** restaurar no puede saber si alguien editó a mano un precio tras la copia; por eso
+    la vista previa enseña cada cambio antes de confirmar.
+
 Prioridad: A → B → C → D → E → F. Lo primero para operar es publicar, actualizar y retirar con
 seguridad; los pedidos entrantes van justo después (cada venta de Discogs que no baje a la app es
 riesgo de doble venta).

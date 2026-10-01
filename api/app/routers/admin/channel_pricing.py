@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from ...database import get_db
 from ...models import ChannelSyncRun, User
-from ...services import channel_pricing, channel_runs, discogs_jobs as jobs
+from ...services import catalog_backup, channel_pricing, channel_runs, discogs_jobs as jobs
 from ...services.discogs_sync import get_discogs_token_if_enabled
 from ...services.security import require_admin
 from ...tasks.discogs import pricing_preview
@@ -97,6 +97,9 @@ def apply_preview(payload: ApplyIn, request: Request, db: Session = Depends(get_
         raise HTTPException(404, "Simulació de preus no trobada o encara no acabada.")
     rows = jobs.load_rows(request.state.tenant.id, payload.job_id) or channel_runs.load_report(db, payload.job_id) or []
     selected = {str(i) for i in payload.item_ids} if payload.item_ids else None
+    # Punto de restauración automático: cambiar precios en bloque se puede deshacer desde Còpies de seguretat.
+    catalog_backup.create_snapshot(db, label="Abans d'aplicar preus de Discogs", trigger="pre_prices", actor=admin.email)
+    db.commit()
     result = channel_pricing.apply_prices(db, rows, selected, admin.email)
     db.commit()
     return result

@@ -41,6 +41,7 @@ export const PHASES = {
   retirar: 'Calculant retirades',
   aplicar: 'Aplicant a Discogs',
   comparar: 'Comparant amb la botiga',
+  comandes: 'Descarregant comandes',
   preus: 'Consultant preus de Discogs',
   fet: 'Acabant…',
 };
@@ -54,7 +55,7 @@ export function fmtPrice(v) {
 
 export const RUN_KIND = {
   inventory_dry_run: 'Simulació de càrrega', inventory_apply: 'Càrrega inicial', reconcile_apply: 'Reconciliació',
-  audit: 'Auditoria', pricing_preview: 'Simulació de preus',
+  audit: 'Auditoria', pricing_preview: 'Simulació de preus', discogs_backup: 'Còpia de Discogs',
 };
 export const RUN_STATUS = {
   queued: { label: 'A la cua', cls: 'bg-surface-container-high text-secondary-foreground' },
