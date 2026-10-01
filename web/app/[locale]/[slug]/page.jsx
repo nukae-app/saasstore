@@ -4,19 +4,47 @@ import { Link } from '../../../i18n/navigation';
 import { api } from '../../lib/api';
 import StorefrontNav from '../../../components/store/StorefrontNav';
 import StorefrontFooter from '../../../components/store/StorefrontFooter';
+import TreeRenderer from '../../../components/store/pageTree/TreeRenderer';
+import { resolveLocale } from '../../../components/store/pageTree/locale';
 import { Music2, Headphones, Disc3, CalendarDays, MapPin, ExternalLink } from 'lucide-react';
 import ArchiveSidebar from '../blog/ArchiveSidebar';
 import ArchiveSelect from '../blog/ArchiveSelect';
+
+// Rutas Core que viven como carpeta literal bajo [locale]/ (disc,
+// checkout...) ya ganan siempre a este catch-all por las reglas de Next.js
+// — este set es solo la red de seguridad contra una `Pagina` legado con uno
+// de estos slugs (creada antes de que existiera esta validación; `Page`
+// nueva ya lo bloquea en el backend, ver RESERVED_PAGE_SLUGS en
+// api/app/schemas/storefront.py, hay que mantener las dos listas
+// sincronizadas a mano — ver docs/ARQUITECTURA_DISENY_FIGMA.md §6).
+// "cataleg" ya NO está aquí: nunca hacía falta (Next.js ya prioriza la ruta
+// literal `[locale]/cataleg/` sobre este catch-all para un match exacto,
+// esta lista es solo red de seguridad contra colisiones de slug — no
+// afecta a qué gana la ruta real), y dejarlo fuera es más simple de
+// mantener sincronizado con `RESERVED_PAGE_SLUGS` (backend), que tampoco
+// lo bloquea ya (esa ruta comprueba `Page` ella misma, ver
+// [locale]/cataleg/page.jsx).
+const RESERVED_SLUGS = new Set([
+  'auth', 'blog', 'carret', 'checkout', 'compte', 'disc', 'login', 'preview-pagina', 'subscripcio',
+]);
 
 // ---------------------------------------------------------------------------
 // Metadata
 // ---------------------------------------------------------------------------
 
 export async function generateMetadata({ params }) {
-  const { pagina: slug } = await params;
+  const { slug, locale } = await params;
+  if (RESERVED_SLUGS.has(slug)) return {};
   try {
-    const [p, config] = await Promise.all([api(`/pagines/${slug}`), api('/config/public')]);
-    return { title: `${p.name} — ${config.nombre}` };
+    const config = await api('/config/public');
+    // `Page` (árbol constructible) primero — ver §3e: sustituye a `Pagina`.
+    try {
+      const page = await api(`/config/public/pages/${slug}`);
+      const title = resolveLocale(page.seo_title, locale);
+      return title ? { title: `${title} — ${config.nombre}` } : {};
+    } catch {}
+    const pagina = await api(`/pagines/${slug}`);
+    return { title: `${pagina.name} — ${config.nombre}` };
   } catch {
     return {}; // hereta el title per defecte del layout arrel
   }
@@ -281,17 +309,43 @@ async function AgendaPage({ pagina, locale, config, recordstore }) {
 // Entry point
 // ---------------------------------------------------------------------------
 
-export default async function PaginaDinamica({ params, searchParams }) {
-  const { pagina: slug, locale } = await params;
+export default async function SlugPage({ params, searchParams }) {
+  const { slug, locale } = await params;
 
-  // Pàgines especials que no estan al CMS
-  if (slug === 'cataleg' || slug === 'carret' || slug === 'login' || slug === 'compte') {
+  if (RESERVED_SLUGS.has(slug)) notFound();
+
+  let config;
+  try {
+    config = await api('/config/public');
+  } catch {
     notFound();
   }
 
-  let pagina, config;
+  // `Page` (árbol constructible) primero — ver ARQUITECTURA_DISENY_FIGMA.md
+  // §3e: sustituye a `Pagina`, que queda como fallback más abajo mientras
+  // dura la migración de la Fase 5. Nunca los dos a la vez: en cuanto existe
+  // una `Page` publicada con este slug, `Pagina` deja de poder usarlo (409
+  // al crearla, ver routers/pages.py::_check_slug_available), así que no
+  // hay ambigüedad real sobre cuál "gana".
   try {
-    [pagina, config] = await Promise.all([api(`/pagines/${slug}`), api('/config/public')]);
+    const page = await api(`/config/public/pages/${slug}`);
+    return (
+      <>
+        <StorefrontNav />
+        <main className="flex-1">
+          <TreeRenderer tree={page.published_tree} locale={locale} searchParams={searchParams} basePath={`/${slug}`} />
+        </main>
+        <StorefrontFooter />
+      </>
+    );
+  } catch (err) {
+    if (err.status && err.status !== 404) throw err;
+  }
+
+  // Fallback: `Pagina` (sistema legado — ver §3e, se retira en la Fase 5).
+  let pagina;
+  try {
+    pagina = await api(`/pagines/${slug}`);
   } catch {
     notFound();
   }

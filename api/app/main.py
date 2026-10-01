@@ -8,8 +8,8 @@ from .config import get_settings
 from .rate_limit import limiter
 from .routers import (
     admin, admin_newsletter, admin_subscripcions, admin_users, auth, auth_mobile, billing_webhooks, blog, cart,
-    catalog, checkout, comptabilitat, configuracio, documents, erp, health, home_blocks, i18n, internal, me,
-    newsletter_public, spotify, subscripcions_public, superadmin,
+    catalog, checkout, comptabilitat, configuracio, documents, erp, figma, health, home_blocks, i18n, internal, me,
+    newsletter_public, pages, spotify, subscripcions_public, superadmin,
 )
 
 app = FastAPI(
@@ -40,6 +40,10 @@ app.include_router(configuracio.router)
 app.include_router(configuracio.public_router)
 app.include_router(home_blocks.router)
 app.include_router(home_blocks.public_router)
+app.include_router(pages.router)
+app.include_router(pages.public_router)
+app.include_router(figma.router)
+app.include_router(figma.public_router)
 app.include_router(admin_users.router)
 app.include_router(admin_newsletter.router)
 app.include_router(admin_subscripcions.router)

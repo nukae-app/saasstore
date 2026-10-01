@@ -2,6 +2,7 @@ import { api } from '../lib/api';
 import StorefrontNav from '../../components/store/StorefrontNav';
 import StorefrontFooter from '../../components/store/StorefrontFooter';
 import PreviewBridge from '../../components/store/PreviewBridge';
+import TreeRenderer from '../../components/store/pageTree/TreeRenderer';
 import { BLOCK_COMPONENTS } from '../../components/store/blocks/registry';
 
 async function fetchAllByEtiqueta(slug) {
@@ -48,7 +49,30 @@ function resolveBlockProps(block, { featured, config, recomanats, releasesByEtiq
   }
 }
 
-export default async function HomePage() {
+export default async function HomePage({ params, searchParams }) {
+  const { locale } = await params;
+
+  // `Page` (árbol constructible) primero — mismo criterio que
+  // [locale]/[slug]/page.jsx §3e: en cuanto el tenant publica una `Page`
+  // con slug "home", sustituye al home de `HomeBlock` sin tocar código.
+  // Mientras no exista (todos los tenants hoy), sigue el home de siempre
+  // más abajo — ningún tenant se queda sin home renderizable, mismo
+  // criterio que exige la Fase 5 del documento.
+  try {
+    const page = await api('/config/public/pages/home');
+    return (
+      <>
+        <StorefrontNav />
+        <main className="flex-1">
+          <TreeRenderer tree={page.published_tree} locale={locale} searchParams={searchParams} basePath="/" />
+        </main>
+        <StorefrontFooter />
+      </>
+    );
+  } catch (err) {
+    if (err.status && err.status !== 404) throw err;
+  }
+
   let blocks = [];
   let recomanats = [];
   let sonant = [];

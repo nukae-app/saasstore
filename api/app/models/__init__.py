@@ -174,8 +174,15 @@ from .subscripcions import (
 )
 
 from .storefront import (
+    Page,
     HomeBlock,
     UploadedVideo,
+)
+
+from .figma_import import (
+    FigmaConnection,
+    FigmaImportStatus,
+    FigmaImportJob,
 )
 
 from .documents import (

@@ -1,11 +1,11 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useRouter } from '../../../i18n/navigation';
+import { useRouter } from '../../i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { X, Search } from 'lucide-react';
-import { api } from '../../lib/api';
+import { api } from '../../app/lib/api';
 
 const FORMATS = ['LP', '12"', '10"', '7"', 'CD', 'Cassette', 'EP'];
 
@@ -14,7 +14,13 @@ const FORMATS = ['LP', '12"', '10"', '7"', 'CD', 'Cassette', 'EP'];
 // (per defecte) és la barra lateral del tema per defecte I el panell
 // mòbil (MobileFilterSheet.jsx sempre la fa servir, cap tema hi cap una
 // banda horitzontal dins d'un sheet estret).
-export default function CatalogFilters({ className = '', showFormatFilter = true, showGenreFilter = true, layout = 'vertical' }) {
+//
+// `basePath` (per defecte `/cataleg`): a on naveguen els canvis de filtre
+// (`router.push`) — parametritzat perquè aquest mateix component es pugui
+// fer servir des d'un node `CatalogBrowse` incrustat en QUALSEVOL pàgina de
+// l'editor nou (ver pageTree/nodes/CatalogBrowse.jsx), no només des de la
+// ruta fixa /cataleg.
+export default function CatalogFilters({ className = '', showFormatFilter = true, showGenreFilter = true, layout = 'vertical', basePath = '/cataleg' }) {
   const t = useTranslations('cataleg');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -47,11 +53,11 @@ export default function CatalogFilters({ className = '', showFormatFilter = true
       params.delete(key);
     }
     params.delete('page');
-    startTransition(() => router.push(`/cataleg?${params.toString()}`));
+    startTransition(() => router.push(`${basePath}?${params.toString()}`));
   }
 
   function clearAll() {
-    startTransition(() => router.push('/cataleg'));
+    startTransition(() => router.push(basePath));
   }
 
   const hasFilters = ['q', 'format', 'genre', 'etiqueta', 'min', 'max'].some(k => searchParams.has(k));

@@ -22,8 +22,8 @@ celery_app = Celery(
     broker=_settings.redis_url,
     backend=_settings.redis_url,
     include=[
-        "app.tasks.health", "app.tasks.newsletter", "app.tasks.peticiones", "app.tasks.pricing",
-        "app.tasks.subscripcions",
+        "app.tasks.figma_import", "app.tasks.health", "app.tasks.newsletter", "app.tasks.peticiones",
+        "app.tasks.pricing", "app.tasks.subscripcions",
     ],
 )
 

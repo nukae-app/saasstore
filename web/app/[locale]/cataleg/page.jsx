@@ -5,9 +5,10 @@ import { api } from '../../lib/api';
 import StorefrontNav from '../../../components/store/StorefrontNav';
 import StorefrontFooter from '../../../components/store/StorefrontFooter';
 import ReleaseCard from '../../../components/store/ReleaseCard';
-import CatalogFilters from './CatalogFilters';
+import CatalogFilters from '../../../components/store/CatalogFilters';
 import MobileFilterSheet from '../../../components/store/MobileFilterSheet';
 import CrateBrowser from '../../../components/store/CrateBrowser';
+import TreeRenderer from '../../../components/store/pageTree/TreeRenderer';
 
 export async function generateMetadata({ params }) {
   const { locale } = await params;
@@ -189,7 +190,33 @@ async function ModeToggle({ searchParams, recordstore }) {
   );
 }
 
-export default async function CatalogPage({ searchParams }) {
+export default async function CatalogPage({ params, searchParams }) {
+  const { locale } = await params;
+
+  // `Page` (árbol constructible, editor nuevo) primero — mismo patrón de
+  // coexistencia que [locale]/page.jsx (home): si el tenant publica una
+  // `Page` con slug "cataleg", sustituye a este catálogo hardcoded sin
+  // tocar código. El nodo `CatalogBrowse` dentro de esa `Page` sigue
+  // resolviendo el mismo `/catalog` real — nunca se pierde funcionalidad,
+  // solo cambia quién decide el layout alrededor. Sin ella (todos los
+  // tenants hoy), sigue el catálogo de siempre más abajo, con el tema
+  // Recordstore y el modo "remena" intactos (el nodo `CatalogBrowse` no
+  // los replica todavía, ver docs/ARQUITECTURA_DISENY_FIGMA.md).
+  try {
+    const page = await api('/config/public/pages/cataleg');
+    return (
+      <>
+        <StorefrontNav />
+        <main className="flex-1">
+          <TreeRenderer tree={page.published_tree} locale={locale} searchParams={searchParams} basePath="/cataleg" />
+        </main>
+        <StorefrontFooter />
+      </>
+    );
+  } catch (err) {
+    if (err.status && err.status !== 404) throw err;
+  }
+
   const t = await getTranslations('cataleg');
   const p = await searchParams;
   let config = null;

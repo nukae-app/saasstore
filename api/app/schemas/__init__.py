@@ -259,12 +259,26 @@ from .holded import (
 )
 
 from .storefront import (
+    PageOut,
+    PagePublicOut,
+    PageCreateIn,
+    PageUpdateIn,
     HomeBlockOut,
     HomeBlockPublicOut,
     HomeBlockCreateIn,
     HomeBlockUpdateIn,
     HomeBlockReorderIn,
     UploadedVideoOut,
+)
+
+from .figma import (
+    FigmaConnectionOut,
+    FigmaStylesRequestIn,
+    FigmaStyleOut,
+    FigmaFrameOut,
+    FigmaImportJobCreateIn,
+    FigmaImportJobOut,
+    FigmaImportApplyIn,
 )
 
 from .documents import (

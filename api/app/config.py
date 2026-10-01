@@ -76,6 +76,15 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # OAuth de Figma (Fase 3, docs/ARQUITECTURA_DISENY_FIGMA.md §4) — una
+    # única app registrada al developer portal de Figma per a tota la
+    # plataforma (com google_client_id/secret), compartida per tots els
+    # tenants; el que varia per tenant és el token resultant, que viu a
+    # tenant_secrets.py, no aquí. Encara sense credencials reals — les
+    # rutes de routers/figma.py estan escrites però no provades en viu.
+    figma_client_id: str = ""
+    figma_client_secret: str = ""
+
     # discogs_token, spotify_client_id/secret: Fase 2 los movió a
     # app/tenant_secrets.py (uno por tenant en Secrets Manager) — ya NO son
     # campos de aquí. spotify_enabled se queda global a propósito (kill

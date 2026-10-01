@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@craftjs/core": "^0.2.12",
     "@grafana/faro-web-sdk": "^2.9.0",
     "@grafana/faro-web-tracing": "^2.9.0",
     "@radix-ui/react-accordion": "^1.2.0",

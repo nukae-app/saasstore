@@ -92,6 +92,8 @@ function getNavGroups(config) {
       items: [
         { href: '/admin/disseny-web', key: 'nav.disseny_web', label: 'Disseny web', icon: 'palette' },
         { href: '/admin/pagines',    key: 'nav.pagines',    label: 'Pàgines',    icon: 'description' },
+        { href: '/admin/editor-pagines', key: 'nav.editor_pagines', label: 'Editor visual (beta)', icon: 'dashboard_customize' },
+        { href: '/admin/figma', key: 'nav.figma', label: 'Figma (beta)', icon: 'draw' },
         { href: '/admin/blog',       key: 'nav.blog',       label: 'Blog',       icon: 'newspaper' },
         { href: '/admin/agenda',     key: 'nav.agenda',     label: 'Agenda',     icon: 'event' },
         { href: '/admin/newsletter', key: 'nav.newsletter', label: 'Newsletter', icon: 'mail' },

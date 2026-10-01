@@ -41,6 +41,12 @@ class TenantSecrets(BaseModel):
     # (ver services/holded_export.py) — opcional, sense això l'exportació
     # es queda en CSV genèric.
     holded_api_key: str | None = None
+    # Editor visual + import de Figma (docs/ARQUITECTURA_DISENY_FIGMA.md) —
+    # OAuth2 del compte de Figma del tenant. Metadades no sensibles (a quin
+    # compte està connectat) viuen a `FigmaConnection` (models/figma_import.py);
+    # aquí només els tokens, mateix criteri que `discogs_token`.
+    figma_access_token: str | None = None
+    figma_refresh_token: str | None = None
 
 
 def _secret_id(tenant_id: uuid.UUID) -> str:

@@ -5,9 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { SlidersHorizontal } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle } from '../ui/sheet';
-import CatalogFilters from '../../app/[locale]/cataleg/CatalogFilters';
+import CatalogFilters from './CatalogFilters';
 
-export default function MobileFilterSheet({ showFormatFilter = true, showGenreFilter = true }) {
+export default function MobileFilterSheet({ showFormatFilter = true, showGenreFilter = true, basePath = '/cataleg' }) {
   const t = useTranslations('cataleg');
   const [open, setOpen] = useState(false);
   const searchParams = useSearchParams();
@@ -35,7 +35,7 @@ export default function MobileFilterSheet({ showFormatFilter = true, showGenreFi
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
           <SheetTitle className="mb-2">{t('filters')}</SheetTitle>
-          <CatalogFilters showFormatFilter={showFormatFilter} showGenreFilter={showGenreFilter} />
+          <CatalogFilters showFormatFilter={showFormatFilter} showGenreFilter={showGenreFilter} basePath={basePath} />
         </SheetContent>
       </Sheet>
     </div>
