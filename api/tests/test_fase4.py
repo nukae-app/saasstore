@@ -12,6 +12,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
+from app.tenant_secrets import TenantSecrets
 from app.models import (
     CategoriaDespesa, Compra, ConfiguracioBotiga, ConfiguracioSubscripcio, Despesa, Proveedor,
     Release, Tenant, TipoCompra, User,
@@ -142,7 +143,7 @@ def test_get_discogs_token_if_enabled_respeta_el_interruptor(db, monkeypatch):
 
     monkeypatch.setattr(
         "app.services.discogs_sync.get_tenant_secrets",
-        lambda tid: type("S", (), {"discogs_token": "fake-token-todavia-presente"})(),
+        lambda tid: TenantSecrets(discogs_token="fake-token-todavia-presente"),
     )
     assert get_discogs_token_if_enabled(db, tenant_id) == "fake-token-todavia-presente"
 

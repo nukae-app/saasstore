@@ -10,7 +10,7 @@ import time
 import httpx
 
 BASE = "https://api.discogs.com"
-USER_AGENT = "UltraLocalRecords/1.0 +https://ultralocalrecords.example"
+USER_AGENT = "UltraLocalRecords/1.0 +https://labotigaaquesta.com"
 _MIN_INTERVAL = 1.1  # segundos entre peticiones (~55/min)
 _last_call = 0.0
 
@@ -59,11 +59,45 @@ def infer_formato(tokens: list[str]) -> str | None:
     return "Altre"
 
 
+class DiscogsReadOnlyError(RuntimeError):
+    """S'ha intentat escriure a Discogs amb un token en mode només lectura."""
+
+
+class ReadOnlyToken(str):
+    """Token de Discogs que només pot fer lectura. És un `str` (es pot passar
+    a qualsevol lloc on es passa un token), però `_client` hi instal·la un
+    bloqueig que rebutja qualsevol petició que no sigui GET/HEAD: un únic
+    punt que no depèn que cada flux recordi comprovar el mode."""
+
+
+def is_read_only(token: str | None) -> bool:
+    return isinstance(token, ReadOnlyToken)
+
+
+def _block_writes(request: httpx.Request) -> None:
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        raise DiscogsReadOnlyError(
+            f"Discogs en mode només lectura: {request.method} {request.url.path} bloquejat"
+        )
+
+
 def _client(token: str | None) -> httpx.Client:
     headers = {"User-Agent": USER_AGENT}
     if token:
         headers["Authorization"] = f"Discogs token={token}"
-    return httpx.Client(base_url=BASE, headers=headers, timeout=20)
+    hooks = {"request": [_block_writes]} if is_read_only(token) else {}
+    return httpx.Client(base_url=BASE, headers=headers, timeout=20, event_hooks=hooks)
+
+
+def get_identity(token: str | None) -> str:
+    """Username del compte de Discogs al qual pertany el token (`/oauth/identity`).
+    Aixeca `httpx.HTTPStatusError` (401 = token invàlid) o `httpx.HTTPError`
+    si no es pot arribar a Discogs; el crida qui valida el token en desar-lo."""
+    _throttle()
+    with _client(token) as c:
+        r = c.get("/oauth/identity")
+        r.raise_for_status()
+        return r.json()["username"]
 
 
 def _throttle() -> None:

@@ -12,9 +12,8 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import CondicionItem, Item, ItemStatus, OrderItem
 from ...schemas import CatalogAgingItemsOut, CatalogAgingOut, StockAlertsOut
-from ...services.discogs_sync import remove_item_from_discogs
+from ...services.discogs_sync import get_discogs_token_if_enabled, remove_item_from_discogs
 from ...services.security import require_admin
-from ...tenant_secrets import get_tenant_secrets
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -131,7 +130,7 @@ async def import_catalog_csv(file: UploadFile = File(...), db: Session = Depends
                 errors.append({"fila": n, "item_id": item_id_raw, "motiu": "Venut, no es pot eliminar"})
                 continue
             if item.codi_discogs:
-                remove_item_from_discogs(get_tenant_secrets(item.tenant_id).discogs_token, item.codi_discogs)
+                remove_item_from_discogs(get_discogs_token_if_enabled(db, item.tenant_id), item.codi_discogs)
             db.delete(item)
             eliminats += 1
             continue

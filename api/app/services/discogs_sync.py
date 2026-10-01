@@ -14,6 +14,7 @@ Les crides són best-effort: un error de Discogs no bloqueja l'operació local.
 
 import logging
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -21,11 +22,20 @@ from sqlalchemy.orm import Session
 
 from ..models import (
     CondicionItem, ConfiguracioBotiga, Item, ItemStatus, Order, OrderItem, OrderOrigen, OrderStatus,
-    RecordStockDetail, Release,
+    RecordStockDetail, Release, TenantFeature,
 )
-from ..tenant_secrets import get_tenant_secrets
-from .discogs import _client, _throttle, get_release
+from ..config import get_settings
+from ..tenant_secrets import TenantSecrets, get_tenant_secrets
+from .discogs import ReadOnlyToken, _client, _throttle, get_release, is_read_only
 from .iva import compute_iva_venda
+
+
+def resolve_discogs_token(secrets: TenantSecrets) -> str | None:
+    """Token de Discogs efectiu del tenant: `discogs_token_prod` o
+    `discogs_token_dev` segons `Settings.discogs_token_env`, i si aquell camp
+    no hi és, el `discogs_token` antic."""
+    specific = secrets.discogs_token_dev if get_settings().discogs_token_env == "dev" else secrets.discogs_token_prod
+    return specific or secrets.discogs_token
 
 
 def get_discogs_token_if_enabled(db: Session, tenant_id: uuid.UUID) -> str | None:
@@ -36,13 +46,46 @@ def get_discogs_token_if_enabled(db: Session, tenant_id: uuid.UUID) -> str | Non
     pese al interruptor apagado. Las funciones de este módulo que reciben
     `token: str | None` ya hacen `if not token: return` sin más, así que
     sustituir aquí `get_tenant_secrets(...).discogs_token` por esta función
-    basta para que todos esos call sites respeten el interruptor."""
+    basta para que todos esos call sites respeten el interruptor.
+
+    Con `discogs_solo_lectura` activo (migración por pasos, docs/
+    PLAN_CANAL_DISCOGS.md) devuelve un `ReadOnlyToken`: solo permite bajar
+    datos de Discogs, cualquier escritura queda bloqueada."""
     config = db.scalar(select(ConfiguracioBotiga))
     if not config or not config.discogs_habilitat:
         return None
-    return get_tenant_secrets(tenant_id).discogs_token
+    token = resolve_discogs_token(get_tenant_secrets(tenant_id))
+    if token and config.discogs_solo_lectura:
+        return ReadOnlyToken(token)
+    return token
 
 log = logging.getLogger(__name__)
+
+# Marca per tenant: la primera sincronització "Discogs mana" (scripts/
+# sync_discogs_inventory.py) ja s'ha fet. A partir d'aquí la font de veritat
+# d'estoc i preus és l'app (docs/PLAN_CANAL_DISCOGS.md §8) i aquell mode no
+# es pot relançar sense una confirmació explícita. Es guarda a `tenant_features`
+# (clau lliure en codi, sense migració); `config` porta data i resum.
+ADOPCIO_FEATURE_KEY = "discogs_adopcio_feta"
+
+
+def adopcio_feta(db: Session) -> dict | None:
+    """Dades de la marca d'adopció del tenant de la sessió, o None si encara no s'ha fet."""
+    feature = db.scalar(select(TenantFeature).where(TenantFeature.feature_key == ADOPCIO_FEATURE_KEY))
+    if feature is None or not feature.enabled:
+        return None
+    return feature.config or {}
+
+
+def marcar_adopcio_feta(db: Session, resum: dict) -> None:
+    """Registra (sense fer commit) que l'adopció inicial s'ha completat."""
+    config = {"fet_el": datetime.now(timezone.utc).isoformat(), **resum}
+    feature = db.scalar(select(TenantFeature).where(TenantFeature.feature_key == ADOPCIO_FEATURE_KEY))
+    if feature is None:
+        db.add(TenantFeature(feature_key=ADOPCIO_FEATURE_KEY, enabled=True, config=config))
+    else:
+        feature.enabled = True
+        feature.config = config
 
 # Mapeig d'estat de comanda de Discogs (seller-side) → el nostre OrderStatus.
 # No hi ha equivalent de "entregado" del costat venedor de Discogs: és un estat
@@ -121,6 +164,9 @@ def push_item_to_discogs(
     if not token:
         log.warning("discogs_sync: sense token, no es pot fer push")
         return None
+    if is_read_only(token):
+        log.info("discogs_sync: mode només lectura, no es publica l'item %s", item_id)
+        return None
 
     if es_nou:
         condition = sleeve = "M"
@@ -168,6 +214,9 @@ def remove_item_from_discogs(token: str | None, codi_discogs: int) -> bool:
     """
     if not token:
         return False
+    if is_read_only(token):
+        log.info("discogs_sync: mode només lectura, no s'elimina el listing %s", codi_discogs)
+        return False
     try:
         _throttle()
         with _client(token) as c:
@@ -192,6 +241,10 @@ def sync_stock_listing(db: Session, item: Item, token: str | None) -> None:
     No hace nada si el release no está vinculado a Discogs (no hay
     `codi_discogs` que gestionar) o si el item no es `nou`."""
     if item.condition != CondicionItem.nou:
+        return
+    if is_read_only(token):
+        # Sin tocar `codi_discogs`: borrar el vínculo local con el listing
+        # aún vivo en Discogs dejaría un listing huérfano.
         return
     if item.quantity <= 0:
         if item.codi_discogs:
@@ -336,6 +389,9 @@ def push_shipped_status(
     """Marca la comanda com "Shipped" a Discogs i hi deixa el número de seguiment com a missatge
     (Discogs no té un camp estructurat de tracking a l'API de comandes)."""
     if not token:
+        return False
+    if is_read_only(token):
+        log.info("discogs_sync: mode només lectura, no es marca Shipped la comanda %s", discogs_order_id)
         return False
     missatge = None
     if numero_seguiment:

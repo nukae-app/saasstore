@@ -9,8 +9,8 @@ from ...database import get_db
 from ...models import ComandaLinea, Item, RecordProduct, Release, ReleaseFloristeria
 from ...schemas import ReleaseIn
 from ...services import discogs
+from ...services.discogs_sync import get_discogs_token_if_enabled
 from ...services.security import require_admin
-from ...tenant_secrets import get_tenant_secrets
 from ._shared import require_discogs_enabled
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -111,8 +111,8 @@ def list_releases(
 # --- Alta asistida por Discogs ---
 
 @router.get("/discogs/search", dependencies=[Depends(require_discogs_enabled)])
-def discogs_search(request: Request, q: str = Query(min_length=3)):
-    token = get_tenant_secrets(request.state.tenant.id).discogs_token
+def discogs_search(request: Request, q: str = Query(min_length=3), db: Session = Depends(get_db)):
+    token = get_discogs_token_if_enabled(db, request.state.tenant.id)
     try:
         return discogs.search_releases(token, q)
     except Exception as exc:
@@ -120,9 +120,9 @@ def discogs_search(request: Request, q: str = Query(min_length=3)):
 
 
 @router.get("/discogs/release/{release_id}", dependencies=[Depends(require_discogs_enabled)])
-def discogs_get_release(release_id: int, request: Request):
+def discogs_get_release(release_id: int, request: Request, db: Session = Depends(get_db)):
     """Dades completes d'un release de Discogs: tracklist, crèdits, país, estils."""
-    token = get_tenant_secrets(request.state.tenant.id).discogs_token
+    token = get_discogs_token_if_enabled(db, request.state.tenant.id)
     try:
         return discogs.get_release(token, release_id)
     except Exception as exc:

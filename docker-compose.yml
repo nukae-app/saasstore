@@ -42,6 +42,8 @@ services:
       AWS_ENDPOINT_URL: http://localstack:4566
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+      # Entorno local: usa discogs_token_dev del secret del tenant, nunca el de producción
+      DISCOGS_TOKEN_ENV: dev
     # Publicado en el host (no solo expose) para poder pegarle directo con
     # curl en local sin pasar por Caddy — puerto 18000 para no chocar con
     # el Caddy de RecordShop, que ya ocupa 80/443 en esta misma máquina.
@@ -69,6 +71,8 @@ services:
       AWS_ENDPOINT_URL: http://localstack:4566
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+      # Entorno local: usa discogs_token_dev del secret del tenant, nunca el de producción
+      DISCOGS_TOKEN_ENV: dev
     command: celery -A app.celery_app worker --loglevel=info --concurrency=2
     depends_on:
       redis:
@@ -86,6 +90,8 @@ services:
       AWS_ENDPOINT_URL: http://localstack:4566
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+      # Entorno local: usa discogs_token_dev del secret del tenant, nunca el de producción
+      DISCOGS_TOKEN_ENV: dev
     command: celery -A app.celery_app beat --loglevel=info
     depends_on:
       redis:

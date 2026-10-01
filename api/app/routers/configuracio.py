@@ -5,17 +5,23 @@ d'estar escampat a `.env` (`Settings`) o barrejat amb els informes de
 `comptabilitat.py`.
 """
 
+import logging
 import os
 import uuid
 
+import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from ..accounting_registry import LEGAL_FORMS_BY_JURISDICTION
 from ..database import get_db
-from ..models import AccountingAccount, ConfiguracioBotiga, MargeConfig, PesFormat, Seccio, TipusIva, TramEnviament
+from ..config import get_settings
+from ..models import (
+    AccountingAccount, ConfiguracioBotiga, MargeConfig, PesFormat, Seccio, TenantFeature, TipusIva, TramEnviament,
+)
 from ..services.comptabilitat_seed import seed_chart_of_accounts
+from ..services.discogs_sync import adopcio_feta, resolve_discogs_token
 from ..schemas import (
     ConfiguracioBotigaOut, ConfiguracioBotigaPublic, ConfiguracioBotigaUpdate,
     CustomCssUpdateIn, ThemeTokens, HEX_COLOR_RE, THEME_COLOR_FIELDS,
@@ -27,10 +33,12 @@ from ..schemas import (
     TipusIvaIn, TipusIvaOut, TipusIvaUpdate,
     TramEnviamentIn, TramEnviamentOut, TramEnviamentUpdate,
 )
-from ..services import fontsource as fontsource_svc
+from ..services import discogs, fontsource as fontsource_svc
 from ..services.sanitize import sanitize_custom_css
 from ..services.security import require_admin
 from ..tenant_secrets import TenantSecrets, get_tenant_secrets, set_tenant_secret
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["configuracio"], dependencies=[Depends(require_admin)])
 public_router = APIRouter(prefix="/config", tags=["configuracio"])
@@ -495,10 +503,69 @@ def get_secrets_status(request: Request):
     return TenantSecretsStatusOut(**{k: bool(v) for k, v in secrets_.model_dump().items()})
 
 
+_DISCOGS_TOKEN_FIELDS = ("discogs_token", "discogs_token_dev", "discogs_token_prod")
+
+
 @router.post("/secrets", response_model=TenantSecretsStatusOut)
-def update_secrets(payload: TenantSecretsUpdateIn, request: Request):
+def update_secrets(payload: TenantSecretsUpdateIn, request: Request, db: Session = Depends(get_db)):
     fields = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not fields:
         raise HTTPException(422, "No s'ha indicat cap camp a desar")
+    for key in _DISCOGS_TOKEN_FIELDS:
+        if key not in fields:
+            continue
+        # Un token mal pegado (o de otra cuenta) no debe guardarse a ciegas:
+        # se valida contra /oauth/identity antes de escribir el secreto.
+        try:
+            discogs.get_identity(fields[key])
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 401:
+                raise HTTPException(422, "El token de Discogs no és vàlid")
+            raise HTTPException(502, f"Discogs ha respost {exc.response.status_code} en verificar el token")
+        except httpx.HTTPError:
+            raise HTTPException(502, "No s'ha pogut verificar el token amb Discogs. Torna-ho a provar.")
+
+    # Primera vez que entra un token de producción y la adopción inicial aún
+    # no está hecha: el tenant arranca en solo lectura (nadie lo ha decidido
+    # todavía), para que el primer contacto con el compte real solo pueda
+    # BAJAR datos. Si ya hay una decisión explícita sobre el modo, no se toca.
+    auto_solo_lectura = False
+    if "discogs_token_prod" in fields and adopcio_feta(db) is None:
+        config = _get_or_create_config(db)
+        ja_decidit = db.scalar(
+            select(TenantFeature.id).where(TenantFeature.feature_key == "discogs_solo_lectura")
+        ) is not None
+        if not ja_decidit:
+            config.discogs_solo_lectura = True
+            db.commit()
+            auto_solo_lectura = True
+
     secrets_ = set_tenant_secret(request.state.tenant.id, **fields)
+    if auto_solo_lectura:
+        log.info("discogs: token prod guardado, tenant en mode només lectura fins a completar l'adopció")
     return TenantSecretsStatusOut(**{k: bool(v) for k, v in secrets_.model_dump().items()})
+
+
+@router.get("/secrets/discogs-account")
+def get_discogs_account(request: Request, db: Session = Depends(get_db)):
+    """Compte de Discogs al qual pertany el token EFECTIU (el que l'app farà
+    servir segons `DISCOGS_TOKEN_ENV`), consultat en viu: permet comprovar a
+    simple vista que és el compte venedor de la botiga abans d'activar cap
+    sincronització. Inclou el mode (només lectura o lectura/escriptura) i si
+    l'adopció inicial ja està feta."""
+    config = db.scalar(select(ConfiguracioBotiga))
+    base = {
+        "solo_lectura": bool(config and config.discogs_solo_lectura),
+        "adopcio_feta": adopcio_feta(db) is not None,
+        "token_env": get_settings().discogs_token_env,
+    }
+    token = resolve_discogs_token(get_tenant_secrets(request.state.tenant.id))
+    if not token:
+        return {**base, "configured": False, "username": None, "error": None}
+    try:
+        return {**base, "configured": True, "username": discogs.get_identity(token), "error": None}
+    except httpx.HTTPStatusError as exc:
+        error = "Token no vàlid" if exc.response.status_code == 401 else f"Discogs ha respost {exc.response.status_code}"
+    except httpx.HTTPError:
+        error = "No s'ha pogut contactar amb Discogs"
+    return {**base, "configured": True, "username": None, "error": error}

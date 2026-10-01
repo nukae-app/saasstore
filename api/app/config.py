@@ -106,6 +106,10 @@ class Settings(BaseSettings):
     redsys_terminal: str = "1"
     redsys_secret_key: str = ""
     redsys_environment: str = "test"  # test | production
+    # Quin token de Discogs del secret del tenant s'usa: "prod" (compte
+    # venedor real) o "dev" (compte de proves). El compose local posa "dev"
+    # perquè un entorn de desenvolupament mai toqui el compte real.
+    discogs_token_env: str = "prod"
     redsys_notify_url: str = ""  # p. ej. https://tudominio.com/api/checkout/pay/redsys/notify
 
     # Sincronització nocturna del catàleg amb el Google Sheet (export CSV

@@ -15,7 +15,7 @@ from ...schemas import (
     OrderMarcarPagadoTiendaIn, OrderPendentTiendaItemOut, OrderPendentTiendaOut, OrderStatusUpdate,
 )
 from ...services.albarans import crear_albara_per_order
-from ...services.discogs_sync import push_shipped_status, sync_stock_listing
+from ...services.discogs_sync import get_discogs_token_if_enabled, push_shipped_status, sync_stock_listing
 from ...services.emailer import render_email_html, send_email
 from ...services.i18n import translate
 from ...services.iva import compute_iva_venda
@@ -24,7 +24,6 @@ from ...services.pricing import release_coupon_redemption
 from ...services.reservations import release_expired, release_items, release_stock_hold
 from ...services.security import require_admin
 from ...tenancy import tenant_frontend_url
-from ...tenant_secrets import get_tenant_secrets
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -342,7 +341,7 @@ def update_order_status(order_id: uuid.UUID, payload: OrderStatusUpdate, db: Ses
                 for oi in rows_nou:
                     item = db.get(Item, oi.item_id)
                     if item is not None:
-                        sync_stock_listing(db, item, get_tenant_secrets(item.tenant_id).discogs_token)
+                        sync_stock_listing(db, item, get_discogs_token_if_enabled(db, item.tenant_id))
                 db.commit()
             elif rows_nou:
                 # Pendiente de pago todavía: el hold puede estar en cart_id
@@ -384,7 +383,7 @@ def update_order_status(order_id: uuid.UUID, payload: OrderStatusUpdate, db: Ses
             if order.discogs_order_id:
                 # best-effort: si falla, l'enviament local ja ha quedat registrat igualment
                 push_shipped_status(
-                    get_tenant_secrets(order.tenant_id).discogs_token,
+                    get_discogs_token_if_enabled(db, order.tenant_id),
                     order.discogs_order_id, order.tracking_number, order.carrier,
                 )
     else:

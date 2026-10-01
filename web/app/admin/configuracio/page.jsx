@@ -255,6 +255,14 @@ function BotigaPanel({ config, onSaved }) {
     onSaved();
   }
 
+  async function toggleDiscogsSoloLectura() {
+    await authFetch('/admin/configuracio', {
+      method: 'PATCH',
+      body: JSON.stringify({ discogs_solo_lectura: !config.discogs_solo_lectura }),
+    });
+    onSaved();
+  }
+
   async function toggleCatalogFeature(key) {
     await authFetch('/admin/configuracio', {
       method: 'PATCH',
@@ -466,6 +474,20 @@ function BotigaPanel({ config, onSaved }) {
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${config.discogs_habilitat ? 'left-5' : 'left-0.5'}`} />
           </button>
         </div>
+        {config.discogs_habilitat && (
+          <div className="flex items-center justify-between border-t border-outline-variant pt-3">
+            <div>
+              <p className="text-sm font-medium text-on-surface-variant">{t('config.shop.discogs_read_only', 'Mode només lectura')}</p>
+              <p className="text-xs text-secondary-foreground mt-1 max-w-md">
+                {t('config.shop.discogs_read_only_hint', "Només es poden baixar dades de Discogs: publicar discos, eliminar listings i marcar comandes com a enviades queden bloquejats. Desactiva'l quan la sincronització de baixada estigui feta.")}
+              </p>
+            </div>
+            <button type="button" onClick={toggleDiscogsSoloLectura}
+              className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${config.discogs_solo_lectura ? 'bg-amber-500' : 'bg-muted'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-all ${config.discogs_solo_lectura ? 'left-5' : 'left-0.5'}`} />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm p-6 space-y-4">
@@ -503,7 +525,9 @@ const SECRET_FIELDS = [
   { key: 'redsys_merchant_code', labelKey: 'config.secrets.redsys_merchant_code', label: 'Redsys — codi de comerç' },
   { key: 'redsys_terminal', labelKey: 'config.secrets.redsys_terminal', label: 'Redsys — terminal' },
   { key: 'redsys_secret_key', labelKey: 'config.secrets.redsys_secret_key', label: 'Redsys — clau secreta' },
-  { key: 'discogs_token', labelKey: 'config.secrets.discogs_token', label: 'Discogs — token' },
+  { key: 'discogs_token_prod', labelKey: 'config.secrets.discogs_token_prod', label: 'Discogs — token de producció (compte venedor)' },
+  { key: 'discogs_token_dev', labelKey: 'config.secrets.discogs_token_dev', label: 'Discogs — token de proves' },
+  { key: 'discogs_token', labelKey: 'config.secrets.discogs_token', label: 'Discogs — token (antic)' },
   { key: 'spotify_client_id', labelKey: 'config.secrets.spotify_client_id', label: 'Spotify — client id' },
   { key: 'spotify_client_secret', labelKey: 'config.secrets.spotify_client_secret', label: 'Spotify — client secret' },
 ];
@@ -514,10 +538,20 @@ function SecretsPanel() {
   const [drafts, setDrafts] = useState({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [discogsAccount, setDiscogsAccount] = useState(null);
+
+  async function loadDiscogsAccount() {
+    const r = await authFetch('/admin/secrets/discogs-account');
+    if (r.ok) setDiscogsAccount(await r.json());
+  }
 
   async function load() {
     const r = await authFetch('/admin/secrets');
-    if (r.ok) setStatus(await r.json());
+    if (r.ok) {
+      const data = await r.json();
+      setStatus(data);
+      if (data.discogs_token || data.discogs_token_prod || data.discogs_token_dev) loadDiscogsAccount();
+    }
   }
   useEffect(() => { load(); }, []);
 
@@ -538,9 +572,11 @@ function SecretsPanel() {
     try {
       const r = await authFetch('/admin/secrets', { method: 'POST', body: JSON.stringify(payload) });
       if (r.ok) {
-        setStatus(await r.json());
+        const data = await r.json();
+        setStatus(data);
         setDrafts({});
         setMessage(t('config.secrets.saved_period', 'Desat.'));
+        if (payload.discogs_token || payload.discogs_token_prod || payload.discogs_token_dev) loadDiscogsAccount();
       } else {
         const body = await r.json().catch(() => ({}));
         setMessage(body.detail || t('purchases.supplier_modal.save_error', 'No s\'ha pogut desar.'));
@@ -576,6 +612,19 @@ function SecretsPanel() {
               autoComplete="off"
               className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            {key === 'discogs_token_prod' && discogsAccount?.configured && (
+              <p className={`text-xs mt-1 ${discogsAccount.username ? 'text-secondary-foreground' : 'text-red-600'}`}>
+                {discogsAccount.username
+                  ? t('config.secrets.discogs_account', 'Compte de Discogs connectat: {user}. Comprova que és el compte venedor de la botiga.').replace('{user}', discogsAccount.username)
+                  : `${t('config.secrets.discogs_account_error', 'No s\'ha pogut verificar el compte de Discogs')}: ${discogsAccount.error}`}
+                {' '}
+                <span className={`font-medium ${discogsAccount.solo_lectura ? 'text-amber-600' : 'text-green-700'}`}>
+                  {discogsAccount.solo_lectura
+                    ? t('config.secrets.discogs_mode_read', '· Mode només lectura')
+                    : t('config.secrets.discogs_mode_write', '· Lectura i escriptura')}
+                </span>
+              </p>
+            )}
           </div>
         ))}
         {message && <p className="text-sm text-on-surface-variant">{message}</p>}

@@ -16,9 +16,8 @@ from sqlalchemy import select
 
 from app.database import SessionLocal
 from app.models import Tenant
-from app.services.discogs_sync import sync_discogs_orders
+from app.services.discogs_sync import get_discogs_token_if_enabled, sync_discogs_orders
 from app.tenancy import scoped_to
-from app.tenant_secrets import get_tenant_secrets
 
 
 def main() -> None:
@@ -32,7 +31,7 @@ def main() -> None:
         if tenant is None:
             raise SystemExit(f"No existe ningún tenant con slug '{args.tenant}'")
         with scoped_to(db, tenant.id):
-            token = get_tenant_secrets(tenant.id).discogs_token
+            token = get_discogs_token_if_enabled(db, tenant.id)  # respeta interruptor y modo solo lectura
             resum = sync_discogs_orders(db, token)
         print(f"Discogs orders sync ({tenant.slug}): {resum}")
     finally:

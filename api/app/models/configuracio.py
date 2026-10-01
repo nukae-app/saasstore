@@ -217,6 +217,19 @@ class ConfiguracioBotiga(TenantScoped, Base):
     def discogs_habilitat(self, value: bool) -> None:
         self._set_feature("discogs_sync", value)
 
+    @property
+    def discogs_solo_lectura(self) -> bool:
+        """Mode només lectura del mòdul Discogs (migració per passos, docs/
+        PLAN_CANAL_DISCOGS.md): només es pot BAIXAR dades de Discogs; publicar,
+        eliminar listings i marcar comandes com a enviades queden bloquejats
+        (veure services/discogs.py::ReadOnlyToken). Per defecte apagat."""
+        feature = self._feature("discogs_solo_lectura")
+        return bool(feature and feature.enabled)
+
+    @discogs_solo_lectura.setter
+    def discogs_solo_lectura(self, value: bool) -> None:
+        self._set_feature("discogs_solo_lectura", value)
+
     # Tres interruptors nous: fins ara `isVinils` (derivat de Tenant.vertical_id,
     # no configurable) era l'únic que decidia si un tenant veia el mode
     # "Remena" i els filtres de format/gènere a /cataleg (ver

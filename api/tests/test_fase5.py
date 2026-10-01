@@ -53,16 +53,21 @@ def _fake_secrets_store(monkeypatch):
     return store
 
 
+def _fake_discogs_identity(monkeypatch, username="la-botiga"):
+    monkeypatch.setattr("app.routers.configuracio.discogs.get_identity", lambda token: username)
+
+
 def test_admin_secrets_round_trip(db, client, monkeypatch):
     _fake_secrets_store(monkeypatch)
+    _fake_discogs_identity(monkeypatch)
     admin = _admin_token(client, db)
 
     resp = client.get("/admin/secrets", headers=_auth(admin))
     assert resp.status_code == 200
     assert resp.json() == {
         "redsys_merchant_code": False, "redsys_terminal": False, "redsys_secret_key": False,
-        "discogs_token": False, "spotify_client_id": False, "spotify_client_secret": False,
-        "holded_api_key": False,
+        "discogs_token": False, "discogs_token_dev": False, "discogs_token_prod": False,
+        "spotify_client_id": False, "spotify_client_secret": False, "holded_api_key": False,
     }
 
     resp = client.post("/admin/secrets", json={"discogs_token": "fake-token-123"}, headers=_auth(admin))
@@ -75,6 +80,66 @@ def test_admin_secrets_round_trip(db, client, monkeypatch):
 
     resp = client.get("/admin/secrets", headers=_auth(admin))
     assert resp.json()["discogs_token"] is True
+
+
+def test_admin_secrets_discogs_token_invalido_no_se_guarda(db, client, monkeypatch):
+    import httpx
+
+    store = _fake_secrets_store(monkeypatch)
+
+    def bad_identity(token):
+        raise httpx.HTTPStatusError("401", request=httpx.Request("GET", "http://x"), response=httpx.Response(401))
+
+    monkeypatch.setattr("app.routers.configuracio.discogs.get_identity", bad_identity)
+    admin = _admin_token(client, db)
+
+    resp = client.post("/admin/secrets", json={"discogs_token": "mal-token"}, headers=_auth(admin))
+    assert resp.status_code == 422
+    assert "discogs_token" not in store
+
+
+def test_admin_secrets_discogs_error_de_red_devuelve_502(db, client, monkeypatch):
+    import httpx
+
+    store = _fake_secrets_store(monkeypatch)
+
+    def down(token):
+        raise httpx.ConnectError("sin red")
+
+    monkeypatch.setattr("app.routers.configuracio.discogs.get_identity", down)
+    admin = _admin_token(client, db)
+
+    resp = client.post("/admin/secrets", json={"discogs_token": "tok"}, headers=_auth(admin))
+    assert resp.status_code == 502
+    assert "discogs_token" not in store
+
+
+def test_admin_secrets_otros_campos_no_consultan_discogs(db, client, monkeypatch):
+    store = _fake_secrets_store(monkeypatch)
+
+    def boom(token):
+        raise AssertionError("no debe llamar a Discogs si no se envía discogs_token")
+
+    monkeypatch.setattr("app.routers.configuracio.discogs.get_identity", boom)
+    admin = _admin_token(client, db)
+
+    resp = client.post("/admin/secrets", json={"redsys_terminal": "001"}, headers=_auth(admin))
+    assert resp.status_code == 200
+    assert store["redsys_terminal"] == "001"
+
+
+def test_admin_discogs_account(db, client, monkeypatch):
+    store = _fake_secrets_store(monkeypatch)
+    _fake_discogs_identity(monkeypatch, "la-botiga")
+    admin = _admin_token(client, db)
+
+    base = {"solo_lectura": False, "adopcio_feta": False, "token_env": "prod"}
+    resp = client.get("/admin/secrets/discogs-account", headers=_auth(admin))
+    assert resp.json() == {**base, "configured": False, "username": None, "error": None}
+
+    store["discogs_token"] = "tok"
+    resp = client.get("/admin/secrets/discogs-account", headers=_auth(admin))
+    assert resp.json() == {**base, "configured": True, "username": "la-botiga", "error": None}
 
 
 def test_admin_secrets_requiere_admin(client):

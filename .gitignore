@@ -60,3 +60,6 @@ infra/terraform*/tfplan
 
 # Clau SSH generada per Terraform
 *.pem
+
+# Còpies de seguretat locals (Discogs, etc.): contenen dades de negoci, no es versionen
+backups/

@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session, selectinload
 from ...database import get_db
 from ...models import Item, ItemStatus, RecordProduct, Release
 from ...services import discogs
-from ...services.discogs import get_listing, get_release_image
+from ...services.discogs import get_listing, get_release_image, is_read_only
 from ...services.discogs_sync import (
-    enrich_release_from_discogs, push_item_to_discogs, remove_item_from_discogs,
-    sync_discogs_orders,
+    enrich_release_from_discogs, get_discogs_token_if_enabled, push_item_to_discogs,
+    remove_item_from_discogs, resolve_discogs_token, sync_discogs_orders,
 )
 from ...services.security import require_admin
 from ...tenant_secrets import get_tenant_secrets
@@ -18,11 +18,13 @@ from ._shared import require_discogs_enabled
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
+READ_ONLY_MSG = "Discogs està en mode només lectura: desactiva-ho a Configuració per poder publicar o eliminar listings."
+
 
 @router.post("/discogs/sync/orders", dependencies=[Depends(require_discogs_enabled)])
 def sync_orders(request: Request, db: Session = Depends(get_db)):
     """Pull manual de comandes del Marketplace (el mateix que fa el cron periòdic)."""
-    return sync_discogs_orders(db, get_tenant_secrets(request.state.tenant.id).discogs_token)
+    return sync_discogs_orders(db, get_discogs_token_if_enabled(db, request.state.tenant.id))
 
 
 # --- Discogs Sync (gestió manual) ---
@@ -152,8 +154,12 @@ def discogs_sync_push(item_id: uuid.UUID, db: Session = Depends(get_db)):
     if item.status not in (ItemStatus.disponible, ItemStatus.reservado):
         raise HTTPException(422, "L'item no és disponible")
 
+    token = get_discogs_token_if_enabled(db, item.tenant_id)
+    if is_read_only(token):
+        raise HTTPException(409, READ_ONLY_MSG)
+
     listing_id = push_item_to_discogs(
-        get_tenant_secrets(item.tenant_id).discogs_token,
+        token,
         item_id=item.id,
         release_discogs_id=item.release.discogs_release_id,
         precio=float(item.price),
@@ -177,7 +183,11 @@ def discogs_sync_remove(item_id: uuid.UUID, db: Session = Depends(get_db)):
     if not item.codi_discogs:
         return {"action": "nothing_to_remove"}
 
-    ok = remove_item_from_discogs(get_tenant_secrets(item.tenant_id).discogs_token, item.codi_discogs)
+    token = get_discogs_token_if_enabled(db, item.tenant_id)
+    if is_read_only(token):
+        raise HTTPException(409, READ_ONLY_MSG)
+
+    ok = remove_item_from_discogs(token, item.codi_discogs)
     if ok:
         old = item.codi_discogs
         item.codi_discogs = None
@@ -199,7 +209,7 @@ def discogs_sync_enrich_release(release_id: uuid.UUID, db: Session = Depends(get
     if not release.discogs_release_id:
         raise HTTPException(422, "El release no té discogs_release_id")
 
-    ok = enrich_release_from_discogs(release, db, get_tenant_secrets(release.tenant_id).discogs_token)
+    ok = enrich_release_from_discogs(release, db, get_discogs_token_if_enabled(db, release.tenant_id))
     if not ok:
         raise HTTPException(502, "Error consultant Discogs")
 
@@ -228,7 +238,7 @@ def enrich_item_image(item_id: uuid.UUID, request: Request, db: Session = Depend
 
     release = item.release
     imagen_url = None
-    token = get_tenant_secrets(request.state.tenant.id).discogs_token
+    token = get_discogs_token_if_enabled(db, request.state.tenant.id)
 
     try:
         if release.discogs_release_id:
@@ -300,7 +310,7 @@ def _run_bulk_in_new_sessions(work: list, tenant_id: uuid.UUID):
     # filtro automático no aplicaría de todos modos si hiciera falta.
     # scoped_to sí hace falta para que el token de Discogs sea el de este
     # tenant, no uno global.
-    token = get_tenant_secrets(tenant_id).discogs_token
+    token = resolve_discogs_token(get_tenant_secrets(tenant_id))  # solo GET: da igual el modo solo lectura
     for release_id, discogs_release_id, codi_discogs in work:
         try:
             with SessionLocal() as session, scoped_to(session, tenant_id):

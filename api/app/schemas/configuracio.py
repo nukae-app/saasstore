@@ -101,6 +101,7 @@ class ConfiguracioBotigaOut(BaseModel):
     subscripcions_actives: bool
     maintenance_active: bool
     discogs_habilitat: bool
+    discogs_solo_lectura: bool
     catalog_browse_mode: bool
     catalog_format_filter: bool
     catalog_genre_filter: bool
@@ -137,6 +138,7 @@ class ConfiguracioBotigaUpdate(BaseModel):
     catalog_genre_filter: bool | None = None
     maintenance_active: bool | None = None
     discogs_habilitat: bool | None = None
+    discogs_solo_lectura: bool | None = None
     # RECC/prorrata especial (Model 303) — ver docs/PLAN_MODELO303_FITXER.md
     recc_actiu: bool | None = None
     prorrata_pct_provisional: Decimal | None = None
@@ -264,6 +266,8 @@ class TenantSecretsStatusOut(BaseModel):
     redsys_terminal: bool
     redsys_secret_key: bool
     discogs_token: bool
+    discogs_token_dev: bool
+    discogs_token_prod: bool
     spotify_client_id: bool
     spotify_client_secret: bool
     holded_api_key: bool
@@ -274,6 +278,8 @@ class TenantSecretsUpdateIn(BaseModel):
     redsys_terminal: str | None = None
     redsys_secret_key: str | None = None
     discogs_token: str | None = None
+    discogs_token_dev: str | None = None
+    discogs_token_prod: str | None = None
     spotify_client_id: str | None = None
     spotify_client_secret: str | None = None
     holded_api_key: str | None = None

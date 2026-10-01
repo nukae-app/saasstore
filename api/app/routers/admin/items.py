@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 from ...database import get_db
 from ...models import CondicionItem, Item, ItemStatus, OrderItem, Release
 from ...schemas import ItemIn, ItemUpdate
-from ...services.discogs_sync import push_item_to_discogs, remove_item_from_discogs, sync_stock_listing
+from ...services.discogs_sync import (
+    get_discogs_token_if_enabled, push_item_to_discogs, remove_item_from_discogs, sync_stock_listing,
+)
 from ...services.security import require_admin
-from ...tenant_secrets import get_tenant_secrets
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -36,7 +37,7 @@ def create_item(payload: ItemIn, db: Session = Depends(get_db)):
             ) / (agregado.quantity + payload.quantity)
             agregado.quantity += payload.quantity
             agregado.price = payload.price
-            sync_stock_listing(db, agregado, get_tenant_secrets(agregado.tenant_id).discogs_token)
+            sync_stock_listing(db, agregado, get_discogs_token_if_enabled(db, agregado.tenant_id))
             db.commit()
             db.refresh(agregado)
             return {"id": agregado.id, "codi_discogs": agregado.codi_discogs}
@@ -47,12 +48,12 @@ def create_item(payload: ItemIn, db: Session = Depends(get_db)):
     db.refresh(item)
 
     if item.condition == CondicionItem.nou:
-        sync_stock_listing(db, item, get_tenant_secrets(item.tenant_id).discogs_token)
+        sync_stock_listing(db, item, get_discogs_token_if_enabled(db, item.tenant_id))
         db.commit()
     # Opció B: push automàtic a Discogs si el release té discogs_release_id (segona_ma)
     elif release.discogs_release_id and not item.codi_discogs:
         listing_id = push_item_to_discogs(
-            get_tenant_secrets(item.tenant_id).discogs_token,
+            get_discogs_token_if_enabled(db, item.tenant_id),
             item_id=item.id,
             release_discogs_id=release.discogs_release_id,
             precio=float(item.price),
@@ -88,7 +89,7 @@ def delete_item(item_id: uuid.UUID, db: Session = Depends(get_db)):
     if db.scalar(select(OrderItem.id).where(OrderItem.item_id == item_id).limit(1)):
         raise HTTPException(409, "No es pot eliminar: aquest exemplar té un pedido associat. Marca'l com a retirat en lloc d'eliminar-lo.")
     if item.codi_discogs:
-        remove_item_from_discogs(get_tenant_secrets(item.tenant_id).discogs_token, item.codi_discogs)
+        remove_item_from_discogs(get_discogs_token_if_enabled(db, item.tenant_id), item.codi_discogs)
     db.delete(item)
     db.commit()
 

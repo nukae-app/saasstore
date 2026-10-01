@@ -34,7 +34,12 @@ class TenantSecrets(BaseModel):
     redsys_merchant_code: str | None = None
     redsys_terminal: str | None = None
     redsys_secret_key: str | None = None
+    # `discogs_token` es el campo antiguo (un solo token); `_dev`/`_prod` lo
+    # sustituyen para no mezclar el compte de proves con el venedor real de la
+    # botiga — ver services/discogs_sync.py::resolve_discogs_token.
     discogs_token: str | None = None
+    discogs_token_dev: str | None = None
+    discogs_token_prod: str | None = None
     spotify_client_id: str | None = None
     spotify_client_secret: str | None = None
     # Fase 5 comptabilitat: API key de Holded per exportar el llibre diari
