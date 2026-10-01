@@ -6,9 +6,9 @@ recepció). Aquest script en suggereix el valor a partir de l'últim
 `Item.acquisition_cost` conegut del mateix release (el mateix criteri que
 `GET /admin/solicitudes-compra/ultims-costos`).
 
-Només toca línies PENDENTS de rebre (received_quantity < quantity): a les ja
-rebudes el cost real ja viu als ítems d'estoc i el preu de la comanda és només
-informatiu. Les línies sense cap cost conegut es llisten perquè s'omplin a mà.
+Només toca línies PENDENTS de rebre (received_quantity < quantity) de comandes
+vives: les comandes cancel·lades s'ignoren, i a les línies ja rebudes el cost
+real ja viu als ítems d'estoc (el preu de la comanda és només informatiu). Les línies sense cap cost conegut es llisten perquè s'omplin a mà.
 
 Per defecte NO escriu res (simulació). Amb --apply fa els canvis.
 
@@ -23,7 +23,7 @@ import argparse
 from sqlalchemy import func, select
 
 from app.database import SessionLocal
-from app.models import Comanda, ComandaLinea, Item, Release, Tenant
+from app.models import Comanda, ComandaLinea, EstadoComanda, Item, Release, Tenant
 from app.tenancy import scoped_to
 
 
@@ -43,7 +43,7 @@ def main() -> None:
             select(ComandaLinea, Comanda, Release)
             .join(Comanda, Comanda.id == ComandaLinea.comanda_id)
             .join(Release, Release.id == ComandaLinea.release_id)
-            .where(ComandaLinea.estimated_unit_price.is_(None))
+            .where(ComandaLinea.estimated_unit_price.is_(None), Comanda.status != EstadoComanda.cancelada)
             .order_by(Comanda.date)
         ).all()
 
@@ -76,7 +76,7 @@ def main() -> None:
             db.rollback()
 
     print(
-        f"\n{len(rows)} línies sense preu · {omplertes} {'omplertes' if args.apply else 'es ompliran'} · "
+        f"\n{len(rows)} línies sense preu (comandes no cancel·lades) · {omplertes} {'omplertes' if args.apply else 'es ompliran'} · "
         f"{sense_cost} sense cost conegut · {ja_rebudes} ja rebudes (no es toquen)"
     )
     if not args.apply:
