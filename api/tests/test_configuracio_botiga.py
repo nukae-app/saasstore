@@ -126,3 +126,22 @@ def test_legal_form_invalid_per_jurisdiccio_dona_422(db, client):
     admin = _admin_token(client, db)
     resp = client.patch("/admin/configuracio", json={"legal_form": "ltd"}, headers=_auth(admin))
     assert resp.status_code == 422
+
+
+def test_recarrec_equivalencia_defecte_5_i_editable(db, client):
+    admin = _admin_token(client, db)
+    assert float(client.get("/admin/configuracio", headers=_auth(admin)).json()["recarrec_equivalencia_pct"]) == 5
+
+    resp = client.patch("/admin/configuracio", json={"recarrec_equivalencia_pct": "5.2"}, headers=_auth(admin))
+    assert resp.status_code == 200
+    assert float(resp.json()["recarrec_equivalencia_pct"]) == 5.2
+
+    resp = client.patch("/admin/configuracio", json={"recarrec_equivalencia_pct": 0}, headers=_auth(admin))
+    assert float(resp.json()["recarrec_equivalencia_pct"]) == 0
+
+
+def test_recarrec_equivalencia_rebutja_null_i_fora_de_rang(db, client):
+    admin = _admin_token(client, db)
+    for valor in (None, -1, 101):
+        resp = client.patch("/admin/configuracio", json={"recarrec_equivalencia_pct": valor}, headers=_auth(admin))
+        assert resp.status_code == 422, valor

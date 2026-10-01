@@ -74,6 +74,7 @@ function DadesFiscalsPanel({ config, onSaved }) {
   const [formaJuridica, setFormaJuridica] = useState(config.legal_form || '');
   const [reccActiu, setReccActiu] = useState(config.recc_actiu || false);
   const [prorrataPct, setProrrataPct] = useState(config.prorrata_pct_provisional ?? '');
+  const [recarrecPct, setRecarrecPct] = useState(config.recarrec_equivalencia_pct ?? 5);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -84,6 +85,7 @@ function DadesFiscalsPanel({ config, onSaved }) {
     setError('');
     setSaved(false);
     const payload = {
+      recarrec_equivalencia_pct: recarrecPct === '' ? 0 : Number(recarrecPct),
       fiscal_name: nomFiscal, nif, address: adreca,
       recc_actiu: reccActiu,
       prorrata_pct_provisional: prorrataPct === '' ? null : Number(prorrataPct),
@@ -160,6 +162,14 @@ function DadesFiscalsPanel({ config, onSaved }) {
           <input type="checkbox" checked={reccActiu} onChange={e => setReccActiu(e.target.checked)} className="mt-0.5" />
           <span>{t('config.fiscal.recc', "Règim especial del criteri de caixa (RECC) — l'IVA es merita en cobrar/pagar, no en facturar")}</span>
         </label>
+        <div>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.fiscal.recarrec', "Recàrrec d'equivalència — %")}</label>
+          <input type="number" step="0.01" min="0" max="100" value={recarrecPct} onChange={e => setRecarrecPct(e.target.value)}
+            className="w-full max-w-[200px] border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          <p className="text-xs text-secondary-foreground mt-1">
+            {t('config.fiscal.recarrec_hint', 'Se suma al preu de compra (sense IVA) dels discos nous per calcular el cost real, el marge i el PVP suggerit a la recepció. 0 = sense recàrrec.')}
+          </p>
+        </div>
         <div>
           <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('config.fiscal.prorrata', 'Prorrata especial — % provisional')}</label>
           <input type="number" step="0.01" min="0" max="100" value={prorrataPct} onChange={e => setProrrataPct(e.target.value)}

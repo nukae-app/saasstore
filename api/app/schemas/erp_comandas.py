@@ -50,10 +50,12 @@ class ComandaOut(BaseModel):
 class RecepcionItemIn(BaseModel):
     comanda_linea_id: uuid.UUID
     price: Decimal
+    # Obligatori: en depèn el marge i el PVP. Preu de compra SENSE IVA, per
+    # unitat; es pot canviar respecte al de la comanda si ha variat a l'arribada.
+    acquisition_cost: Decimal = Field(ge=0)
     # La majoria de discos que entren per comanda a proveïdor són nous
     # (a diferència de la compra a particular, sempre segona mà per defecte).
     condition: str = "nou"
-    acquisition_cost: Decimal | None = None
     estado_disco: str | None = None
     estado_funda: str | None = None
     # Només té sentit per a condicion='nou' (stock agregat): unitats que

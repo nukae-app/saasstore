@@ -523,7 +523,7 @@ def test_recepcio_reserva_automaticament_per_peticion_recollida_botiga(db, clien
 
     resp = client.post(
         f"/admin/comandas/{comanda_id}/recepcio",
-        json={"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "28.00"}]},
+        json={"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "28.00", "acquisition_cost": "10.00"}]},
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201
@@ -558,7 +558,7 @@ def test_recepcio_reserva_automaticament_per_peticion_envio_sense_caducitat(db, 
 
     resp = client.post(
         f"/admin/comandas/{comanda_id}/recepcio",
-        json={"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "28.00"}]},
+        json={"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "28.00", "acquisition_cost": "10.00"}]},
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201

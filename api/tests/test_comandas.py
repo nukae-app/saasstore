@@ -326,7 +326,7 @@ def test_recepcio_parcial_deixa_comanda_oberta(db, client):
 
     recepcio_payload = {
         "date": "2026-06-10T10:00:00",
-        "items": [{"comanda_linea_id": linea_id, "price": "20.00"}],
+        "items": [{"comanda_linea_id": linea_id, "price": "20.00", "acquisition_cost": "10.00"}],
     }
     resp = client.post(f"/admin/comandas/{comanda_id}/recepcio", json=recepcio_payload, headers=_auth(admin))
     assert resp.status_code == 201
@@ -336,8 +336,8 @@ def test_recepcio_parcial_deixa_comanda_oberta(db, client):
     recepcio_payload_2 = {
         "date": "2026-06-12T10:00:00",
         "items": [
-            {"comanda_linea_id": linea_id, "price": "20.00"},
-            {"comanda_linea_id": linea_id, "price": "20.00"},
+            {"comanda_linea_id": linea_id, "price": "20.00", "acquisition_cost": "10.00"},
+            {"comanda_linea_id": linea_id, "price": "20.00", "acquisition_cost": "10.00"},
         ],
     }
     resp2 = client.post(f"/admin/comandas/{comanda_id}/recepcio", json=recepcio_payload_2, headers=_auth(admin))
@@ -361,8 +361,8 @@ def test_recepcio_excedeix_quantitat_falla(db, client):
     recepcio_payload = {
         "date": "2026-06-10T10:00:00",
         "items": [
-            {"comanda_linea_id": linea_id, "price": "20.00"},
-            {"comanda_linea_id": linea_id, "price": "20.00"},
+            {"comanda_linea_id": linea_id, "price": "20.00", "acquisition_cost": "10.00"},
+            {"comanda_linea_id": linea_id, "price": "20.00", "acquisition_cost": "10.00"},
         ],
     }
     resp = client.post(f"/admin/comandas/{comanda_id}/recepcio", json=recepcio_payload, headers=_auth(admin))
@@ -381,7 +381,7 @@ def test_recepcio_comanda_esborrany_falla(db, client):
     comanda_id = comanda_resp["id"]
     linea_id = comanda_resp["lineas"][0]["id"]
 
-    recepcio_payload = {"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "20.00"}]}
+    recepcio_payload = {"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "20.00", "acquisition_cost": "10.00"}]}
     resp = client.post(f"/admin/comandas/{comanda_id}/recepcio", json=recepcio_payload, headers=_auth(admin))
     assert resp.status_code == 409
 
@@ -488,3 +488,41 @@ def test_resolver_csv_despres_es_pot_usar_per_crear_comanda(db, client, monkeypa
     resp = client.post("/admin/comandas", json=payload, headers=_auth(admin))
     assert resp.status_code == 201
     assert resp.json()["lineas"][0]["quantity"] == 3
+
+
+def test_recepcio_exigeix_cost_i_pdf_inclou_import_i_marge(db, client):
+    from decimal import Decimal
+
+    from app.models import TipusIva
+    from app.models import ConfiguracioBotiga
+    from app.services.preu_compra import marge_pct
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db)
+    db.add(TipusIva(name="General", percentage=Decimal("21"), default_new=True, default_used=True, active=True))
+    db.commit()
+    payload = {
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [{"release_id": str(release.id), "quantity": 1, "estimated_unit_price": "10.00"}],
+    }
+    comanda = client.post("/admin/comandas", json=payload, headers=_auth(admin)).json()
+    linea_id = comanda["lineas"][0]["id"]
+    client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
+
+    sense_cost = {"date": "2026-06-10T10:00:00", "items": [{"comanda_linea_id": linea_id, "price": "20.00"}]}
+    assert client.post(f"/admin/comandas/{comanda['id']}/recepcio", json=sense_cost, headers=_auth(admin)).status_code == 422
+
+    ok = {"date": "2026-06-10T10:00:00", "items": [
+        {"comanda_linea_id": linea_id, "price": "20.00", "acquisition_cost": "11.00"}]}
+    resp = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json=ok, headers=_auth(admin))
+    assert resp.status_code == 201
+    pdf = client.get(f"/admin/compras/{resp.json()['compra_id']}/pdf", headers=_auth(admin))
+    assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf"
+
+    cfg = db.scalar(select(ConfiguracioBotiga))
+    assert cfg is None or cfg.recarrec_equivalencia_pct == Decimal("5")
+    # 20 € amb IVA 21 % = 16,53 de base; cost 11 + 5 % recàrrec = 11,55 → +43,1 %
+    assert marge_pct(Decimal("20.00"), Decimal("11.00"), "nou", Decimal("21"), Decimal("5")) == Decimal("43.11")
+    # recàrrec configurable: 0 % → el cost real és el cost net
+    assert marge_pct(Decimal("20.00"), Decimal("11.00"), "nou", Decimal("21"), Decimal("0")) == Decimal("50.26")

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import Comanda, ConfiguracioBotiga
+from .preu_compra import recarrec_config_pct
 
 
 def generate_comanda_pdf(comanda: Comanda, db: Session) -> bytes:
@@ -34,7 +35,7 @@ def generate_comanda_pdf(comanda: Comanda, db: Session) -> bytes:
     pdf.ln(6)
 
     col_widths = (90, 25, 35, 35)
-    headers = ("Disc", "Quantitat", "Preu unitari", "Subtotal")
+    headers = ("Disc", "Quantitat", "Preu compra", "Subtotal")
     pdf.set_font("Helvetica", "B", 10)
     pdf.set_fill_color(230, 230, 230)
     for w, h in zip(col_widths, headers):
@@ -51,12 +52,15 @@ def generate_comanda_pdf(comanda: Comanda, db: Session) -> bytes:
             total += subtotal
         pdf.cell(col_widths[0], 7, descripcio[:55], border=1)
         pdf.cell(col_widths[1], 7, str(linea.quantity), border=1, align="C")
-        pdf.cell(col_widths[2], 7, f"{preu:.2f} EUR" if preu is not None else "-", border=1, align="R")
+        pdf.cell(col_widths[2], 7, f"{preu:.2f} EUR" if preu is not None else "Sense preu", border=1, align="R")
         pdf.cell(col_widths[3], 7, f"{subtotal:.2f} EUR" if subtotal is not None else "-", border=1, align="R")
         pdf.ln()
 
     pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(sum(col_widths[:3]), 7, "Total estimat", border=1, align="R")
+    pdf.cell(sum(col_widths[:3]), 7, "Total (sense IVA)", border=1, align="R")
     pdf.cell(col_widths[3], 7, f"{total:.2f} EUR", border=1, align="R")
+    pdf.ln(10)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.multi_cell(0, 4, f"Preus de compra per unitat, sense IVA. S'hi afegirà el recàrrec d'equivalència ({recarrec_config_pct(db):g} %) segons factura.")
 
     return bytes(pdf.output())

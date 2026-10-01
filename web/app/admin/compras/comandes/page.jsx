@@ -295,7 +295,7 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
                   <span className="font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
                   <span className="text-secondary-foreground">{l.received_quantity}/{l.quantity} {t('purchases.received_suffix', 'rebudes')}</span>
                   {l.estimated_unit_price && (
-                    <span className="text-secondary-foreground">{t('purchases.est_price', 'Preu est.')}: {l.estimated_unit_price} €</span>
+                    <span className="text-secondary-foreground">{t('purchases.purchase_cost', 'Cost compra')}: {l.estimated_unit_price} € {t('purchases.excl_vat', 'sense IVA')}</span>
                   )}
                 </div>
               ))}
@@ -552,9 +552,9 @@ function NovaComandaModal({ proveedores, onClose, onSaved }) {
                         className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                     <div>
-                      <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.order_modal.estimated_unit_price', 'Preu unitari estimat')}</label>
-                      <input type="number" step="0.01" min="0" value={l.precio_unitario_estimado} onChange={e => upd(idx, 'precio_unitario_estimado', e.target.value)}
-                        className="w-28 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                      <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.order_modal.purchase_cost', 'Cost compra unitari (sense IVA)')}</label>
+                      <input type="number" step="0.01" min="0" required value={l.precio_unitario_estimado} onChange={e => upd(idx, 'precio_unitario_estimado', e.target.value)}
+                        className="w-40 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
                   </div>
                 </div>
@@ -588,12 +588,16 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
 
   // Marge/IVA per defecte de cada condició, per suggerir preu (sempre editable a mà després).
   const [defectesPreu, setDefectesPreu] = useState({ nou: null, segona_ma: null });
+  // % de recàrrec d'equivalència (configuració de la botiga), només per a discos nous.
+  const [recarrecEquivalencia, setRecarrecEquivalencia] = useState(0);
   useEffect(() => {
     (async () => {
-      const [mRes, ivaRes] = await Promise.all([
+      const [mRes, ivaRes, cfgRes] = await Promise.all([
         authFetch('/admin/marges?nomes_actius=true'),
         authFetch('/admin/tipus-iva?nomes_actius=true'),
+        authFetch('/admin/configuracio'),
       ]);
+      if (cfgRes.ok) setRecarrecEquivalencia(parseFloat((await cfgRes.json()).recarrec_equivalencia_pct) || 0);
       const marges = mRes.ok ? await mRes.json() : [];
       const tipusIva = ivaRes.ok ? await ivaRes.json() : [];
       const margeNou = marges.find(m => m.default_new);
@@ -617,7 +621,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
       const actuales = prev[linea.id] ?? [];
       const pendent = linea.quantity - linea.received_quantity;
       if (unitatsLinea(actuales) >= pendent) return prev;
-      return { ...prev, [linea.id]: [...actuales, { precio: linea.estimated_unit_price ?? '', condicion: 'nou', coste_adquisicion: '', estado_disco: '', estado_funda: '', cantidad: 1 }] };
+      return { ...prev, [linea.id]: [...actuales, { precio: '', condicion: 'nou', coste_adquisicion: linea.estimated_unit_price ?? '', estado_disco: '', estado_funda: '', cantidad: 1 }] };
     });
   }
 
@@ -625,10 +629,24 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
     const defecte = defectesPreu[copia.condicion];
     const coste = parseFloat(copia.coste_adquisicion);
     if (!defecte || !coste) return null;
-    const importMarge = coste * (defecte.marge / 100);
-    const baseAmbMarge = coste + importMarge;
+    // Mateixa fórmula que api/app/services/preu_compra.py: el recàrrec
+    // d'equivalència només s'aplica a mercaderia nova de proveïdor.
+    const importRecarrec = copia.condicion === 'nou' ? coste * (recarrecEquivalencia / 100) : 0;
+    const costReal = coste + importRecarrec;
+    const importMarge = costReal * (defecte.marge / 100);
+    const baseAmbMarge = costReal + importMarge;
     const importIva = baseAmbMarge * (defecte.iva / 100);
-    return { importMarge, importIva, preuSuggerit: baseAmbMarge + importIva };
+    return { importRecarrec, costReal, importMarge, importIva, preuSuggerit: baseAmbMarge + importIva };
+  }
+
+  // Marge real resultant del PVP fixat (pot diferir del suggerit si s'ha editat a mà).
+  function margeReal(copia) {
+    const defecte = defectesPreu[copia.condicion];
+    const coste = parseFloat(copia.coste_adquisicion);
+    const preu = parseFloat(copia.precio);
+    if (!defecte || !coste || !preu) return null;
+    const costReal = coste * (1 + (copia.condicion === 'nou' ? recarrecEquivalencia / 100 : 0));
+    return ((preu / (1 + defecte.iva / 100)) / costReal - 1) * 100;
   }
 
   function calcularPreu(lineaId, idx, copia) {
@@ -656,6 +674,7 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
     const items = [];
     for (const [lineaId, copias] of Object.entries(itemsPorLinea)) {
       for (const c of copias) {
+        if (c.coste_adquisicion === '' || c.coste_adquisicion == null) { setError(t('purchases.reception_modal.missing_cost', 'Falta el preu de compra en alguna còpia.')); return; }
         if (!c.precio) { setError(t('purchases.reception_modal.missing_price', 'Falta el preu de venda en alguna còpia.')); return; }
         items.push({
           comanda_linea_id: lineaId,
@@ -742,12 +761,12 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                         </div>
                       )}
                       <div>
-                        <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.cost_short', 'Cost')} {c.condicion === 'nou' ? t('purchases.reception_modal.per_unit', '(per unitat)') : ''}</label>
-                        <input type="number" step="0.01" min="0" value={c.coste_adquisicion} onChange={e => updCopia(linea.id, idx, 'coste_adquisicion', e.target.value)}
-                          className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                        <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.reception_modal.purchase_price', 'Preu compra (sense IVA)')} {c.condicion === 'nou' ? t('purchases.reception_modal.per_unit', '(per unitat)') : ''}</label>
+                        <input type="number" step="0.01" min="0" required value={c.coste_adquisicion} onChange={e => updCopia(linea.id, idx, 'coste_adquisicion', e.target.value)}
+                          className="w-28 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                       </div>
                       <div>
-                        <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.reception_modal.sale_price', 'Preu venda')}</label>
+                        <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.reception_modal.sale_price', 'PVP (IVA inclòs)')}</label>
                         <div className="flex gap-1">
                           <input type="number" step="0.01" min="0" value={c.precio} onChange={e => updCopia(linea.id, idx, 'precio', e.target.value)} required
                             className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
@@ -761,9 +780,12 @@ function RecepcioModal({ comanda, onClose, onSaved }) {
                         {(() => {
                           const desglos = desglossPreu(c);
                           if (!desglos) return null;
+                          const real = margeReal(c);
                           return (
-                            <div className="text-[10px] text-secondary-foreground mt-0.5 whitespace-nowrap">
-                              {t('purchases.margin_capitalized', 'Marge')} {desglos.importMarge.toFixed(2)}€ · IVA {desglos.importIva.toFixed(2)}€
+                            <div className="text-xs text-secondary-foreground mt-1 space-y-0.5">
+                              {c.condicion === 'nou' && <div>{t('purchases.reception_modal.surcharge', 'Recàrrec equiv.')} {recarrecEquivalencia}%: +{desglos.importRecarrec.toFixed(2)}€ → {t('purchases.reception_modal.real_cost', 'cost real')} {desglos.costReal.toFixed(2)}€</div>}
+                              <div>{t('purchases.margin_capitalized', 'Marge')} {desglos.importMarge.toFixed(2)}€ · IVA {desglos.importIva.toFixed(2)}€</div>
+                              {real != null && <div className="font-medium text-on-surface">{t('purchases.reception_modal.margin_pct', '% marge')}: {real.toFixed(1)}%</div>}
                             </div>
                           );
                         })()}

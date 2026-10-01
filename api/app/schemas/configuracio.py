@@ -110,6 +110,7 @@ class ConfiguracioBotigaOut(BaseModel):
     custom_css: str | None
     recc_actiu: bool
     prorrata_pct_provisional: Decimal | None
+    recarrec_equivalencia_pct: Decimal
     updated_at: datetime
 
     model_config = {"from_attributes": True}
@@ -139,6 +140,8 @@ class ConfiguracioBotigaUpdate(BaseModel):
     # RECC/prorrata especial (Model 303) — ver docs/PLAN_MODELO303_FITXER.md
     recc_actiu: bool | None = None
     prorrata_pct_provisional: Decimal | None = None
+    # Mai null (columna NOT NULL): per no tenir recàrrec s'envia 0.
+    recarrec_equivalencia_pct: Decimal = Field(default=None, ge=0, le=100)
 
 
 HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
