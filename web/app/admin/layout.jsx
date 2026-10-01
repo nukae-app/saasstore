@@ -34,6 +34,10 @@ function getNavGroups(config) {
           href: '/admin/catalogo', key: 'nav.catalog',
           label: vertical === 'floristry' ? 'Productes' : 'Discos', icon: 'album',
         },
+        {
+          href: '/admin/canals/discogs', key: 'nav.canal_discogs', label: 'Sync Discogs', icon: 'sync_alt',
+          requiresFeature: 'discogs_habilitat',
+        },
         { href: '/admin/etiquetes',    key: 'nav.etiquetes',    label: 'Etiquetes',       icon: 'sell' },
         { href: '/admin/ofertes',      key: 'nav.ofertes',      label: 'Ofertes',         icon: 'local_offer' },
         { href: '/admin/cupons',       key: 'nav.cupons',       label: 'Cupons',          icon: 'confirmation_number' },

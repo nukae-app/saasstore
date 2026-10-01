@@ -1,6 +1,9 @@
 """Instància de Celery per a tasques en segon pla (enviament massiu de
 newsletters, alliberament de reserves caducades de peticions de client).
 
+(La sincronització d'INVENTARI Discogs -> app de la pantalla d'admin sí que és
+una tasca d'aquí: app/tasks/discogs.py, sense schedule, només a demanda.)
+
 La sincronització de catàleg amb Discogs ja NO es fa aquí: es feia via un
 CSV de Google Sheet (app/tasks/catalog_sync.py, ara sense schedule) i s'ha
 substituït per `scripts/sync_discogs_inventory.py`, que llegeix directament
@@ -22,7 +25,7 @@ celery_app = Celery(
     broker=_settings.redis_url,
     backend=_settings.redis_url,
     include=[
-        "app.tasks.health", "app.tasks.newsletter", "app.tasks.peticiones", "app.tasks.pricing",
+        "app.tasks.discogs", "app.tasks.health", "app.tasks.newsletter", "app.tasks.peticiones", "app.tasks.pricing",
         "app.tasks.subscripcions",
     ],
 )

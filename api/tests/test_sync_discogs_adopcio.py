@@ -10,6 +10,7 @@ import pytest
 from sqlalchemy import select
 
 from app.models import Item, ItemStatus, Release, Tenant
+from app.services import discogs_inventory_sync as svc
 from app.services.discogs_sync import adopcio_feta
 from app.tenant_secrets import TenantSecrets
 from scripts import sync_discogs_inventory as script
@@ -36,9 +37,9 @@ def _listing(codi, precio="10.00", release_id=None):
 def discogs(monkeypatch):
     """Falsea la red: devuelve el inventario que fije el test."""
     state = {"listings": []}
-    monkeypatch.setattr(script, "get_tenant_secrets", lambda tid: TenantSecrets(discogs_token="tok"))
-    monkeypatch.setattr(script, "_fetch_username", lambda token: "la-botiga")
-    monkeypatch.setattr(script, "_fetch_inventory", lambda token, user, limit=0: state["listings"][:limit] if limit else state["listings"])
+    monkeypatch.setattr(svc, "get_tenant_secrets", lambda tid: TenantSecrets(discogs_token="tok"))
+    monkeypatch.setattr(svc, "_fetch_username", lambda token: "la-botiga")
+    monkeypatch.setattr(svc, "_fetch_inventory", lambda token, user, limit=0, on_page=None: state["listings"][:limit] if limit else state["listings"])
     return state
 
 
@@ -140,7 +141,7 @@ def test_informe_incluye_crear_y_errores_y_con_errores_no_marca(db, discogs, tmp
     nuevo = Release(artista="Nou", title="Disc", formato="LP", discogs_release_id=777)
     db.add(nuevo)
     db.commit()
-    monkeypatch.setattr(script, "_find_or_create_release", lambda db_, token, rid, desc: db_.get(Release, nuevo.id))
+    monkeypatch.setattr(svc, "_find_or_create_release", lambda db_, token, rid, desc: db_.get(Release, nuevo.id))
     sin_precio = _listing(2000)
     sin_precio["price"] = {}
     discogs["listings"] = [_listing(1000), _listing(3000, release_id=777), sin_precio]
