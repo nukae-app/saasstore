@@ -24,6 +24,7 @@ from ..models import (
 from ..tenant_secrets import get_tenant_secrets
 from . import discogs
 from .catalog_sync import clean, derive_condicion
+from .channel_listings import backfill_discogs_listings
 from .discogs_sync import adopcio_feta, marcar_adopcio_feta, resolve_discogs_token
 
 
@@ -232,16 +233,16 @@ def _find_or_create_release(db, token: str | None, discogs_release_id: int, desc
 
 INFORME_COLUMNES = [
     "accio", "codi_discogs", "discogs_release_id", "artista", "titol", "condicio",
-    "estat_disc", "preu_app", "preu_discogs", "item_id", "motiu",
+    "estat_disc", "preu_app", "preu_discogs", "item_id", "motiu", "preu_proposat",
 ]
 
 
 def _fila(accio, *, codi=None, release_id=None, artista=None, titol=None, condicio=None,
-          estat_disc=None, preu_app=None, preu_discogs=None, item_id=None, motiu=None) -> dict:
+          estat_disc=None, preu_app=None, preu_discogs=None, item_id=None, motiu=None, preu_proposat=None) -> dict:
     return {
         "accio": accio, "codi_discogs": codi, "discogs_release_id": release_id, "artista": artista,
         "titol": titol, "condicio": condicio, "estat_disc": estat_disc, "preu_app": preu_app,
-        "preu_discogs": preu_discogs, "item_id": item_id, "motiu": motiu,
+        "preu_discogs": preu_discogs, "item_id": item_id, "motiu": motiu, "preu_proposat": preu_proposat,
     }
 
 
@@ -512,6 +513,9 @@ def run_inventory_sync(
     if dry_run:
         db.rollback()
     else:
+        db.commit()
+        # Reflejo con estado de los vínculos item <-> listing (fase A del plan).
+        summary["channel_listings"] = backfill_discogs_listings(db)
         db.commit()
         if limit:
             log("Adopció NO marcada com a feta: s'ha executat amb límit.")

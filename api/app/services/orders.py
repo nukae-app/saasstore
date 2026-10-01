@@ -127,9 +127,13 @@ def finalize_payment(db: Session, order: Order) -> list[uuid.UUID]:
 
     db.commit()
 
+    retirats = False
     for r in rows_amb_item:
         if r.item.codi_discogs:
-            remove_item_from_discogs(discogs_token, r.item.codi_discogs)
+            remove_item_from_discogs(discogs_token, r.item.codi_discogs, db=db, item_id=r.item_id)
+            retirats = True
+    if retirats:
+        db.commit()  # persiste los eventos de registro (la venta ya estaba confirmada)
 
     lang = order.language
     order_short = str(order.id)[:8]

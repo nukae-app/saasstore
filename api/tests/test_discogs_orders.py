@@ -9,6 +9,9 @@ from sqlalchemy import select
 
 from app.models import CondicionItem, Item, ItemStatus, Order, OrderItem, OrderOrigen, OrderStatus, Release, User
 from app.services import discogs_sync
+from app.tenant_secrets import TenantSecrets
+from app.services.channel_listings import backfill_discogs_listings
+from app.services.channel_settings import get_settings
 
 
 # ---------------------------------------------------------------------------
@@ -126,11 +129,17 @@ def test_sync_sense_match_no_crea_res(db, monkeypatch):
 def test_endpoint_sync_orders(db, client, monkeypatch):
     admin = _admin_token(client, db)
     _seed_item(db, codi_discogs=555444)
-    monkeypatch.setattr(discogs_sync, "fetch_open_discogs_orders", lambda token: [_fake_order(listing_id=555444)])
+    monkeypatch.setattr(
+        "app.services.discogs_sync.get_tenant_secrets", lambda tid: TenantSecrets(discogs_token_prod="tok")
+    )
+    monkeypatch.setattr(
+        "app.services.channel_orders.fetch_open_discogs_orders", lambda token, **k: [_fake_order(listing_id=555444)]
+    )
 
     resp = client.post("/admin/discogs/sync/orders", headers=_auth(admin))
     assert resp.status_code == 200
-    assert resp.json()["creats"] == 1
+    d = resp.json()
+    assert d["creats"] == 1 and d["sense_match"] == 0 and d["conflictes"] == 0 and d["orders_fetched"] == 1
 
 
 def test_marcar_enviado_fa_push_a_discogs(db, client, monkeypatch):
@@ -177,10 +186,21 @@ def _seed_item_nou(db, discogs_release_id=123, cantidad=5, codi_discogs=None) ->
 def test_sync_stock_listing_publica_si_hay_stock_y_no_hay_listing(db, monkeypatch):
     item = _seed_item_nou(db, cantidad=3, codi_discogs=None)
     monkeypatch.setattr(discogs_sync, "push_item_to_discogs", lambda token, **k: 424242)
+    get_settings(db).publicacion_auto = True  # primera publicación: solo automática si se activa
 
     discogs_sync.sync_stock_listing(db, item, "fake-token")
 
     assert item.codi_discogs == 424242
+
+
+def test_primera_publicacion_nou_espera_aprobacion_si_la_publicacion_es_manual(db, monkeypatch):
+    item = _seed_item_nou(db, cantidad=3, codi_discogs=None)
+    calls = []
+    monkeypatch.setattr(discogs_sync, "push_item_to_discogs", lambda token, **k: calls.append(k) or 1)
+
+    discogs_sync.sync_stock_listing(db, item, "fake-token")  # nunca se publicó y no hay publicación automática
+
+    assert calls == [] and item.codi_discogs is None
 
 
 def test_sync_stock_listing_no_duplica_si_ya_hay_listing(db, monkeypatch):
@@ -197,7 +217,7 @@ def test_sync_stock_listing_no_duplica_si_ya_hay_listing(db, monkeypatch):
 def test_sync_stock_listing_retira_si_cantidad_llega_a_cero(db, monkeypatch):
     item = _seed_item_nou(db, cantidad=0, codi_discogs=555)
     removed = []
-    monkeypatch.setattr(discogs_sync, "remove_item_from_discogs", lambda token, codi: removed.append(codi) or True)
+    monkeypatch.setattr(discogs_sync, "remove_item_from_discogs", lambda token, codi, **kw: removed.append(codi) or True)
 
     discogs_sync.sync_stock_listing(db, item, "fake-token")
 
@@ -207,6 +227,8 @@ def test_sync_stock_listing_retira_si_cantidad_llega_a_cero(db, monkeypatch):
 
 def test_sync_discogs_orders_nou_descuenta_y_republica(db, monkeypatch):
     item = _seed_item_nou(db, cantidad=3, codi_discogs=777)
+    backfill_discogs_listings(db)  # ya estaba publicado: reponerlo tras la venta es automático
+    db.commit()
     monkeypatch.setattr(discogs_sync, "fetch_open_discogs_orders", lambda token: [_fake_order(listing_id=777)])
     monkeypatch.setattr(discogs_sync, "push_item_to_discogs", lambda token, **k: 888)
 

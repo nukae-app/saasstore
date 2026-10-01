@@ -11,6 +11,7 @@ from ...schemas import ItemIn, ItemUpdate
 from ...services.discogs_sync import (
     get_discogs_token_if_enabled, push_item_to_discogs, remove_item_from_discogs, sync_stock_listing,
 )
+from ...services.channel_settings import auto_publish_allowed
 from ...services.security import require_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -50,8 +51,10 @@ def create_item(payload: ItemIn, db: Session = Depends(get_db)):
     if item.condition == CondicionItem.nou:
         sync_stock_listing(db, item, get_discogs_token_if_enabled(db, item.tenant_id))
         db.commit()
-    # Opció B: push automàtic a Discogs si el release té discogs_release_id (segona_ma)
-    elif release.discogs_release_id and not item.codi_discogs:
+    # Opció B: push automàtic a Discogs si el release té discogs_release_id (segona_ma) —
+    # només amb la publicació automàtica activada (per defecte NO: es publica des del
+    # centre de control, amb vista prèvia).
+    elif release.discogs_release_id and not item.codi_discogs and auto_publish_allowed(db):
         listing_id = push_item_to_discogs(
             get_discogs_token_if_enabled(db, item.tenant_id),
             item_id=item.id,
@@ -59,6 +62,7 @@ def create_item(payload: ItemIn, db: Session = Depends(get_db)):
             precio=float(item.price),
             estado_disco=item.estado_disco,
             estado_funda=item.estado_funda,
+            db=db,
         )
         if listing_id:
             item.codi_discogs = listing_id
@@ -89,7 +93,7 @@ def delete_item(item_id: uuid.UUID, db: Session = Depends(get_db)):
     if db.scalar(select(OrderItem.id).where(OrderItem.item_id == item_id).limit(1)):
         raise HTTPException(409, "No es pot eliminar: aquest exemplar té un pedido associat. Marca'l com a retirat en lloc d'eliminar-lo.")
     if item.codi_discogs:
-        remove_item_from_discogs(get_discogs_token_if_enabled(db, item.tenant_id), item.codi_discogs)
+        remove_item_from_discogs(get_discogs_token_if_enabled(db, item.tenant_id), item.codi_discogs, db=db)
     db.delete(item)
     db.commit()
 

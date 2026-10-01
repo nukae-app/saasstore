@@ -111,7 +111,7 @@ def _completar_order_pagada(db: Session, peticion: PeticionCliente, item: Item) 
     # (ver services/discogs_sync.sync_stock_listing); aquí només cal fer-ho
     # explícit per a segona_ma, que és 1 còpia = 1 listing sempre.
     if item.condition != CondicionItem.nou and item.codi_discogs:
-        remove_item_from_discogs(get_discogs_token_if_enabled(db, item.tenant_id), item.codi_discogs)
+        remove_item_from_discogs(get_discogs_token_if_enabled(db, item.tenant_id), item.codi_discogs, db=db, item_id=item.id)
 
     return True
 

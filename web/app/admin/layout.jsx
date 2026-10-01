@@ -35,7 +35,7 @@ function getNavGroups(config) {
           label: vertical === 'floristry' ? 'Productes' : 'Discos', icon: 'album',
         },
         {
-          href: '/admin/canals/discogs', key: 'nav.canal_discogs', label: 'Sync Discogs', icon: 'sync_alt',
+          href: '/admin/canals/discogs', key: 'nav.canal_discogs', label: 'Discogs', icon: 'sync_alt',
           requiresFeature: 'discogs_habilitat',
         },
         { href: '/admin/etiquetes',    key: 'nav.etiquetes',    label: 'Etiquetes',       icon: 'sell' },

@@ -34,6 +34,16 @@ from .catalog import (
     ReleaseImage,
 )
 
+from .channels import (
+    CHANNEL_DISCOGS,
+    ChannelListing,
+    ChannelEvent,
+    ChannelSyncRun,
+    ChannelSettings,
+    ChannelAlert,
+    NotificationPref,
+)
+
 from .stock import (
     ItemStatus,
     CondicionItem,

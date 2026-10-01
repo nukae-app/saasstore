@@ -14,18 +14,22 @@ Les crides són best-effort: un error de Discogs no bloqueja l'operació local.
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import (
-    CondicionItem, ConfiguracioBotiga, Item, ItemStatus, Order, OrderItem, OrderOrigen, OrderStatus,
+    ChannelEvent, CondicionItem, ConfiguracioBotiga, Item, ItemStatus, Order, OrderItem, OrderOrigen, OrderStatus,
     RecordStockDetail, Release, TenantFeature,
 )
 from ..config import get_settings
 from ..tenant_secrets import TenantSecrets, get_tenant_secrets
+from .channel_alerts import raise_alert
+from .channel_events import record_event
+from .channel_listings import was_published
+from .channel_settings import auto_publish_allowed
 from .discogs import ReadOnlyToken, _client, _throttle, get_release, is_read_only
 from .iva import compute_iva_venda
 
@@ -96,6 +100,9 @@ DISCOGS_ORDER_STATUS_MAP: dict[str, OrderStatus] = {
     "Invoice Sent": OrderStatus.pendiente_pago,
     "Payment Pending": OrderStatus.pendiente_pago,
     "Payment Received": OrderStatus.pagado,
+    # "In Progress": el vendedor ya está preparando el pedido (cobrado, aún sin enviar).
+    # Estaba ausente del mapa y esos pedidos se ignoraban; ver docs/PLAN_CANAL_DISCOGS.md §2.
+    "In Progress": OrderStatus.pagado,
     "Shipped": OrderStatus.enviado,
     "Refund Sent": OrderStatus.cancelado,
     "Cancelled (Non-Paying Buyer)": OrderStatus.cancelado,
@@ -142,32 +149,13 @@ def _map_condition(grading: str | None) -> str:
     return "VG+"
 
 
-def push_item_to_discogs(
-    token: str | None,
-    item_id,
-    release_discogs_id: int,
-    precio: float,
-    estado_disco: str | None,
-    estado_funda: str | None,
-    notas: str | None = None,
-    es_nou: bool = False,
-) -> int | None:
-    """Crea un listing al Marketplace de Discogs.
-
-    `es_nou=True` (stock agregado): Discogs no té un grading de "nou", el
-    conveni del mercat és fer servir "Mint (M)" tant per al disc com per a
-    la funda, sense comentaris de grading (abans, per a nou, `estado_disco`
-    sempre era None i queia per defecte a "VG+", incorrecte).
-
-    Retorna el listing_id (codi_discogs) o None si falla.
-    """
-    if not token:
-        log.warning("discogs_sync: sense token, no es pot fer push")
-        return None
-    if is_read_only(token):
-        log.info("discogs_sync: mode només lectura, no es publica l'item %s", item_id)
-        return None
-
+def _listing_body(
+    precio: float, release_discogs_id: int, estado_disco: str | None, estado_funda: str | None,
+    notas: str | None, es_nou: bool,
+) -> dict:
+    """Cuerpo del listing (crear/editar). `es_nou=True` (stock agregado): Discogs no té un
+    grading de "nou", el conveni del mercat és fer servir "Mint (M)" tant per al disc com per
+    a la funda, sense comentaris de grading."""
     if es_nou:
         condition = sleeve = "M"
         comments_parts = [notas] if notas else []
@@ -181,8 +169,7 @@ def push_item_to_discogs(
             comments_parts.append(f"Funda: {estado_funda}")
         if notas:
             comments_parts.append(notas)
-
-    body = {
+    return {
         "release_id": release_discogs_id,
         "condition": condition,
         "sleeve_condition": sleeve,
@@ -191,44 +178,138 @@ def push_item_to_discogs(
         "comments": " | ".join(comments_parts) or None,
     }
 
+
+READ_ONLY_REASON = "mode només lectura"
+
+
+def push_listing(
+    token: str | None, item_id, release_discogs_id: int, precio: float, estado_disco: str | None,
+    estado_funda: str | None, notas: str | None = None, es_nou: bool = False,
+    *, db: Session | None = None, actor: str | None = None,
+) -> tuple[int | None, str | None]:
+    """Crea un listing al Marketplace. Retorna `(listing_id, error)`: `error` explica el
+    fallo (o és None si ha anat bé / no hi havia token). Amb `db`, deixa constància al
+    registre d'activitat (channel_events)."""
+    if not token:
+        log.warning("discogs_sync: sense token, no es pot fer push")
+        return None, "sense token"
+    body = _listing_body(precio, release_discogs_id, estado_disco, estado_funda, notas, es_nou)
+    detalle = {"release_id": release_discogs_id, "price": body["price"]}
+    if is_read_only(token):
+        log.info("discogs_sync: mode només lectura, no es publica l'item %s", item_id)
+        record_event(db, "publish", "skipped", item_id=item_id, actor=actor, detail={**detalle, "motiu": READ_ONLY_REASON})
+        return None, READ_ONLY_REASON
+
     try:
         _throttle()
         with _client(token) as c:
             r = c.post("/marketplace/listings", json=body)
             if r.status_code in (400, 422):
                 log.warning("discogs_sync push 4xx: %s — %s", r.status_code, r.text[:200])
-                return None
+                err = f"Discogs {r.status_code}: {r.text[:300]}"
+                record_event(db, "publish", "error", item_id=item_id, actor=actor, detail=detalle, error=err)
+                return None, err
             r.raise_for_status()
             listing_id = r.json().get("listing_id")
             log.info("discogs_sync: listing creat %s per item %s", listing_id, item_id)
-            return listing_id
+            record_event(db, "publish", "ok", item_id=item_id, external_id=listing_id, actor=actor, detail=detalle)
+            return listing_id, None
     except Exception as exc:
         log.warning("discogs_sync push error per item %s: %s", item_id, exc)
-        return None
+        record_event(db, "publish", "error", item_id=item_id, actor=actor, detail=detalle, error=str(exc))
+        return None, str(exc)
 
 
-def remove_item_from_discogs(token: str | None, codi_discogs: int) -> bool:
-    """Elimina un listing del Marketplace de Discogs (disc venut o retirat).
+def push_item_to_discogs(
+    token: str | None,
+    item_id,
+    release_discogs_id: int,
+    precio: float,
+    estado_disco: str | None,
+    estado_funda: str | None,
+    notas: str | None = None,
+    es_nou: bool = False,
+    *,
+    db: Session | None = None,
+    actor: str | None = None,
+) -> int | None:
+    """Crea un listing al Marketplace de Discogs. Retorna el listing_id (codi_discogs) o None
+    si falla (versió sense motiu de `push_listing`)."""
+    return push_listing(
+        token, item_id, release_discogs_id, precio, estado_disco, estado_funda, notas, es_nou, db=db, actor=actor,
+    )[0]
 
-    Retorna True si s'ha eliminat (o ja no existia), False si ha fallat.
-    """
+
+def update_listing(
+    token: str | None, listing_id: int, item_id, release_discogs_id: int, precio: float,
+    estado_disco: str | None, estado_funda: str | None, notas: str | None = None, es_nou: bool = False,
+    *, db: Session | None = None, actor: str | None = None,
+) -> tuple[bool, str | None, bool]:
+    """Edita un listing existent (preu i grading). Retorna `(ok, error, gone)`; `gone`=True
+    si Discogs diu que el listing ja no existeix (404). Registra l'activitat si hi ha `db`."""
     if not token:
-        return False
+        return False, "sense token", False
+    body = _listing_body(precio, release_discogs_id, estado_disco, estado_funda, notas, es_nou)
+    detalle = {"release_id": release_discogs_id, "price": body["price"]}
+    if is_read_only(token):
+        record_event(db, "update", "skipped", item_id=item_id, external_id=listing_id, actor=actor,
+                     detail={**detalle, "motiu": READ_ONLY_REASON})
+        return False, READ_ONLY_REASON, False
+    try:
+        _throttle()
+        with _client(token) as c:
+            r = c.post(f"/marketplace/listings/{listing_id}", json=body)
+            if r.status_code in (200, 204):
+                record_event(db, "update", "ok", item_id=item_id, external_id=listing_id, actor=actor, detail=detalle)
+                return True, None, False
+            err = f"Discogs {r.status_code}: {r.text[:300]}"
+            log.warning("discogs_sync update %s → %s", listing_id, r.status_code)
+            record_event(db, "update", "error", item_id=item_id, external_id=listing_id, actor=actor,
+                         detail=detalle, error=err)
+            return False, err, r.status_code == 404
+    except Exception as exc:
+        log.warning("discogs_sync update error %s: %s", listing_id, exc)
+        record_event(db, "update", "error", item_id=item_id, external_id=listing_id, actor=actor,
+                     detail=detalle, error=str(exc))
+        return False, str(exc), False
+
+
+def remove_listing(
+    token: str | None, codi_discogs: int, *, db: Session | None = None, item_id=None, actor: str | None = None,
+) -> tuple[bool, str | None]:
+    """Elimina un listing. Retorna `(ok, error)`; ok també si ja no existia (404)."""
+    if not token:
+        return False, "sense token"
     if is_read_only(token):
         log.info("discogs_sync: mode només lectura, no s'elimina el listing %s", codi_discogs)
-        return False
+        record_event(db, "remove", "skipped", item_id=item_id, external_id=codi_discogs, actor=actor,
+                     detail={"motiu": READ_ONLY_REASON})
+        return False, READ_ONLY_REASON
     try:
         _throttle()
         with _client(token) as c:
             r = c.delete(f"/marketplace/listings/{codi_discogs}")
             if r.status_code in (200, 204, 404):
                 log.info("discogs_sync: listing %s eliminat", codi_discogs)
-                return True
+                record_event(db, "remove", "ok", item_id=item_id, external_id=codi_discogs, actor=actor,
+                             detail={"http": r.status_code})
+                return True, None
             log.warning("discogs_sync delete %s → %s", codi_discogs, r.status_code)
-            return False
+            err = f"Discogs {r.status_code}"
+            record_event(db, "remove", "error", item_id=item_id, external_id=codi_discogs, actor=actor, error=err)
+            return False, err
     except Exception as exc:
         log.warning("discogs_sync delete error %s: %s", codi_discogs, exc)
-        return False
+        record_event(db, "remove", "error", item_id=item_id, external_id=codi_discogs, actor=actor, error=str(exc))
+        return False, str(exc)
+
+
+def remove_item_from_discogs(
+    token: str | None, codi_discogs: int, *, db: Session | None = None, item_id=None, actor: str | None = None,
+) -> bool:
+    """Elimina un listing del Marketplace de Discogs (disc venut o retirat). Retorna True si
+    s'ha eliminat (o ja no existia), False si ha fallat."""
+    return remove_listing(token, codi_discogs, db=db, item_id=item_id, actor=actor)[0]
 
 
 def sync_stock_listing(db: Session, item: Item, token: str | None) -> None:
@@ -248,7 +329,7 @@ def sync_stock_listing(db: Session, item: Item, token: str | None) -> None:
         return
     if item.quantity <= 0:
         if item.codi_discogs:
-            remove_item_from_discogs(token, item.codi_discogs)
+            remove_item_from_discogs(token, item.codi_discogs, db=db, item_id=item.id)
             item.codi_discogs = None
         return
 
@@ -257,6 +338,11 @@ def sync_stock_listing(db: Session, item: Item, token: str | None) -> None:
     # perezosa no siempre resuelve.
     release = db.get(Release, item.release_id)
     if item.codi_discogs is None and release is not None and release.discogs_release_id:
+        # Publicación manual (por defecto): un item que NUNCA se ha publicado queda "pendent" en el
+        # centro de control hasta que se apruebe. Reponer el listing de una línea que ya se
+        # publicó antes (p. ej. tras una venta en Discogs) sí es automático: es continuidad.
+        if not auto_publish_allowed(db) and not was_published(db, item.id):
+            return
         listing_id = push_item_to_discogs(
             token,
             item_id=item.id,
@@ -265,6 +351,7 @@ def sync_stock_listing(db: Session, item: Item, token: str | None) -> None:
             estado_disco=None,
             estado_funda=None,
             es_nou=True,
+            db=db,
         )
         if listing_id:
             item.codi_discogs = listing_id
@@ -274,44 +361,100 @@ def sync_stock_listing(db: Session, item: Item, token: str | None) -> None:
 # Comandes del Marketplace (pull: Discogs → nosaltres)
 # ---------------------------------------------------------------------------
 
-def fetch_open_discogs_orders(token: str | None) -> list[dict]:
-    """Llista les comandes del Marketplace (com a venedors). Best-effort: si falla,
-    retorna llista buida i deixa traça al log (no s'ha de trencar el polling per un 5xx puntual)."""
+def fetch_open_discogs_orders(
+    token: str | None, since: datetime | None = None, *, raise_errors: bool = False, max_pages: int = 40,
+    first_pull_days: int = 60,
+) -> list[dict]:
+    """Llista les comandes del Marketplace (com a venedors), de la de darrera activitat més recent
+    a la més antiga. Amb `since` és INCREMENTAL: s'atura en trobar una comanda amb activitat
+    anterior (menys un marge) en comptes de recórrer tot l'historial. Sense `since` (primera
+    vegada) només demana les dels darrers `first_pull_days` dies.
+
+    Per defecte és best-effort (un 5xx puntual retorna llista buida i deixa traça al log);
+    amb `raise_errors=True` propaga l'excepció, perquè el sondeig programat la pugui registrar."""
     if not token:
         return []
     orders: list[dict] = []
+    params: dict = {"per_page": 50, "sort": "last_activity", "sort_order": "desc"}
+    if since is None:
+        params["created_after"] = (datetime.now(timezone.utc) - timedelta(days=first_pull_days)).date().isoformat()
+    stop_before = since - timedelta(minutes=15) if since is not None else None
     try:
         page = 1
-        while True:
+        while page <= max_pages:
             _throttle()
             with _client(token) as c:
-                r = c.get("/marketplace/orders", params={"page": page, "per_page": 50, "sort": "created", "sort_order": "desc"})
+                r = c.get("/marketplace/orders", params={**params, "page": page})
                 r.raise_for_status()
                 data = r.json()
-            orders.extend(data.get("orders", []))
-            pagination = data.get("pagination", {})
-            if page >= pagination.get("pages", 1):
+            batch = data.get("orders", [])
+            orders.extend(batch)
+            if stop_before is not None and batch:
+                last = _parse_iso(batch[-1].get("last_activity"))
+                if last is not None and last < stop_before:
+                    break
+            if page >= (data.get("pagination") or {}).get("pages", 1):
                 break
             page += 1
     except Exception as exc:
+        if raise_errors:
+            raise
         log.warning("discogs_sync: error llistant comandes: %s", exc)
     return orders
 
 
-def sync_discogs_orders(db: Session, token: str | None) -> dict:
+def _parse_iso(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _event_exists(db: Session, action: str, external_id: str, kind: str) -> bool:
+    """Evita registrar cada ciclo del sondeo la misma incidencia (p. ej. un pedido sin coincidencia)."""
+    for e in db.scalars(select(ChannelEvent).where(ChannelEvent.action == action, ChannelEvent.external_id == external_id)):
+        if (e.detail or {}).get("kind") == kind:
+            return True
+    return False
+
+
+def sync_discogs_orders(db: Session, token: str | None, orders: list[dict] | None = None) -> dict:
     """Pull de comandes del Marketplace: crea/actualitza Order+OrderItem amb origen='discogs'.
 
     Idempotent per discogs_order_id. Mai sobreescriu un estat local terminal
     (entregado/cancelado) amb el que digui Discogs — això és decisió nostra, no seva.
-    """
-    creats = actualitzats = sense_match = errors = 0
+    `orders`: les comandes ja descarregades (sondeig incremental); si és None, les baixa totes.
 
-    for raw in fetch_open_discogs_orders(token):
+    Les incidències queden al registre d'activitat (una sola vegada per cas): comanda SENSE
+    coincidència amb cap item local, CONFLICTE (ven un item que ja no estava a la venda a
+    l'app) i estat de comanda desconegut."""
+    creats = actualitzats = sense_match = errors = conflictes = 0
+    nous_pedidos: list[dict] = []
+    estats_desconeguts: list[str] = []
+    sense_match_ids: list[str] = []
+
+    if orders is None:
+        orders = fetch_open_discogs_orders(token)
+
+    for raw in orders:
         discogs_id = str(raw.get("id"))
         discogs_status = raw.get("status", "")
         nou_status = DISCOGS_ORDER_STATUS_MAP.get(discogs_status)
         if nou_status is None:
             log.warning("discogs_sync: estat de comanda desconegut '%s' (ordre %s)", discogs_status, discogs_id)
+            estats_desconeguts.append(discogs_status)
+            if not _event_exists(db, "order_pull", discogs_id, f"estat_desconegut:{discogs_status}"):
+                record_event(db, "order_pull", "skipped", external_id=discogs_id,
+                             detail={"kind": f"estat_desconegut:{discogs_status}", "status": discogs_status})
+                raise_alert(
+                    db, "order_status_unknown", f"status:{discogs_status}",
+                    f"Estat de comanda desconegut a Discogs: '{discogs_status}' (comanda {discogs_id}). "
+                    "Cal afegir-lo al mapeig d'estats.", external_id=discogs_id, detail={"status": discogs_status},
+                )
+                db.commit()
             continue
 
         existing = db.scalar(select(Order).where(Order.discogs_order_id == discogs_id))
@@ -337,9 +480,28 @@ def sync_discogs_orders(db: Session, token: str | None) -> dict:
         if not items:
             log.warning("discogs_sync: comanda %s sense items locals coincidents (listings %s)", discogs_id, listing_ids)
             sense_match += 1
+            sense_match_ids.append(discogs_id)
+            if not _event_exists(db, "order_pull", discogs_id, "sense_match"):
+                record_event(
+                    db, "order_pull", "error", external_id=discogs_id,
+                    detail={"kind": "sense_match", "listings": listing_ids,
+                            "buyer": (raw.get("buyer") or {}).get("username"),
+                            "total": (raw.get("total") or {}).get("value")},
+                    error="Comanda de Discogs sense cap item local coincident",
+                )
+                raise_alert(
+                    db, "order_sense_match", f"order:{discogs_id}:sense_match",
+                    f"Comanda {discogs_id} de Discogs sense cap item coincident a l'app (listings {listing_ids}).",
+                    severity="error", external_id=discogs_id,
+                    detail={"listings": listing_ids, "buyer": (raw.get("buyer") or {}).get("username")},
+                )
+                db.commit()
             continue
 
         try:
+            # Conflicto: Discogs vende algo que la app ya no tenía a la venta (vendido en la web o en
+            # tienda a la vez). El pedido se crea igualmente, pero queda constancia para revisarlo.
+            no_disponibles = [str(i.id) for i in items if not _was_sellable(i)]
             buyer = (raw.get("buyer") or {}).get("username")
             total_raw = (raw.get("total") or {}).get("value")
             total = Decimal(str(total_raw)) if total_raw is not None else sum((i.price for i in items), Decimal("0"))
@@ -355,6 +517,19 @@ def sync_discogs_orders(db: Session, token: str | None) -> dict:
             )
             db.add(order)
             db.flush()
+            if no_disponibles:
+                conflictes += 1
+                record_event(
+                    db, "order_pull", "error", order_id=order.id, external_id=discogs_id,
+                    detail={"kind": "conflict", "items": no_disponibles, "buyer": buyer},
+                    error="Discogs ha venut un item que ja no estava a la venda a l'app (possible doble venda)",
+                )
+                raise_alert(
+                    db, "order_conflict", f"order:{discogs_id}:conflict",
+                    f"Comanda {discogs_id} de Discogs: ha venut un item que ja no estava a la venda a l'app "
+                    "(possible doble venda).", severity="error", order_id=order.id, external_id=discogs_id,
+                    detail={"items": no_disponibles, "buyer": buyer},
+                )
             for item in items:
                 tipus_iva_id, iva_pct, iva_import = compute_iva_venda(item, item.price, db)
                 db.add(OrderItem(
@@ -375,27 +550,44 @@ def sync_discogs_orders(db: Session, token: str | None) -> dict:
                     item.reserved_by_cart_id = None
             db.commit()
             creats += 1
+            nous_pedidos.append({"id": discogs_id, "buyer": buyer, "total": float(total)})
         except Exception as exc:
             db.rollback()
             log.warning("discogs_sync: error creant comanda local per %s: %s", discogs_id, exc)
             errors += 1
 
-    return {"creats": creats, "actualitzats": actualitzats, "sense_match": sense_match, "errors": errors}
+    return {
+        "creats": creats, "actualitzats": actualitzats, "sense_match": sense_match, "errors": errors,
+        "conflictes": conflictes, "estats_desconeguts": sorted(set(estats_desconeguts)),
+        "sense_match_ids": sense_match_ids[:50], "nous": nous_pedidos[:20],
+    }
+
+
+def _was_sellable(item: Item) -> bool:
+    """¿Estaba el item realmente a la venta justo antes de aplicar este pedido de Discogs?"""
+    from .channel_reconciler import is_sellable
+
+    return is_sellable(item)
 
 
 def push_shipped_status(
     token: str | None, discogs_order_id: str, numero_seguiment: str | None, transportista: str | None,
+    *, db: Session | None = None, order_id=None, actor: str | None = None,
 ) -> bool:
     """Marca la comanda com "Shipped" a Discogs i hi deixa el número de seguiment com a missatge
-    (Discogs no té un camp estructurat de tracking a l'API de comandes)."""
+    (Discogs no té un camp estructurat de tracking a l'API de comandes). Amb `db`, deixa
+    constància al registre d'activitat (channel_events)."""
     if not token:
         return False
     if is_read_only(token):
         log.info("discogs_sync: mode només lectura, no es marca Shipped la comanda %s", discogs_order_id)
+        record_event(db, "ship", "skipped", order_id=order_id, external_id=discogs_order_id, actor=actor,
+                     detail={"motiu": "mode només lectura"})
         return False
     missatge = None
     if numero_seguiment:
         missatge = f"Enviat. Seguiment: {numero_seguiment}" + (f" ({transportista})" if transportista else "")
+    detalle = {"seguiment": numero_seguiment, "transportista": transportista}
     try:
         _throttle()
         with _client(token) as c:
@@ -405,11 +597,16 @@ def push_shipped_status(
             r = c.post(f"/marketplace/orders/{discogs_order_id}/messages", json=body)
             if r.status_code in (200, 201):
                 log.info("discogs_sync: comanda %s marcada Shipped a Discogs", discogs_order_id)
+                record_event(db, "ship", "ok", order_id=order_id, external_id=discogs_order_id, actor=actor, detail=detalle)
                 return True
             log.warning("discogs_sync push status %s → %s: %s", discogs_order_id, r.status_code, r.text[:200])
+            record_event(db, "ship", "error", order_id=order_id, external_id=discogs_order_id, actor=actor,
+                         detail=detalle, error=f"Discogs {r.status_code}: {r.text[:300]}")
             return False
     except Exception as exc:
         log.warning("discogs_sync push status error %s: %s", discogs_order_id, exc)
+        record_event(db, "ship", "error", order_id=order_id, external_id=discogs_order_id, actor=actor,
+                     detail=detalle, error=str(exc))
         return False
 
 

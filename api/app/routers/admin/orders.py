@@ -385,7 +385,9 @@ def update_order_status(order_id: uuid.UUID, payload: OrderStatusUpdate, db: Ses
                 push_shipped_status(
                     get_discogs_token_if_enabled(db, order.tenant_id),
                     order.discogs_order_id, order.tracking_number, order.carrier,
+                    db=db, order_id=order.id,
                 )
+                db.commit()  # persiste el evento de registro (la expedición local ya estaba confirmada)
     else:
         db.commit()
 

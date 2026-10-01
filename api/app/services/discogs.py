@@ -9,6 +9,8 @@ import time
 
 import httpx
 
+from . import ratelimit
+
 BASE = "https://api.discogs.com"
 USER_AGENT = "UltraLocalRecords/1.0 +https://labotigaaquesta.com"
 _MIN_INTERVAL = 1.1  # segundos entre peticiones (~55/min)
@@ -83,10 +85,19 @@ def _block_writes(request: httpx.Request) -> None:
 
 def _client(token: str | None) -> httpx.Client:
     headers = {"User-Agent": USER_AGENT}
+    request_hooks, response_hooks = [], []
     if token:
         headers["Authorization"] = f"Discogs token={token}"
-    hooks = {"request": [_block_writes]} if is_read_only(token) else {}
-    return httpx.Client(base_url=BASE, headers=headers, timeout=20, event_hooks=hooks)
+        # Orden importa: primero el bloqueo de escrituras (una petición
+        # bloqueada no debe gastar turno), después el turno compartido.
+        if is_read_only(token):
+            request_hooks.append(_block_writes)
+        request_hooks.append(lambda request: ratelimit.acquire(str(token)))
+        response_hooks.append(lambda response: ratelimit.note_response(str(token), response.status_code, response.headers))
+    return httpx.Client(
+        base_url=BASE, headers=headers, timeout=20,
+        event_hooks={"request": request_hooks, "response": response_hooks},
+    )
 
 
 def get_identity(token: str | None) -> str:
@@ -230,3 +241,34 @@ def get_listing(token: str | None, listing_id: int) -> dict | None:
             "imagen_url": rel.get("thumbnail") or None,
             "descripcion_listing": data.get("comments") or None,
         }
+
+
+# --- Precios de mercado (solo lectura): sugerencias, estadísticas y comisión --------------------
+
+def get_price_suggestions(token: str | None, release_id: int) -> dict:
+    """Precios sugeridos por Discogs por estado del disco: {"Near Mint (NM or M-)": {"value", "currency"}, ...}.
+    Exige autenticación Y los ajustes de vendedor completos (si no, Discogs rechaza la petición).
+    Objeto vacío si no hay sugerencias para ese release."""
+    _throttle()
+    with _client(token) as c:
+        r = c.get(f"/marketplace/price_suggestions/{release_id}")
+        r.raise_for_status()
+        return r.json() or {}
+
+
+def get_release_stats(token: str | None, release_id: int) -> dict:
+    """Estadísticas del Marketplace de un release: nº a la venta, precio más bajo, si está bloqueado."""
+    _throttle()
+    with _client(token) as c:
+        r = c.get(f"/marketplace/stats/{release_id}")
+        r.raise_for_status()
+        return r.json() or {}
+
+
+def get_fee(token: str | None, price: float) -> dict:
+    """Comisión que cobra Discogs por vender a este precio: {"value", "currency"}."""
+    _throttle()
+    with _client(token) as c:
+        r = c.get(f"/marketplace/fee/{round(float(price), 2)}")
+        r.raise_for_status()
+        return r.json() or {}

@@ -210,3 +210,87 @@ def test_filas_se_filtran_por_accion_y_texto(db, client, admin, discogs):
     assert buscar["total"] == 1 and buscar["rows"][0]["accio"] == "retirar"
 
     assert client.get(f"{BASE}/jobs/inexistente/rows", headers=admin).status_code == 404
+
+
+# --- Historial persistente (fase A) ------------------------------------------------------
+
+def test_historial_persiste_la_simulacion_y_sobrevive_a_redis(db, client, admin, discogs, kv):
+    from app.models import ChannelSyncRun
+
+    _seed(db, 3)
+    discogs["listings"] = [_listing(1000, "11.00"), _listing(1001), _listing(1002)]
+    client.post(f"{BASE}/jobs", json={"mode": "dry_run"}, headers=admin)
+    job_id = _current(client, admin)["job"]["id"]
+
+    runs = client.get(f"{BASE}/runs", headers=admin).json()
+    assert [(r["id"], r["kind"], r["status"], r["rows_count"]) for r in runs] == [
+        (job_id, "inventory_dry_run", "done", 1)
+    ]
+    assert runs[0]["summary"]["actualitzats"] == 1 and runs[0]["finished_at"] is not None
+
+    db.expire_all()
+    run = db.get(ChannelSyncRun, job_id)
+    assert run.report[0]["accio"] == "actualitzar_preu" and run.report[0]["preu_discogs"] == "11.00"
+
+    kv.data.clear()  # Redis caducado/perdido: el informe sigue disponible desde la BD
+    rows = client.get(f"{BASE}/jobs/{job_id}/rows", headers=admin)
+    assert rows.status_code == 200 and rows.json()["total"] == 1
+    assert client.get(f"{BASE}/jobs/{job_id}/report.csv", headers=admin).status_code == 200
+
+
+def test_historial_guarda_los_abortos(db, client, admin, discogs):
+    _seed(db, 2)
+    discogs["listings"] = []
+    client.post(f"{BASE}/jobs", json={"mode": "dry_run"}, headers=admin)
+    client.post(f"{BASE}/jobs", json={"mode": "apply"}, headers=admin)
+
+    runs = client.get(f"{BASE}/runs", headers=admin).json()
+    apply_run = next(r for r in runs if r["kind"] == "inventory_apply")
+    assert apply_run["status"] == "error" and "cap listing" in apply_run["error"]
+
+
+def test_aplicar_deja_channel_listings_alineado_con_los_vinculos(db, client, admin, discogs):
+    from app.models import ChannelListing
+
+    items = _seed(db, 2)  # el reflejo automático ya crea el vínculo al asignar codi_discogs
+    discogs["listings"] = [_listing(1000), _listing(1001)]
+    client.post(f"{BASE}/jobs", json={"mode": "dry_run"}, headers=admin)
+    client.post(f"{BASE}/jobs", json={"mode": "apply"}, headers=admin)
+    job = _current(client, admin)["job"]
+    assert job["summary"]["channel_listings"] == {"creats": 0, "actualitzats": 0, "retirats": 0}  # nada que reparar
+    db.expire_all()
+    ls = db.scalars(select(ChannelListing)).all()
+    assert {l.external_id for l in ls} == {"1000", "1001"} and {l.item_id for l in ls} == {i.id for i in items}
+    assert all(l.status == "publicat" for l in ls)
+
+
+def test_aplicar_crea_el_vinculo_de_los_items_nuevos_que_vienen_de_discogs(db, client, admin, discogs, monkeypatch):
+    from app.models import ChannelListing
+
+    _seed(db, 1)
+    nuevo = Release(artista="Nou", title="Disc", formato="LP", discogs_release_id=777)
+    db.add(nuevo)
+    db.commit()
+    monkeypatch.setattr(svc, "_find_or_create_release", lambda db_, token, rid, desc: db_.get(Release, nuevo.id))
+    nuevo_listing = _listing(3000)
+    nuevo_listing["release"]["id"] = 777
+    discogs["listings"] = [_listing(1000), nuevo_listing]
+    client.post(f"{BASE}/jobs", json={"mode": "dry_run"}, headers=admin)
+    client.post(f"{BASE}/jobs", json={"mode": "apply"}, headers=admin)
+    db.expire_all()
+    assert {l.external_id for l in db.scalars(select(ChannelListing)).all()} == {"1000", "3000"}
+
+
+def test_trabajo_en_marcha_antiguo_y_no_actual_se_muestra_encallado(db):
+    from app.models import ChannelSyncRun
+    from app.services import channel_runs
+
+    old = ChannelSyncRun(id="a" * 32, kind="inventory_dry_run", status="running", options={})
+    db.add(old)
+    db.commit()
+    db.refresh(old)
+    old.created_at = jobs._now() - timedelta(minutes=30)
+    assert channel_runs.effective_status(old, current_job=None) == "stalled"
+    assert channel_runs.effective_status(old, current_job={"id": old.id, "status": "running"}) == "running"
+    old.status = "done"
+    assert channel_runs.effective_status(old, current_job=None) == "done"

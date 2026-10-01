@@ -35,6 +35,20 @@ celery_app.conf.beat_schedule = {
         "task": "health.heartbeat",
         "schedule": crontab(minute="*/1"),
     },
+    # Canal Discogs (docs/PLAN_CANAL_DISCOGS.md): retira solo lo que ya no está a la venta (y, con la
+    # publicación automática activada, publica/actualiza precios). No hace nada sin lectura/escritura.
+    "discogs-reconcile": {
+        "task": "discogs.reconcile_scheduled",
+        "schedule": crontab(minute="*/15"),
+    },
+    "discogs-audit": {
+        "task": "discogs.audit_scheduled",
+        "schedule": crontab(minute=30, hour=4),
+    },
+    "discogs-orders-poll": {
+        "task": "discogs.orders_poll",
+        "schedule": crontab(minute="*/5"),
+    },
     "release-expired-peticiones": {
         "task": "peticiones.release_expired_reservations",
         "schedule": crontab(minute="*/30"),

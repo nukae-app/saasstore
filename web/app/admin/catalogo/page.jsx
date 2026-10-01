@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { authFetch } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
@@ -260,9 +261,10 @@ export default function CatalogoPage() {
           </button>
           {discogsEnabled && (
           <button onClick={handleBulkImages} disabled={bulkSyncing}
+            title={t('catalog.enrich_discogs_hint', 'Omple caràtula, gènere, estils, EAN, tracklist i crèdits dels discos a partir de Discogs. No toca estoc ni preus (això és al centre de control de Discogs).')}
             className="flex items-center gap-1.5 text-sm border border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 px-3 py-2 rounded-lg transition-colors disabled:opacity-60">
             {bulkSyncing ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="image" size={13} />}
-            {t('catalog.sync_discogs', 'Sync Discogs')}
+            {t('catalog.enrich_discogs', 'Enriquir dades')}
           </button>
           )}
           <button onClick={refresh}
@@ -1130,29 +1132,6 @@ function CopiesPanel({ release, items, onRefresh }) {
     onRefresh();
   }
 
-  async function handlePush(item) {
-    setActionId(item.id + '_push');
-    const res = await authFetch(`/admin/discogs/sync/items/${item.id}/push`, { method: 'POST' });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(`Error: ${err.detail || res.status}`);
-    }
-    setActionId(null);
-    onRefresh();
-  }
-
-  async function handleRemove(item) {
-    if (!confirm(t('catalog.confirm_delete_listing', 'Eliminar aquest listing de Discogs?'))) return;
-    setActionId(item.id + '_remove');
-    const res = await authFetch(`/admin/discogs/sync/items/${item.id}/listing`, { method: 'DELETE' });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(`Error: ${err.detail || res.status}`);
-    }
-    setActionId(null);
-    onRefresh();
-  }
-
   async function handleEnrichImage(item) {
     setActionId(item.id + '_img');
     const res = await authFetch(`/admin/discogs/sync/items/${item.id}/enrich-image`, { method: 'POST' });
@@ -1253,19 +1232,13 @@ function CopiesPanel({ release, items, onRefresh }) {
             {/* Discogs sync */}
             <div className="flex items-center gap-1 ml-1">
               <SyncBadge status={syncStatus(item, release)} codiDiscogs={item.codi_discogs} />
-              {syncStatus(item, release) === 'pending' && (
-                <button onClick={() => handlePush(item)} disabled={!!actionId} title={t('catalog.push_to_discogs', 'Pujar a Discogs')}
-                  className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
-                  {actionId === item.id + '_push' ? <MIcon name="progress_activity" size={9} className="animate-spin" /> : <MIcon name="upload" size={9} />}
-                  {t('catalog.push', 'Pujar')}
-                </button>
-              )}
-              {syncStatus(item, release) === 'listed' && (
-                <button onClick={() => handleRemove(item)} disabled={!!actionId} title={t('catalog.delete_listing', 'Eliminar listing')}
-                  className="flex items-center gap-1 text-xs text-secondary-foreground hover:text-red-500 border border-outline-variant hover:border-red-200 px-2 py-0.5 rounded-lg transition-colors disabled:opacity-50">
-                  {actionId === item.id + '_remove' ? <MIcon name="progress_activity" size={9} className="animate-spin" /> : <MIcon name="delete" size={9} />}
-                  {t('catalog.remove', 'Treure')}
-                </button>
+              {(syncStatus(item, release) === 'pending' || syncStatus(item, release) === 'listed') && (
+                <Link href="/admin/canals/discogs?tab=listings"
+                  title={t('catalog.manage_in_channel', 'Publicar, actualitzar o retirar a Discogs des del centre de control')}
+                  className="flex items-center gap-1 text-xs text-secondary-foreground hover:text-primary border border-outline-variant hover:border-primary/40 px-2 py-0.5 rounded-lg transition-colors">
+                  <MIcon name="open_in_new" size={9} />
+                  {t('catalog.manage_discogs', 'Gestiona')}
+                </Link>
               )}
               {(item.codi_discogs || release.discogs_release_id) && (
                 <button onClick={() => handleEnrichImage(item)} disabled={!!actionId}

@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ...database import get_db
-from ...services import discogs_jobs as jobs
+from ...services import channel_runs, discogs_jobs as jobs
 from ...services.discogs_inventory_sync import INFORME_COLUMNES
 from ...services.discogs_sync import adopcio_feta, resolve_discogs_token
 from ...services.security import require_admin
@@ -62,10 +62,12 @@ def start_inventory_job(payload: InventoryJobIn, request: Request, db: Session =
     except jobs.JobPrecondition as exc:
         raise HTTPException(409, str(exc))
 
+    channel_runs.create_run(db, job)
     try:
         inventory_sync.delay(str(tenant_id), job["id"])
     except Exception as exc:  # noqa: BLE001 — broker caigut: que es vegi, no un treball fantasma
         jobs.update_job(tenant_id, job["id"], status="error", error=f"No s'ha pogut encuar el treball: {exc}")
+        channel_runs.update_run(db, job["id"], status="error", error=f"No s'ha pogut encuar el treball: {exc}")
         raise HTTPException(503, "No s'ha pogut llançar el treball en segon pla (cua no disponible).")
     return _estat(tenant_id, job)
 
@@ -76,8 +78,25 @@ def current_inventory_job(request: Request):
     return _estat(tenant_id, jobs.get_job(tenant_id))
 
 
-def _rows_or_404(tenant_id, job_id: str) -> list[dict]:
+@router.get("/runs")
+def inventory_runs(request: Request, limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    """Historial persistente de sincronitzacions (sobreviu a la caducitat de Redis)."""
+    current = jobs.get_job(request.state.tenant.id)
+    return [
+        {
+            "id": r.id, "kind": r.kind, "status": channel_runs.effective_status(r, current),
+            "summary": r.summary, "error": r.error, "rows_count": r.rows_count, "options": r.options,
+            "created_at": r.created_at, "started_at": r.started_at, "finished_at": r.finished_at,
+        }
+        for r in channel_runs.list_runs(db, limit)
+    ]
+
+
+def _rows_or_404(db: Session, tenant_id, job_id: str) -> list[dict]:
+    """Informe del treball: de Redis mentre dura; si ha caducat, del historial persistent."""
     rows = jobs.load_rows(tenant_id, job_id)
+    if rows is None:
+        rows = channel_runs.load_report(db, job_id)
     if rows is None:
         raise HTTPException(404, "Informe no trobat (potser ha caducat).")
     return rows
@@ -86,9 +105,9 @@ def _rows_or_404(tenant_id, job_id: str) -> list[dict]:
 @router.get("/jobs/{job_id}/rows")
 def inventory_job_rows(
     job_id: str, request: Request, accio: str | None = None, q: str | None = None,
-    limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0), db: Session = Depends(get_db),
 ):
-    rows = _rows_or_404(request.state.tenant.id, job_id)
+    rows = _rows_or_404(db, request.state.tenant.id, job_id)
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["accio"]] = counts.get(r["accio"], 0) + 1
@@ -105,8 +124,8 @@ def inventory_job_rows(
 
 
 @router.get("/jobs/{job_id}/report.csv")
-def inventory_job_report(job_id: str, request: Request):
-    rows = _rows_or_404(request.state.tenant.id, job_id)
+def inventory_job_report(job_id: str, request: Request, db: Session = Depends(get_db)):
+    rows = _rows_or_404(db, request.state.tenant.id, job_id)
     buf = io.StringIO()
     w = csv.DictWriter(buf, fieldnames=INFORME_COLUMNES)
     w.writeheader()

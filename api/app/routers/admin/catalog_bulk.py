@@ -130,7 +130,7 @@ async def import_catalog_csv(file: UploadFile = File(...), db: Session = Depends
                 errors.append({"fila": n, "item_id": item_id_raw, "motiu": "Venut, no es pot eliminar"})
                 continue
             if item.codi_discogs:
-                remove_item_from_discogs(get_discogs_token_if_enabled(db, item.tenant_id), item.codi_discogs)
+                remove_item_from_discogs(get_discogs_token_if_enabled(db, item.tenant_id), item.codi_discogs, db=db)
             db.delete(item)
             eliminats += 1
             continue

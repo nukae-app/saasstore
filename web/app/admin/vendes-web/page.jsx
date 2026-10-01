@@ -190,9 +190,21 @@ export default function VendesWebPage() {
     setSyncMsg('');
     try {
       const r = await authFetch('/admin/discogs/sync/orders', { method: 'POST' });
-      const data = await r.json();
-      setSyncMsg(t('orders.sync.result', 'Sincronitzat: {n} noves, {a} actualitzades')
-        .replace('{n}', data.creats ?? 0).replace('{a}', data.actualitzats ?? 0));
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setSyncMsg(data.detail || t('orders.sync.error', 'No s\'ha pogut sincronitzar amb Discogs.'));
+        return;
+      }
+      // Resum complet: abans només es veien "noves/actualitzades"; les comandes sense coincidència,
+      // els conflictes i els errors es perdien. El detall viu al centre de control de Discogs.
+      const parts = [
+        t('orders.sync.result', 'Sincronitzat: {n} noves, {a} actualitzades')
+          .replace('{n}', data.creats ?? 0).replace('{a}', data.actualitzats ?? 0),
+      ];
+      if (data.sense_match) parts.push(t('orders.sync.no_match', '{n} sense coincidència').replace('{n}', data.sense_match));
+      if (data.conflictes) parts.push(t('orders.sync.conflicts', '{n} conflictes').replace('{n}', data.conflictes));
+      if (data.errors) parts.push(t('orders.sync.errors', '{n} errors').replace('{n}', data.errors));
+      setSyncMsg(parts.join(' · '));
       load();
     } finally {
       setSyncing(false);
@@ -205,6 +217,11 @@ export default function VendesWebPage() {
         <h2 className="text-2xl font-bold text-on-surface">{t('orders.title')}</h2>
         <div className="flex items-center gap-3">
           {syncMsg && <span className="text-xs text-secondary-foreground">{syncMsg}</span>}
+          {syncMsg && /sense coincid|conflict|error/i.test(syncMsg) && (
+            <Link href="/admin/canals/discogs?tab=comandes" className="text-xs text-primary underline">
+              {t('orders.sync.see_detail', 'Veure detall')}
+            </Link>
+          )}
           <Button variant="secondary" size="sm" onClick={syncDiscogs} disabled={syncing}>
             <MIcon name="refresh" size={14} className={syncing ? 'animate-spin' : ''} />
             {syncing ? t('orders.sync.loading', 'Sincronitzant...') : t('orders.sync.btn', 'Sincronitzar amb Discogs')}

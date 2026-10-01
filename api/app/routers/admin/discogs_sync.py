@@ -5,13 +5,14 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
-from ...models import Item, ItemStatus, RecordProduct, Release
+from ...models import Item, ItemStatus, RecordProduct, Release, User
 from ...services import discogs
 from ...services.discogs import get_listing, get_release_image, is_read_only
 from ...services.discogs_sync import (
     enrich_release_from_discogs, get_discogs_token_if_enabled, push_item_to_discogs,
     remove_item_from_discogs, resolve_discogs_token, sync_discogs_orders,
 )
+from ...services.channel_orders import OrdersPullError, pull_orders
 from ...services.security import require_admin
 from ...tenant_secrets import get_tenant_secrets
 from ._shared import require_discogs_enabled
@@ -22,9 +23,14 @@ READ_ONLY_MSG = "Discogs està en mode només lectura: desactiva-ho a Configurac
 
 
 @router.post("/discogs/sync/orders", dependencies=[Depends(require_discogs_enabled)])
-def sync_orders(request: Request, db: Session = Depends(get_db)):
-    """Pull manual de comandes del Marketplace (el mateix que fa el cron periòdic)."""
-    return sync_discogs_orders(db, get_discogs_token_if_enabled(db, request.state.tenant.id))
+def sync_orders(request: Request, completa: bool = False, db: Session = Depends(get_db)):
+    """Pull manual de comandes del Marketplace: el mateix que fa el sondeig programat (incremental,
+    amb cursor). `completa=true` ignora el cursor i mira els darrers 60 dies. Retorna el resum
+    complet: creades, actualitzades, sense coincidència, conflictes i errors."""
+    try:
+        return pull_orders(db, request.state.tenant, full=completa)
+    except OrdersPullError as exc:
+        raise HTTPException(502, str(exc))
 
 
 # --- Discogs Sync (gestió manual) ---
@@ -140,7 +146,7 @@ def discogs_sync_items(
 
 
 @router.post("/discogs/sync/items/{item_id}/push", dependencies=[Depends(require_discogs_enabled)])
-def discogs_sync_push(item_id: uuid.UUID, db: Session = Depends(get_db)):
+def discogs_sync_push(item_id: uuid.UUID, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
     """Puja manualment un item al Marketplace de Discogs."""
     item = db.scalar(
         select(Item).options(selectinload(Item.release)).where(Item.id == item_id)
@@ -165,8 +171,11 @@ def discogs_sync_push(item_id: uuid.UUID, db: Session = Depends(get_db)):
         precio=float(item.price),
         estado_disco=item.estado_disco,
         estado_funda=item.estado_funda,
+        db=db,
+        actor=admin.email,
     )
     if listing_id is None:
+        db.commit()  # persiste el evento de error del registro de actividad
         raise HTTPException(502, "Error al crear el listing a Discogs (compte venedor configurat?)")
 
     item.codi_discogs = listing_id
@@ -175,7 +184,7 @@ def discogs_sync_push(item_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.delete("/discogs/sync/items/{item_id}/listing", dependencies=[Depends(require_discogs_enabled)])
-def discogs_sync_remove(item_id: uuid.UUID, db: Session = Depends(get_db)):
+def discogs_sync_remove(item_id: uuid.UUID, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
     """Elimina manualment el listing de Discogs (sense canviar l'status de l'item)."""
     item = db.get(Item, item_id)
     if item is None:
@@ -187,12 +196,13 @@ def discogs_sync_remove(item_id: uuid.UUID, db: Session = Depends(get_db)):
     if is_read_only(token):
         raise HTTPException(409, READ_ONLY_MSG)
 
-    ok = remove_item_from_discogs(token, item.codi_discogs)
+    ok = remove_item_from_discogs(token, item.codi_discogs, db=db, item_id=item.id, actor=admin.email)
     if ok:
         old = item.codi_discogs
         item.codi_discogs = None
         db.commit()
         return {"action": "removed", "codi_discogs_removed": old}
+    db.commit()  # persiste el evento de error del registro de actividad
     raise HTTPException(502, "Error eliminant el listing de Discogs")
 
 
