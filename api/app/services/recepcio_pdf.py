@@ -14,6 +14,24 @@ from ..models import CondicionItem, Compra, ConfiguracioBotiga
 from .preu_compra import iva_defecte_pct, marge_pct, recarrec_config_pct, recarrec_pct
 
 
+def _files(compra: Compra):
+    """(release, condició, estat disc, unitats, cost unitari, PVP) de cada fila.
+
+    Recepcions noves: el detall guardat a `CompraLinea` (el que va entrar en
+    AQUESTA recepció). Recepcions anteriors, sense línies: es recalcula des de
+    `Compra.items`, que per a discos nous és el stock agregat (unitats i cost
+    mitjà acumulats, no només el d'aquesta entrega)."""
+    if compra.lineas:
+        return [
+            (l.release, l.condition, l.estado_disco, l.quantity, l.acquisition_cost, l.price)
+            for l in compra.lineas
+        ]
+    return [
+        (i.release, i.condition.value, i.estado_disco, i.quantity, i.acquisition_cost, i.price)
+        for i in compra.items
+    ]
+
+
 def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
     config = db.scalar(select(ConfiguracioBotiga))
     pdf = FPDF(format="A4")
@@ -48,25 +66,25 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
         pdf.cell(w, 7, h, border=1, fill=True)
     pdf.ln()
 
-    iva = {c: iva_defecte_pct(db, c) for c in CondicionItem}
+    iva = {c.value: iva_defecte_pct(db, c) for c in CondicionItem}
     recarrec = recarrec_config_pct(db)
     pdf.set_font("Helvetica", "", 9)
     total_cost = 0
     total_pvp = 0
-    for item in compra.items:
-        descripcio = f"{item.release.artista} - {item.release.title}"
-        estat = "Nou" if item.condition == CondicionItem.nou else "2a mà"
-        if item.estado_disco:
-            estat += f" · {item.estado_disco}"
-        marge = marge_pct(item.price, item.acquisition_cost, item.condition, iva[item.condition], recarrec)
-        total_cost += (item.acquisition_cost or 0) * item.quantity
-        total_pvp += item.price * item.quantity
+    for release, condition, estado_disco, quantity, cost, price in _files(compra):
+        descripcio = f"{release.artista} - {release.title}"
+        estat = "Nou" if condition == CondicionItem.nou.value else "2a mà"
+        if estado_disco:
+            estat += f" · {estado_disco}"
+        marge = marge_pct(price, cost, condition, iva[condition], recarrec)
+        total_cost += (cost or 0) * quantity
+        total_pvp += price * quantity
         pdf.cell(col_widths[0], 7, descripcio[:34], border=1)
         pdf.cell(col_widths[1], 7, estat[:14], border=1)
-        pdf.cell(col_widths[2], 7, str(item.quantity), border=1, align="C")
-        pdf.cell(col_widths[3], 7, f"{item.acquisition_cost:.2f} EUR" if item.acquisition_cost is not None else "-", border=1, align="R")
+        pdf.cell(col_widths[2], 7, str(quantity), border=1, align="C")
+        pdf.cell(col_widths[3], 7, f"{cost:.2f} EUR" if cost is not None else "-", border=1, align="R")
         pdf.cell(col_widths[4], 7, f"{marge:.1f} %" if marge is not None else "-", border=1, align="R")
-        pdf.cell(col_widths[5], 7, f"{item.price:.2f} EUR", border=1, align="R")
+        pdf.cell(col_widths[5], 7, f"{price:.2f} EUR", border=1, align="R")
         pdf.ln()
 
     pdf.set_font("Helvetica", "B", 10)
@@ -78,7 +96,7 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
 
     pdf.set_font("Helvetica", "", 8)
     nota = "Preu de compra per unitat, sense IVA."
-    if any(recarrec_pct(i.condition, recarrec) for i in compra.items):
+    if any(recarrec_pct(f[1], recarrec) for f in _files(compra)):
         nota += f" Marge calculat sobre el cost amb recàrrec d'equivalència ({recarrec:g} %) per als discos nous."
     nota += " PVP amb IVA inclòs."
     pdf.multi_cell(0, 4, nota)

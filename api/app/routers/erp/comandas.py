@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
 from ...models import (
-    Comanda, ComandaLinea, CondicionItem, Compra, EstadoComanda, EstadoPeticionCliente, Item,
+    Comanda, ComandaLinea, CondicionItem, Compra, CompraLinea, EstadoComanda, EstadoPeticionCliente, Item,
     PeticionCliente, Proveedor, RecordProduct, Release, SolicitudCompraLinea, TipoCompra,
 )
 from ...schemas import ComandaIn, ComandaOut, RecepcionIn
@@ -394,11 +394,16 @@ def recibir_comanda(comanda_id: uuid.UUID, payload: RecepcionIn, request: Reques
             )
             db.add(agregado)
         else:
-            coste_anterior = agregado.acquisition_cost or Decimal("0")
-            coste_nuevo = item.acquisition_cost if item.acquisition_cost is not None else coste_anterior
-            agregado.acquisition_cost = (
-                agregado.quantity * coste_anterior + n * coste_nuevo
-            ) / (agregado.quantity + n)
+            # Coste medio ponderado SOLO si el stock previo tiene coste
+            # conocido: un `None` (alta manual/importada sin coste) no es
+            # "0 €", y promediarlo como tal diluiría el coste real a la mitad
+            # y dispararía el margen calculado.
+            if agregado.acquisition_cost is None:
+                agregado.acquisition_cost = item.acquisition_cost
+            else:
+                agregado.acquisition_cost = (
+                    agregado.quantity * agregado.acquisition_cost + n * item.acquisition_cost
+                ) / (agregado.quantity + n)
             agregado.quantity += n
             agregado.price = item.price
             agregado.compra_id = compra.id
@@ -406,6 +411,18 @@ def recibir_comanda(comanda_id: uuid.UUID, payload: RecepcionIn, request: Reques
         sync_stock_listing(db, agregado, get_discogs_token_if_enabled(db, request.state.tenant.id))
         lineas_nou_vistas[item.comanda_linea_id] = agregado
         items_creados.append(agregado)
+
+    # Detalle de ESTA recepción (el Item nou es agregado, ver CompraLinea).
+    db.flush()
+    for creado, item_in in zip(items_creados, payload.items):
+        db.add(CompraLinea(
+            compra_id=compra.id, item_id=creado.id,
+            release_id=lineas_por_id[item_in.comanda_linea_id].release_id,
+            condition=item_in.condition,
+            quantity=item_in.quantity if item_in.condition == CondicionItem.nou.value else 1,
+            acquisition_cost=item_in.acquisition_cost, price=item_in.price,
+            estado_disco=item_in.estado_disco,
+        ))
 
     for linea_id, cantidad in pendientes.items():
         lineas_por_id[linea_id].received_quantity += cantidad

@@ -107,6 +107,35 @@ class Compra(TenantScoped, Base):
     items: Mapped[list["Item"]] = relationship(back_populates="compra")
     despesa: Mapped["Despesa | None"] = relationship(back_populates="compras")
     comanda: Mapped["Comanda | None"] = relationship(back_populates="compras")
+    lineas: Mapped[list["CompraLinea"]] = relationship(
+        back_populates="compra", order_by="CompraLinea.created_at", cascade="all, delete-orphan"
+    )
+
+
+class CompraLinea(TenantScoped, Base):
+    """Detalle de lo recibido en UNA recepción: cantidad, coste unitario y PVP
+    fijados en ese momento. Existe porque `Item` para condicion='nou' es un
+    stock agregado (una fila por disco, que acumula varias recepciones y solo
+    apunta a la última `compra_id`): ni su `quantity` ni su `acquisition_cost`
+    (coste medio) dicen qué entró en esta recepción concreta. Fuente del PDF
+    de recepción. Las recepciones anteriores a esta tabla no tienen líneas
+    (el PDF cae al cálculo antiguo desde `Compra.items`)."""
+
+    __tablename__ = "compra_lineas"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
+    compra_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("compras.id", ondelete="CASCADE"), index=True)
+    item_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("items.id", ondelete="SET NULL"), index=True)
+    release_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("releases.id", ondelete="RESTRICT"), index=True)
+    condition: Mapped[str] = mapped_column(String(20))  # valor de CondicionItem
+    quantity: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    acquisition_cost: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))  # unitario, sin IVA
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))  # PVP unitario fijado
+    estado_disco: Mapped[str | None] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    compra: Mapped["Compra"] = relationship(back_populates="lineas")
+    release: Mapped["Release"] = relationship()
 
 
 class EstadoComanda(str, enum.Enum):

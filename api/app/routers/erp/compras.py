@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
 from ...models import (
-    CajaMovimiento, CajaSession, Comanda, Compra, DevolucionCompra, EstadoComanda, Item,
+    CajaMovimiento, CajaSession, Comanda, Compra, CompraLinea, DevolucionCompra, EstadoComanda, Item,
     Proveedor, Release, TipoCompra, TipoMovimiento,
 )
 from ...schemas import (
@@ -244,6 +244,7 @@ def compra_pdf(compra_id: uuid.UUID, db: Session = Depends(get_db)):
         .where(Compra.id == compra_id)
         .options(
             selectinload(Compra.items).selectinload(Item.release),
+            selectinload(Compra.lineas).selectinload(CompraLinea.release),
             selectinload(Compra.proveedor),
         )
     )

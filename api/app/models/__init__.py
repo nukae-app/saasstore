@@ -85,6 +85,7 @@ from .compras import (
     Proveedor,
     TipoCompra,
     Compra,
+    CompraLinea,
     EstadoComanda,
     Comanda,
     ComandaLinea,

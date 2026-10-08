@@ -526,3 +526,112 @@ def test_recepcio_exigeix_cost_i_pdf_inclou_import_i_marge(db, client):
     assert marge_pct(Decimal("20.00"), Decimal("11.00"), "nou", Decimal("21"), Decimal("5")) == Decimal("43.11")
     # recàrrec configurable: 0 % → el cost real és el cost net
     assert marge_pct(Decimal("20.00"), Decimal("11.00"), "nou", Decimal("21"), Decimal("0")) == Decimal("50.26")
+
+
+def test_recepcio_nou_amb_estoc_previ_sense_cost_no_dilueix_el_cost(db, client):
+    """Un Item nou ja existent sense acquisition_cost (alta manual) no s'ha de
+    promitjar com a 0 €: el cost passa a ser el de la nova entrada."""
+    from decimal import Decimal
+
+    from app.models import CompraLinea
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db)
+    db.add(Item(release_id=release.id, price=Decimal("30"), condition="nou", quantity=1, acquisition_cost=None))
+    db.commit()
+
+    comanda = client.post("/admin/comandas", json={
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [{"release_id": str(release.id), "quantity": 5, "estimated_unit_price": "16.11"}],
+    }, headers=_auth(admin)).json()
+    linea_id = comanda["lineas"][0]["id"]
+    client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
+
+    resp = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json={
+        "date": "2026-06-10T10:00:00",
+        "items": [{"comanda_linea_id": linea_id, "price": "30.00", "acquisition_cost": "16.11", "quantity": 5}],
+    }, headers=_auth(admin))
+    assert resp.status_code == 201
+
+    db.expire_all()
+    item = db.scalar(select(Item).where(Item.release_id == release.id))
+    assert item.quantity == 6
+    assert item.acquisition_cost == Decimal("16.11")  # no 13.43
+
+    # El detall de la recepció guarda lo recibido (5), no el stock acumulat (6).
+    compra_id = uuid.UUID(resp.json()["compra_id"])
+    linea = db.scalar(select(CompraLinea).where(CompraLinea.compra_id == compra_id))
+    assert (linea.quantity, linea.acquisition_cost, linea.price) == (5, Decimal("16.11"), Decimal("30.00"))
+
+
+def test_pdf_recepcio_mostra_lo_rebut_i_no_el_stock_acumulat(db, client):
+    from decimal import Decimal
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db)
+    db.add(Item(release_id=release.id, price=Decimal("30"), condition="nou", quantity=1, acquisition_cost=None))
+    db.commit()
+    comanda = client.post("/admin/comandas", json={
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [{"release_id": str(release.id), "quantity": 5, "estimated_unit_price": "16.11"}],
+    }, headers=_auth(admin)).json()
+    client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
+    resp = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json={
+        "date": "2026-06-10T10:00:00",
+        "items": [{"comanda_linea_id": comanda["lineas"][0]["id"], "price": "30.00",
+                   "acquisition_cost": "16.11", "quantity": 5}],
+    }, headers=_auth(admin))
+
+    from app.models import Compra
+    from app.services.recepcio_pdf import _files
+
+    compra = db.get(Compra, uuid.UUID(resp.json()["compra_id"]))
+    (_, condition, _, quantity, cost, price), = _files(compra)
+    assert (condition, quantity, cost, price) == ("nou", 5, Decimal("16.11"), Decimal("30.00"))
+    pdf = client.get(f"/admin/compras/{compra.id}/pdf", headers=_auth(admin))
+    assert pdf.status_code == 200
+
+
+def test_backfill_compra_lineas_reconstrueix_i_repara_cost_diluït(db, client):
+    from decimal import Decimal
+
+    from app.models import Compra, CompraLinea
+    from scripts.backfill_compra_lineas import run
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db)
+    db.add(Item(release_id=release.id, price=Decimal("30"), condition="nou", quantity=1, acquisition_cost=None))
+    db.commit()
+    comanda = client.post("/admin/comandas", json={
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [{"release_id": str(release.id), "quantity": 5, "estimated_unit_price": "16.11"}],
+    }, headers=_auth(admin)).json()
+    client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
+    resp = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json={
+        "date": "2026-06-10T10:00:00",
+        "items": [{"comanda_linea_id": comanda["lineas"][0]["id"], "price": "30.00",
+                   "acquisition_cost": "16.11", "quantity": 5}],
+    }, headers=_auth(admin))
+    compra_id = uuid.UUID(resp.json()["compra_id"])
+
+    # Estat antic: sense línies i amb el cost diluït (0 € × 1 + 16,11 × 5) / 6 = 13,43.
+    for l in db.scalars(select(CompraLinea).where(CompraLinea.compra_id == compra_id)).all():
+        db.delete(l)
+    item = db.scalar(select(Item).where(Item.release_id == release.id))
+    item.acquisition_cost = Decimal("13.43")
+    db.commit()
+    tenant_id = db.get(Compra, compra_id).tenant_id
+
+    simulacio = run(db, tenant_id, comanda["order_number"], apply=False)
+    assert simulacio["reconstruides"] == 1 and simulacio["cost_reparat"] == 1
+    db.expire_all()
+    assert db.scalar(select(CompraLinea).where(CompraLinea.compra_id == compra_id)) is None  # no ha escrit res
+
+    run(db, tenant_id, comanda["order_number"], apply=True)
+    db.expire_all()
+    linea = db.scalar(select(CompraLinea).where(CompraLinea.compra_id == compra_id))
+    assert (linea.quantity, linea.acquisition_cost, linea.price) == (5, Decimal("16.11"), Decimal("30.00"))
+    assert db.scalar(select(Item).where(Item.release_id == release.id)).acquisition_cost == Decimal("16.11")
