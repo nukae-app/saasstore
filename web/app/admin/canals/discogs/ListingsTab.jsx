@@ -22,7 +22,7 @@ const ESTATS = {
 const ACTIONABLE = ['publicar', 'actualitzar_preu', 'retirar'];
 const ACTION_BUTTON = { publicar: 'Publicar', actualitzar_preu: 'Actualitzar preus', retirar: 'Retirar' };
 
-export default function ListingsTab({ t, account, estat, reload, initial }) {
+export default function ListingsTab({ t, account, estat, reload, initial, goTab }) {
   const [filters, setFilters] = useState({ estat: '', accio: '', condicio: '', q: '', ...initial });
   const [page, setPage] = useState(0);
   const [data, setData] = useState({ total: 0, counts_estat: {}, counts_accio: {}, rows: [] });
@@ -186,6 +186,11 @@ export default function ListingsTab({ t, account, estat, reload, initial }) {
                       {r.discogs_release_id && (
                         <button type="button" onClick={() => toggleMarket(r)} className="text-xs text-primary hover:underline">
                           {expanded === r.item_id ? t('discogs.listings.hide', 'Amaga') : t('discogs.listings.prices_link', 'Preus')}
+                        </button>
+                      )}
+                      {r.accio === 'vincular_release' && (
+                        <button type="button" className="ml-3 text-xs text-primary hover:underline" onClick={() => goTab('vincular')}>
+                          {t('discogs.link.go', 'Vincula')}
                         </button>
                       )}
                       {actionable && !disabled && (

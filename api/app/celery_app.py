@@ -41,6 +41,11 @@ celery_app.conf.beat_schedule = {
         "task": "discogs.reconcile_scheduled",
         "schedule": crontab(minute="*/15"),
     },
+    # Vincula por EAN los releases creados a mano que Discogs ya ha dado de alta (solo lee).
+    "discogs-link": {
+        "task": "discogs.link_scheduled",
+        "schedule": crontab(minute=10),
+    },
     "discogs-audit": {
         "task": "discogs.audit_scheduled",
         "schedule": crontab(minute=30, hour=4),

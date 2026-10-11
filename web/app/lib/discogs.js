@@ -33,11 +33,14 @@ export async function resolveOrCreateRelease(full) {
   const params = new URLSearchParams();
   if (full.discogs_release_id) params.set('discogs_release_id', full.discogs_release_id);
   else { params.set('artista', full.artista || ''); params.set('titulo', full.titulo || ''); }
+  // El EAN es el identificador fiable (artista+título se escapa con variaciones de escritura).
+  const ean = (full.ean || '').replace(/\D/g, '');
+  if (ean) params.set('ean', ean);
   const dupRes = await authFetch(`/admin/releases/check-duplicate?${params.toString()}`);
   const matches = dupRes.ok ? await dupRes.json() : [];
   if (matches.length > 0) {
     const m = matches[0];
-    return { id: m.id, artista: m.artista, titulo: m.titulo, sello: m.sello, existing: true };
+    return { id: m.id, artista: m.artista, titulo: m.titulo, sello: m.sello, ean: m.ean, existing: true };
   }
   const rRes = await authFetch('/admin/releases', {
     method: 'POST',
@@ -46,12 +49,13 @@ export async function resolveOrCreateRelease(full) {
       formato: full.formato ? full.formato.split(',')[0].trim() : null,
       anio: full.anio ? parseInt(full.anio) : null, genero: full.genero || null,
       estilos: full.estilos || null, pais: full.pais || null, image_url: full.imagen_url || null,
+      ean: ean || null,
       tracklist: full.tracklist || null, credits: full.credits || null,
       discogs_release_id: full.discogs_release_id ? parseInt(full.discogs_release_id) : null,
     }),
   });
   const { id } = await rRes.json();
-  return { id, artista: full.artista, titulo: full.titulo, sello: full.sello, existing: false };
+  return { id, artista: full.artista, titulo: full.titulo, sello: full.sello, ean: ean || null, existing: false };
 }
 
 /** Estado + debounce de una búsqueda a Discogs, para <DiscogsSearchField>. */

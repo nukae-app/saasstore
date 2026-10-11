@@ -300,6 +300,10 @@ class RecordProduct(TenantScoped, Base):
     discogs_release_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
     spotify_album_id: Mapped[str | None] = mapped_column(String(50))
     esta_sonant: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", index=True)
+    # Cola "Vincular" del canal Discogs: último intento de búsqueda de coincidencia (para no
+    # repetirla a cada pasada del reintento periódico) y "no está en Discogs todavía".
+    discogs_link_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    discogs_link_skipped: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     release: Mapped["Release"] = relationship(back_populates="record")
 

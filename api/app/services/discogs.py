@@ -119,31 +119,45 @@ def _throttle() -> None:
     _last_call = time.monotonic()
 
 
+def _parse_search_hits(hits: list[dict]) -> list[dict]:
+    results = []
+    for hit in hits:
+        title_raw = hit.get("title", "")
+        if " - " in title_raw:
+            artista, titulo = title_raw.split(" - ", 1)
+        else:
+            artista, titulo = None, title_raw
+        results.append({
+            "discogs_release_id": hit.get("id"),
+            "artista": artista.strip() if artista else None,
+            "titulo": titulo.strip(),
+            "anio": hit.get("year"),
+            "sello": ", ".join(hit.get("label", [])[:3]) or None,
+            "referencia": hit.get("catno"),
+            "formato": infer_formato(hit.get("format", [])),
+            "genero": ", ".join(hit.get("genre", [])[:3]) or None,
+            "imagen_url": hit.get("cover_image"),
+        })
+    return results
+
+
 def search_releases(token: str | None, query: str, per_page: int = 10) -> list[dict]:
     """Búsqueda para el formulario de alta del admin."""
     _throttle()
     with _client(token) as c:
         r = c.get("/database/search", params={"q": query, "type": "release", "per_page": per_page})
         r.raise_for_status()
-        results = []
-        for hit in r.json().get("results", []):
-            title_raw = hit.get("title", "")
-            if " - " in title_raw:
-                artista, titulo = title_raw.split(" - ", 1)
-            else:
-                artista, titulo = None, title_raw
-            results.append({
-                "discogs_release_id": hit.get("id"),
-                "artista": artista.strip() if artista else None,
-                "titulo": titulo.strip(),
-                "anio": hit.get("year"),
-                "sello": ", ".join(hit.get("label", [])[:3]) or None,
-                "referencia": hit.get("catno"),
-                "formato": infer_formato(hit.get("format", [])),
-                "genero": ", ".join(hit.get("genre", [])[:3]) or None,
-                "imagen_url": hit.get("cover_image"),
-            })
-        return results
+        return _parse_search_hits(r.json().get("results", []))
+
+
+def search_by_barcode(token: str | None, ean: str, per_page: int = 10) -> list[dict]:
+    """Búsqueda por código de barras (EAN/UPC): el identificador fiable para vincular un
+    release creado a mano con su ficha de Discogs. Solo lectura."""
+    _throttle()
+    with _client(token) as c:
+        r = c.get("/database/search", params={"barcode": ean, "type": "release", "per_page": per_page})
+        r.raise_for_status()
+        return _parse_search_hits(r.json().get("results", []))
 
 
 def get_release(token: str | None, release_id: int) -> dict:

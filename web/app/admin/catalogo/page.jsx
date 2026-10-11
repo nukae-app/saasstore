@@ -116,8 +116,6 @@ export default function CatalogoPage() {
   const [modal, setModal] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const [stats, setStats] = useState(null);
-  const [bulkSyncing, setBulkSyncing] = useState(false);
-  const [bulkMsg, setBulkMsg] = useState('');
   const [exporting, setExporting] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
@@ -201,18 +199,6 @@ export default function CatalogoPage() {
     loadStats();
   }
 
-  async function handleBulkImages() {
-    setBulkSyncing(true);
-    setBulkMsg('');
-    const res = await authFetch('/admin/discogs/sync/images/start', { method: 'POST' });
-    if (res.ok) {
-      const data = await res.json();
-      setBulkMsg(data.message);
-      setTimeout(() => { loadStats(); setBulkMsg(''); }, 5000);
-    }
-    setBulkSyncing(false);
-  }
-
   function refresh() {
     loadReleases();
     loadStats();
@@ -259,14 +245,6 @@ export default function CatalogoPage() {
             className="flex items-center gap-1.5 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg transition-colors">
             <MIcon name="table_chart" size={13} /> {t('catalog.import_changes', 'Importar canvis')}
           </button>
-          {discogsEnabled && (
-          <button onClick={handleBulkImages} disabled={bulkSyncing}
-            title={t('catalog.enrich_discogs_hint', 'Omple caràtula, gènere, estils, EAN, tracklist i crèdits dels discos a partir de Discogs. No toca estoc ni preus (això és al centre de control de Discogs).')}
-            className="flex items-center gap-1.5 text-sm border border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 px-3 py-2 rounded-lg transition-colors disabled:opacity-60">
-            {bulkSyncing ? <MIcon name="progress_activity" size={13} className="animate-spin" /> : <MIcon name="image" size={13} />}
-            {t('catalog.enrich_discogs', 'Enriquir dades')}
-          </button>
-          )}
           <button onClick={refresh}
             className="flex items-center gap-1.5 text-sm text-on-surface-variant border border-outline-variant px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors">
             <MIcon name="refresh" size={13} /> {t('catalog.refresh', 'Actualitzar')}
@@ -297,12 +275,6 @@ export default function CatalogoPage() {
 
       {tab === 'llistat' && (
       <>
-      {bulkMsg && (
-        <div className="bg-violet-50 border border-violet-200 text-violet-800 text-sm rounded-xl px-4 py-3">
-          {bulkMsg} — {t('catalog.stats_update_hint', "les estadístiques s'actualitzen en uns minuts.")}
-        </div>
-      )}
-
       {/* Stats */}
       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
         <StatCard label={t('catalog.stat.active_items', 'Items actius')}      value={stats?.total_actius}     color="blue" />

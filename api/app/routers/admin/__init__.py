@@ -15,12 +15,12 @@ de Discogs del tenant).
 from fastapi import APIRouter
 
 from . import (
-    catalog_bulk, channel_backups, channel_discogs, channel_pricing, discogs_inventory, discogs_sync, etiquetes, events, images, items, pagines, posts, pricing, releases, orders,
+    catalog_bulk, channel_backups, channel_discogs, channel_pricing, channel_vincular, discogs_inventory, discogs_sync, etiquetes, events, images, items, pagines, posts, pricing, releases, orders,
 )
 from ._shared import require_discogs_enabled
 
 router = APIRouter()
 for _modulo in (
-    releases, items, catalog_bulk, orders, discogs_sync, discogs_inventory, channel_backups, channel_discogs, channel_pricing, etiquetes, images, posts, events, pagines, pricing,
+    releases, items, catalog_bulk, orders, discogs_sync, discogs_inventory, channel_backups, channel_discogs, channel_vincular, channel_pricing, etiquetes, images, posts, events, pagines, pricing,
 ):
     router.include_router(_modulo.router)

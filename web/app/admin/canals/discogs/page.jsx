@@ -14,6 +14,8 @@ import { CH, INV, PHASES, api } from './shared';
 import ResumTab from './ResumTab';
 import ListingsTab from './ListingsTab';
 import SyncTab from './SyncTab';
+import VincularTab from './VincularTab';
+import ProvaTab from './ProvaTab';
 import OrdersTab from './OrdersTab';
 import PricesTab from './PricesTab';
 import AlertsTab from './AlertsTab';
@@ -22,11 +24,13 @@ import SettingsTab from './SettingsTab';
 const TABS = [
   { key: 'resum', label: 'Resum', icon: 'space_dashboard' },
   { key: 'listings', label: 'Listings', icon: 'list_alt' },
+  { key: 'vincular', label: 'Vincular', icon: 'link' },
   { key: 'sync', label: 'Sincronització', icon: 'sync' },
   { key: 'comandes', label: 'Comandes', icon: 'shopping_bag' },
   { key: 'preus', label: 'Preus', icon: 'price_change' },
   { key: 'alertes', label: 'Alertes', icon: 'notifications' },
   { key: 'config', label: 'Configuració', icon: 'settings' },
+  { key: 'prova', label: 'Prova API', icon: 'science' },
 ];
 // Pestaña que ya muestra el progreso de cada tipo de trabajo (el aviso global no se repite allí)
 const TAB_OF_MODE = {
@@ -164,11 +168,13 @@ function CentreDiscogs() {
 
       {tab === 'resum' && <ResumTab {...common} />}
       {tab === 'listings' && <ListingsTab key={JSON.stringify(presets)} {...common} initial={presets} />}
+      {tab === 'vincular' && <VincularTab {...common} />}
       {tab === 'sync' && <SyncTab {...common} />}
       {tab === 'comandes' && <OrdersTab {...common} />}
       {tab === 'preus' && <PricesTab {...common} />}
       {tab === 'alertes' && <AlertsTab {...common} />}
       {tab === 'config' && <SettingsTab {...common} />}
+      {tab === 'prova' && <ProvaTab {...common} />}
     </div>
   );
 }

@@ -22,7 +22,7 @@ export default function NovaSolicitudPage() {
   const [lineas, setLineas] = useState([]);
   const [resolving, setResolving] = useState(false);
   const [manualMode, setManualMode] = useState(false);
-  const [manualForm, setManualForm] = useState({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '' });
+  const [manualForm, setManualForm] = useState({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '', ean: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,13 +40,17 @@ export default function NovaSolicitudPage() {
     }
   }
 
+  // 8, 12 o 13 dígitos (EAN-8, UPC-A, EAN-13): solo avisa, no bloquea.
+  const eanDigits = manualForm.ean.replace(/\D/g, '');
+  const eanSospechoso = eanDigits.length > 0 && ![8, 12, 13].includes(eanDigits.length);
+
   async function addManual() {
     if (!manualForm.titulo.trim()) return;
     setResolving(true);
     try {
       const rel = await resolveOrCreateRelease(manualForm);
       await addLinea(rel);
-      setManualForm({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '' });
+      setManualForm({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '', ean: '' });
       setManualMode(false);
     } finally {
       setResolving(false);
@@ -74,7 +78,7 @@ export default function NovaSolicitudPage() {
   async function addLinea(rel) {
     const proveedorSugerit = await suggestProveidor(rel.existing ? rel.id : null, rel.artista);
     setLineas(prev => [...prev, {
-      release_id: rel.id, artista: rel.artista, titulo: rel.titulo, sello: rel.sello, existing: rel.existing,
+      release_id: rel.id, artista: rel.artista, titulo: rel.titulo, sello: rel.sello, ean: rel.ean, existing: rel.existing,
       cantidad: 1, proveedor_sugerido_id: proveedorSugerit,
     }]);
   }
@@ -125,7 +129,7 @@ export default function NovaSolicitudPage() {
           {discogsEnabled && (
           <button type="button" onClick={() => setManualMode(m => !m)}
             className="text-xs text-amber-600 hover:text-amber-700 font-medium">
-            {manualMode ? t('common.cancel') : t('purchases.add_manual_toggle', '+ Afegir disc a mà')}
+            {manualMode ? t('common.cancel') : t('purchases.add_manual_toggle', '+ Afegir disc a mà (no és a Discogs / amb EAN)')}
           </button>
           )}
 
@@ -149,7 +153,14 @@ export default function NovaSolicitudPage() {
                 <input type="number" value={manualForm.anio} onChange={e => setManualForm(f => ({ ...f, anio: e.target.value }))}
                   placeholder={t('purchases.manual.year_ph', 'Any')} min="1900" max="2030"
                   className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                <input value={manualForm.ean} onChange={e => setManualForm(f => ({ ...f, ean: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                  placeholder={t('purchases.manual.ean_ph', 'EAN / codi de barres')} inputMode="numeric"
+                  className="col-span-2 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
+              {eanSospechoso && (
+                <p className="text-xs text-amber-600">{t('purchases.manual.ean_warn', 'L\'EAN hauria de tenir 8, 12 o 13 dígits.')}</p>
+              )}
               <Button type="button" size="sm" onClick={addManual}
                 disabled={resolving || !manualForm.titulo.trim()}>
                 {resolving ? t('common.creating') : t('common.add', 'Afegir')}
@@ -167,6 +178,7 @@ export default function NovaSolicitudPage() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
+                    {l.ean && <span className="text-[10px] text-secondary-foreground font-mono">{l.ean}</span>}
                     {l.existing && (
                       <span className="text-[10px] uppercase tracking-wide text-secondary-foreground bg-surface-container-high rounded-full px-2 py-0.5">
                         {t('purchases.modal.already_in_catalog', 'Ja al catàleg')}

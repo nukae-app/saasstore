@@ -24,6 +24,7 @@ from ..services.channel_pricing import PricingAbort, run_pricing_preview
 from ..services.channel_orders import OrdersPullError, is_due, pull_orders
 from ..services.channel_settings import get_settings
 from ..services.discogs_inventory_sync import InventorySyncAbort, run_inventory_sync
+from ..services.discogs_link import auto_link
 from ..services.discogs_sync import adopcio_feta, get_discogs_token_if_enabled
 from ..services.discogs import is_read_only
 from ..tenancy import scoped_to
@@ -270,3 +271,33 @@ def orders_poll() -> dict:
     finally:
         db.close()
     return resultados
+
+
+@celery_app.task(name="discogs.link_scheduled")
+def link_scheduled() -> dict:
+    """Cada hora: por cada tenant con Discogs activo, busca por EAN los releases sin vincular y
+    vincula los de candidato único. Solo LEE de Discogs (válido en modo solo lectura) y no publica
+    nada. Tanda acotada por el límite de la API."""
+    db = SessionLocal()
+    total = {"vinculats": 0, "revisats": 0}
+    try:
+        for tenant in db.scalars(select(Tenant).where(Tenant.activo.is_(True))).all():
+            with scoped_to(db, tenant.id):
+                config = db.scalar(select(ConfiguracioBotiga))
+                if not config or not config.discogs_habilitat:
+                    continue
+                db.commit()
+                token = get_discogs_token_if_enabled(db, tenant.id)
+                if token is None:
+                    continue
+                try:
+                    res = auto_link(db, token, limit=30, actor="sistema")
+                except Exception:  # noqa: BLE001 — un tenant no debe frenar a los demás
+                    db.rollback()
+                    log.warning("discogs: fallo en el reintento de vinculación (%s)", tenant.id, exc_info=True)
+                    continue
+                total["vinculats"] += res["vinculats"]
+                total["revisats"] += res["revisats"]
+    finally:
+        db.close()
+    return total
