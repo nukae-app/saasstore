@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import CondicionItem, Compra, ConfiguracioBotiga
+from .pdf_common import fit_text
 from .preu_compra import iva_defecte_pct, marge_pct, recarrec_config_pct, recarrec_pct
 
 
@@ -84,7 +85,18 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
     pdf.set_font("Helvetica", "", 9)
     total_cost = 0
     total_pvp = 0
-    for release, condition, estado_disco, quantity, cost, price in _files(compra):
+    filas = _files(compra)
+    if numerar:
+        # Les files d'una recepció empaten a created_at: sense això surten en
+        # ordre arbitrari. Ordenem per la posició a la comanda (la més baixa si
+        # el disc es repeteix); les files sense posició al final, sense reordenar.
+        def _clau(i_fila):
+            i, fila = i_fila
+            pos = [int(x) for x in posicions.get(fila[0].id, [])]
+            return (min(pos) if pos else float("inf"), i)
+
+        filas = [f for _, f in sorted(enumerate(filas), key=_clau)]
+    for release, condition, estado_disco, quantity, cost, price in filas:
         descripcio = f"{release.artista} - {release.title}"
         estat = "Nou" if condition == CondicionItem.nou.value else "2a mà"
         if estado_disco:
@@ -94,8 +106,8 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
         total_pvp += price * quantity
         if numerar:
             pdf.cell(col_widths[0], 7, ",".join(posicions.get(release.id, [])) or "-", border=1, align="C")
-        pdf.cell(col_widths[off], 7, descripcio[:34], border=1)
-        pdf.cell(col_widths[off + 1], 7, estat[:14], border=1)
+        pdf.cell(col_widths[off], 7, fit_text(pdf, descripcio, col_widths[off]), border=1)
+        pdf.cell(col_widths[off + 1], 7, fit_text(pdf, estat, col_widths[off + 1]), border=1)
         pdf.cell(col_widths[off + 2], 7, str(quantity), border=1, align="C")
         pdf.cell(col_widths[off + 3], 7, f"{cost:.2f} EUR" if cost is not None else "-", border=1, align="R")
         pdf.cell(col_widths[off + 4], 7, f"{marge:.1f} %" if marge is not None else "-", border=1, align="R")

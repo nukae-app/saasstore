@@ -28,3 +28,13 @@ def new_pdf_with_header(db: Session) -> FPDF:
             pdf.cell(0, 5, linia, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
     return pdf
+
+
+def fit_text(pdf: FPDF, text: str, width: float) -> str:
+    """Retalla `text` perquè càpiga a una cel·la de `width` mm amb la font
+    actual. Retallar per nombre de caràcters no val: les majúscules són més
+    amples i se sortien de la cel·la."""
+    limit = width - 2 * pdf.c_margin
+    while text and pdf.get_string_width(text) > limit:
+        text = text[:-1]
+    return text

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import Comanda, ConfiguracioBotiga
+from .pdf_common import fit_text
 from .preu_compra import recarrec_config_pct
 
 
@@ -51,7 +52,7 @@ def generate_comanda_pdf(comanda: Comanda, db: Session) -> bytes:
         if subtotal is not None:
             total += subtotal
         pdf.cell(col_widths[0], 7, str(linea.position), border=1, align="C")
-        pdf.cell(col_widths[1], 7, descripcio[:50], border=1)
+        pdf.cell(col_widths[1], 7, fit_text(pdf, descripcio, col_widths[1]), border=1)
         pdf.cell(col_widths[2], 7, str(linea.quantity), border=1, align="C")
         pdf.cell(col_widths[3], 7, f"{preu:.2f} EUR" if preu is not None else "Sense preu", border=1, align="R")
         pdf.cell(col_widths[4], 7, f"{subtotal:.2f} EUR" if subtotal is not None else "-", border=1, align="R")

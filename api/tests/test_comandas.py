@@ -731,3 +731,46 @@ def test_pdf_recepcio_repetit_a_la_comanda_mostra_totes_les_posicions(db, client
     assert client.get(f"/admin/compras/{compra_id}/pdf", headers=_auth(admin)).status_code == 200
     # r1 és a les posicions 1 i 3 de la comanda: no endevinem, les mostrem totes.
     assert "1,3" in textos
+
+
+def test_pdf_recepcio_ordena_les_files_per_posicio_a_la_comanda(db, client, monkeypatch):
+    from decimal import Decimal
+
+    from app.models import TipusIva
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    r1, r2, r3 = (_seed_release(db, titulo=f"Disc {i}") for i in range(3))
+    db.add(TipusIva(name="General", percentage=Decimal("21"), default_new=True, default_used=True, active=True))
+    db.commit()
+    payload = {
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [{"release_id": str(r.id), "quantity": 1, "estimated_unit_price": "10.00"} for r in (r1, r2, r3)],
+    }
+    comanda = client.post("/admin/comandas", json=payload, headers=_auth(admin)).json()
+    client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
+    lineas = comanda["lineas"]
+    # Es reben en ordre canviat respecte a la comanda.
+    ok = {"date": "2026-06-10T10:00:00", "items": [
+        {"comanda_linea_id": lineas[i]["id"], "price": "20.00", "acquisition_cost": "11.00"} for i in (2, 0, 1)]}
+    compra_id = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json=ok, headers=_auth(admin)).json()["compra_id"]
+
+    textos = _textos_pdf(monkeypatch)
+    assert client.get(f"/admin/compras/{compra_id}/pdf", headers=_auth(admin)).status_code == 200
+    files = textos[textos.index("PVP") + 1:]
+    assert [files[i * 7] for i in range(3)] == ["1", "2", "3"]
+
+
+def test_fit_text_no_se_surt_de_la_cella_amb_majuscules():
+    from fpdf import FPDF
+
+    from app.services.pdf_common import fit_text
+
+    pdf = FPDF(format="A4")
+    pdf.add_page()
+    pdf.set_font("Helvetica", "", 9)
+    llarg = "FONTAINES D.C. - DOPAMINE CHAMBER"
+    # Amb el retall antic (34 caràcters) aquest text es passava dels 62 mm.
+    assert pdf.get_string_width(llarg[:34]) > 62 - 2 * pdf.c_margin
+    assert pdf.get_string_width(fit_text(pdf, llarg, 62)) <= 62 - 2 * pdf.c_margin
+    assert fit_text(pdf, "Curt", 62) == "Curt"
