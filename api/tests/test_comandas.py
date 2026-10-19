@@ -698,3 +698,36 @@ def test_pdf_recepcio_inclou_el_numero_de_comanda(db, client, monkeypatch):
     textos = _textos_pdf(monkeypatch)
     assert client.get(f"/admin/compras/{compra_id}/pdf", headers=_auth(admin)).status_code == 200
     assert f"Comanda: {comanda['order_number']}" in textos
+    # Columna "#" amb la posició de la línia a la comanda (aquí, 1).
+    assert textos[textos.index("#") + 1] == "Disc"
+    assert "1" in textos[textos.index("Disc") + 6:][:1]
+
+
+def test_pdf_recepcio_repetit_a_la_comanda_mostra_totes_les_posicions(db, client, monkeypatch):
+    from decimal import Decimal
+
+    from app.models import TipusIva
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    r1, r2 = _seed_release(db), _seed_release(db, titulo="Altre")
+    db.add(TipusIva(name="General", percentage=Decimal("21"), default_new=True, default_used=True, active=True))
+    db.commit()
+    payload = {
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [
+            {"release_id": str(r1.id), "quantity": 1, "estimated_unit_price": "10.00"},
+            {"release_id": str(r2.id), "quantity": 1, "estimated_unit_price": "10.00"},
+            {"release_id": str(r1.id), "quantity": 1, "estimated_unit_price": "10.00"},
+        ],
+    }
+    comanda = client.post("/admin/comandas", json=payload, headers=_auth(admin)).json()
+    client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
+    ok = {"date": "2026-06-10T10:00:00", "items": [
+        {"comanda_linea_id": comanda["lineas"][0]["id"], "price": "20.00", "acquisition_cost": "11.00"}]}
+    compra_id = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json=ok, headers=_auth(admin)).json()["compra_id"]
+
+    textos = _textos_pdf(monkeypatch)
+    assert client.get(f"/admin/compras/{compra_id}/pdf", headers=_auth(admin)).status_code == 200
+    # r1 és a les posicions 1 i 3 de la comanda: no endevinem, les mostrem totes.
+    assert "1,3" in textos

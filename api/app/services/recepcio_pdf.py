@@ -60,8 +60,19 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
         pdf.cell(0, 5, f"Albarà: {compra.delivery_note_number}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
-    col_widths = (62, 22, 12, 28, 26, 30)
-    headers = ("Disc", "Estat", "Ut.", "Preu compra", "% Marge", "PVP")
+    # Posició de cada disc a la comanda d'origen, per cotejar amb el PDF de
+    # la comanda. La recepció no guarda el vincle a la línia de comanda: es
+    # dedueix pel disc, i si es repeteix a la comanda es mostren totes les posicions.
+    posicions: dict = {}
+    if compra.comanda:
+        for l in compra.comanda.lineas:
+            posicions.setdefault(l.release_id, []).append(str(l.position))
+    numerar = bool(compra.comanda)
+
+    col_widths = (10, 62, 22, 12, 28, 26, 30) if numerar else (62, 22, 12, 28, 26, 30)
+    headers = ("#", "Disc", "Estat", "Ut.", "Preu compra", "% Marge", "PVP") if numerar else (
+        "Disc", "Estat", "Ut.", "Preu compra", "% Marge", "PVP")
+    off = 1 if numerar else 0  # desplaçament dels índexs de columna
     pdf.set_font("Helvetica", "B", 10)
     pdf.set_fill_color(230, 230, 230)
     for w, h in zip(col_widths, headers):
@@ -81,19 +92,21 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
         marge = marge_pct(price, cost, condition, iva[condition], recarrec)
         total_cost += (cost or 0) * quantity
         total_pvp += price * quantity
-        pdf.cell(col_widths[0], 7, descripcio[:34], border=1)
-        pdf.cell(col_widths[1], 7, estat[:14], border=1)
-        pdf.cell(col_widths[2], 7, str(quantity), border=1, align="C")
-        pdf.cell(col_widths[3], 7, f"{cost:.2f} EUR" if cost is not None else "-", border=1, align="R")
-        pdf.cell(col_widths[4], 7, f"{marge:.1f} %" if marge is not None else "-", border=1, align="R")
-        pdf.cell(col_widths[5], 7, f"{price:.2f} EUR", border=1, align="R")
+        if numerar:
+            pdf.cell(col_widths[0], 7, ",".join(posicions.get(release.id, [])) or "-", border=1, align="C")
+        pdf.cell(col_widths[off], 7, descripcio[:34], border=1)
+        pdf.cell(col_widths[off + 1], 7, estat[:14], border=1)
+        pdf.cell(col_widths[off + 2], 7, str(quantity), border=1, align="C")
+        pdf.cell(col_widths[off + 3], 7, f"{cost:.2f} EUR" if cost is not None else "-", border=1, align="R")
+        pdf.cell(col_widths[off + 4], 7, f"{marge:.1f} %" if marge is not None else "-", border=1, align="R")
+        pdf.cell(col_widths[off + 5], 7, f"{price:.2f} EUR", border=1, align="R")
         pdf.ln()
 
     pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(sum(col_widths[:3]), 7, "Total", border=1, align="R")
-    pdf.cell(col_widths[3], 7, f"{total_cost:.2f} EUR", border=1, align="R")
-    pdf.cell(col_widths[4], 7, "", border=1)
-    pdf.cell(col_widths[5], 7, f"{total_pvp:.2f} EUR", border=1, align="R")
+    pdf.cell(sum(col_widths[:off + 3]), 7, "Total", border=1, align="R")
+    pdf.cell(col_widths[off + 3], 7, f"{total_cost:.2f} EUR", border=1, align="R")
+    pdf.cell(col_widths[off + 4], 7, "", border=1)
+    pdf.cell(col_widths[off + 5], 7, f"{total_pvp:.2f} EUR", border=1, align="R")
     pdf.ln(10)
 
     pdf.set_font("Helvetica", "", 8)
