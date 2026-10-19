@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
 from ..models import Compra, Item, Order, OrderItem, User, VentaExterna
+from ..services.gdpr import ErasureBlocked, anonymize_user, export_user_data
 from ..services.security import hash_password, require_admin
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"], dependencies=[Depends(require_admin)])
@@ -364,16 +365,25 @@ def update_user(user_id: uuid.UUID, payload: UserPatchIn, db: Session = Depends(
 # ---------------------------------------------------------------------------
 
 @router.post("/{user_id}/anonymize")
-def anonymize_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
+def anonymize_user_endpoint(user_id: uuid.UUID, force: bool = Query(False), db: Session = Depends(get_db)):
+    """Anonimización completa (ver services/gdpr.py). Sin `force` se niega si
+    hay pedidos/suscripción/peticiones en curso (409 con `reasons`); con
+    `force` los cancela y sigue. Nunca borra a un admin."""
     u = db.get(User, user_id)
     if u is None:
         raise HTTPException(404, "Usuari no trobat")
-    anon_id = str(uuid.uuid4()).replace("-", "")[:12]
-    u.email = f"anon-{anon_id}@deleted.local"
-    u.name = None
-    u.phone = None
-    u.internal_notes = None
-    u.active = False
-    u.consent_newsletter = False
-    db.commit()
-    return {"ok": True, "email": u.email}
+    try:
+        email = anonymize_user(db, u, force=force)
+    except ErasureBlocked as e:
+        return JSONResponse(status_code=409, content={"detail": "No es pot anonimitzar encara", "reasons": e.reasons})
+    return {"ok": True, "email": email}
+
+
+@router.get("/{user_id}/data-export")
+def export_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Exportación de datos de un cliente (para atender una solicitud de
+    acceso/portabilidad recibida por email)."""
+    u = db.get(User, user_id)
+    if u is None:
+        raise HTTPException(404, "Usuari no trobat")
+    return export_user_data(db, u)

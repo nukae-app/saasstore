@@ -155,6 +155,11 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     # de autenticación, no nos fiamos solo del filtro implícito.
     if user is None or user.tenant_id != request.state.tenant.id:
         raise HTTPException(401, "Usuario no encontrado")
+    # Cuenta anonimizada (RGPD) o suspendida por el admin: el access token
+    # (~15 min) sigue siendo criptográficamente válido, así que sin esta
+    # comprobación el titular borrado seguiría operando hasta que caduque.
+    if not user.active:
+        raise HTTPException(401, "Compte desactivat")
     return user
 
 

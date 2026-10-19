@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, Loader2 } from 'lucide-react';
 import { useAuth, authFetch } from '../../../../components/store/AuthProvider';
+import PrivacySection from './PrivacySection';
 
 export default function PerfilPage() {
   const t = useTranslations('compte');
@@ -122,6 +123,8 @@ export default function PerfilPage() {
           </button>
         </form>
       </div>
+
+      <PrivacySection />
     </div>
   );
 }

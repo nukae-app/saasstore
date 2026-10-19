@@ -18,6 +18,14 @@ const fmt = d => new Date(d).toLocaleDateString('ca', { day: '2-digit', month: '
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
+const ANON_REASONS = {
+  open_orders: 'Té comandes en curs (pendents de pagament, pagades o enviades).',
+  active_subscription: 'Té una subscripció del club activa o pausada.',
+  open_requests: 'Té peticions de discos obertes.',
+  is_admin: "És un compte d'administració: no es pot anonimitzar des d'aquí.",
+  error: "Error inesperat; torna-ho a provar.",
+};
+
 export default function UsuarisPage() {
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -170,15 +178,15 @@ export default function UsuarisPage() {
               </label>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[750px]">
+              <table className="w-full text-sm md:min-w-[750px]">
                 <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
                   <tr>
                     <SortableTh label="Usuari" sortKey="nombre" sort={sort} onSort={toggleSort} className="w-[280px]" />
                     <SortableTh label="Accés" sortKey="rol" sort={sort} onSort={toggleSort} />
-                    <th className="px-4 py-3 text-right font-medium">Activitat</th>
-                    <SortableTh label="NL" sortKey="consent_newsletter" sort={sort} onSort={toggleSort} align="center" />
+                    <th className="px-4 py-3 text-right font-medium hidden md:table-cell">Activitat</th>
+                    <SortableTh label="NL" sortKey="consent_newsletter" sort={sort} onSort={toggleSort} align="center" className="hidden md:table-cell" />
                     <SortableTh label="Estat" sortKey="activo" sort={sort} onSort={toggleSort} align="center" />
-                    <SortableTh label="Alta" sortKey="created_at" sort={sort} onSort={toggleSort} align="right" />
+                    <SortableTh label="Alta" sortKey="created_at" sort={sort} onSort={toggleSort} align="right" className="hidden md:table-cell" />
                     <th className="px-4 py-3 w-8" />
                   </tr>
                 </thead>
@@ -216,7 +224,7 @@ export default function UsuarisPage() {
                             {!u.providers?.length && <span className="text-xs text-secondary-foreground">Manual</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right hidden md:table-cell">
                           <div className="flex items-center justify-end gap-3">
                             {u.stats?.orders > 0 && (
                               <span className="inline-flex items-center gap-1 text-xs text-secondary-foreground">
@@ -238,7 +246,7 @@ export default function UsuarisPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
+                        <td className="px-4 py-3 text-center hidden md:table-cell" onClick={e => e.stopPropagation()}>
                           <button
                             onClick={() => quickPatch(u.id, { consent_newsletter: !u.consent_newsletter })}
                             title={u.consent_newsletter ? 'Eliminar de newsletter' : 'Subscriure a newsletter'}
@@ -262,7 +270,7 @@ export default function UsuarisPage() {
                             {u.active ? 'Actiu' : 'Inactiu'}
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-right text-secondary-foreground text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-right text-secondary-foreground text-xs whitespace-nowrap hidden md:table-cell">
                           {fmt(u.created_at)}
                         </td>
                         <td className="px-4 py-3">
@@ -472,6 +480,7 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
   const [saving, setSaving] = useState(false);
   const [confirmAnon, setConfirmAnon] = useState(false);
   const [anonizing, setAnonizing] = useState(false);
+  const [anonBlocked, setAnonBlocked] = useState(null);
   const [showSetPassword, setShowSetPassword] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -525,11 +534,30 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
     onUpdated(updated);
   }
 
-  async function anonymize() {
+  async function anonymize(force = false) {
     setAnonizing(true);
-    await authFetch(`/admin/users/${userId}/anonymize`, { method: 'POST' });
+    setAnonBlocked(null);
+    const r = await authFetch(`/admin/users/${userId}/anonymize${force ? '?force=true' : ''}`, { method: 'POST' });
     setAnonizing(false);
+    if (r.status === 409) {
+      const d = await r.json().catch(() => ({}));
+      setAnonBlocked(d.reasons || ['unknown']);
+      return;
+    }
+    if (!r.ok) { setAnonBlocked(['error']); return; }
     onDeleted();
+  }
+
+  // Atén una sol·licitud d'accés/portabilitat rebuda per email (RGPD art. 15/20).
+  async function exportData() {
+    const r = await authFetch(`/admin/users/${userId}/data-export`);
+    if (!r.ok) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(await r.json(), null, 2)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dades-${userId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   if (!user) return (
@@ -708,19 +736,40 @@ function UserDetailPanel({ userId, onClose, onUpdated, onDeleted }) {
             <div className="border-t border-outline-variant pt-6 mt-6">
               <div className="text-xs font-semibold text-secondary-foreground uppercase tracking-wide mb-4">Zona perillosa</div>
               {!confirmAnon ? (
-                <button onClick={() => setConfirmAnon(true)}
-                  className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-xl px-4 py-2.5 transition-colors">
-                  <MIcon name="close" className="w-4 h-4" />
-                  Anonimitzar compte (RGPD)
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={exportData}
+                    className="flex items-center gap-2 text-sm text-on-surface hover:text-on-surface-variant border border-outline-variant rounded-xl px-4 py-2.5 transition-colors">
+                    <MIcon name="download" className="w-4 h-4" />
+                    Exportar dades (RGPD)
+                  </button>
+                  <button onClick={() => setConfirmAnon(true)}
+                    className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-xl px-4 py-2.5 transition-colors">
+                    <MIcon name="close" className="w-4 h-4" />
+                    Anonimitzar compte (RGPD)
+                  </button>
+                </div>
               ) : (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
                   <div className="text-sm text-red-800 font-medium">Confirmar anonimització</div>
                   <div className="text-xs text-red-600">
-                    S'eliminaran el nom, email, telèfon i notes. Les comandes i l'historial de vendes es conserven (obligació fiscal). Aquesta acció no es pot desfer.
+                    S'eliminaran el nom, email, telèfon, notes, adreces, sessions i vincles (Google/Spotify). Les comandes i l'historial de vendes es conserven (obligació fiscal). Aquesta acció no es pot desfer.
                   </div>
+                  {anonBlocked && (
+                    <div className="text-xs text-red-700 bg-white/60 rounded-lg p-3 space-y-2">
+                      <div className="font-medium">No es pot anonimitzar encara:</div>
+                      <ul className="list-disc pl-4">
+                        {anonBlocked.map(r => <li key={r}>{ANON_REASONS[r] || r}</li>)}
+                      </ul>
+                      {!anonBlocked.includes('is_admin') && !anonBlocked.includes('error') && (
+                        <button onClick={() => anonymize(true)} disabled={anonizing}
+                          className="px-3 py-1.5 text-xs bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 font-medium">
+                          Anonimitzar igualment (cancel·la subscripció i peticions; les comandes en curs es mantenen)
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <div className="flex gap-2">
-                    <button onClick={anonymize} disabled={anonizing}
+                    <button onClick={() => anonymize(false)} disabled={anonizing}
                       className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium">
                       {anonizing ? 'Anonimitzant...' : 'Sí, anonimitzar'}
                     </button>
