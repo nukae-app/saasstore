@@ -246,6 +246,7 @@ def compra_pdf(compra_id: uuid.UUID, db: Session = Depends(get_db)):
             selectinload(Compra.items).selectinload(Item.release),
             selectinload(Compra.lineas).selectinload(CompraLinea.release),
             selectinload(Compra.proveedor),
+            selectinload(Compra.comanda),
         )
     )
     if compra is None:

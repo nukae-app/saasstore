@@ -54,6 +54,8 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
     pdf.cell(0, 5, f"Data: {compra.date.strftime('%d/%m/%Y')}", new_x="LMARGIN", new_y="NEXT")
     proveidor = compra.proveedor.name if compra.proveedor else (compra.individual_name or "")
     pdf.cell(0, 5, f"Proveïdor: {proveidor}", new_x="LMARGIN", new_y="NEXT")
+    if compra.comanda and compra.comanda.order_number:
+        pdf.cell(0, 5, f"Comanda: {compra.comanda.order_number}", new_x="LMARGIN", new_y="NEXT")
     if compra.delivery_note_number:
         pdf.cell(0, 5, f"Albarà: {compra.delivery_note_number}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)

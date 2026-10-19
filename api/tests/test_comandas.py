@@ -635,3 +635,66 @@ def test_backfill_compra_lineas_reconstrueix_i_repara_cost_diluït(db, client):
     linea = db.scalar(select(CompraLinea).where(CompraLinea.compra_id == compra_id))
     assert (linea.quantity, linea.acquisition_cost, linea.price) == (5, Decimal("16.11"), Decimal("30.00"))
     assert db.scalar(select(Item).where(Item.release_id == release.id)).acquisition_cost == Decimal("16.11")
+
+
+def _textos_pdf(monkeypatch) -> list[str]:
+    """fpdf comprime el contenido y no hay extractor de PDF a les dependències:
+    interceptem el text de cada cel·la escrita."""
+    from fpdf import FPDF
+
+    textos: list[str] = []
+    original = FPDF.cell
+
+    def cell(self, *args, **kwargs):
+        text = kwargs.get("text") or (args[2] if len(args) > 2 else "")
+        textos.append(str(text))
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(FPDF, "cell", cell)
+    return textos
+
+
+def test_pdf_comanda_numera_les_linies(db, client, monkeypatch):
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    r1, r2 = _seed_release(db), _seed_release(db, titulo="Segon")
+    payload = {
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [
+            {"release_id": str(r1.id), "quantity": 1, "estimated_unit_price": "10.00"},
+            {"release_id": str(r2.id), "quantity": 1, "estimated_unit_price": "12.00"},
+        ],
+    }
+    comanda_id = client.post("/admin/comandas", json=payload, headers=_auth(admin)).json()["id"]
+
+    textos = _textos_pdf(monkeypatch)
+    assert client.get(f"/admin/comandas/{comanda_id}/pdf", headers=_auth(admin)).status_code == 200
+    assert "#" in textos
+    # Capçalera "#", i a cada fila el número seguit del disc.
+    assert textos[textos.index("#") + 5:][:2] == ["1", f"{r1.artista} - {r1.title}"]
+    assert "2" in textos[textos.index("#") + 5:][5:7]
+
+
+def test_pdf_recepcio_inclou_el_numero_de_comanda(db, client, monkeypatch):
+    from decimal import Decimal
+
+    from app.models import TipusIva
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db)
+    db.add(TipusIva(name="General", percentage=Decimal("21"), default_new=True, default_used=True, active=True))
+    db.commit()
+    payload = {
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+        "lineas": [{"release_id": str(release.id), "quantity": 1, "estimated_unit_price": "10.00"}],
+    }
+    comanda = client.post("/admin/comandas", json=payload, headers=_auth(admin)).json()
+    client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
+    ok = {"date": "2026-06-10T10:00:00", "items": [
+        {"comanda_linea_id": comanda["lineas"][0]["id"], "price": "20.00", "acquisition_cost": "11.00"}]}
+    compra_id = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json=ok, headers=_auth(admin)).json()["compra_id"]
+
+    textos = _textos_pdf(monkeypatch)
+    assert client.get(f"/admin/compras/{compra_id}/pdf", headers=_auth(admin)).status_code == 200
+    assert f"Comanda: {comanda['order_number']}" in textos
