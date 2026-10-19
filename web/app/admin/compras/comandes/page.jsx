@@ -292,7 +292,11 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
             <div className="space-y-1">
               {(c.lineas ?? []).map(l => (
                 <div key={l.id} className="flex items-center gap-4 text-sm flex-wrap">
+                  <span className="w-6 text-right tabular-nums text-secondary-foreground">{l.position}.</span>
                   <span className="font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
+                  {l.solicitud_numero && (
+                    <span className="text-xs text-secondary-foreground">{l.solicitud_numero} · {t('purchases.line', 'línia')} {l.solicitud_linea_numero}</span>
+                  )}
                   <span className="text-secondary-foreground">{l.received_quantity}/{l.quantity} {t('purchases.received_suffix', 'rebudes')}</span>
                   {l.estimated_unit_price && (
                     <span className="text-secondary-foreground">{t('purchases.purchase_cost', 'Cost compra')}: {l.estimated_unit_price} € {t('purchases.excl_vat', 'sense IVA')}</span>

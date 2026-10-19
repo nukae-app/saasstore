@@ -169,7 +169,7 @@ class Comanda(TenantScoped, Base):
 
     proveedor: Mapped["Proveedor"] = relationship()
     lineas: Mapped[list["ComandaLinea"]] = relationship(
-        back_populates="comanda", cascade="all, delete-orphan", order_by="ComandaLinea.created_at"
+        back_populates="comanda", cascade="all, delete-orphan", order_by="ComandaLinea.position, ComandaLinea.created_at"
     )
     compras: Mapped[list["Compra"]] = relationship(back_populates="comanda")
 
@@ -191,10 +191,19 @@ class ComandaLinea(TenantScoped, Base):
     estimated_unit_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     received_quantity: Mapped[int] = mapped_column(Integer, default=0)
     notes: Mapped[str | None] = mapped_column(String(300))
+    # created_at empata dins d'una transacció; position (1..n) fixa l'ordre de
+    # la comanda i no es renumera mai (veure resolver_solicitud_compra).
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     comanda: Mapped["Comanda"] = relationship(back_populates="lineas")
     release: Mapped["Release"] = relationship()
+    # Inversa de SolicitudCompraLinea.comanda_linea_id (traçabilitat: de quina
+    # sol·licitud i línia ve). Només lectura; None si la comanda es va crear a mà.
+    solicitud_linea: Mapped["SolicitudCompraLinea | None"] = relationship(
+        primaryjoin="ComandaLinea.id == foreign(SolicitudCompraLinea.comanda_linea_id)",
+        viewonly=True, uselist=False,
+    )
 
 
 class HistorialCompra(TenantScoped, Base):
@@ -266,7 +275,8 @@ class SolicitudCompra(TenantScoped, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     lineas: Mapped[list["SolicitudCompraLinea"]] = relationship(
-        back_populates="solicitud", cascade="all, delete-orphan", order_by="SolicitudCompraLinea.created_at"
+        back_populates="solicitud", cascade="all, delete-orphan",
+        order_by="SolicitudCompraLinea.numero, SolicitudCompraLinea.created_at"
     )
     user: Mapped["User | None"] = relationship()
 
@@ -289,11 +299,16 @@ class SolicitudCompraLinea(TenantScoped, Base):
     per cap sol·licitud)."""
 
     __tablename__ = "solicitud_compra_items"
+    __table_args__ = (UniqueConstraint("solicitud_id", "numero", name="uq_solicitud_compra_items_solicitud_id_numero"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=_uuid)
     solicitud_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("solicitudes_compra.id", ondelete="CASCADE"), index=True
     )
+    # Número de línia dins la sol·licitud (1..n), NULL al pool. Definitiu: no
+    # es renumera en esborrar-ne una (queden forats), perquè el número que
+    # l'admin ha vist o imprès no canviï mai.
+    numero: Mapped[int | None] = mapped_column(Integer)
     origen: Mapped[OrigenSolicitud] = mapped_column(
         Enum(OrigenSolicitud, name="origen_solicitud"), default=OrigenSolicitud.manual, index=True
     )

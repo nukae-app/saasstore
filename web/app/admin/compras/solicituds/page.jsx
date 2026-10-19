@@ -543,6 +543,7 @@ function SolicitudsLlistatView({ proveedores }) {
                             <div className="space-y-1">
                               {s.lineas.map(l => (
                                 <div key={l.id} className="flex items-center gap-3 text-sm flex-wrap">
+                                  <span className="w-6 text-right tabular-nums text-secondary-foreground">{l.numero}.</span>
                                   <span className="font-semibold text-on-surface">{l.artist} — {l.title}</span>
                                   <span className="text-secondary-foreground">{l.quantity}x</span>
                                   {l.label && <span className="text-secondary-foreground">{l.label}</span>}

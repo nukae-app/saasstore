@@ -44,6 +44,7 @@ class SolicitudGenerarIn(BaseModel):
 
 class SolicitudCompraLineaOut(BaseModel):
     id: uuid.UUID
+    numero: int | None = None  # 1..n dins la sol·licitud; None al pool
     origen: str
     release_id: uuid.UUID | None
     artist: str | None

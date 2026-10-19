@@ -37,6 +37,7 @@ def _solicitud_linea_out(linea: SolicitudCompraLinea) -> SolicitudCompraLineaOut
         title=linea.release.title if linea.release else linea.title,
         label=linea.release.sello if linea.release else linea.label,
         format=linea.release.formato if linea.release else linea.format,
+        numero=linea.numero,
         quantity=linea.quantity,
         proveedor_sugerido_id=linea.proveedor_sugerido_id,
         proveedor_sugerido_nombre=linea.proveedor_sugerido.name if linea.proveedor_sugerido else None,
@@ -81,6 +82,8 @@ def _get_solicitud_or_404(db: Session, solicitud_id: uuid.UUID) -> SolicitudComp
             selectinload(SolicitudCompra.user),
         )
         .where(SolicitudCompra.id == solicitud_id)
+        # expire_on_commit=False: sin esto, tras añadir/borrar líneas se devolvería la colección ya cargada (obsoleta).
+        .execution_options(populate_existing=True)
     )
     if solicitud is None:
         raise HTTPException(404, "Solicitud de compra no encontrada")
@@ -412,8 +415,9 @@ def generar_solicitud(payload: SolicitudGenerarIn, db: Session = Depends(get_db)
     )
     db.add(solicitud)
     db.flush()
-    for linea in lineas:
+    for numero, linea in enumerate(lineas, start=1):
         linea.solicitud_id = solicitud.id
+        linea.numero = numero
     db.commit()
     return _solicitud_out(_get_solicitud_or_404(db, solicitud.id))
 
@@ -554,8 +558,10 @@ def add_linea_solicitud(solicitud_id: uuid.UUID, payload: SolicitudCompraLineaIn
     if payload.proveedor_sugerido_id and db.get(Proveedor, payload.proveedor_sugerido_id) is None:
         raise HTTPException(404, f"Proveedor {payload.proveedor_sugerido_id} no encontrado")
 
+    # max + 1 (no len + 1): si se ha borrado alguna línea quedan huecos y el número no se reutiliza.
+    siguiente = max((l.numero or 0 for l in solicitud.lineas), default=0) + 1
     db.add(SolicitudCompraLinea(
-        solicitud_id=solicitud.id, origen=OrigenSolicitud.manual, release_id=payload.release_id,
+        solicitud_id=solicitud.id, numero=siguiente, origen=OrigenSolicitud.manual, release_id=payload.release_id,
         artist=payload.artist, title=payload.title, label=payload.label, format=payload.format,
         quantity=payload.quantity, proveedor_sugerido_id=payload.proveedor_sugerido_id, notes=payload.notes,
     ))
@@ -629,8 +635,17 @@ def resolver_solicitud_compra(payload: SolicitudResolverIn, db: Session = Depend
             if intento == 2:
                 raise HTTPException(409, "No s'ha pogut generar el número de comanda, torna-ho a provar")
 
+    # Agrupades per sol·licitud (la més antiga primer) i, dins de cadascuna, en el seu ordre.
+    solicitudes_created = {
+        sid: db.get(SolicitudCompra, sid).created_at for sid in {l.solicitud_id for l in solicitud_lineas}
+    }
+    parells = sorted(
+        zip(payload.lineas, solicitud_lineas),
+        key=lambda p: (solicitudes_created[p[1].solicitud_id], str(p[1].solicitud_id), p[1].numero or 0),
+    )
+
     lineas_por_solicitud: dict[uuid.UUID, list[SolicitudCompraLinea]] = {}
-    for item, linea in zip(payload.lineas, solicitud_lineas):
+    for posicion, (item, linea) in enumerate(parells, start=1):
         cantidad = item.quantity if item.quantity is not None else linea.quantity
         release_id = release_ids[linea.id]
         if linea.release_id is None:
@@ -638,6 +653,7 @@ def resolver_solicitud_compra(payload: SolicitudResolverIn, db: Session = Depend
         comanda_linea = ComandaLinea(
             comanda_id=comanda.id, release_id=release_id, quantity=cantidad,
             estimated_unit_price=item.estimated_unit_price, notes=linea.notes,
+            position=posicion,
         )
         db.add(comanda_linea)
         db.flush()

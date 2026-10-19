@@ -6,6 +6,7 @@ import contextlib
 import io
 import re
 import uuid
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 
@@ -886,3 +887,69 @@ def test_ultims_costos_retorna_el_cost_mes_recent_per_release(db, client):
     body = resp.json()
     assert float(body[str(release.id)]) == 9.5
     assert str(sense_historial.id) not in body
+
+
+def test_resolver_agrupa_linies_per_solicitud(db, client):
+    """La comanda surt agrupada per sol·licitud (la més antiga primer),
+    encara que el payload barregi línies de les dues."""
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    r1, r2, r3, r4 = (_seed_release(db, titulo=f"Àlbum {i}") for i in range(4))
+
+    sol_a = _crear_solicitud(client, admin, [
+        {"release_id": str(r1.id), "quantity": 1}, {"release_id": str(r2.id), "quantity": 1},
+    ])
+    sol_b = _crear_solicitud(client, admin, [
+        {"release_id": str(r3.id), "quantity": 1}, {"release_id": str(r4.id), "quantity": 1},
+    ])
+    # SQLite té resolució d'1s: fixem l'antiguitat per no dependre del rellotge.
+    db.get(SolicitudCompra, uuid.UUID(sol_a["id"])).created_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    db.get(SolicitudCompra, uuid.UUID(sol_b["id"])).created_at = datetime(2026, 2, 1, tzinfo=timezone.utc)
+    db.commit()
+    a1, a2 = (l["id"] for l in sol_a["lineas"])
+    b1, b2 = (l["id"] for l in sol_b["lineas"])
+
+    resp = client.post(
+        "/admin/solicitudes-compra/resolver",
+        json={
+            "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00",
+            "lineas": [{"solicitud_linea_id": x, "estimated_unit_price": "5.00"} for x in (b2, a2, b1, a1)],
+        },
+        headers=_auth(admin),
+    )
+    assert resp.status_code == 201
+    release_ids = [l["release_id"] for l in resp.json()["lineas"]]
+    release_de = {l["id"]: l["release_id"] for sol in (sol_a, sol_b) for l in sol["lineas"]}
+    assert release_ids == [release_de[x] for x in (a1, a2, b1, b2)]
+    # Posició definitiva 1..n i traçabilitat cap a la sol·licitud d'origen.
+    lineas = resp.json()["lineas"]
+    assert [l["position"] for l in lineas] == [1, 2, 3, 4]
+    assert [l["solicitud_linea_numero"] for l in lineas] == [1, 2, 1, 2]
+    assert [l["solicitud_numero"] for l in lineas] == [sol_a["numero"]] * 2 + [sol_b["numero"]] * 2
+
+
+def test_generar_solicitud_numera_linies_segons_la_seleccio(db, client):
+    admin = _admin_token(client, db)
+    pool = _add_pool(client, admin, [{"title": f"Disc {i}", "quantity": 1} for i in range(3)])
+    ids = [pool[2]["id"], pool[0]["id"], pool[1]["id"]]
+    resp = client.post("/admin/solicitudes-compra/generar", json={"linea_ids": ids}, headers=_auth(admin))
+    assert resp.status_code == 201
+    per_id = {l["id"]: l["numero"] for l in resp.json()["lineas"]}
+    assert [per_id[i] for i in ids] == [1, 2, 3]
+    assert [l["numero"] for l in resp.json()["lineas"]] == [1, 2, 3]
+
+
+def test_linia_afegida_i_forats_no_es_reutilitzen(db, client):
+    admin = _admin_token(client, db)
+    solicitud = _crear_solicitud(client, admin, [{"title": f"D{i}", "quantity": 1} for i in range(3)])
+    segona = next(l for l in solicitud["lineas"] if l["numero"] == 2)
+    resp = client.delete(f"/admin/solicitudes-compra/{solicitud['id']}/lineas/{segona['id']}", headers=_auth(admin))
+    assert resp.status_code == 200
+    assert [l["numero"] for l in resp.json()["lineas"]] == [1, 3]
+
+    resp = client.post(
+        f"/admin/solicitudes-compra/{solicitud['id']}/lineas",
+        json={"title": "Nova", "quantity": 1}, headers=_auth(admin),
+    )
+    assert resp.status_code == 201
+    assert [l["numero"] for l in resp.json()["lineas"]] == [1, 3, 4]

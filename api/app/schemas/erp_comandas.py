@@ -21,6 +21,11 @@ class ComandaIn(BaseModel):
 
 class ComandaLineaOut(BaseModel):
     id: uuid.UUID
+    position: int
+    # Traçabilitat: sol·licitud d'origen ("SOL-2026-000001") i número de
+    # línia dins d'ella; None si la comanda es va crear a mà.
+    solicitud_numero: str | None = None
+    solicitud_linea_numero: int | None = None
     release_id: uuid.UUID
     artista: str
     titulo: str

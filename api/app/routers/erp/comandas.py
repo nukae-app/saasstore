@@ -62,6 +62,12 @@ def _comanda_out(comanda: Comanda) -> dict:
         "lineas": [
             {
                 "id": linea.id,
+                "position": linea.position,
+                "solicitud_numero": (
+                    f"SOL-{linea.solicitud_linea.solicitud.fiscal_year}-{linea.solicitud_linea.solicitud.number:06d}"
+                    if linea.solicitud_linea and linea.solicitud_linea.solicitud else None
+                ),
+                "solicitud_linea_numero": linea.solicitud_linea.numero if linea.solicitud_linea else None,
                 "release_id": linea.release_id,
                 "artista": linea.release.artista,
                 "titulo": linea.release.title,
@@ -79,7 +85,11 @@ def _comanda_out(comanda: Comanda) -> dict:
 def _get_comanda_or_404(db: Session, comanda_id: uuid.UUID) -> Comanda:
     comanda = db.scalar(
         select(Comanda)
-        .options(selectinload(Comanda.lineas).selectinload(ComandaLinea.release), selectinload(Comanda.proveedor))
+        .options(
+            selectinload(Comanda.lineas).selectinload(ComandaLinea.release),
+            selectinload(Comanda.lineas).selectinload(ComandaLinea.solicitud_linea).selectinload(SolicitudCompraLinea.solicitud),
+            selectinload(Comanda.proveedor),
+        )
         .where(Comanda.id == comanda_id)
     )
     if comanda is None:
@@ -187,10 +197,10 @@ def create_comanda(payload: ComandaIn, db: Session = Depends(get_db)):
             db.rollback()
             if intento == 2:
                 raise HTTPException(409, "No s'ha pogut generar el número de comanda, torna-ho a provar")
-    for linea in payload.lineas:
+    for posicion, linea in enumerate(payload.lineas, start=1):
         db.add(ComandaLinea(
             comanda_id=comanda.id, release_id=linea.release_id, quantity=linea.quantity,
-            estimated_unit_price=linea.estimated_unit_price, notes=linea.notes,
+            estimated_unit_price=linea.estimated_unit_price, notes=linea.notes, position=posicion,
         ))
     db.commit()
     return _comanda_out(_get_comanda_or_404(db, comanda.id))
