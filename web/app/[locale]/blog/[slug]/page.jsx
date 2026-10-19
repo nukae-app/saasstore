@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { api } from '../../../lib/api';
 import StorefrontNav from '../../../../components/store/StorefrontNav';
 import StorefrontFooter from '../../../../components/store/StorefrontFooter';
+import ConsentHtml from '../../../../components/store/ConsentHtml';
 
 export async function generateMetadata({ params }) {
   const { slug, locale } = await params;
@@ -66,10 +67,7 @@ export default async function PostPage({ params }) {
 
         {/* Article body */}
         <article className="container max-w-2xl py-12 md:py-16">
-          <div
-            className="blog-content"
-            dangerouslySetInnerHTML={{ __html: post.content }}
-          />
+          <ConsentHtml className="blog-content" html={post.content} />
 
           {/* Back link */}
           <div className="border-t border-zinc-100 mt-12 pt-8">

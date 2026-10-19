@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&family=Hanken+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import './fonts.css';
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -454,6 +454,29 @@
   margin: 1.6em 0;
   display: block;
 }
+/* Placeholder de consentiment per a iframes de tercers (ver ConsentHtml.jsx) */
+.blog-content .embed-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 1.25rem;
+  margin: 1.6em 0;
+  border-radius: 0.5rem;
+  background: #f4f4f5;
+  color: #3f3f46;
+}
+.blog-content .embed-gate p { margin: 0; font-size: 0.875rem; max-width: 28rem; }
+.blog-content .embed-gate button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  background: #18181b;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.blog-content .embed-gate label { font-size: 0.75rem; color: #71717a; display: flex; gap: 0.5rem; align-items: center; }
 /* Mixcloud widget */
 .blog-content iframe[src*="mixcloud.com"] {
   width: 100%;

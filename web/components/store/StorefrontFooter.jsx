@@ -4,6 +4,7 @@ import { Link } from '../../i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { Instagram } from 'lucide-react';
+import { clearEmbedConsent } from './EmbedConsent';
 
 // Fallback mentre carrega /config/public o si la crida falla: mateixos
 // valors que hi havia hardcoded abans, perquè el footer mai quedi buit.
@@ -20,6 +21,7 @@ const FALLBACK = {
 export default function StorefrontFooter() {
   const t = useTranslations('footer');
   const tNav = useTranslations('nav');
+  const tEmbed = useTranslations('embed');
   const [config, setConfig] = useState(FALLBACK);
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export default function StorefrontFooter() {
   // token-driven (bg-zinc-50 en dur), el footer negre del tema "Recordstore"
   // necessita el mateix canvi de component.
   const recordstore = config.theme?.preset === 'recordstore';
+  const legalLink = recordstore ? 'hover:text-white transition-colors' : 'hover:text-zinc-600 transition-colors';
   const linkClass = recordstore ? 'text-white/70 hover:text-white transition-colors' : 'hover:text-zinc-900 transition-colors';
 
   return (
@@ -139,9 +142,16 @@ export default function StorefrontFooter() {
       <div className={`border-t py-4 ${recordstore ? 'border-white/20' : 'border-zinc-200'}`}>
         <div className={`container flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs ${recordstore ? 'text-white/50' : 'text-zinc-400'}`}>
           <span>© {new Date().getFullYear()} {config.nombre} · {t('allRightsReserved')}</span>
-          <nav className="flex gap-4">
-            <Link href="/privacitat" className={recordstore ? 'hover:text-white transition-colors' : 'hover:text-zinc-600 transition-colors'}>{t('privacyPolicy')}</Link>
-            <Link href="/termes" className={recordstore ? 'hover:text-white transition-colors' : 'hover:text-zinc-600 transition-colors'}>{t('termsOfUse')}</Link>
+          <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link href="/avis-legal" className={legalLink}>{t('legalNotice')}</Link>
+            <Link href="/privacitat" className={legalLink}>{t('privacyPolicy')}</Link>
+            <Link href="/cookies" className={legalLink}>{t('cookiesPolicy')}</Link>
+            <Link href="/termes" className={legalLink}>{t('termsOfUse')}</Link>
+            <Link href="/condicions-venda" className={legalLink}>{t('salesTerms')}</Link>
+            <button type="button" className={legalLink}
+              onClick={() => { clearEmbedConsent(); }}>
+              {tEmbed('manage')}
+            </button>
           </nav>
         </div>
       </div>

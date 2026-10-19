@@ -73,6 +73,31 @@
     "addToCart": "Add to cart"
   },
   "compte": {
+    "privacy": {
+      "title": "Your data",
+      "intro": "You can download a copy of everything we hold about you, or ask us to delete it.",
+      "download": "Download my data",
+      "exportError": "Couldn't generate the download. Please try again.",
+      "deleteTitle": "Delete my account",
+      "deleteWarning": "Your personal data (profile, addresses, sessions, sign-ins) will be erased. We only keep orders and invoices, which the law requires us to retain, without your email. This can't be undone.",
+      "deleteStart": "I want to delete my account",
+      "typeEmail": "To confirm, type your email ({email})",
+      "passwordIfAny": "Password (only if you have one)",
+      "deleteConfirm": "Delete permanently",
+      "cancel": "Cancel",
+      "errors": {
+        "blocked": "We can't delete the account yet:",
+        "wrongPassword": "Wrong password.",
+        "emailMismatch": "Email doesn't match.",
+        "generic": "Something went wrong. Please try again."
+      },
+      "reasons": {
+        "open_orders": "You have orders in progress. Wait for them to complete.",
+        "active_subscription": "You have an active subscription. Cancel it first.",
+        "open_requests": "You have open record requests. Cancel them first.",
+        "is_admin": "Admin accounts can't be deleted from here."
+      }
+    },
     "overview": "Overview",
     "orders": "Orders",
     "subscription": "Subscription",
@@ -579,6 +604,16 @@
     "links": "Links",
     "allRightsReserved": "All rights reserved",
     "privacyPolicy": "Privacy policy",
-    "termsOfUse": "Terms of use"
+    "termsOfUse": "Terms of use",
+    "cookiesPolicy": "Cookie policy",
+    "legalNotice": "Legal notice",
+    "salesTerms": "Terms of sale"
+  },
+  "embed": {
+    "notice": "This content comes from {host}. Loading it lets {host} see your IP address and set cookies.",
+    "load": "Load content",
+    "remember": "Remember me for {host}",
+    "manage": "Clear third-party content permissions",
+    "manageDone": "Preferences cleared"
   }
 }

@@ -4,6 +4,7 @@ import { Link } from '../../../i18n/navigation';
 import { api } from '../../lib/api';
 import StorefrontNav from '../../../components/store/StorefrontNav';
 import StorefrontFooter from '../../../components/store/StorefrontFooter';
+import ConsentHtml from '../../../components/store/ConsentHtml';
 import { Music2, Headphones, Disc3, CalendarDays, MapPin, ExternalLink } from 'lucide-react';
 import ArchiveSidebar from '../blog/ArchiveSidebar';
 import ArchiveSelect from '../blog/ArchiveSelect';
@@ -189,7 +190,7 @@ async function EstaticaPage({ pagina, locale, recordstore }) {
       </section>
       <div className="container max-w-3xl py-12 md:py-16">
         {pagina.content ? (
-          <div className="blog-content" dangerouslySetInnerHTML={{ __html: pagina.content }} />
+          <ConsentHtml className="blog-content" html={pagina.content} />
         ) : (
           <p className="text-zinc-400 italic">{t('pageNoContentYet')}</p>
         )}

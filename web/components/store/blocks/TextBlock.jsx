@@ -2,6 +2,7 @@ import { Link } from '../../../i18n/navigation';
 import { Check, Package } from 'lucide-react';
 import { backgroundStyle } from './backgroundStyle';
 import { videoEmbedUrl } from './videoEmbedUrl';
+import EmbedConsent from '../EmbedConsent';
 
 // Layouts que ja tenien el fons clàssic (BackgroundProps + backgroundStyle,
 // overlay clar) abans de les 10 disposicions — "background_image" té el seu
@@ -63,13 +64,15 @@ export default function TextBlock({
           </div>
           {embedUrl ? (
             <div style={{ borderRadius: 'var(--radius-card, 24px)' }} className="relative aspect-video overflow-hidden bg-zinc-100">
-              <iframe
-                src={embedUrl}
-                title={heading || 'Vídeo'}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full border-0"
-              />
+              <EmbedConsent src={embedUrl} className="absolute inset-0 w-full h-full">
+                <iframe
+                  src={embedUrl}
+                  title={heading || 'Vídeo'}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full border-0"
+                />
+              </EmbedConsent>
             </div>
           ) : <div />}
         </div>

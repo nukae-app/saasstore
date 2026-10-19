@@ -1,4 +1,5 @@
 import { videoEmbedUrl } from './videoEmbedUrl';
+import EmbedConsent from '../EmbedConsent';
 
 // Bloc "video" (ver api/app/blocks/registry.py::VideoProps) — un vídeo
 // destacat (YouTube/Vimeo) incrustat en 16:9. Si `video_url` no és una URL
@@ -28,13 +29,15 @@ export default function VideoBlock({ id, heading, subtitle, video_url }) {
           style={{ borderRadius: 'var(--radius-card, 24px)' }}
           className="relative aspect-video overflow-hidden bg-zinc-100"
         >
-          <iframe
-            src={embedUrl}
-            title={heading || 'Vídeo'}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="absolute inset-0 w-full h-full border-0"
-          />
+          <EmbedConsent src={embedUrl} className="absolute inset-0 w-full h-full">
+            <iframe
+              src={embedUrl}
+              title={heading || 'Vídeo'}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full border-0"
+            />
+          </EmbedConsent>
         </div>
       </div>
     </section>

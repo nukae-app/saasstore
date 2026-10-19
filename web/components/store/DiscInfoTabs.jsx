@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import EmbedConsent from './EmbedConsent';
 
 export default function DiscInfoTabs({ infoContent, spotifyAlbumId }) {
   const t = useTranslations('disc');
@@ -44,14 +45,19 @@ export default function DiscInfoTabs({ infoContent, spotifyAlbumId }) {
       )}
 
       {tab === 'info' ? infoContent : (
-        <iframe
-          src={`https://open.spotify.com/embed/album/${spotifyAlbumId}?utm_source=generator`}
-          width="100%"
-          height="352"
-          style={{ border: 0, borderRadius: 12 }}
-          loading="lazy"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        />
+        <EmbedConsent
+          src={`https://open.spotify.com/embed/album/${spotifyAlbumId}`}
+          style={{ height: 352, borderRadius: 12 }}
+        >
+          <iframe
+            src={`https://open.spotify.com/embed/album/${spotifyAlbumId}?utm_source=generator`}
+            width="100%"
+            height="352"
+            style={{ border: 0, borderRadius: 12 }}
+            loading="lazy"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          />
+        </EmbedConsent>
       )}
     </div>
   );

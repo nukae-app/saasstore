@@ -73,6 +73,31 @@
     "addToCart": "Añadir al carrito"
   },
   "compte": {
+    "privacy": {
+      "title": "Tus datos",
+      "intro": "Puedes descargar una copia de todo lo que guardamos sobre ti o pedir que lo borremos.",
+      "download": "Descargar mis datos",
+      "exportError": "No se ha podido generar la descarga. Inténtalo de nuevo.",
+      "deleteTitle": "Borrar mi cuenta",
+      "deleteWarning": "Se eliminarán tus datos personales (perfil, direcciones, sesiones, accesos). Solo conservaremos los pedidos y facturas, que la ley nos obliga a guardar, sin tu email. No se puede deshacer.",
+      "deleteStart": "Quiero borrar mi cuenta",
+      "typeEmail": "Para confirmar, escribe tu email ({email})",
+      "passwordIfAny": "Contraseña (solo si tienes)",
+      "deleteConfirm": "Borrar definitivamente",
+      "cancel": "Cancelar",
+      "errors": {
+        "blocked": "Todavía no podemos borrar la cuenta:",
+        "wrongPassword": "Contraseña incorrecta.",
+        "emailMismatch": "El email no coincide.",
+        "generic": "Algo ha fallado. Inténtalo de nuevo."
+      },
+      "reasons": {
+        "open_orders": "Tienes pedidos en curso. Espera a que se completen.",
+        "active_subscription": "Tienes una suscripción activa. Cancélala primero.",
+        "open_requests": "Tienes peticiones de discos abiertas. Cancélalas primero.",
+        "is_admin": "Las cuentas de administración no se pueden borrar desde aquí."
+      }
+    },
     "overview": "Resumen",
     "orders": "Pedidos",
     "subscription": "Suscripción",
@@ -579,6 +604,16 @@
     "links": "Enlaces",
     "allRightsReserved": "Todos los derechos reservados",
     "privacyPolicy": "Política de privacidad",
-    "termsOfUse": "Términos de uso"
+    "termsOfUse": "Términos de uso",
+    "cookiesPolicy": "Política de cookies",
+    "legalNotice": "Aviso legal",
+    "salesTerms": "Condiciones de venta"
+  },
+  "embed": {
+    "notice": "Este contenido procede de {host}. Al cargarlo, {host} puede ver tu IP e instalar cookies.",
+    "load": "Cargar contenido",
+    "remember": "Recordarme para {host}",
+    "manage": "Borrar permisos de contenido de terceros",
+    "manageDone": "Preferencias borradas"
   }
 }

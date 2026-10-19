@@ -73,6 +73,31 @@
     "addToCart": "Afegir al carret"
   },
   "compte": {
+    "privacy": {
+      "title": "Les teves dades",
+      "intro": "Pots descarregar una còpia de tot el que guardem sobre tu o demanar que l'esborrem.",
+      "download": "Descarregar les meves dades",
+      "exportError": "No s'ha pogut generar la descàrrega. Torna-ho a provar.",
+      "deleteTitle": "Esborrar el meu compte",
+      "deleteWarning": "S'eliminaran les teves dades personals (perfil, adreces, sessions, accessos). Només conservarem les comandes i factures, que la llei ens obliga a guardar, sense el teu email. No es pot desfer.",
+      "deleteStart": "Vull esborrar el meu compte",
+      "typeEmail": "Per confirmar, escriu el teu email ({email})",
+      "passwordIfAny": "Contrasenya (només si en tens)",
+      "deleteConfirm": "Esborrar definitivament",
+      "cancel": "Cancel·lar",
+      "errors": {
+        "blocked": "Encara no podem esborrar el compte:",
+        "wrongPassword": "Contrasenya incorrecta.",
+        "emailMismatch": "L'email no coincideix.",
+        "generic": "Alguna cosa ha fallat. Torna-ho a provar."
+      },
+      "reasons": {
+        "open_orders": "Tens comandes en curs. Espera que es completin.",
+        "active_subscription": "Tens una subscripció activa. Cancel·la-la primer.",
+        "open_requests": "Tens peticions de discos obertes. Cancel·la-les primer.",
+        "is_admin": "Els comptes d'administració no es poden esborrar des d'aquí."
+      }
+    },
     "overview": "Resum",
     "orders": "Comandes",
     "subscription": "Subscripció",
@@ -579,6 +604,16 @@
     "links": "Enllaços",
     "allRightsReserved": "Tots els drets reservats",
     "privacyPolicy": "Política de privacitat",
-    "termsOfUse": "Termes d'ús"
+    "termsOfUse": "Termes d'ús",
+    "cookiesPolicy": "Política de cookies",
+    "legalNotice": "Avís legal",
+    "salesTerms": "Condicions de venda"
+  },
+  "embed": {
+    "notice": "Aquest contingut ve de {host}. En carregar-lo, {host} pot veure la teva IP i instal·lar cookies.",
+    "load": "Carregar contingut",
+    "remember": "Recorda'm per a {host}",
+    "manage": "Esborrar permisos de contingut de tercers",
+    "manageDone": "Preferències esborrades"
   }
 }

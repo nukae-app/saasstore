@@ -123,24 +123,9 @@ const LANGS = [
 
 const VERTICAL_LABEL = { records: 'Discos', floristry: 'Floristeria' };
 
-// Fonts pròpies de l'admin (Literata + Nunito Sans + Material Symbols): es
-// carreguen només aquí (no a globals.css) perquè cap altra pantalla —
-// storefront inclòs, que porta Bodoni Moda/Hanken Grotesk— les necessita.
-// React 19 hi puja aquests <link> a <head> automàticament allà on es
-// renderitzin.
-function AdminHead() {
-  return (
-    <>
-      <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..0&display=swap" rel="stylesheet" />
-    </>
-  );
-}
-
 export default function AdminLayout({ children }) {
   return (
     <TranslationProvider>
-      <AdminHead />
       <AdminShell>{children}</AdminShell>
     </TranslationProvider>
   );
@@ -194,7 +179,6 @@ function AdminShell({ children }) {
   if (!devBypass && loading) {
     return (
       <div data-admin-theme="m3" className="min-h-screen bg-sidebar flex items-center justify-center">
-        <AdminHead />
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -203,7 +187,6 @@ function AdminShell({ children }) {
   if (!user) {
     return (
       <div data-admin-theme="m3" className="min-h-screen bg-sidebar flex items-center justify-center p-4">
-        <AdminHead />
         <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
           <h1 className="font-headline font-bold text-2xl text-on-surface mb-1">{config.nombre || 'Admin'}</h1>
           <p className="text-sm text-on-surface-variant mb-6">Cal iniciar sessió per accedir al panell.</p>
@@ -221,7 +204,6 @@ function AdminShell({ children }) {
   if (user.role !== 'admin') {
     return (
       <div data-admin-theme="m3" className="min-h-screen bg-sidebar flex items-center justify-center p-4">
-        <AdminHead />
         <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
           <h1 className="font-headline font-bold text-2xl text-on-surface mb-1">Sense accés</h1>
           <p className="text-sm text-on-surface-variant mb-6">Aquest compte no té permisos d&apos;administració.</p>
@@ -244,7 +226,6 @@ function AdminShell({ children }) {
 
   return (
     <div data-admin-theme="m3" className="flex h-screen bg-surface overflow-hidden font-body text-on-surface">
-      <AdminHead />
       {/* Mobile backdrop */}
       {mobileOpen && (
         <div
