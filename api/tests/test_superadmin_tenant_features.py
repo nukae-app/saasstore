@@ -56,6 +56,7 @@ def test_features_por_defecto_desactivadas(db, client):
     assert resp.status_code == 200
     assert {f["feature_key"]: f["enabled"] for f in resp.json()} == {
         "discogs_sync": False, "subscriptions": False,
+        "catalog_browse_mode": False, "catalog_format_filter": False, "catalog_genre_filter": False,
     }
 
 
