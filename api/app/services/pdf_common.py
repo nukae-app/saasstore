@@ -30,10 +30,29 @@ def new_pdf_with_header(db: Session) -> FPDF:
     return pdf
 
 
+_EQUIVALENTS = {
+    "\u2026": "...", "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+    "\u2013": "-", "\u2014": "-", "\u2212": "-", "\u00a0": " ",
+}
+
+
+def safe_text(text: str | None) -> str:
+    """Helvetica (font bàsica de fpdf) només admet latin-1: un sol caràcter
+    fora d'aquest rang (p.ex. "…" o les cometes tipogràfiques d'un títol de
+    Discogs) fa petar tot el PDF amb un 500. Substituïm els habituals pel seu
+    equivalent i la resta per "?"."""
+    if not text:
+        return ""
+    for car, equiv in _EQUIVALENTS.items():
+        text = text.replace(car, equiv)
+    return text.encode("latin-1", "replace").decode("latin-1")
+
+
 def fit_text(pdf: FPDF, text: str, width: float) -> str:
     """Retalla `text` perquè càpiga a una cel·la de `width` mm amb la font
     actual. Retallar per nombre de caràcters no val: les majúscules són més
     amples i se sortien de la cel·la."""
+    text = safe_text(text)
     limit = width - 2 * pdf.c_margin
     while text and pdf.get_string_width(text) > limit:
         text = text[:-1]

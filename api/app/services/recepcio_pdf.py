@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import CondicionItem, Compra, ConfiguracioBotiga
-from .pdf_common import fit_text
+from .pdf_common import fit_text, safe_text
 from .preu_compra import iva_defecte_pct, marge_pct, recarrec_config_pct, recarrec_pct
 
 
@@ -40,13 +40,13 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
     pdf.add_page()
 
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, config.fiscal_name if config else "", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, safe_text(config.fiscal_name) if config else "", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
     if config:
         if config.nif:
-            pdf.cell(0, 5, f"NIF: {config.nif}", new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, safe_text(f"NIF: {config.nif}"), new_x="LMARGIN", new_y="NEXT")
         for linia in config.address.splitlines():
-            pdf.cell(0, 5, linia, new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, safe_text(linia), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
     pdf.set_font("Helvetica", "B", 14)
@@ -54,11 +54,11 @@ def generate_recepcio_pdf(compra: Compra, db: Session) -> bytes:
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(0, 5, f"Data: {compra.date.strftime('%d/%m/%Y')}", new_x="LMARGIN", new_y="NEXT")
     proveidor = compra.proveedor.name if compra.proveedor else (compra.individual_name or "")
-    pdf.cell(0, 5, f"Proveïdor: {proveidor}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 5, safe_text(f"Proveïdor: {proveidor}"), new_x="LMARGIN", new_y="NEXT")
     if compra.comanda and compra.comanda.order_number:
-        pdf.cell(0, 5, f"Comanda: {compra.comanda.order_number}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 5, safe_text(f"Comanda: {compra.comanda.order_number}"), new_x="LMARGIN", new_y="NEXT")
     if compra.delivery_note_number:
-        pdf.cell(0, 5, f"Albarà: {compra.delivery_note_number}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 5, safe_text(f"Albarà: {compra.delivery_note_number}"), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
     # Posició de cada disc a la comanda d'origen, per cotejar amb el PDF de

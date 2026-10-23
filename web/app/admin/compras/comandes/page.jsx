@@ -291,16 +291,21 @@ function ComandaRow({ c, expanded, setExpanded, recepcions, busyId, downloadPdf,
           <td colSpan={6} className="px-4 py-3 bg-blue-50/40 border-b border-blue-100">
             <div className="space-y-1">
               {(c.lineas ?? []).map(l => (
-                <div key={l.id} className="flex items-center gap-4 text-sm flex-wrap">
-                  <span className="w-6 text-right tabular-nums text-secondary-foreground">{l.position}.</span>
-                  <span className="font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
-                  {l.solicitud_numero && (
-                    <span className="text-xs text-secondary-foreground">{l.solicitud_numero} · {t('purchases.line', 'línia')} {l.solicitud_linea_numero}</span>
-                  )}
-                  <span className="text-secondary-foreground">{l.received_quantity}/{l.quantity} {t('purchases.received_suffix', 'rebudes')}</span>
-                  {l.estimated_unit_price && (
-                    <span className="text-secondary-foreground">{t('purchases.purchase_cost', 'Cost compra')}: {l.estimated_unit_price} € {t('purchases.excl_vat', 'sense IVA')}</span>
-                  )}
+                <div key={l.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 text-sm">
+                  <span className="w-6 shrink-0 text-right tabular-nums text-secondary-foreground">{l.position}.</span>
+                  {/* Títol: ocupa l'espai lliure i es parteix dins del seu bloc, així el cost no salta sol a una 2a línia */}
+                  <div className="min-w-[16rem] flex-1">
+                    <span className="font-semibold text-on-surface">{l.artista} — {l.titulo}</span>
+                    {l.solicitud_numero && (
+                      <span className="ml-3 text-xs text-secondary-foreground whitespace-nowrap">{l.solicitud_numero} · {t('purchases.line', 'línia')} {l.solicitud_linea_numero}</span>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-4 whitespace-nowrap text-secondary-foreground">
+                    <span>{l.received_quantity}/{l.quantity} {t('purchases.received_suffix', 'rebudes')}</span>
+                    {l.estimated_unit_price && (
+                      <span>{t('purchases.purchase_cost', 'Cost compra')}: {l.estimated_unit_price} € {t('purchases.excl_vat', 'sense IVA')}</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

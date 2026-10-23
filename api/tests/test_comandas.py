@@ -774,3 +774,37 @@ def test_fit_text_no_se_surt_de_la_cella_amb_majuscules():
     assert pdf.get_string_width(llarg[:34]) > 62 - 2 * pdf.c_margin
     assert pdf.get_string_width(fit_text(pdf, llarg, 62)) <= 62 - 2 * pdf.c_margin
     assert fit_text(pdf, "Curt", 62) == "Curt"
+
+
+def test_pdfs_aguanten_caracters_fora_de_latin1(db, client):
+    """Un títol de Discogs amb "…" o cometes tipogràfiques feia petar el PDF
+    (fpdf/Helvetica només admet latin-1) amb un 500."""
+    from decimal import Decimal
+
+    from app.models import TipusIva
+
+    admin = _admin_token(client, db)
+    prov = _seed_proveedor(db)
+    release = _seed_release(db, artista="Jack White’s “Band”", titulo="Más… allá – Edición 50º")
+    db.add(TipusIva(name="General", percentage=Decimal("21"), default_new=True, default_used=True, active=True))
+    db.commit()
+    payload = {
+        "proveedor_id": str(prov.id), "date": "2026-06-01T10:00:00", "notes": "Ref… 106838 – urgent",
+        "lineas": [{"release_id": str(release.id), "quantity": 1, "estimated_unit_price": "10.00"}],
+    }
+    comanda = client.post("/admin/comandas", json=payload, headers=_auth(admin)).json()
+    assert client.get(f"/admin/comandas/{comanda['id']}/pdf", headers=_auth(admin)).status_code == 200
+
+    client.patch(f"/admin/comandas/{comanda['id']}/marcar-enviada", headers=_auth(admin))
+    ok = {"date": "2026-06-10T10:00:00", "items": [
+        {"comanda_linea_id": comanda["lineas"][0]["id"], "price": "20.00", "acquisition_cost": "11.00"}]}
+    compra_id = client.post(f"/admin/comandas/{comanda['id']}/recepcio", json=ok, headers=_auth(admin)).json()["compra_id"]
+    assert client.get(f"/admin/compras/{compra_id}/pdf", headers=_auth(admin)).status_code == 200
+
+
+def test_safe_text_substitueix_caracters_no_latin1():
+    from app.services.pdf_common import safe_text
+
+    assert safe_text("Más… allá – “ok” ’") == 'Más... allá - "ok" \''
+    assert safe_text("日本") == "??"
+    assert safe_text(None) == ""

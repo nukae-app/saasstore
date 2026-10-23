@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import Comanda, ConfiguracioBotiga
-from .pdf_common import fit_text
+from .pdf_common import fit_text, safe_text
 from .preu_compra import recarrec_config_pct
 
 
@@ -16,13 +16,13 @@ def generate_comanda_pdf(comanda: Comanda, db: Session) -> bytes:
     pdf.add_page()
 
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, config.fiscal_name if config else "", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, safe_text(config.fiscal_name) if config else "", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
     if config:
         if config.nif:
-            pdf.cell(0, 5, f"NIF: {config.nif}", new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, safe_text(f"NIF: {config.nif}"), new_x="LMARGIN", new_y="NEXT")
         for linia in config.address.splitlines():
-            pdf.cell(0, 5, linia, new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, safe_text(linia), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
     pdf.set_font("Helvetica", "B", 14)
@@ -30,9 +30,9 @@ def generate_comanda_pdf(comanda: Comanda, db: Session) -> bytes:
     pdf.cell(0, 8, titol, new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(0, 5, f"Data: {comanda.date.strftime('%d/%m/%Y')}", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 5, f"Proveïdor: {comanda.proveedor.name}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 5, safe_text(f"Proveïdor: {comanda.proveedor.name}"), new_x="LMARGIN", new_y="NEXT")
     if comanda.notes:
-        pdf.cell(0, 5, f"Notes: {comanda.notes}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 5, safe_text(f"Notes: {comanda.notes}"), new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
     col_widths = (10, 80, 25, 35, 35)
