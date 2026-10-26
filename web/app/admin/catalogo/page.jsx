@@ -8,7 +8,7 @@ import { useDiscogsEnabled } from '../../../components/store/useDiscogsEnabled';
 import { useTenantVertical } from '../../../components/store/useTenantVertical';
 import { Button } from '../../../components/ui/button';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
-import AdminCatalogFilters, { EMPTY_ADV, advToParams, advCount } from '../../../components/admin/catalog/AdminCatalogFilters';
+import AdminCatalogFilters, { ActiveFilterChips, EMPTY_ADV, advToParams, advCount } from '../../../components/admin/catalog/AdminCatalogFilters';
 import DiscogsSearchField, { CoverImg } from '../../../components/admin/discogs/DiscogsSearchField';
 import MIcon from '../../../components/ui/m-icon';
 
@@ -345,6 +345,11 @@ export default function CatalogoPage() {
         <StatCard label={t('catalog.stat.no_format', 'Sense format')}      value={stats?.sense_format}     color="rose" />
       </div>
 
+      {/* Filtres fixos a l'esquerra + resultats a la dreta */}
+      <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
+      <AdminCatalogFilters facets={facets} gradings={GRADINGS} adv={adv} onChange={handleAdvChange} />
+      <div className="flex-1 min-w-0 space-y-4">
+
       {/* Search */}
       <div className="relative">
         <MIcon name="search" size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary-foreground" />
@@ -356,7 +361,7 @@ export default function CatalogoPage() {
         />
       </div>
 
-      <AdminCatalogFilters facets={facets} gradings={GRADINGS} adv={adv} onChange={handleAdvChange} />
+      <ActiveFilterChips facets={facets} gradings={GRADINGS} adv={adv} onChange={handleAdvChange} />
 
       {/* Table */}
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
@@ -493,6 +498,8 @@ export default function CatalogoPage() {
             </div>
           </div>
         )}
+      </div>
+      </div>
       </div>
       </>
       )}
