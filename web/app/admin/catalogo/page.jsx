@@ -184,8 +184,10 @@ export default function CatalogoPage() {
 
   function handleSort(key) {
     setSort(prev => {
-      if (prev.key !== key) return { key, dir: 'asc' };
-      if (prev.dir === 'asc') return { key, dir: 'desc' };
+      // Ordre: primer clic (recepció: més recent primer), segon clic l'invers, tercer l'treu.
+      const first = key === 'recepcion' ? 'desc' : 'asc';
+      if (prev.key !== key) return { key, dir: first };
+      if (prev.dir === first) return { key, dir: first === 'asc' ? 'desc' : 'asc' };
       return { key: null, dir: 'asc' };
     });
     setPage(0);
@@ -362,6 +364,8 @@ export default function CatalogoPage() {
                   className="hidden lg:table-cell" />
                 <SortableTh label={t('catalog.col.ean', 'EAN')} sortKey="ean" sort={sort} onSort={handleSort}
                   className="hidden lg:table-cell" />
+                <SortableTh label={t('catalog.col.last_receipt', 'Últ. recepció')} sortKey="recepcion" sort={sort} onSort={handleSort}
+                  className="hidden lg:table-cell" />
                 <th className="px-4 py-3 text-center font-medium">{t('catalog.col.stock')}</th>
                 <th className="px-4 py-3 text-left font-medium hidden lg:table-cell">{t('catalog.col.discogs', 'Discogs')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('catalog.col.actions', 'Accions')}</th>
@@ -369,7 +373,7 @@ export default function CatalogoPage() {
             </thead>
             <tbody className="divide-y divide-outline-variant">
               {releases.length === 0 && (
-                <tr><td colSpan={9} className="p-12 text-center text-secondary-foreground text-sm">{t('catalog.no_results')}</td></tr>
+                <tr><td colSpan={10} className="p-12 text-center text-secondary-foreground text-sm">{t('catalog.no_results')}</td></tr>
               )}
               {releases.map(r => (
                 <>
@@ -415,6 +419,9 @@ export default function CatalogoPage() {
                     <td className="px-4 py-3 text-secondary-foreground hidden md:table-cell">{r.formato ?? '—'}</td>
                     <td className="px-4 py-3 text-secondary-foreground hidden lg:table-cell">{r.anio ?? '—'}</td>
                     <td className="px-4 py-3 text-secondary-foreground hidden lg:table-cell font-mono text-xs">{r.ean ?? '—'}</td>
+                    <td className="px-4 py-3 text-secondary-foreground hidden lg:table-cell text-xs whitespace-nowrap tabular-nums">
+                      {r.ultima_recepcion ? new Date(r.ultima_recepcion).toLocaleDateString('ca-ES') : '—'}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <StockBadge items={r.items ?? []} />
                     </td>
@@ -440,7 +447,7 @@ export default function CatalogoPage() {
                   </tr>
                   {expanded === r.id && (
                     <tr key={`${r.id}-exp`}>
-                      <td colSpan={9} className="px-4 py-3 bg-amber-50/60 border-b border-amber-100">
+                      <td colSpan={10} className="px-4 py-3 bg-amber-50/60 border-b border-amber-100">
                         <ExpandedPanel
                           release={r}
                           onRefresh={() => { loadReleases(); loadFacets(); loadStats(); }}

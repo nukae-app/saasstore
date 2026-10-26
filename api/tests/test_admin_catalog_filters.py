@@ -149,3 +149,21 @@ def test_q_busca_por_palabras_sueltas_entre_campos(db, client):
     assert _ids(client.get("/admin/releases?q=Alpha B1", headers=h)) == []           # todas las palabras deben casar
     assert sorted(_ids(client.get("/admin/releases?q=blue note", headers=h))) == ["A1", "C1"]
     assert len(_ids(client.get("/admin/releases?q=%20", headers=h))) == 3            # solo espacios = sin filtro
+
+
+def test_orden_y_campo_ultima_recepcion(db, client):
+    from datetime import datetime, timezone
+    h = _admin(client, db)
+    a, b, c = _seed(db)
+    # A: dos copias (la última entró el 2024-03-10); B: nou, última recepción 2025-06-01; C: sin entry_date
+    for item, fecha in zip(db.scalars(select(Item).where(Item.release_id == a.id)).all(), ("2023-01-05", "2024-03-10")):
+        item.entry_date = datetime.fromisoformat(fecha).replace(tzinfo=timezone.utc)
+    db.scalar(select(Item).where(Item.release_id == b.id)).entry_date = datetime(2025, 6, 1, tzinfo=timezone.utc)
+    db.commit()
+    # C cae en created_at (= ahora) y es la más reciente
+    assert _ids(client.get("/admin/releases?sort=recepcion&dir=desc", headers=h)) == ["C1", "B1", "A1"]
+    assert _ids(client.get("/admin/releases?sort=recepcion", headers=h)) == ["A1", "B1", "C1"]
+    rows = {r["titulo"]: r for r in client.get("/admin/releases", headers=h).json()["releases"]}
+    assert rows["A1"]["ultima_recepcion"].startswith("2024-03-10")
+    assert rows["B1"]["ultima_recepcion"].startswith("2025-06-01")
+    assert rows["C1"]["ultima_recepcion"]  # created_at como respaldo

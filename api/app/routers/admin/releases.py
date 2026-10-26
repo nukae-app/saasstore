@@ -31,7 +31,14 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(requir
 
 # --- Listado completo de releases (admin, con y sin stock) ---
 
-SORT_KEYS = ("artista", "titulo", "anio", "precio", "creacion", "sello", "formato", "ean")
+SORT_KEYS = ("artista", "titulo", "anio", "precio", "creacion", "sello", "formato", "ean", "recepcion")
+
+
+def _ultima_recepcion(release: Release):
+    """Fecha en que entró la última unidad (también de copias ya vendidas):
+    `entry_date` si la hay, si no `created_at`, como en el resto del ERP."""
+    fechas = [i.entry_date or i.created_at for i in release.items if (i.entry_date or i.created_at)]
+    return max(fechas).isoformat() if fechas else None
 
 
 def _item_disponible():
@@ -157,6 +164,13 @@ def _order_by(sort: str, direction: str):
         col = RecordProduct.formato
     elif sort == "ean":
         col = Release.ean
+    elif sort == "recepcion":
+        col = (
+            select(func.max(func.coalesce(Item.entry_date, Item.created_at)))
+            .where(Item.release_id == Release.id)
+            .correlate(Release)
+            .scalar_subquery()
+        )
     elif sort == "creacion":
         col = Release.created_at
     elif sort == "precio":
@@ -294,6 +308,7 @@ def list_releases(
                 "estilos": r.estilos,
                 "pais": r.pais,
                 "creado": r.created_at.isoformat() if r.created_at else None,
+                "ultima_recepcion": _ultima_recepcion(r),
                 "imagen_url": r.image_url,
                 "properament": r.coming_soon,
                 "data_disponibilitat": r.available_at.isoformat() if r.available_at else None,
