@@ -1,13 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { authFetch } from '../../lib/auth';
 import { useT } from '../../lib/i18n';
 import { useDiscogsEnabled } from '../../../components/store/useDiscogsEnabled';
 import { useTenantVertical } from '../../../components/store/useTenantVertical';
 import { Button } from '../../../components/ui/button';
-import { useSortFilter } from '../../../components/admin/table/useSortFilter';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
 import DiscogsSearchField, { CoverImg } from '../../../components/admin/discogs/DiscogsSearchField';
 import MIcon from '../../../components/ui/m-icon';
@@ -18,7 +17,6 @@ function fmtEur(n) {
 
 const GRADINGS = ['Mint (M)', 'Near Mint (NM or M-)', 'Very Good Plus (VG+)', 'Very Good (VG)', 'Good Plus (G+)', 'Good (G)', 'Fair (F)', 'Poor (P)'];
 const LIMIT = 50;
-const CATALOG_FETCH_LIMIT = 5000;
 
 // ---- Helpers ---------------------------------------------------------------
 
@@ -119,52 +117,101 @@ export default function CatalogoPage() {
   const [exporting, setExporting] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
+  // Paginació, ordre i filtres es resolen al servidor (GET /admin/releases):
+  // només es baixa la pàgina visible, no tot el catàleg.
+  const [total, setTotal] = useState(0);
+  const [sort, setSort] = useState({ key: null, dir: 'asc' });
+  const [filters, setFilters] = useState({});
+  const [facets, setFacets] = useState({ sello: [], formato: [], anio: [] });
+  const [debouncedQ, setDebouncedQ] = useState('');
+  const requestId = useRef(0);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedQ(q.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  // Un filtre amb selecció buida (“Esborrar tot”) vol dir cap resultat.
+  const emptyFilter = Object.values(filters).some(sel => sel.size === 0);
+
   const loadReleases = useCallback(async () => {
+    const mine = ++requestId.current;
+    if (emptyFilter) {
+      setReleases([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    const params = new URLSearchParams({ limit: LIMIT, offset: page * LIMIT });
+    if (debouncedQ) params.set('q', debouncedQ);
+    if (sort.key) {
+      params.set('sort', sort.key);
+      params.set('dir', sort.dir);
+    }
+    for (const [key, sel] of Object.entries(filters)) {
+      sel.forEach(v => params.append(key, v));
+    }
     try {
-      const r = await authFetch(`/admin/releases?limit=${CATALOG_FETCH_LIMIT}`);
+      const r = await authFetch(`/admin/releases?${params}`);
+      if (mine !== requestId.current) return; // ha arribat una petició més nova
       if (r.ok) {
         const data = await r.json();
-        setReleases(Array.isArray(data.releases) ? data.releases : []);
+        const rows = Array.isArray(data.releases) ? data.releases : [];
+        // Si s'ha buidat l'última pàgina (p. ex. en eliminar), torna enrere.
+        if (rows.length === 0 && page > 0 && data.total > 0) {
+          setPage(Math.max(0, Math.ceil(data.total / LIMIT) - 1));
+          return;
+        }
+        setReleases(rows);
+        setTotal(data.total ?? rows.length);
       }
     } catch { /* auth error handled by AdminShell */ }
-    setLoading(false);
+    if (mine === requestId.current) setLoading(false);
+  }, [page, debouncedQ, sort, filters, emptyFilter]);
+
+  const loadFacets = useCallback(async () => {
+    try {
+      const r = await authFetch('/admin/releases/facets');
+      if (r.ok) {
+        const f = await r.json();
+        setFacets({
+          sello: f.sello ?? [],
+          formato: f.formato ?? [],
+          anio: (f.anio ?? []).map(String),
+        });
+      }
+    } catch { /* non-critical */ }
   }, []);
 
-  const searched = useMemo(() => {
-    if (!q.trim()) return releases;
-    const ql = q.trim().toLowerCase();
-    return releases.filter(r =>
-      r.artista?.toLowerCase().includes(ql) ||
-      r.titulo?.toLowerCase().includes(ql) ||
-      r.sello?.toLowerCase().includes(ql) ||
-      r.ean?.toLowerCase().includes(ql)
-    );
-  }, [releases, q]);
+  useEffect(() => { loadFacets(); }, [loadFacets]);
 
-  const columns = useMemo(() => ({
-    artista: { sortValue: r => `${r.artista ?? ''} ${r.titulo ?? ''}`.toLowerCase() },
-    sello: { sortValue: r => (r.sello ?? '').toLowerCase(), filterValue: r => r.sello },
-    formato: { sortValue: r => (r.formato ?? '').toLowerCase(), filterValue: r => r.formato },
-    anio: { sortValue: r => r.anio ?? null, filterValue: r => r.anio != null ? String(r.anio) : null },
-    ean: { sortValue: r => r.ean ?? '' },
-  }), []);
-
-  const { rows: sortedFiltered, sort, toggleSort, filters, setFilter, distinctValues } = useSortFilter(searched, columns);
+  const distinctValues = facets;
+  const offset = page * LIMIT;
 
   function handleSort(key) {
-    toggleSort(key);
+    setSort(prev => {
+      if (prev.key !== key) return { key, dir: 'asc' };
+      if (prev.dir === 'asc') return { key, dir: 'desc' };
+      return { key: null, dir: 'asc' };
+    });
     setPage(0);
   }
 
   function handleFilterChange(key, selected) {
-    setFilter(key, selected);
+    setFilters(prev => {
+      if (!selected) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return { ...prev, [key]: selected };
+    });
     setPage(0);
   }
-
-  const total = sortedFiltered.length;
-  const offset = page * LIMIT;
-  const pageRows = sortedFiltered.slice(offset, offset + LIMIT);
 
   const loadStats = useCallback(async () => {
     if (!discogsEnabled) return;
@@ -178,7 +225,6 @@ export default function CatalogoPage() {
 
   function handleSearch(val) {
     setQ(val);
-    setPage(0);
   }
 
   useEffect(() => { loadReleases(); }, [loadReleases]);
@@ -196,11 +242,13 @@ export default function CatalogoPage() {
       return;
     }
     loadReleases();
+    loadFacets();
     loadStats();
   }
 
   function refresh() {
     loadReleases();
+    loadFacets();
     loadStats();
   }
 
@@ -301,14 +349,14 @@ export default function CatalogoPage() {
 
       {/* Table */}
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-        {loading ? (
+        {loading && releases.length === 0 ? (
           <div className="p-12 text-center text-secondary-foreground text-sm flex items-center justify-center gap-2">
             <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
           </div>
-        ) : sortedFiltered.length === 0 ? (
+        ) : releases.length === 0 && Object.keys(filters).length === 0 ? (
           <div className="p-12 text-center text-secondary-foreground text-sm">{t('catalog.no_results')}</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className={`overflow-x-auto transition-opacity ${loading ? 'opacity-60' : ''}`}>
           <table className="w-full text-sm">
             <thead className="bg-surface-container-high text-xs text-secondary-foreground border-b border-outline-variant">
               <tr>
@@ -331,7 +379,7 @@ export default function CatalogoPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant">
-              {pageRows.map(r => (
+              {releases.map(r => (
                 <>
                   <tr key={r.id}
                     onClick={() => setExpanded(expanded === r.id ? null : r.id)}
@@ -403,7 +451,7 @@ export default function CatalogoPage() {
                       <td colSpan={9} className="px-4 py-3 bg-amber-50/60 border-b border-amber-100">
                         <ExpandedPanel
                           release={r}
-                          onRefresh={() => { loadReleases(); loadStats(); }}
+                          onRefresh={() => { loadReleases(); loadFacets(); loadStats(); }}
                         />
                       </td>
                     </tr>
@@ -440,7 +488,7 @@ export default function CatalogoPage() {
           mode={modal.mode}
           release={modal.release}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); loadReleases(); loadStats(); }}
+          onSaved={() => { setModal(null); loadReleases(); loadFacets(); loadStats(); }}
         />
       )}
 

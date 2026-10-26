@@ -2,11 +2,24 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, literal, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
-from ...models import ComandaLinea, Item, RecordProduct, Release, ReleaseFloristeria
+from ...models import (
+    CondicionItem,
+    ComandaLinea,
+    Etiqueta,
+    Item,
+    ItemStatus,
+    RecordProduct,
+    RecordStockDetail,
+    Release,
+    ReleaseEtiqueta,
+    ReleaseFloristeria,
+    ReleaseImage,
+    Seccio,
+)
 from ...schemas import ReleaseIn
 from ...services import discogs
 from ...services.discogs_sync import get_discogs_token_if_enabled
@@ -18,19 +31,203 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(requir
 
 # --- Listado completo de releases (admin, con y sin stock) ---
 
+SORT_KEYS = ("artista", "titulo", "anio", "precio", "creacion", "sello", "formato", "ean")
+
+
+def _item_disponible():
+    # Mismo criterio que el catálogo público: en `nou` el status se queda en
+    # 'disponible' aunque no quede ninguna unidad libre.
+    return and_(
+        Item.status == ItemStatus.disponible,
+        or_(Item.condition != CondicionItem.nou, Item.quantity > Item.reserved_quantity),
+    )
+
+
+def _token_in(column, values: list[str]):
+    """OR de coincidencia exacta de token en un campo "A, B, C" (genero/estilos)."""
+    padded = literal(", ") + column + literal(", ")
+    return or_(*[padded.ilike(f"%, {v.strip()}, %") for v in values if v.strip()])
+
+
+def _release_filters(
+    *, q, artista, sello, formato, genero, estilo, pais, anio, anio_min, anio_max, etiqueta, seccio,
+    status, condicion, estado_disco, precio_min, precio_max, con_stock, stock_bajo,
+    sin_imagen, sin_discogs, sin_seccio,
+) -> list:
+    filters = []
+    # Cada palabra de `q` debe aparecer en alguno de los campos (AND entre
+    # palabras, OR entre campos): "Miles Davis Kind of Blue" casa aunque el
+    # artista y el título estén en columnas distintas.
+    for word in (q or "").split():
+        like = f"%{word}%"
+        filters.append(
+            or_(RecordProduct.artista.ilike(like), Release.title.ilike(like), RecordProduct.sello.ilike(like), Release.ean.ilike(like))
+        )
+    if artista:
+        filters.append(or_(*[RecordProduct.artista.ilike(f"%{v}%") for v in artista]))
+    if sello:
+        filters.append(or_(*[RecordProduct.sello.ilike(f"%{v}%") for v in sello]))
+    if formato:
+        filters.append(or_(*[RecordProduct.formato.ilike(v) for v in formato]))
+    if genero:
+        filters.append(_token_in(RecordProduct.genero, genero))
+    if estilo:
+        filters.append(_token_in(RecordProduct.estilos, estilo))
+    if pais:
+        filters.append(or_(*[RecordProduct.pais.ilike(v) for v in pais]))
+    if anio:
+        filters.append(RecordProduct.anio.in_(anio))
+    if anio_min is not None:
+        filters.append(RecordProduct.anio >= anio_min)
+    if anio_max is not None:
+        filters.append(RecordProduct.anio <= anio_max)
+    if etiqueta:
+        filters.append(
+            select(ReleaseEtiqueta.release_id)
+            .join(Etiqueta, Etiqueta.id == ReleaseEtiqueta.etiqueta_id)
+            .where(ReleaseEtiqueta.release_id == Release.id, Etiqueta.slug.in_(etiqueta))
+            .exists()
+        )
+    if seccio:
+        filters.append(
+            select(Seccio.id).where(Seccio.id == Release.section_id, Seccio.slug.in_(seccio)).exists()
+        )
+    if sin_seccio is not None:
+        filters.append(Release.section_id.is_(None) if sin_seccio else Release.section_id.isnot(None))
+    if sin_discogs is not None:
+        filters.append(
+            RecordProduct.discogs_release_id.is_(None) if sin_discogs else RecordProduct.discogs_release_id.isnot(None)
+        )
+    if sin_imagen is not None:
+        sin = and_(
+            or_(Release.image_url.is_(None), Release.image_url == ""),
+            ~select(ReleaseImage.id).where(ReleaseImage.release_id == Release.id).exists(),
+        )
+        filters.append(sin if sin_imagen else ~sin)
+
+    # Todas las condiciones sobre copias se evalúan sobre la MISMA fila `item`
+    # (un solo EXISTS): "segona_ma + disponible + <20€" es una copia que cumple
+    # las tres, no tres copias distintas.
+    item_conds = []
+    if status:
+        item_conds.append(Item.status.in_(status))
+    if condicion:
+        item_conds.append(Item.condition.in_(condicion))
+    if estado_disco:
+        item_conds.append(
+            Item.id.in_(
+                select(RecordStockDetail.item_id).where(
+                    or_(*[RecordStockDetail.estado_disco.ilike(f"%{v}%") for v in estado_disco])
+                )
+            )
+        )
+    if precio_min is not None:
+        item_conds.append(Item.price >= precio_min)
+    if precio_max is not None:
+        item_conds.append(Item.price <= precio_max)
+    if item_conds:
+        filters.append(select(Item.id).where(Item.release_id == Release.id, *item_conds).exists())
+    if con_stock is not None:
+        hay = select(Item.id).where(Item.release_id == Release.id, _item_disponible()).exists()
+        filters.append(hay if con_stock else ~hay)
+    if stock_bajo:
+        # Solo `nou` con alarma configurada, igual que /catalog/stock-alerts.
+        filters.append(
+            select(Item.id)
+            .where(
+                Item.release_id == Release.id,
+                Item.condition == CondicionItem.nou,
+                Item.status == ItemStatus.disponible,
+                Item.min_stock_alert.isnot(None),
+                (Item.quantity - Item.reserved_quantity) <= Item.min_stock_alert,
+            )
+            .exists()
+        )
+    return filters
+
+
+def _order_by(sort: str, direction: str):
+    if sort == "titulo":
+        col = Release.title
+    elif sort == "anio":
+        col = RecordProduct.anio
+    elif sort == "sello":
+        col = RecordProduct.sello
+    elif sort == "formato":
+        col = RecordProduct.formato
+    elif sort == "ean":
+        col = Release.ean
+    elif sort == "creacion":
+        col = Release.created_at
+    elif sort == "precio":
+        col = (
+            select(func.min(Item.price))
+            .where(Item.release_id == Release.id, _item_disponible())
+            .correlate(Release)
+            .scalar_subquery()
+        )
+    else:
+        col = RecordProduct.artista
+    primary = col.desc() if direction == "desc" else col.asc()
+    # NULLs siempre al final, como en useSortFilter del front.
+    return [col.is_(None), primary, RecordProduct.artista, Release.title]
+
+
+@router.get("/releases/facets")
+def release_facets(db: Session = Depends(get_db)):
+    """Valores distintos de sello, formato y año de TODO el catálogo (con y sin
+    stock), para poblar los desplegables de filtro de la tabla sin tener que
+    cargar todas las filas. Los nulos no se ofrecen."""
+    def distinct(col):
+        return [v for (v,) in db.execute(select(col).where(col.isnot(None), col != "").distinct().order_by(col)).all()]
+
+    anios = db.scalars(
+        select(RecordProduct.anio).where(RecordProduct.anio.isnot(None)).distinct().order_by(RecordProduct.anio)
+    ).all()
+    return {
+        "sello": distinct(RecordProduct.sello),
+        "formato": distinct(RecordProduct.formato),
+        "anio": list(anios),
+    }
+
+
 @router.get("/releases")
 def list_releases(
     q: str | None = None,
+    artista: list[str] | None = Query(None),
+    sello: list[str] | None = Query(None),
+    formato: list[str] | None = Query(None),
+    genero: list[str] | None = Query(None),
+    estilo: list[str] | None = Query(None),
+    pais: list[str] | None = Query(None),
+    anio: list[int] | None = Query(None, description="años exactos"),
+    anio_min: int | None = None,
+    anio_max: int | None = None,
+    etiqueta: list[str] | None = Query(None, description="slugs de etiqueta"),
+    seccio: list[str] | None = Query(None, description="slugs de sección"),
+    status: list[ItemStatus] | None = Query(None, description="alguna copia con este status"),
+    condicion: list[CondicionItem] | None = Query(None),
+    estado_disco: list[str] | None = Query(None, description="p. ej. 'Near Mint'"),
+    precio_min: float | None = None,
+    precio_max: float | None = None,
+    con_stock: bool | None = Query(None, description="true: con copias a la venta; false: sin ninguna"),
+    stock_bajo: bool | None = Query(None, description="nou con alarma de stock mínimo alcanzada"),
+    sin_imagen: bool | None = None,
+    sin_discogs: bool | None = Query(None, description="true: sin vincular a Discogs"),
+    sin_seccio: bool | None = None,
+    sort: str = Query("artista", pattern=f"^({'|'.join(SORT_KEYS)})$"),
+    dir: str = Query("asc", pattern="^(asc|desc)$"),
     limit: int = Query(50, ge=1, le=5000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    filters = []
-    if q:
-        like = f"%{q}%"
-        filters.append(
-            or_(RecordProduct.artista.ilike(like), Release.title.ilike(like), RecordProduct.sello.ilike(like), Release.ean.ilike(like))
-        )
+    filters = _release_filters(
+        q=q, artista=artista, sello=sello, formato=formato, genero=genero, estilo=estilo, pais=pais,
+        anio=anio, anio_min=anio_min, anio_max=anio_max, etiqueta=etiqueta, seccio=seccio, status=status,
+        condicion=condicion, estado_disco=estado_disco, precio_min=precio_min, precio_max=precio_max,
+        con_stock=con_stock, stock_bajo=stock_bajo, sin_imagen=sin_imagen, sin_discogs=sin_discogs,
+        sin_seccio=sin_seccio,
+    )
 
     # LEFT OUTER: un release del vertical floristry no té fila a
     # RecordProduct i tot i així ha d'aparèixer en aquest llistat.
@@ -49,7 +246,7 @@ def list_releases(
             selectinload(Release.floristeria),
             selectinload(Release.record),
         )
-        .order_by(RecordProduct.artista, Release.title)
+        .order_by(*_order_by(sort, dir))
         .offset(offset)
         .limit(limit)
     )
@@ -70,6 +267,9 @@ def list_releases(
                 "formato": r.formato,
                 "anio": r.anio,
                 "genero": r.genero,
+                "estilos": r.estilos,
+                "pais": r.pais,
+                "creado": r.created_at.isoformat() if r.created_at else None,
                 "imagen_url": r.image_url,
                 "properament": r.coming_soon,
                 "data_disponibilitat": r.available_at.isoformat() if r.available_at else None,
