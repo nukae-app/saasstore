@@ -8,6 +8,7 @@ import { useDiscogsEnabled } from '../../../components/store/useDiscogsEnabled';
 import { useTenantVertical } from '../../../components/store/useTenantVertical';
 import { Button } from '../../../components/ui/button';
 import { SortableTh } from '../../../components/admin/table/SortableTh';
+import AdminCatalogFilters, { EMPTY_ADV, advToParams, advCount } from '../../../components/admin/catalog/AdminCatalogFilters';
 import DiscogsSearchField, { CoverImg } from '../../../components/admin/discogs/DiscogsSearchField';
 import MIcon from '../../../components/ui/m-icon';
 
@@ -122,6 +123,7 @@ export default function CatalogoPage() {
   const [total, setTotal] = useState(0);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
   const [filters, setFilters] = useState({});
+  const [adv, setAdv] = useState(EMPTY_ADV);
   const [facets, setFacets] = useState({ sello: [], formato: [], anio: [] });
   const [debouncedQ, setDebouncedQ] = useState('');
   const requestId = useRef(0);
@@ -155,6 +157,7 @@ export default function CatalogoPage() {
     for (const [key, sel] of Object.entries(filters)) {
       sel.forEach(v => params.append(key, v));
     }
+    advToParams(adv, params);
     try {
       const r = await authFetch(`/admin/releases?${params}`);
       if (mine !== requestId.current) return; // ha arribat una petició més nova
@@ -171,7 +174,7 @@ export default function CatalogoPage() {
       }
     } catch { /* auth error handled by AdminShell */ }
     if (mine === requestId.current) setLoading(false);
-  }, [page, debouncedQ, sort, filters, emptyFilter]);
+  }, [page, debouncedQ, sort, filters, adv, emptyFilter]);
 
   const loadFacets = useCallback(async () => {
     try {
@@ -179,6 +182,7 @@ export default function CatalogoPage() {
       if (r.ok) {
         const f = await r.json();
         setFacets({
+          ...f,
           sello: f.sello ?? [],
           formato: f.formato ?? [],
           anio: (f.anio ?? []).map(String),
@@ -198,6 +202,11 @@ export default function CatalogoPage() {
       if (prev.dir === 'asc') return { key, dir: 'desc' };
       return { key: null, dir: 'asc' };
     });
+    setPage(0);
+  }
+
+  function handleAdvChange(next) {
+    setAdv(next);
     setPage(0);
   }
 
@@ -347,13 +356,15 @@ export default function CatalogoPage() {
         />
       </div>
 
+      <AdminCatalogFilters facets={facets} gradings={GRADINGS} adv={adv} onChange={handleAdvChange} />
+
       {/* Table */}
       <div className="bg-card rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         {loading && releases.length === 0 ? (
           <div className="p-12 text-center text-secondary-foreground text-sm flex items-center justify-center gap-2">
             <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
           </div>
-        ) : releases.length === 0 && Object.keys(filters).length === 0 ? (
+        ) : releases.length === 0 && Object.keys(filters).length === 0 && advCount(adv) === 0 ? (
           <div className="p-12 text-center text-secondary-foreground text-sm">{t('catalog.no_results')}</div>
         ) : (
           <div className={`overflow-x-auto transition-opacity ${loading ? 'opacity-60' : ''}`}>
@@ -379,6 +390,9 @@ export default function CatalogoPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant">
+              {releases.length === 0 && (
+                <tr><td colSpan={9} className="p-12 text-center text-secondary-foreground text-sm">{t('catalog.no_results')}</td></tr>
+              )}
               {releases.map(r => (
                 <>
                   <tr key={r.id}

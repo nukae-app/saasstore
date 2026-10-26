@@ -133,6 +133,10 @@ def test_facets_valores_distintos_y_filtro_anio_exacto(db, client):
     assert f["sello"] == ["Blue Note", "Blue Note Europe", "Sub Pop"]
     assert f["formato"] == ["CD", "LP"]
     assert f["anio"] == [1965, 1978, 1992]
+    assert f["genero"] == ["Funk / Soul", "Jazz", "Rock"]      # partidos por coma y sin duplicados
+    assert f["estilo"] == ["Grunge", "Hard Bop", "Soul-Jazz"]
+    assert f["pais"] == ["UK", "US"]
+    assert f["etiqueta"] == [] and f["seccio"] == []
     assert sorted(_ids(client.get("/admin/releases?anio=1965&anio=1992", headers=h))) == ["A1", "B1"]
 
 

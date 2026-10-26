@@ -184,10 +184,26 @@ def release_facets(db: Session = Depends(get_db)):
     anios = db.scalars(
         select(RecordProduct.anio).where(RecordProduct.anio.isnot(None)).distinct().order_by(RecordProduct.anio)
     ).all()
+    def tokens(col):
+        # genero/estilos guardan listas "A, B, C": se parten para ofrecer cada valor suelto.
+        vals = {t.strip() for v in distinct(col) for t in v.split(",") if t.strip()}
+        return sorted(vals, key=str.casefold)
+
     return {
         "sello": distinct(RecordProduct.sello),
         "formato": distinct(RecordProduct.formato),
         "anio": list(anios),
+        "genero": tokens(RecordProduct.genero),
+        "estilo": tokens(RecordProduct.estilos),
+        "pais": distinct(RecordProduct.pais),
+        "etiqueta": [
+            {"slug": e.slug, "nom": e.name_ca}
+            for e in db.scalars(select(Etiqueta).order_by(Etiqueta.position, Etiqueta.name_ca)).all()
+        ],
+        "seccio": [
+            {"slug": s.slug, "nom": s.name_ca}
+            for s in db.scalars(select(Seccio).order_by(Seccio.position, Seccio.name_ca)).all()
+        ],
     }
 
 
