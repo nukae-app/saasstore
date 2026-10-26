@@ -128,9 +128,10 @@ def test_respuesta_incluye_pais_estilos_y_creado(db, client):
 def test_facets_valores_distintos_y_filtro_anio_exacto(db, client):
     h = _admin(client, db)
     _seed(db)
-    _release(db, "Delta", "D1")  # sin sello ni año: no debe aparecer como valor
+    _release(db, "Delta", "D1", sello="Verve – V-8000, Blue Note – BLP 1")  # catno fuera, un valor por sello
+    _release(db, "Eps", "E1")  # sin sello ni año: no aporta valores
     f = client.get("/admin/releases/facets", headers=h).json()
-    assert f["sello"] == ["Blue Note", "Blue Note Europe", "Sub Pop"]
+    assert f["sello"] == ["Blue Note", "Blue Note Europe", "Sub Pop", "Verve"]
     assert f["formato"] == ["CD", "LP"]
     assert f["anio"] == [1965, 1978, 1992]
     assert f["genero"] == ["Funk / Soul", "Jazz", "Rock"]      # partidos por coma y sin duplicados

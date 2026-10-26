@@ -189,8 +189,16 @@ def release_facets(db: Session = Depends(get_db)):
         vals = {t.strip() for v in distinct(col) for t in v.split(",") if t.strip()}
         return sorted(vals, key=str.casefold)
 
+    def sellos():
+        # "Sello – CATNO, Otro – CATNO2": una opción por nombre de sello, sin el nº de catálogo.
+        names = {
+            part.split(" – ")[0].split(" - ")[0].strip()
+            for v in distinct(RecordProduct.sello) for part in v.split(",")
+        }
+        return sorted((n for n in names if n), key=str.casefold)
+
     return {
-        "sello": distinct(RecordProduct.sello),
+        "sello": sellos(),
         "formato": distinct(RecordProduct.formato),
         "anio": list(anios),
         "genero": tokens(RecordProduct.genero),

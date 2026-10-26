@@ -122,7 +122,6 @@ export default function CatalogoPage() {
   // només es baixa la pàgina visible, no tot el catàleg.
   const [total, setTotal] = useState(0);
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
-  const [filters, setFilters] = useState({});
   const [adv, setAdv] = useState(EMPTY_ADV);
   const [facets, setFacets] = useState({ sello: [], formato: [], anio: [] });
   const [debouncedQ, setDebouncedQ] = useState('');
@@ -136,26 +135,14 @@ export default function CatalogoPage() {
     return () => clearTimeout(id);
   }, [q]);
 
-  // Un filtre amb selecció buida (“Esborrar tot”) vol dir cap resultat.
-  const emptyFilter = Object.values(filters).some(sel => sel.size === 0);
-
   const loadReleases = useCallback(async () => {
     const mine = ++requestId.current;
-    if (emptyFilter) {
-      setReleases([]);
-      setTotal(0);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     const params = new URLSearchParams({ limit: LIMIT, offset: page * LIMIT });
     if (debouncedQ) params.set('q', debouncedQ);
     if (sort.key) {
       params.set('sort', sort.key);
       params.set('dir', sort.dir);
-    }
-    for (const [key, sel] of Object.entries(filters)) {
-      sel.forEach(v => params.append(key, v));
     }
     advToParams(adv, params);
     try {
@@ -174,7 +161,7 @@ export default function CatalogoPage() {
       }
     } catch { /* auth error handled by AdminShell */ }
     if (mine === requestId.current) setLoading(false);
-  }, [page, debouncedQ, sort, filters, adv, emptyFilter]);
+  }, [page, debouncedQ, sort, adv]);
 
   const loadFacets = useCallback(async () => {
     try {
@@ -193,7 +180,6 @@ export default function CatalogoPage() {
 
   useEffect(() => { loadFacets(); }, [loadFacets]);
 
-  const distinctValues = facets;
   const offset = page * LIMIT;
 
   function handleSort(key) {
@@ -210,17 +196,7 @@ export default function CatalogoPage() {
     setPage(0);
   }
 
-  function handleFilterChange(key, selected) {
-    setFilters(prev => {
-      if (!selected) {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      }
-      return { ...prev, [key]: selected };
-    });
-    setPage(0);
-  }
+
 
   const loadStats = useCallback(async () => {
     if (!discogsEnabled) return;
@@ -369,7 +345,7 @@ export default function CatalogoPage() {
           <div className="p-12 text-center text-secondary-foreground text-sm flex items-center justify-center gap-2">
             <MIcon name="progress_activity" size={16} className="animate-spin" /> {t('common.loading')}
           </div>
-        ) : releases.length === 0 && Object.keys(filters).length === 0 && advCount(adv) === 0 ? (
+        ) : releases.length === 0 && advCount(adv) === 0 ? (
           <div className="p-12 text-center text-secondary-foreground text-sm">{t('catalog.no_results')}</div>
         ) : (
           <div className={`overflow-x-auto transition-opacity ${loading ? 'opacity-60' : ''}`}>
@@ -379,13 +355,10 @@ export default function CatalogoPage() {
                 <th className="w-8 px-4 py-3" />
                 <SortableTh label={t('catalog.col.artist')} sortKey="artista" sort={sort} onSort={handleSort} />
                 <SortableTh label={t('catalog.col.label')} sortKey="sello" sort={sort} onSort={handleSort}
-                  filterOptions={distinctValues.sello} selected={filters.sello} onFilterChange={handleFilterChange}
                   className="hidden md:table-cell" />
                 <SortableTh label={t('catalog.col.format')} sortKey="formato" sort={sort} onSort={handleSort}
-                  filterOptions={distinctValues.formato} selected={filters.formato} onFilterChange={handleFilterChange}
                   className="hidden md:table-cell" />
                 <SortableTh label={t('catalog.col.year')} sortKey="anio" sort={sort} onSort={handleSort}
-                  filterOptions={distinctValues.anio} selected={filters.anio} onFilterChange={handleFilterChange}
                   className="hidden lg:table-cell" />
                 <SortableTh label={t('catalog.col.ean', 'EAN')} sortKey="ean" sort={sort} onSort={handleSort}
                   className="hidden lg:table-cell" />

@@ -6,13 +6,14 @@ import { Checkbox } from '../../ui/checkbox';
 import { cn } from '../../lib/utils';
 
 export const EMPTY_ADV = {
+  artista: [], sello: [], formato: [], anio: [],
   genero: [], estilo: [], pais: [], etiqueta: [], seccio: [],
   condicion: [], estado_disco: [], status: [],
   precio_min: '', precio_max: '',
   con_stock: '', stock_bajo: false, sin_imagen: '', sin_discogs: '', sin_seccio: '',
 };
 
-const MULTI_KEYS = ['genero', 'estilo', 'pais', 'etiqueta', 'seccio', 'condicion', 'estado_disco', 'status'];
+const MULTI_KEYS = ['artista', 'sello', 'formato', 'anio', 'genero', 'estilo', 'pais', 'etiqueta', 'seccio', 'condicion', 'estado_disco', 'status'];
 const SCALAR_KEYS = ['precio_min', 'precio_max', 'con_stock', 'sin_imagen', 'sin_discogs', 'sin_seccio'];
 
 /** Afegeix a `params` (URLSearchParams) els filtres de GET /admin/releases per a l'estat `adv`. */
@@ -43,7 +44,12 @@ function multiSections(facets, gradings) {
   const plain = list => (list ?? []).map(v => ({ value: String(v), label: String(v) }));
   const named = list => (list ?? []).map(o => ({ value: o.slug, label: o.nom }));
   return [
+    // Artista: no té llista (n'hi ha milers); s'hi escriu el nom i es filtra per coincidència.
+    { key: 'artista', label: 'Artista', options: [], text: true, open: true },
+    { key: 'formato', label: 'Format', options: plain(facets.formato), open: true },
     { key: 'genero', label: 'Gènere', options: plain(facets.genero), open: true },
+    { key: 'anio', label: 'Any', options: plain([...(facets.anio ?? [])].reverse()) },
+    { key: 'sello', label: 'Segell', options: plain(facets.sello) },
     { key: 'estilo', label: 'Estil', options: plain(facets.estilo) },
     { key: 'pais', label: 'País', options: plain(facets.pais) },
     { key: 'etiqueta', label: 'Etiqueta', options: named(facets.etiqueta) },
@@ -117,6 +123,39 @@ function Section({ title, count = 0, defaultOpen = false, children }) {
       </summary>
       <div className="pb-3">{children}</div>
     </details>
+  );
+}
+
+// Camp de text: Enter afegeix el valor com a filtre (es poden afegir diversos).
+function TextAdd({ placeholder, selected, onChange }) {
+  const [draft, setDraft] = useState('');
+  const add = () => {
+    const v = draft.trim();
+    if (v && !selected.includes(v)) onChange([...selected, v]);
+    setDraft('');
+  };
+  return (
+    <div className="space-y-1.5">
+      <input
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+        onBlur={add}
+        placeholder={placeholder}
+        className="w-full px-2 py-1.5 text-xs border border-outline-variant rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {selected.map(v => (
+            <span key={v} className="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full bg-primary/10 text-xs text-on-surface">
+              {v}
+              <button type="button" onClick={() => onChange(selected.filter(x => x !== v))} aria-label={`Treure ${v}`}
+                className="p-0.5 rounded-full hover:bg-primary/20"><MIcon name="close" size={10} /></button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -259,7 +298,9 @@ export default function AdminCatalogFilters({ facets, gradings, adv, onChange })
 
         {multiSections(facets, gradings).map(sec => (
           <Section key={sec.key} title={sec.label} count={adv[sec.key].length} defaultOpen={!!sec.open}>
-            <CheckList options={sec.options} selected={adv[sec.key]} onChange={v => set(sec.key, v)} />
+            {sec.text
+              ? <TextAdd placeholder="Escriu i prem Enter" selected={adv[sec.key]} onChange={v => set(sec.key, v)} />
+              : <CheckList options={sec.options} selected={adv[sec.key]} onChange={v => set(sec.key, v)} />}
           </Section>
         ))}
       </div>
