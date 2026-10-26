@@ -287,7 +287,7 @@ export default function CatalogoPage() {
   }
 
   return (
-    <div className="space-y-5 max-w-6xl mx-auto">
+    <div className="space-y-5 max-w-[1800px] mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-2xl font-bold text-on-surface">{t('catalog.title')}</h2>

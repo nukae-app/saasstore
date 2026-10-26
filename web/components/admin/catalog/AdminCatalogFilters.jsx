@@ -194,7 +194,7 @@ export default function AdminCatalogFilters({ facets, gradings, adv, onChange })
   const priceCount = (adv.precio_min !== '' ? 1 : 0) + (adv.precio_max !== '' ? 1 : 0);
 
   return (
-    <aside className="lg:w-64 lg:shrink-0 lg:sticky lg:top-20 lg:self-start">
+    <aside className="lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:self-start">
       <button
         type="button"
         onClick={() => setMobileOpen(o => !o)}
