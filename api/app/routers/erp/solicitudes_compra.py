@@ -24,6 +24,7 @@ from ._peticiones_stock import (
     _enviar_email_item_arribat, _reservar_item_para_peticion, _tancar_linea_solicitud_desde_stock,
 )
 from .comandas import _comanda_out, _get_comanda_or_404, _next_num_comanda
+from .historial_compres import _ESTATS_COMANDA_REALS
 
 router = APIRouter(prefix="/admin", tags=["erp"], dependencies=[Depends(require_admin)])
 
@@ -117,22 +118,53 @@ def _releases_amb_comanda_pendent(db: Session) -> set[uuid.UUID]:
 
 
 def _suggest_proveedor_para_release(db: Session, release_id: uuid.UUID, artista: str) -> tuple[uuid.UUID | None, str | None]:
-    """Mateixa lògica que el frontend fa servir en afegir un disc a mà: primer
-    coincidència exacta de release_id a l'històric, si no n'hi ha, per artista."""
-    rows = db.execute(
-        select(HistorialCompra.proveedor_id, func.count())
-        .where(HistorialCompra.release_id == release_id)
-        .group_by(HistorialCompra.proveedor_id)
+    """Proveïdor suggerit per reposar un disc, per ordre de prioritat:
+
+    1. El proveïdor habitual fixat a mà a la fitxa del disc (`Release.suggested_supplier_id`).
+    2. El de la compra MÉS RECENT d'aquest mateix disc, mirant l'històric importat
+       (`HistorialCompra`) i les comandes reals (enviada/rebuda_parcial/rebuda),
+       com fa el cercador `/historial-compres`. Un canvi de proveïdor s'ha de
+       veure de seguida: no el tapen anys d'històric d'un altre.
+    3. Si el disc no té cap compra, la més recent d'un disc del MATEIX artista
+       (nom exacte, sense majúscules): una coincidència parcial agafava
+       artistes que només contenen el nom ("From" casava amb "Water From...")."""
+    release = db.get(Release, release_id)
+    if release is not None and release.suggested_supplier_id:
+        fijado = db.get(Proveedor, release.suggested_supplier_id)
+        if fijado:
+            return fijado.id, fijado.name
+
+    compras = db.execute(
+        select(HistorialCompra.date, HistorialCompra.proveedor_id).where(HistorialCompra.release_id == release_id)
     ).all()
-    if not rows and artista:
-        rows = db.execute(
-            select(HistorialCompra.proveedor_id, func.count())
-            .where(HistorialCompra.artist.ilike(f"%{artista}%"))
-            .group_by(HistorialCompra.proveedor_id)
+    compras += [
+        (fecha.date(), pid) for fecha, pid in db.execute(
+            select(Comanda.date, Comanda.proveedor_id)
+            .join(ComandaLinea, ComandaLinea.comanda_id == Comanda.id)
+            .where(ComandaLinea.release_id == release_id, Comanda.status.in_(_ESTATS_COMANDA_REALS))
         ).all()
-    if not rows:
+    ]
+    if not compras and artista and artista.strip():
+        nombre = artista.strip().lower()
+        compras = db.execute(
+            select(HistorialCompra.date, HistorialCompra.proveedor_id)
+            .where(func.lower(func.trim(HistorialCompra.artist)) == nombre)
+        ).all()
+        compras += [
+            (fecha.date(), pid) for fecha, pid in db.execute(
+                select(Comanda.date, Comanda.proveedor_id)
+                .join(ComandaLinea, ComandaLinea.comanda_id == Comanda.id)
+                .join(RecordProduct, RecordProduct.release_id == ComandaLinea.release_id)
+                .where(func.lower(func.trim(RecordProduct.artista)) == nombre, Comanda.status.in_(_ESTATS_COMANDA_REALS))
+            ).all()
+        ]
+    if not compras:
         return None, None
-    top_id = sorted(rows, key=lambda r: -r[1])[0][0]
+    # La més recent; si empaten (mateix dia), el proveïdor amb més compres i, per
+    # no dependre de l'ordre de la BD, l'id.
+    ultima = max(fecha for fecha, _ in compras)
+    candidatos = {pid for fecha, pid in compras if fecha == ultima}
+    top_id = max(candidatos, key=lambda pid: (sum(1 for _, p in compras if p == pid), str(pid)))
     prov = db.get(Proveedor, top_id)
     return (prov.id, prov.name) if prov else (None, None)
 

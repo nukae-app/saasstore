@@ -12,6 +12,7 @@ from ...models import (
     Etiqueta,
     Item,
     ItemStatus,
+    Proveedor,
     RecordProduct,
     RecordStockDetail,
     Release,
@@ -283,6 +284,7 @@ def list_releases(
             selectinload(Release.images),
             selectinload(Release.floristeria),
             selectinload(Release.record),
+            selectinload(Release.suggested_supplier),
         )
         .order_by(*_order_by(sort, dir))
         .offset(offset)
@@ -309,6 +311,8 @@ def list_releases(
                 "pais": r.pais,
                 "creado": r.created_at.isoformat() if r.created_at else None,
                 "ultima_recepcion": _ultima_recepcion(r),
+                "proveedor_sugerido_id": r.suggested_supplier_id,
+                "proveedor_sugerido_nombre": r.suggested_supplier.name if r.suggested_supplier else None,
                 "imagen_url": r.image_url,
                 "properament": r.coming_soon,
                 "data_disponibilitat": r.available_at.isoformat() if r.available_at else None,
@@ -472,9 +476,15 @@ def _upsert_vertical_extension(db: Session, request: Request, release_id: uuid.U
         _upsert_floristeria(db, release_id, data)
 
 
+def _check_supplier(db: Session, supplier_id: uuid.UUID | None) -> None:
+    if supplier_id is not None and db.get(Proveedor, supplier_id) is None:
+        raise HTTPException(422, "Proveedor no encontrado")
+
+
 @router.post("/releases", status_code=201)
 def create_release(payload: ReleaseIn, request: Request, db: Session = Depends(get_db)):
     data = payload.model_dump()
+    _check_supplier(db, payload.suggested_supplier_id)
     release_fields = {k: v for k, v in data.items() if k not in VERTICAL_EXTENSION_FIELDS}
     release = Release(**release_fields)
     db.add(release)
@@ -491,6 +501,12 @@ def update_release(release_id: uuid.UUID, payload: ReleaseIn, request: Request, 
     if release is None:
         raise HTTPException(404, "Release no encontrado")
     data = payload.model_dump()
+    # El proveedor habitual solo se toca si el cliente lo envía: un PUT de un
+    # cliente anterior a este campo (o un flujo que no lo conoce) no debe borrarlo.
+    if "suggested_supplier_id" in payload.model_fields_set:
+        _check_supplier(db, payload.suggested_supplier_id)
+    else:
+        data.pop("suggested_supplier_id", None)
     for field, value in data.items():
         if field not in VERTICAL_EXTENSION_FIELDS:
             setattr(release, field, value)

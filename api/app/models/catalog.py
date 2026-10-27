@@ -100,9 +100,17 @@ class Release(TenantScoped, Base):
     section_id: Mapped[int | None] = mapped_column(
         ForeignKey("seccions.id", ondelete="SET NULL"), index=True
     )
+    # Proveedor habitual fijado a mano desde el catálogo. Si está informado, manda
+    # sobre la deducción por historial de compras (ver
+    # routers/erp/solicitudes_compra.py::_suggest_proveedor_para_release). NO se expone
+    # en ReleaseOut: ese esquema es el del catálogo público.
+    suggested_supplier_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("proveedores.id", ondelete="SET NULL"), index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     items: Mapped[list["Item"]] = relationship(back_populates="release")
+    suggested_supplier: Mapped["Proveedor | None"] = relationship(foreign_keys=[suggested_supplier_id])
     etiquetes: Mapped[list["Etiqueta"]] = relationship(
         secondary="release_etiquetes", back_populates="releases"
     )

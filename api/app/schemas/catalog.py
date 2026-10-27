@@ -153,6 +153,9 @@ class ReleaseIn(BaseModel):
     credits: list | None = None
     discogs_release_id: int | None = None
     section_id: int | None = None
+    # Proveedor habitual (opcional). En PUT solo se aplica si viene en el payload:
+    # un cliente que no lo conoce no debe borrarlo (ver update_release).
+    suggested_supplier_id: uuid.UUID | None = None
     # Vertical floristry — extensión ReleaseFloristeria, ver
     # routers/admin.py::_upsert_vertical_extension. Un tenant records nunca
     # los rellena (el backend los ignora aunque vinieran en el payload).

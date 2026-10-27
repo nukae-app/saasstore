@@ -1374,7 +1374,7 @@ function emptyForm() {
   return {
     artista: '', titulo: '', sello: '', ean: '', formato: 'LP', anio: '',
     genero: '', estilos: '', pais: '', imagen_url: '', discogs_release_id: '',
-    tracklist: null, credits: null, pes_g: '', seccio_id: '',
+    tracklist: null, credits: null, pes_g: '', seccio_id: '', proveedor_id: '',
     precio: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '',
     etiqueta_ids: [], properament: false, data_disponibilitat: '',
     color: '', tipus_flor: '', durabilitat_dies: '',
@@ -1392,6 +1392,7 @@ function formFromRelease(release) {
     tracklist: release.tracklist ?? null, credits: release.credits ?? null,
     pes_g: release.pes_g ? String(release.pes_g) : '',
     seccio_id: release.seccio_id ? String(release.seccio_id) : '',
+    proveedor_id: release.proveedor_sugerido_id ?? '',
     precio: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '',
     etiqueta_ids: (release.etiquetes ?? []).map(e => e.id),
     properament: release.properament ?? false,
@@ -1416,6 +1417,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
   const [allEtiquetes, setAllEtiquetes] = useState([]);
   const [pesPerFormat, setPesPerFormat] = useState({});
   const [allSeccions, setAllSeccions] = useState([]);
+  const [allProveedors, setAllProveedors] = useState([]);
   const f = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   useEffect(() => {
@@ -1424,6 +1426,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
       .then(list => setPesPerFormat(Object.fromEntries(list.map(p => [p.formato, p.pes_g]))))
       .catch(() => {});
     authFetch('/admin/seccions').then(r => r.ok ? r.json() : []).then(setAllSeccions).catch(() => {});
+    authFetch('/admin/proveedores').then(r => r.ok ? r.json() : []).then(setAllProveedors).catch(() => {});
   }, []);
 
   function toggleEtiqueta(id) {
@@ -1490,6 +1493,7 @@ function DiscModal({ mode, release, onClose, onSaved }) {
       tracklist: form.tracklist || null, credits: form.credits || null,
       weight_g: form.pes_g ? parseInt(form.pes_g) : null,
       section_id: form.seccio_id ? parseInt(form.seccio_id) : null,
+      suggested_supplier_id: form.proveedor_id || null,
       discogs_release_id: form.discogs_release_id ? parseInt(form.discogs_release_id) : null,
       color: form.color || null, tipus_flor: form.tipus_flor || null,
       durabilitat_dies: form.durabilitat_dies ? parseInt(form.durabilitat_dies) : null,
@@ -1685,6 +1689,17 @@ function DiscModal({ mode, release, onClose, onSaved }) {
             </select>
           </div>
           )}
+          <div>
+            <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.supplier', 'Proveïdor habitual')}</label>
+            <select value={form.proveedor_id} onChange={e => f('proveedor_id', e.target.value)}
+              className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card">
+              <option value="">{t('catalog.modal.supplier_auto', 'Segons l\'última compra')}</option>
+              {allProveedors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <p className="text-xs text-secondary-foreground mt-1">
+              {t('catalog.modal.supplier_hint', 'És el que se suggereix a Vendes recents i a les reposicions. Sense proveïdor fixat, es dedueix de l\'última compra.')}
+            </p>
+          </div>
           {!isFloristeria && (
           <div>
             <label className="block text-sm font-medium text-on-surface-variant mb-1">{t('catalog.modal.weight', 'Pes (grams)')}</label>
