@@ -33,7 +33,8 @@
         {
           "cameraPermission": "Fa falta la càmera per escanejar codis de barres (EAN)."
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }
