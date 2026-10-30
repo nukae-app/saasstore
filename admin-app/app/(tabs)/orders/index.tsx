@@ -74,9 +74,9 @@ export default function Orders() {
         keyExtractor={(order) => order.id}
         renderItem={({ item }) => <OrderRow order={item} onPress={() => router.push(`/orders/${item.id}`)} />}
         contentContainerClassName="pt-4 pb-8"
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); }} tintColor={colors.primary} />}
         ListEmptyComponent={
-          !isLoading ? <Text className="p-4 text-mutedForeground font-sans">Sense pedidos.</Text> : null
+          !isLoading ? <Text className="p-4 text-mutedForeground font-sans">Sense pedidos.</Text> : undefined
         }
       />
     </Screen>

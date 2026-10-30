@@ -97,7 +97,7 @@ export default function PeticionsList() {
           <PeticionRow peticion={item} onPress={() => router.push(`/compras/peticions/${item.id}`)} />
         )}
         contentContainerClassName="pb-8"
-        ListEmptyComponent={!isLoading ? <Text className="p-4 text-mutedForeground font-sans">Cap petició.</Text> : null}
+        ListEmptyComponent={!isLoading ? <Text className="p-4 text-mutedForeground font-sans">Cap petició.</Text> : undefined}
       />
     </View>
   );

@@ -102,8 +102,8 @@ export default function ComandesList() {
         keyExtractor={(c) => c.id}
         renderItem={({ item }) => <ComandaRow comanda={item} onPress={() => router.push(`/compras/${item.id}`)} />}
         contentContainerClassName="pb-8"
-        refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor={colors.primary} />}
-        ListEmptyComponent={!isLoading ? <Text className="p-4 text-mutedForeground font-sans">Cap comanda.</Text> : null}
+        refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => { void refetch(); }} tintColor={colors.primary} />}
+        ListEmptyComponent={!isLoading ? <Text className="p-4 text-mutedForeground font-sans">Cap comanda.</Text> : undefined}
       />
     </View>
   );

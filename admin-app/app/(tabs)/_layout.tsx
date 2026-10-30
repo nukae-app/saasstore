@@ -25,7 +25,7 @@ export default function TabsLayout() {
         name="orders"
         options={{
           title: "Pedidos",
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="package-variant" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="package-variant" color={color as string} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -33,7 +33,7 @@ export default function TabsLayout() {
         options={{
           title: "TPV",
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="point-of-sale" color={color} size={size} />
+            <MaterialCommunityIcons name="point-of-sale" color={color as string} size={size} />
           ),
         }}
       />
@@ -41,7 +41,7 @@ export default function TabsLayout() {
         name="compras"
         options={{
           title: "Compres",
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="truck-delivery" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="truck-delivery" color={color as string} size={size} />,
         }}
       />
     </Tabs>
