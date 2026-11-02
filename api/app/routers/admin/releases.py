@@ -2,6 +2,7 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
 from sqlalchemy import and_, func, literal, or_, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -553,6 +554,23 @@ def set_properament(
 # --- Està sonant (portada) ---
 # Nomes hi pot haver un disc "sonant" alhora: en marcar-ne un, es desmarquen
 # la resta a nivell de servidor (no confiar en que l'admin en desmarqui cap).
+
+class ProveedorSugeridoIn(BaseModel):
+    suggested_supplier_id: uuid.UUID | None = None
+
+
+@router.patch("/releases/{release_id}/proveedor-sugerido")
+def set_proveedor_sugerido(release_id: uuid.UUID, payload: ProveedorSugeridoIn, db: Session = Depends(get_db)):
+    """Fija (o quita, con null) el proveïdor habitual d'un disc sense tocar la resta
+    de camps: el PUT de /releases/{id} reemplaça la fitxa sencera i no serveix per això."""
+    release = db.get(Release, release_id)
+    if release is None:
+        raise HTTPException(404, "Release no trobat")
+    _check_supplier(db, payload.suggested_supplier_id)
+    release.suggested_supplier_id = payload.suggested_supplier_id
+    db.commit()
+    return {"id": release.id, "suggested_supplier_id": release.suggested_supplier_id}
+
 
 @router.patch("/releases/{release_id}/esta-sonant")
 def set_esta_sonant(

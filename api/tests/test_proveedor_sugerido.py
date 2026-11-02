@@ -167,3 +167,41 @@ def test_proveedor_inexistente_se_rechaza_y_no_sale_en_el_catalogo_publico(db, c
     # La ficha pública no debe revelar el proveedor.
     assert "suggested_supplier_id" not in detail.text and "Gran Sol" not in detail.text
 
+
+
+# --- Endpoint de sugerencia (alta manual) y PATCH del proveedor habitual ------------------
+
+def test_endpoint_proveedor_sugerido_con_y_sin_release(db, client):
+    h = _admin(client, db)
+    popstock, universal = _prov(db, "Popstock"), _prov(db, "Universal")
+    r = _release(db, "Surprise Chef", "Frog in a pond")
+    _historial(db, popstock, r, date(2024, 1, 1))
+    _comanda(db, universal, r, datetime(2026, 10, 23, tzinfo=timezone.utc))
+
+    url = "/admin/solicitudes-compra/proveedor-sugerido"
+    por_release = client.get(url, params={"release_id": str(r.id)}, headers=h).json()
+    assert por_release["proveedor_nombre"] == "Universal"
+    # Disco aún inexistente: solo se orienta por artista (nombre exacto).
+    por_artista = client.get(url, params={"artista": "surprise chef"}, headers=h).json()
+    assert por_artista["proveedor_nombre"] == "Universal"
+    assert client.get(url, params={"artista": "Surprise"}, headers=h).json() == {"proveedor_id": None, "proveedor_nombre": None}
+    assert client.get(url, headers=h).json() == {"proveedor_id": None, "proveedor_nombre": None}
+
+
+def test_patch_proveedor_sugerido_solo_toca_ese_campo(db, client):
+    h = _admin(client, db)
+    gran_sol = _prov(db, "Gran Sol")
+    r = _release(db, "From", "Furar Hondo")
+    url = f"/admin/releases/{r.id}/proveedor-sugerido"
+
+    assert client.patch(url, json={"suggested_supplier_id": str(gran_sol.id)}, headers=h).status_code == 200
+    db.refresh(r)
+    assert r.suggested_supplier_id == gran_sol.id
+    assert (r.artista, r.title, r.formato) == ("From", "Furar Hondo", "LP")  # nada más cambia
+
+    assert client.patch(url, json={"suggested_supplier_id": None}, headers=h).status_code == 200
+    db.refresh(r)
+    assert r.suggested_supplier_id is None
+
+    assert client.patch(url, json={"suggested_supplier_id": str(uuid.uuid4())}, headers=h).status_code == 422
+    assert client.patch(f"/admin/releases/{uuid.uuid4()}/proveedor-sugerido", json={}, headers=h).status_code == 404

@@ -117,7 +117,7 @@ def _releases_amb_comanda_pendent(db: Session) -> set[uuid.UUID]:
     ).scalars().all())
 
 
-def _suggest_proveedor_para_release(db: Session, release_id: uuid.UUID, artista: str) -> tuple[uuid.UUID | None, str | None]:
+def _suggest_proveedor_para_release(db: Session, release_id: uuid.UUID | None, artista: str | None) -> tuple[uuid.UUID | None, str | None]:
     """Proveïdor suggerit per reposar un disc, per ordre de prioritat:
 
     1. El proveïdor habitual fixat a mà a la fitxa del disc (`Release.suggested_supplier_id`).
@@ -128,22 +128,26 @@ def _suggest_proveedor_para_release(db: Session, release_id: uuid.UUID, artista:
     3. Si el disc no té cap compra, la més recent d'un disc del MATEIX artista
        (nom exacte, sense majúscules): una coincidència parcial agafava
        artistes que només contenen el nom ("From" casava amb "Water From...")."""
-    release = db.get(Release, release_id)
+    # `release_id` None: disc que encara no existeix al catàleg (alta a mà): només
+    # es pot orientar per l'artista.
+    release = db.get(Release, release_id) if release_id else None
     if release is not None and release.suggested_supplier_id:
         fijado = db.get(Proveedor, release.suggested_supplier_id)
         if fijado:
             return fijado.id, fijado.name
 
-    compras = db.execute(
-        select(HistorialCompra.date, HistorialCompra.proveedor_id).where(HistorialCompra.release_id == release_id)
-    ).all()
-    compras += [
-        (fecha.date(), pid) for fecha, pid in db.execute(
-            select(Comanda.date, Comanda.proveedor_id)
-            .join(ComandaLinea, ComandaLinea.comanda_id == Comanda.id)
-            .where(ComandaLinea.release_id == release_id, Comanda.status.in_(_ESTATS_COMANDA_REALS))
+    compras = []
+    if release_id:
+        compras = db.execute(
+            select(HistorialCompra.date, HistorialCompra.proveedor_id).where(HistorialCompra.release_id == release_id)
         ).all()
-    ]
+        compras += [
+            (fecha.date(), pid) for fecha, pid in db.execute(
+                select(Comanda.date, Comanda.proveedor_id)
+                .join(ComandaLinea, ComandaLinea.comanda_id == Comanda.id)
+                .where(ComandaLinea.release_id == release_id, Comanda.status.in_(_ESTATS_COMANDA_REALS))
+            ).all()
+        ]
     if not compras and artista and artista.strip():
         nombre = artista.strip().lower()
         compras = db.execute(
@@ -167,6 +171,18 @@ def _suggest_proveedor_para_release(db: Session, release_id: uuid.UUID, artista:
     top_id = max(candidatos, key=lambda pid: (sum(1 for _, p in compras if p == pid), str(pid)))
     prov = db.get(Proveedor, top_id)
     return (prov.id, prov.name) if prov else (None, None)
+
+
+@router.get("/solicitudes-compra/proveedor-sugerido")
+def proveedor_sugerido(
+    release_id: uuid.UUID | None = None, artista: str | None = None, db: Session = Depends(get_db),
+) -> dict:
+    """Proveïdor suggerit en afegir un disc a mà a una sol·licitud: la mateixa regla
+    que "Vendes recents" i les reposicions (_suggest_proveedor_para_release), perquè
+    tot el sistema suggereixi el mateix. `release_id` és opcional: un disc que encara
+    no s'ha donat d'alta només es pot orientar per l'artista."""
+    prov_id, prov_nombre = _suggest_proveedor_para_release(db, release_id, artista)
+    return {"proveedor_id": prov_id, "proveedor_nombre": prov_nombre}
 
 
 @router.get("/solicitudes-compra/ultims-costos")

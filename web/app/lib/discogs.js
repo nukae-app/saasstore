@@ -50,6 +50,7 @@ export async function resolveOrCreateRelease(full) {
       anio: full.anio ? parseInt(full.anio) : null, genero: full.genero || null,
       estilos: full.estilos || null, pais: full.pais || null, image_url: full.imagen_url || null,
       ean: ean || null,
+      suggested_supplier_id: full.suggested_supplier_id || null,
       tracklist: full.tracklist || null, credits: full.credits || null,
       discogs_release_id: full.discogs_release_id ? parseInt(full.discogs_release_id) : null,
     }),

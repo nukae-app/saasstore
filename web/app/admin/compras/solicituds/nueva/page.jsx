@@ -22,7 +22,8 @@ export default function NovaSolicitudPage() {
   const [lineas, setLineas] = useState([]);
   const [resolving, setResolving] = useState(false);
   const [manualMode, setManualMode] = useState(false);
-  const [manualForm, setManualForm] = useState({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '', ean: '' });
+  const EMPTY_MANUAL = { artista: '', titulo: '', sello: '', formato: 'LP', anio: '', ean: '', proveedor_id: '', recordar: false };
+  const [manualForm, setManualForm] = useState(EMPTY_MANUAL);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,35 +49,35 @@ export default function NovaSolicitudPage() {
     if (!manualForm.titulo.trim()) return;
     setResolving(true);
     try {
-      const rel = await resolveOrCreateRelease(manualForm);
-      await addLinea(rel);
-      setManualForm({ artista: '', titulo: '', sello: '', formato: 'LP', anio: '', ean: '' });
+      const recordar = manualForm.recordar && !!manualForm.proveedor_id;
+      // Disc nou: el proveïdor habitual es desa en crear-lo. Disc que ja existia:
+      // PATCH dedicat (un PUT reemplaçaria tota la fitxa).
+      const rel = await resolveOrCreateRelease({ ...manualForm, suggested_supplier_id: recordar ? manualForm.proveedor_id : null });
+      if (recordar && rel.existing) {
+        await authFetch(`/admin/releases/${rel.id}/proveedor-sugerido`, {
+          method: 'PATCH', body: JSON.stringify({ suggested_supplier_id: manualForm.proveedor_id }),
+        });
+      }
+      await addLinea(rel, manualForm.proveedor_id);
+      setManualForm(EMPTY_MANUAL);
       setManualMode(false);
     } finally {
       setResolving(false);
     }
   }
 
+  // Mateixa regla que "Vendes recents" i les reposicions: la calcula el servidor.
   async function suggestProveidor(releaseId, artista) {
-    let rows = [];
-    if (releaseId) {
-      const r = await authFetch(`/admin/historial-compres?release_id=${releaseId}`);
-      rows = r.ok ? await r.json() : [];
-    }
-    if (rows.length === 0 && artista) {
-      const r = await authFetch(`/admin/historial-compres?q=${encodeURIComponent(artista)}`);
-      rows = r.ok ? await r.json() : [];
-    }
-    if (rows.length === 0) return '';
-    const counts = new Map();
-    for (const row of rows) {
-      counts.set(row.proveedor_id, (counts.get(row.proveedor_id) || 0) + 1);
-    }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    const params = new URLSearchParams();
+    if (releaseId) params.set('release_id', releaseId);
+    if (artista) params.set('artista', artista);
+    const r = await authFetch(`/admin/solicitudes-compra/proveedor-sugerido?${params}`);
+    return r.ok ? ((await r.json()).proveedor_id ?? '') : '';
   }
 
-  async function addLinea(rel) {
-    const proveedorSugerit = await suggestProveidor(rel.existing ? rel.id : null, rel.artista);
+  // `elegit`: proveïdor triat a mà al formulari; si no n'hi ha, el suggerit pel servidor.
+  async function addLinea(rel, elegit = '') {
+    const proveedorSugerit = elegit || await suggestProveidor(rel.id, rel.artista);
     setLineas(prev => [...prev, {
       release_id: rel.id, artista: rel.artista, titulo: rel.titulo, sello: rel.sello, ean: rel.ean, existing: rel.existing,
       cantidad: 1, proveedor_sugerido_id: proveedorSugerit,
@@ -153,11 +154,24 @@ export default function NovaSolicitudPage() {
                 <input type="number" value={manualForm.anio} onChange={e => setManualForm(f => ({ ...f, anio: e.target.value }))}
                   placeholder={t('purchases.manual.year_ph', 'Any')} min="1900" max="2030"
                   className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                <select value={manualForm.proveedor_id} onChange={e => setManualForm(f => ({ ...f, proveedor_id: e.target.value, recordar: e.target.value ? f.recordar : false }))}
+                  aria-label={t('purchases.suggested_supplier', 'Proveïdor suggerit')}
+                  className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card">
+                  <option value="">{t('purchases.manual.supplier_auto', 'Proveïdor: automàtic')}</option>
+                  {proveedores.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
                 <input value={manualForm.ean} onChange={e => setManualForm(f => ({ ...f, ean: e.target.value }))}
                   onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
                   placeholder={t('purchases.manual.ean_ph', 'EAN / codi de barres')} inputMode="numeric"
                   className="col-span-2 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
               </div>
+              {manualForm.proveedor_id && (
+                <label className="flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer">
+                  <input type="checkbox" checked={manualForm.recordar}
+                    onChange={e => setManualForm(f => ({ ...f, recordar: e.target.checked }))} />
+                  {t('purchases.manual.remember_supplier', 'Recorda\'l com a proveïdor habitual d\'aquest disc')}
+                </label>
+              )}
               {eanSospechoso && (
                 <p className="text-xs text-amber-600">{t('purchases.manual.ean_warn', 'L\'EAN hauria de tenir 8, 12 o 13 dígits.')}</p>
               )}
