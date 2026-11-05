@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth';
 import { Button } from '../../../components/ui/button';
 import MIcon from '../../../components/ui/m-icon';
+import GestorEtiquetes from './GestorEtiquetes';
 
 const DEFAULT_COLORS = [
   '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
@@ -19,6 +20,7 @@ export default function EtiquetesPage() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState('llista'); // 'llista' | 'gestor'
 
   async function load() {
     setLoading(true);
@@ -81,13 +83,31 @@ export default function EtiquetesPage() {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto">
+    <div className={`space-y-5 mx-auto ${tab === 'gestor' ? 'max-w-5xl' : 'max-w-2xl'}`}>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-on-surface">Etiquetes</h2>
-        <Button size="sm" onClick={openNew}>
-          <MIcon name="add" size={15} /> Nova etiqueta
-        </Button>
+        {tab === 'llista' && (
+          <Button size="sm" onClick={openNew}>
+            <MIcon name="add" size={15} /> Nova etiqueta
+          </Button>
+        )}
       </div>
+
+      <div className="flex gap-1 border-b border-outline-variant">
+        {[['llista', 'Etiquetes'], ['gestor', 'Assignar discos']].map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 ${tab === k ? 'border-primary text-on-surface' : 'border-transparent text-secondary-foreground'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'gestor' ? (
+        <GestorEtiquetes etiquetes={etiquetes.filter(e => e.active)} />
+      ) : (<>
 
       {editing && (
         <EtiquetaForm
@@ -166,6 +186,7 @@ export default function EtiquetesPage() {
           </div>
         )}
       </div>
+      </>)}
     </div>
   );
 }
