@@ -35,7 +35,7 @@
   },
   "cataleg": {
     "sortBy": "Ordenar por",
-    "sort": { "novetats": "Novedades", "preu_asc": "Precio: de menos a más", "preu_desc": "Precio: de más a menos", "artista": "Artista A–Z", "titol": "Título A–Z", "any_desc": "Año: más reciente", "any_asc": "Año: más antiguo" },
+    "sort": { "novetats": "Nuevas entradas", "preu_asc": "Precio: de menos a más", "preu_desc": "Precio: de más a menos", "artista": "Artista A–Z", "titol": "Título A–Z", "any_desc": "Año: más reciente", "any_asc": "Año: más antiguo" },
     "title": "Catálogo",
     "noResults": "Sin resultados",
     "resultCount": "{count, plural, one {# disco} other {# discos}}",
