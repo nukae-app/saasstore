@@ -98,3 +98,60 @@ def test_crear_peticion_tienda_con_nou_agotado_no_falla(db, client):
         headers=_auth(admin_token),
     )
     assert resp.status_code == 201
+
+
+def _seed_sort(db):
+    """A: 1 copia a 30 (la más antigua); B: copias a 50 y 10 (mín. 10); C: 20 (la más nueva)."""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    out = {}
+    for name, artista, prices, age in (("A", "Zeta", ["30"], 3), ("B", "Beta", ["50", "10"], 2), ("C", "Alfa", ["20"], 1)):
+        r = Release(artista=artista, title=name, formato="LP")
+        db.add(r)
+        db.flush()
+        for pr in prices:
+            db.add(Item(release_id=r.id, price=Decimal(pr), condition=CondicionItem.segona_ma,
+                        created_at=now - timedelta(days=age)))
+        out[name] = r
+    db.commit()
+    return out
+
+
+def _titles(client, sort):
+    return [r["title"] for r in client.get(f"/catalog?sort={sort}").json()["results"]]
+
+
+def test_catalog_sort_novetats(db, client):
+    _seed_sort(db)
+    assert _titles(client, "novetats") == ["C", "B", "A"]
+
+
+def test_catalog_sort_preu_usa_minimo_disponible(db, client):
+    _seed_sort(db)
+    assert _titles(client, "preu_asc") == ["B", "C", "A"]
+    assert _titles(client, "preu_desc") == ["A", "C", "B"]
+
+
+def test_catalog_sort_artista_y_titol(db, client):
+    _seed_sort(db)
+    assert _titles(client, "artista") == ["C", "B", "A"]
+    assert _titles(client, "titol") == ["A", "B", "C"]
+
+
+def test_catalog_sort_invalido_422(db, client):
+    assert client.get("/catalog?sort=lo_que_sea").status_code == 422
+
+
+def test_catalog_sort_any_con_nulos_al_final(db, client):
+    from app.models import RecordProduct
+    for title, anio in (("X", 1975), ("Y", None), ("Z", 2001)):
+        r = Release(artista="Art", title=title, formato="LP")
+        db.add(r)
+        db.flush()
+        db.add(Item(release_id=r.id, price=Decimal("10"), condition=CondicionItem.segona_ma))
+        rec = db.get(RecordProduct, r.id)
+        if rec is not None:
+            rec.anio = anio
+    db.commit()
+    assert _titles(client, "any_desc") == ["Z", "X", "Y"]
+    assert _titles(client, "any_asc") == ["X", "Z", "Y"]

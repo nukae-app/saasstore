@@ -34,6 +34,8 @@
     "next": "Següent"
   },
   "cataleg": {
+    "sortBy": "Ordena per",
+    "sort": { "novetats": "Novetats", "preu_asc": "Preu: de menys a més", "preu_desc": "Preu: de més a menys", "artista": "Artista A–Z", "titol": "Títol A–Z", "any_desc": "Any: més recent", "any_asc": "Any: més antic" },
     "title": "Catàleg",
     "noResults": "Cap resultat",
     "resultCount": "{count, plural, one {# disc} other {# discos}}",

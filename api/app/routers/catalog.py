@@ -83,6 +83,7 @@ def list_catalog(
     esta_sonant: bool | None = None,
     precio_min: float | None = None,
     precio_max: float | None = None,
+    sort: str = Query("artista", pattern="^(novetats|preu_asc|preu_desc|artista|titol|any_desc|any_asc)$", description="ordenació: novetats, preu_asc, preu_desc, artista, titol, any_desc, any_asc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(24, ge=1, le=100),
 ):
@@ -159,6 +160,29 @@ def list_catalog(
         )
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+
+    # Novetats / preu s'agreguen sobre les còpies DISPONIBLES (mateix criteri
+    # que el filtre): un release amb còpies a preus diferents s'ordena pel
+    # preu mínim ("des de X €"). Release.id tanca cada ordre perquè la
+    # paginació sigui estable amb empats.
+    min_price = (
+        select(func.min(Item.price)).where(Item.release_id == Release.id).where(item_disponible)
+        .correlate(Release).scalar_subquery()
+    )
+    last_item = (
+        select(func.max(Item.created_at)).where(Item.release_id == Release.id).where(item_disponible)
+        .correlate(Release).scalar_subquery()
+    )
+    order_clauses = {
+        "novetats": (last_item.desc(), Release.id),
+        "preu_asc": (min_price.asc(), Release.id),
+        "preu_desc": (min_price.desc(), Release.id),
+        "titol": (Release.title, Release.id),
+        # Sense any (alta manual, floristeria...) al final en qualsevol sentit.
+        "any_desc": (RecordProduct.anio.desc().nulls_last(), Release.id),
+        "any_asc": (RecordProduct.anio.asc().nulls_last(), Release.id),
+        "artista": (RecordProduct.artista, Release.title, Release.id),
+    }[sort]
     rows = db.scalars(
         stmt.options(
             selectinload(Release.items),
@@ -168,7 +192,7 @@ def list_catalog(
             selectinload(Release.floristeria),
             selectinload(Release.record),
         )
-        .order_by(RecordProduct.artista, Release.title)
+        .order_by(*order_clauses)
         .offset((page - 1) * page_size)
         .limit(page_size)
     ).all()

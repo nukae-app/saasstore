@@ -6,6 +6,7 @@ import StorefrontNav from '../../../components/store/StorefrontNav';
 import StorefrontFooter from '../../../components/store/StorefrontFooter';
 import ReleaseCard from '../../../components/store/ReleaseCard';
 import CatalogFilters from './CatalogFilters';
+import CatalogSort from './CatalogSort';
 import MobileFilterSheet from '../../../components/store/MobileFilterSheet';
 import CrateBrowser from '../../../components/store/CrateBrowser';
 
@@ -34,6 +35,7 @@ async function CatalogResults({ searchParams, recordstore }) {
   if (p.etiqueta) qs.set('etiqueta', p.etiqueta);
   if (p.min) qs.set('precio_min', p.min);
   if (p.max) qs.set('precio_max', p.max);
+  qs.set('sort', ['novetats', 'preu_asc', 'preu_desc', 'artista', 'titol', 'any_desc', 'any_asc'].includes(p.sort) ? p.sort : 'novetats');
   qs.set('page', p.page || '1');
   qs.set('page_size', '24');
 
@@ -56,6 +58,7 @@ async function CatalogResults({ searchParams, recordstore }) {
     if (p.etiqueta) ui.set('etiqueta', p.etiqueta);
     if (p.min) ui.set('min', p.min);
     if (p.max) ui.set('max', p.max);
+    if (p.sort) ui.set('sort', p.sort);
     ui.set('page', pg);
     return `/cataleg?${ui}`;
   }
@@ -65,13 +68,15 @@ async function CatalogResults({ searchParams, recordstore }) {
       {/* Sota Recordstore el mockup no porta comptador de resultats — es
           manté només el missatge de "cap resultat", que és informació real
           que l'usuari necessita, no un simple recompte decoratiu. */}
-      {(!recordstore || catalog.total === 0) && (
-        <div className="flex items-baseline justify-between mb-6">
-          <p className="text-sm text-zinc-500">
-            {catalog.total === 0 ? t('noResults') : t('resultCount', { count: catalog.total })}
-          </p>
-        </div>
-      )}
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <p className="text-sm text-zinc-500">
+          {(!recordstore || catalog.total === 0) &&
+            (catalog.total === 0 ? t('noResults') : t('resultCount', { count: catalog.total }))}
+        </p>
+        <Suspense>
+          <CatalogSort />
+        </Suspense>
+      </div>
 
       {catalog.results.length === 0 ? (
         <div className="py-20 text-center">

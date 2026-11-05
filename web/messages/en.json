@@ -34,6 +34,8 @@
     "next": "Next"
   },
   "cataleg": {
+    "sortBy": "Sort by",
+    "sort": { "novetats": "Newest", "preu_asc": "Price: low to high", "preu_desc": "Price: high to low", "artista": "Artist A–Z", "titol": "Title A–Z", "any_desc": "Year: newest", "any_asc": "Year: oldest" },
     "title": "Catalogue",
     "noResults": "No results",
     "resultCount": "{count, plural, one {# record} other {# records}}",
