@@ -278,7 +278,7 @@ function CompraParticularModal({ onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-3xl my-8">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-5xl my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h3 className="text-lg font-bold text-on-surface">{t('purchases.btn.individual_purchase', 'Compra particular')}</h3>
           <button onClick={onClose} className="text-secondary-foreground hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container-high"><MIcon name="close" size={20} /></button>
@@ -394,7 +394,7 @@ function CompraParticularModal({ onClose, onSaved }) {
                       <MIcon name="delete" size={15} />
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap items-end gap-3">
                     <div>
                       <label className="block text-xs text-secondary-foreground mb-1">{t('common.condition')}</label>
                       <select value={it.condicion} onChange={e => upd(idx, 'condicion', e.target.value)}
@@ -406,17 +406,17 @@ function CompraParticularModal({ onClose, onSaved }) {
                     <div>
                       <label className="block text-xs text-secondary-foreground mb-1">{t('common.quantity', 'Quantitat')}</label>
                       <input type="number" step="1" min="1" value={it.cantidad} onChange={e => upd(idx, 'cantidad', e.target.value)} required
-                        className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                        className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card" />
                     </div>
                     <div>
                       <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.individual_modal.purchase_price', 'Preu de compra')}{(parseInt(it.cantidad, 10) || 1) > 1 ? ` (${t('purchases.per_unit', 'per unitat')})` : ''}</label>
                       <input type="number" step="0.01" min="0" value={it.coste_adquisicion} onChange={e => upd(idx, 'coste_adquisicion', e.target.value)} required
-                        className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                        className="w-28 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card" />
                     </div>
                     <div>
                       <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.individual_modal.sale_price_catalog', 'Preu venda (catàleg)')}</label>
                       <input type="number" step="0.01" min="0" value={it.precio} onChange={e => upd(idx, 'precio', e.target.value)} required
-                        className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                        className="w-28 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-card" />
                     </div>
                     {it.condicion === 'segona_ma' && vertical === 'records' && <>
                       <div>
