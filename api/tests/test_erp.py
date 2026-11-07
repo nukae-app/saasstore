@@ -173,6 +173,33 @@ def test_compra_a_particular_crea_items(db, client):
     assert item.entry_date == compra.date
 
 
+def test_compra_particular_quantitat_segona_ma_crea_copies_i_nou_agrega(db, client):
+    admin = _admin_token(client, db)
+    r = _seed_release(db, artista="Multi", titulo="Copies")
+    r2 = _seed_release(db, artista="Multi", titulo="Nou")
+
+    payload = {
+        "individual_name": "Joan Puig",
+        "date": "2026-06-05T17:30:00",
+        "items": [
+            {"release_id": str(r.id), "price": "10.00", "acquisition_cost": "4.00", "quantity": 3},
+            {"release_id": str(r2.id), "price": "20.00", "acquisition_cost": "8.00",
+             "condition": "nou", "quantity": 5},
+        ],
+    }
+    resp = client.post("/admin/compras/particular", json=payload, headers=_auth(admin))
+    assert resp.status_code == 201
+    assert resp.json()["items_creados"] == 8
+
+    db.expire_all()
+    copias = db.scalars(select(Item).where(Item.release_id == r.id)).all()
+    assert len(copias) == 3 and all(c.quantity == 1 for c in copias)
+    nous = db.scalars(select(Item).where(Item.release_id == r2.id)).all()
+    assert len(nous) == 1 and nous[0].quantity == 5
+    compra = db.get(Compra, uuid.UUID(resp.json()["id"]))
+    assert compra.total_cost == Decimal("52.00")  # 3*4 + 5*8
+
+
 def test_compra_particular_registra_sortida_caixa_si_sessio_oberta(db, client):
     admin = _admin_token(client, db)
     r = _seed_release(db, artista="Second Hand", titulo="Rarity")

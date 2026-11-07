@@ -12,6 +12,7 @@ class CompraParticularItemIn(BaseModel):
     condition: str = "segona_ma"
     estado_disco: str | None = None
     estado_funda: str | None = None
+    quantity: int = Field(default=1, ge=1, le=999)  # preu/cost són per unitat
 
 
 class CompraParticularIn(BaseModel):

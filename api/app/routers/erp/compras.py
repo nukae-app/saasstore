@@ -3,20 +3,21 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from ...database import get_db
 from ...models import (
-    CajaMovimiento, CajaSession, Comanda, Compra, CompraLinea, DevolucionCompra, EstadoComanda, Item,
+    CajaMovimiento, CajaSession, CondicionItem, Comanda, Compra, CompraLinea, DevolucionCompra, EstadoComanda, Item,
     Proveedor, Release, TipoCompra, TipoMovimiento,
 )
 from ...schemas import (
     CompraItemOut, CompraOut, CompraParticularIn, ComprasStatsMesOut, ComprasStatsOut,
     ComprasStatsProveedorOut,
 )
+from ...services.discogs_sync import get_discogs_token_if_enabled, sync_stock_listing
 from ...services.recepcio_pdf import generate_recepcio_pdf
 from ...services.security import require_admin
 
@@ -37,14 +38,14 @@ def _registrar_sortida_caixa(db: Session, concept: str, amount: Decimal, date: d
 
 
 @router.post("/compras/particular", status_code=201)
-def create_compra_particular(payload: CompraParticularIn, db: Session = Depends(get_db)):
+def create_compra_particular(payload: CompraParticularIn, request: Request, db: Session = Depends(get_db)):
     """Compra ràpida a un particular que ve a la botiga: neix entregada (stock
     disponible a l'instant) i s'apunta com a sortida de caixa si hi ha sessió oberta."""
     for line in payload.items:
         if db.get(Release, line.release_id) is None:
             raise HTTPException(404, f"Release {line.release_id} no encontrado")
 
-    total_coste = sum((line.acquisition_cost for line in payload.items), Decimal("0"))
+    total_coste = sum((line.acquisition_cost * line.quantity for line in payload.items), Decimal("0"))
     compra = Compra(
         type=TipoCompra.particular,
         individual_name=payload.individual_name,
@@ -56,12 +57,61 @@ def create_compra_particular(payload: CompraParticularIn, db: Session = Depends(
     db.add(compra)
     db.flush()
 
+    # segona_ma: una fila Item per còpia física (cantidad=1). nou: stock
+    # agregat, una sola fila que acumula amb cost mitjà ponderat (com a
+    # recibir_comanda).
+    token = None
+    creados: list[tuple[Item, "CompraParticularItemIn"]] = []
+    nou_vistos: dict[uuid.UUID, Item] = {}
     for line in payload.items:
-        db.add(Item(
-            release_id=line.release_id, price=line.price, condition=line.condition,
-            acquisition_cost=line.acquisition_cost, estado_disco=line.estado_disco,
-            estado_funda=line.estado_funda, compra_id=compra.id,
-            entry_date=compra.date,
+        if line.condition != CondicionItem.nou.value:
+            for _ in range(line.quantity):
+                nuevo = Item(
+                    release_id=line.release_id, price=line.price, condition=line.condition,
+                    acquisition_cost=line.acquisition_cost, estado_disco=line.estado_disco,
+                    estado_funda=line.estado_funda, compra_id=compra.id,
+                    entry_date=compra.date,
+                )
+                db.add(nuevo)
+                creados.append((nuevo, line))
+            continue
+
+        agregado = nou_vistos.get(line.release_id) or db.scalar(
+            select(Item).where(Item.release_id == line.release_id, Item.condition == CondicionItem.nou)
+        )
+        n = line.quantity
+        if agregado is None:
+            agregado = Item(
+                release_id=line.release_id, price=line.price, condition=CondicionItem.nou,
+                quantity=n, acquisition_cost=line.acquisition_cost,
+                compra_id=compra.id, entry_date=compra.date,
+            )
+            db.add(agregado)
+        else:
+            if agregado.acquisition_cost is None:
+                agregado.acquisition_cost = line.acquisition_cost
+            else:
+                agregado.acquisition_cost = (
+                    agregado.quantity * agregado.acquisition_cost + n * line.acquisition_cost
+                ) / (agregado.quantity + n)
+            agregado.quantity += n
+            agregado.price = line.price
+            agregado.compra_id = compra.id
+            agregado.entry_date = compra.date
+        if token is None:
+            token = get_discogs_token_if_enabled(db, request.state.tenant.id) or ""
+        sync_stock_listing(db, agregado, token or None)
+        nou_vistos[line.release_id] = agregado
+        creados.append((agregado, line))
+
+    db.flush()
+    for item, line in creados:
+        db.add(CompraLinea(
+            compra_id=compra.id, item_id=item.id, release_id=line.release_id,
+            condition=line.condition,
+            quantity=line.quantity if line.condition == CondicionItem.nou.value else 1,
+            acquisition_cost=line.acquisition_cost, price=line.price,
+            estado_disco=line.estado_disco,
         ))
 
     if total_coste > 0:
@@ -69,7 +119,7 @@ def create_compra_particular(payload: CompraParticularIn, db: Session = Depends(
         _registrar_sortida_caixa(db, f"Compra a particular: {nombre}", total_coste, payload.date)
 
     db.commit()
-    return {"id": str(compra.id), "items_creados": len(payload.items)}
+    return {"id": str(compra.id), "items_creados": sum(l.quantity for l in payload.items)}
 
 
 @router.get("/compras", response_model=list[CompraOut])

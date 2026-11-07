@@ -248,7 +248,7 @@ function CompraParticularModal({ onClose, onSaved }) {
   }
 
   function addItem(rel) {
-    setItems(prev => [...prev, { release_id: rel.id, artista: rel.artista, titulo: rel.titulo, existing: rel.existing, precio: '', coste_adquisicion: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '' }]);
+    setItems(prev => [...prev, { release_id: rel.id, artista: rel.artista, titulo: rel.titulo, existing: rel.existing, cantidad: 1, precio: '', coste_adquisicion: '', condicion: 'segona_ma', estado_disco: '', estado_funda: '' }]);
   }
 
   function upd(idx, k, v) { setItems(prev => prev.map((it, i) => i === idx ? { ...it, [k]: v } : it)); }
@@ -263,6 +263,7 @@ function CompraParticularModal({ onClose, onSaved }) {
       notes: notas || null,
       items: items.map(it => ({
         release_id: it.release_id,
+        quantity: Math.max(1, parseInt(it.cantidad, 10) || 1),
         price: parseFloat(it.precio),
         acquisition_cost: parseFloat(it.coste_adquisicion),
         condition: it.condicion,
@@ -403,7 +404,12 @@ function CompraParticularModal({ onClose, onSaved }) {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.individual_modal.purchase_price', 'Preu de compra')}</label>
+                      <label className="block text-xs text-secondary-foreground mb-1">{t('common.quantity', 'Quantitat')}</label>
+                      <input type="number" step="1" min="1" value={it.cantidad} onChange={e => upd(idx, 'cantidad', e.target.value)} required
+                        className="w-20 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-secondary-foreground mb-1">{t('purchases.individual_modal.purchase_price', 'Preu de compra')}{(parseInt(it.cantidad, 10) || 1) > 1 ? ` (${t('purchases.per_unit', 'per unitat')})` : ''}</label>
                       <input type="number" step="0.01" min="0" value={it.coste_adquisicion} onChange={e => upd(idx, 'coste_adquisicion', e.target.value)} required
                         className="w-24 border border-outline-variant rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
                     </div>
