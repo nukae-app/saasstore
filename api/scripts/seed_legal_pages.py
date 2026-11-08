@@ -26,6 +26,7 @@ from sqlalchemy import select
 from app.database import SessionLocal
 from app.models import ConfiguracioBotiga, Pagina, Tenant
 from app.tenancy import scoped_to
+from scripts.legal_i18n import EN_PAGES, ES_PAGES
 
 PENDENT = "[pendent]"
 
@@ -87,6 +88,9 @@ amb el Reglament (UE) 2016/679 (RGPD) i la Llei Orgànica 3/2018 (LOPDGDD).</p>
     <tr><td>Gestionar les teves compres, peticions de discos i, si t'hi apuntes, el club del disc: cobrament, enviament, atenció postvenda i garantia</td>
         <td>Dades de contacte, adreça d'entrega, comandes, imports. No guardem dades de la targeta: les tracta directament la passarel·la de pagament.</td>
         <td>Execució del contracte (art. 6.1.b)</td></tr>
+    <tr><td>Deixar constància que vas acceptar les condicions de venda abans de pagar, i de si exerceixes el desistiment</td>
+        <td>Data i hora de l'acceptació i, si escau, del desistiment, vinculades a la comanda</td>
+        <td>Obligació legal i interès legítim a acreditar el compliment (art. 6.1.c i 6.1.f)</td></tr>
     <tr><td>Complir obligacions fiscals, comptables i mercantils</td>
         <td>Comandes, factures i dades de facturació</td>
         <td>Obligació legal (art. 6.1.c)</td></tr>
@@ -101,9 +105,18 @@ amb el Reglament (UE) 2016/679 (RGPD) i la Llei Orgànica 3/2018 (LOPDGDD).</p>
         <td>Interès legítim (art. 6.1.f)</td></tr>
   </tbody>
 </table>
-<p>Si connectes el teu compte de Spotify per rebre recomanacions, només usem les
-dades de gust musical que autoritzes en aquell moment; pots desconnectar-lo
-quan vulguis. No prenem decisions automatitzades amb efectes jurídics sobre tu.</p>
+<h2>Serveis de tercers que hi intervenen</h2>
+<ul>
+  <li><strong>Google (inici de sessió).</strong> Si tries entrar amb Google, rebem el teu correu i nom, ja
+      verificats. Google tracta les teves dades com a responsable independent, segons la seva pròpia política.</li>
+  <li><strong>Spotify (opcional).</strong> Només si connectes el teu compte per rebre recomanacions, llegim el teu perfil
+      i els teus artistes i cançons més escoltats, amb el permís que autoritzes en aquell moment. Pots desconnectar-lo quan vulguis.</li>
+  <li><strong>Intel·ligència artificial (Anthropic, Claude).</strong> Per ampliar aquestes recomanacions enviem a Anthropic
+      una llista de fins a 10 noms d'artistes, <strong>sense el teu nom, correu ni cap identificador</strong>. Anthropic actua
+      com a encarregat del tractament. No prenem decisions automatitzades amb efectes jurídics sobre tu.</li>
+  <li><strong>Discogs.</strong> Si compres un disc a través del nostre aparador a Discogs, Discogs ens facilita el teu nom
+      i adreça d'entrega per poder enviar-te'l. Tractem aquestes dades per executar aquella compra.</li>
+</ul>
 
 <h2>Amb qui compartim les dades</h2>
 <p>No venem ni cedim les teves dades amb finalitats comercials. Només hi accedeixen
@@ -161,6 +174,7 @@ música) <strong>no es carrega fins que tu ho demanes</strong>.</p>
     <tr><td><code>ulr_token</code> (emmagatzematge local)</td><td>Credencial d'accés de curta durada de la teva sessió</td><td>Fins que tanquis sessió</td></tr>
     <tr><td><code>ulr_lang</code> (emmagatzematge local)</td><td>Recordar l'idioma triat</td><td>Persistent</td></tr>
     <tr><td><code>embed_consent_hosts</code> (emmagatzematge local)</td><td>Recordar de quins proveïdors has acceptat carregar contingut</td><td>Fins que l'esborris</td></tr>
+    <tr><td><code>remena:…</code> (emmagatzematge de sessió)</td><td>Conservar els resultats del catàleg mentre navegues, per tornar sense perdre el lloc</td><td>Fins que tanquis la pestanya</td></tr>
   </tbody>
 </table>
 
@@ -182,7 +196,7 @@ bloqueges les tècniques, no podràs iniciar sessió ni fer servir el carret.</p
 
 TERMES_TEMPLATE = """
 <p>L'accés i ús d'aquest web, propietat de {nom}, implica l'acceptació d'aquests termes.
-Les compres es regeixen a més per les <a href="/condicions-venda">condicions de venda</a>.</p>
+Les compres es regeixen a més per les <a href="/ca/condicions-venda">condicions de venda</a>.</p>
 
 <h2>Ús del web</h2>
 <p>Et compromets a fer-ne un ús lícit i a no intentar accedir a àrees restringides,
@@ -194,11 +208,11 @@ algú hi ha accedit, avisa'ns a <a href="mailto:{email}">{email}</a>. Podem susp
 comptes que incompleixin aquests termes o la llei.</p>
 
 <h2>Contingut i propietat intel·lectual</h2>
-<p>Vegeu l'<a href="/avis-legal">avís legal</a>.</p>
+<p>Vegeu l'<a href="/ca/avis-legal">avís legal</a>.</p>
 
 <h2>Dades personals i cookies</h2>
-<p>Vegeu la <a href="/privacitat">política de privacitat</a> i la
-<a href="/cookies">política de cookies</a>.</p>
+<p>Vegeu la <a href="/ca/privacitat">política de privacitat</a> i la
+<a href="/ca/cookies">política de cookies</a>.</p>
 
 <h2>Modificacions</h2>
 <p>Podem actualitzar aquests termes; la versió vigent és sempre la publicada en aquesta pàgina.</p>
@@ -228,7 +242,7 @@ s'indiquen i se sumen al total abans de confirmar el pagament.</p>
 
 <h2>Procés de compra i contracte</h2>
 <p>Afegeixes els productes al carret, indiques les dades i l'adreça i confirmes la
-comanda prement el botó de pagament, que implica una obligació de pagar. Els
+comanda prement el botó «Comanda amb obligació de pagar», que implica una obligació de pagar. Els
 exemplars del carret es reserven durant uns minuts mentre completes el pagament.
 Un cop pagada, rebràs un correu de confirmació. Podem cancel·lar una comanda i
 reemborsar-te si un article no està realment disponible.</p>
@@ -247,8 +261,10 @@ preparada per recollir.</p>
 <h2>Dret de desistiment (14 dies)</h2>
 <p>Tens dret a desistir de la compra, sense justificar-ho, en un termini de
 <strong>14 dies naturals</strong> des que tu (o la persona que triïs) rep els productes.
-Per exercir-lo, comunica'ns la decisió de forma inequívoca per correu electrònic a
-<a href="mailto:{email}">{email}</a> (pots fer servir el formulari següent). Has de
+Pots exercir-lo de forma senzilla amb la nostra
+<a href="/ca/desistiment"><strong>funció de desistiment en línia</strong></a> (referència de la comanda i correu de compra),
+o per correu electrònic a <a href="mailto:{email}">{email}</a> (pots fer servir el formulari següent).
+T'enviarem un correu que confirma que hem rebut la teva comunicació. Has de
 tornar els productes en un màxim de 14 dies des de la comunicació; el cost directe de
 la devolució és a càrrec teu, llevat que s'indiqui el contrari. Et reemborsarem tots els
 pagaments, incloent-hi les despeses d'enviament estàndard, en un màxim de 14 dies des
@@ -264,7 +280,8 @@ Rebuda el: [data]. Nom: [nom]. Adreça: [adreça]. Data: [data].»</p>
 
 <h2>Garantia legal</h2>
 <p>Els productes tenen la garantia legal de conformitat: <strong>3 anys</strong> per als
-nous i <strong>1 any</strong> per als de segona mà, des del lliurament. Si el producte no és
+nous i <strong>1 any</strong> per als de segona mà, des del lliurament. Per als articles de segona mà, les parts
+pactem expressament aquest termini d'1 any, que acceptes en confirmar la comanda. Si el producte no és
 conforme, tens dret a la reparació o substitució i, si no és possible, a la rebaixa del preu
 o a la resolució del contracte. Un exemplar de segona mà no es considera no conforme per
 desgastos propis de l'ús que ja constin en l'estat indicat a la fitxa. Contacta'ns a
@@ -276,16 +293,33 @@ Catalana del Consum o als mecanismes de resolució alternativa de conflictes de 
 Per a qualsevol queixa, escriu-nos primer a <a href="mailto:{email}">{email}</a>.</p>
 
 <h2>Protecció de dades</h2>
-<p>Vegeu la <a href="/privacitat">política de privacitat</a>.</p>
+<p>Vegeu la <a href="/ca/privacitat">política de privacitat</a>.</p>
 """.strip()
 
 
-PAGES = (
+_CA_PAGES = (
     ("avis-legal", "Avís legal", AVIS_LEGAL_TEMPLATE, 89),
     ("privacitat", "Política de privacitat", PRIVACITAT_TEMPLATE, 90),
     ("termes", "Termes d'ús", TERMES_TEMPLATE, 91),
     ("cookies", "Política de cookies", COOKIES_TEMPLATE, 92),
     ("condicions-venda", "Condicions de venda", CONDICIONS_VENDA_TEMPLATE, 93),
+)
+
+# Una página por idioma: el catalán conserva el slug base (los enlaces de todo el
+# sitio apuntan a él) y es/en usan `<slug>-es` / `<slug>-en`. El front (ruta
+# [pagina]) sirve la del idioma activo y cae al slug base si no existe.
+# Posiciones: las de es/en van a continuación para no mezclarse con las catalanas.
+def _translated(pages: dict, lang: str, first_position: int):
+    return tuple(
+        (f"{slug}-{lang}", name, template, first_position + i)
+        for i, (slug, (name, template)) in enumerate(pages.items())
+    )
+
+
+PAGES = (
+    *_CA_PAGES,
+    *_translated(ES_PAGES, "es", 94),
+    *_translated(EN_PAGES, "en", 99),
 )
 
 

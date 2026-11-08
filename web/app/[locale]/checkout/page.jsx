@@ -99,6 +99,9 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(0);
   const [reserving, setReserving] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // Aceptación de condiciones de venta + privacidad: obligatoria para confirmar y se
+  // envía al servidor (que la valida y deja constancia en el pedido).
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState('');
   const [orderId, setOrderId] = useState(null);
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -281,6 +284,7 @@ export default function CheckoutPage() {
           phone: form.telefono || null,
         } : null,
         language: locale,
+        accept_terms: acceptTerms,
       };
       const res = await fetch('/api/checkout/confirm', {
         method: 'POST',
@@ -703,6 +707,21 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
+                <label className="flex items-start gap-3 mb-5 text-sm text-zinc-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={e => setAcceptTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-zinc-900"
+                  />
+                  <span>
+                    {t.rich('acceptTerms', {
+                      terms: (chunks) => <Link href="/condicions-venda" target="_blank" className="underline hover:text-zinc-900">{chunks}</Link>,
+                      privacy: (chunks) => <Link href="/privacitat" target="_blank" className="underline hover:text-zinc-900">{chunks}</Link>,
+                    })}
+                  </span>
+                </label>
+
                 <div className="flex gap-3">
                   <button
                     onClick={() => setStep(1)}
@@ -712,7 +731,8 @@ export default function CheckoutPage() {
                   </button>
                   <button
                     onClick={handleConfirm}
-                    disabled={confirming}
+                    disabled={confirming || !acceptTerms}
+                    title={!acceptTerms ? t('acceptTermsRequired') : undefined}
                     className="flex-2 flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-3 rounded-full font-medium text-sm transition-colors disabled:opacity-60"
                   >
                     {confirming ? <Loader2 size={16} className="animate-spin" /> : null}

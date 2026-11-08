@@ -504,7 +504,9 @@
     "cardPaymentExplanation": "et redirigirem a la passarela segura de Redsys per completar el pagament.",
     "edit": "← Editar",
     "confirming": "Confirmant…",
-    "confirmOrderButton": "Confirmar comanda",
+    "confirmOrderButton": "Comanda amb obligació de pagar",
+    "acceptTerms": "He llegit i accepto les <terms>condicions de venda</terms> i la <privacy>política de privacitat</privacy>.",
+    "acceptTermsRequired": "Has d'acceptar les condicions de venda per continuar.",
     "summary": "Resum",
     "subtotal": "Subtotal",
     "countries": {
@@ -609,7 +611,23 @@
     "termsOfUse": "Termes d'ús",
     "cookiesPolicy": "Política de cookies",
     "legalNotice": "Avís legal",
-    "salesTerms": "Condicions de venda"
+    "salesTerms": "Condicions de venda",
+    "withdrawal": "Desistiment"
+  },
+  "withdrawal": {
+    "title": "Desistiment de la compra",
+    "intro": "Tens 14 dies naturals des que reps la comanda per desistir-ne sense haver de justificar-ho. Indica'ns la comanda i t'enviarem un correu de confirmació.",
+    "orderRef": "Número de comanda",
+    "orderRefHelp": "Són els 8 primers caràcters que surten al correu de confirmació.",
+    "email": "Correu amb què vas comprar",
+    "name": "Nom (opcional)",
+    "submit": "Confirmar desistiment",
+    "sending": "Enviant…",
+    "doneTitle": "Desistiment enviat",
+    "done": "Si les dades coincideixen amb una comanda, rebràs ara un correu que confirma el desistiment. Si no el reps en uns minuts, revisa la carpeta de correu brossa o escriu-nos.",
+    "error": "No hem pogut enviar la sol·licitud. Torna-ho a provar d'aquí una estona.",
+    "exceptions": "Recorda: no hi ha dret de desistiment en discos precintats que has desprecintat. Més detalls a les",
+    "terms": "condicions de venda"
   },
   "embed": {
     "notice": "Aquest contingut ve de {host}. En carregar-lo, {host} pot veure la teva IP i instal·lar cookies.",

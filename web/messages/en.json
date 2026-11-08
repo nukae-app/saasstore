@@ -504,7 +504,9 @@
     "cardPaymentExplanation": "we'll redirect you to Redsys' secure gateway to complete the payment.",
     "edit": "← Edit",
     "confirming": "Confirming…",
-    "confirmOrderButton": "Confirm order",
+    "confirmOrderButton": "Order with obligation to pay",
+    "acceptTerms": "I have read and accept the <terms>terms of sale</terms> and the <privacy>privacy policy</privacy>.",
+    "acceptTermsRequired": "You must accept the terms of sale to continue.",
     "summary": "Summary",
     "subtotal": "Subtotal",
     "countries": {
@@ -609,7 +611,23 @@
     "termsOfUse": "Terms of use",
     "cookiesPolicy": "Cookie policy",
     "legalNotice": "Legal notice",
-    "salesTerms": "Terms of sale"
+    "salesTerms": "Terms of sale",
+    "withdrawal": "Withdrawal"
+  },
+  "withdrawal": {
+    "title": "Withdraw from your purchase",
+    "intro": "You have 14 calendar days from receiving your order to withdraw without giving a reason. Tell us which order and we will email you a confirmation.",
+    "orderRef": "Order number",
+    "orderRefHelp": "The first 8 characters shown in your confirmation email.",
+    "email": "Email you bought with",
+    "name": "Name (optional)",
+    "submit": "Confirm withdrawal",
+    "sending": "Sending…",
+    "doneTitle": "Withdrawal sent",
+    "done": "If the details match an order, you will now receive an email confirming the withdrawal. If it does not arrive within a few minutes, check your spam folder or contact us.",
+    "error": "We could not send your request. Please try again in a while.",
+    "exceptions": "Note: there is no right of withdrawal for sealed records you have unsealed. More details in the",
+    "terms": "terms of sale"
   },
   "embed": {
     "notice": "This content comes from {host}. Loading it lets {host} see your IP address and set cookies.",

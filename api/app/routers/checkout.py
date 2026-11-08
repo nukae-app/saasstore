@@ -173,6 +173,8 @@ def confirm_checkout(
     """Crea el pedido en `pendiente_pago`. El cobro real (y el paso a
     `pagado`/`vendido`) ocurre en la notificación de Redsys, no aquí."""
     _check_botiga_no_bloquejada(db, user)
+    if not payload.accept_terms:
+        raise HTTPException(422, "Cal acceptar les condicions de venda i la política de privacitat")
     if payload.shipping_method == "envio" and payload.shipping_address is None:
         raise HTTPException(422, "Falta la dirección de envío")
     if payload.payment_method == "tienda" and payload.shipping_method != "recogida_tienda":
@@ -251,6 +253,7 @@ def confirm_checkout(
         language=user.language if user else payload.language,
         coupon_code=coupon.code if coupon else None,
         coupon_discount=coupon_discount if coupon else None,
+        terms_accepted_at=datetime.now(timezone.utc),
     )
     db.add(order)
     db.flush()

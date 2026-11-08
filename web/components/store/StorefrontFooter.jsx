@@ -170,6 +170,7 @@ export default function StorefrontFooter() {
             <Link href="/cookies" className={legalLink}>{t('cookiesPolicy')}</Link>
             <Link href="/termes" className={legalLink}>{t('termsOfUse')}</Link>
             <Link href="/condicions-venda" className={legalLink}>{t('salesTerms')}</Link>
+            <Link href="/desistiment" className={legalLink}>{t('withdrawal')}</Link>
             <button type="button" className={legalLink}
               onClick={() => { clearEmbedConsent(); }}>
               {tEmbed('manage')}

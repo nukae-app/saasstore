@@ -25,6 +25,9 @@ class CheckoutConfirm(BaseModel):
     notes: str | None = None
     language: str = "ca"
     coupon_code: str | None = None
+    # El client ha marcat "accepto les condicions de venda i la privacitat".
+    # Es valida al servidor (no només al formulari): és la prova de l'acceptació.
+    accept_terms: bool = False
 
 
 class OrderOut(BaseModel):

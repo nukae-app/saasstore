@@ -9,7 +9,7 @@ from .rate_limit import limiter
 from .routers import (
     admin, admin_newsletter, admin_subscripcions, admin_users, auth, auth_mobile, billing_webhooks, blog, cart,
     catalog, checkout, comptabilitat, configuracio, documents, erp, health, home_blocks, i18n, internal, me,
-    newsletter_public, spotify, subscripcions_public, superadmin,
+    newsletter_public, spotify, subscripcions_public, superadmin, withdrawal,
 )
 
 app = FastAPI(
@@ -31,6 +31,7 @@ app.include_router(auth.router)
 app.include_router(auth_mobile.router)
 app.include_router(cart.router)
 app.include_router(checkout.router)
+app.include_router(withdrawal.router)
 app.include_router(admin.router)
 app.include_router(blog.router)
 app.include_router(erp.router)

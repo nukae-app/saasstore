@@ -114,6 +114,15 @@ class Order(TenantScoped, Base):
     # sobrevisqui l'esborrat del Coupon.
     coupon_code: Mapped[str | None] = mapped_column(String(40))
     coupon_discount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    # Prova legal (TRLGDCU art. 98 + RGPD art. 7.1): moment en què el client va
+    # acceptar les condicions de venda i la política de privacitat abans de
+    # pagar. Null en comandes anteriors a aquest camp i en vendes no web.
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Desistiment (Directiva 2011/83/UE art. 11 bis, funció de desistiment): moment
+    # en què el consumidor ha comunicat el desistiment. NO canvia `status` ni
+    # retorna estoc sol: és una comunicació; la devolució i el reemborsament
+    # els gestiona la botiga (el termini de 14 dies del reemborsament compta des d'aquí).
+    withdrawal_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Venda detectada al Marketplace de Discogs (origin='discogs'): mateix model, mateixa pantalla.

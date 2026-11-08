@@ -33,7 +33,12 @@ export default async function sitemap() {
 
   try {
     const paginas = await api('/pagines');
+    // Las traducciones de páginas legales (`privacitat-es`...) se sirven bajo el
+    // slug base según el idioma (ver [pagina]/page.jsx): listarlas aparte
+    // duplicaría URLs.
+    const esVarianteLegal = (slug) => /^(avis-legal|privacitat|termes|cookies|condicions-venda)-(es|en)$/.test(slug);
     for (const pagina of paginas) {
+      if (esVarianteLegal(pagina.slug)) continue;
       for (const locale of routing.locales) {
         entries.push({ url: `${SITE}/${locale}/${pagina.slug}` });
       }

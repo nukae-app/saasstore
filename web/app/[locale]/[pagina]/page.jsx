@@ -9,14 +9,31 @@ import { Music2, Headphones, Disc3, CalendarDays, MapPin, ExternalLink } from 'l
 import ArchiveSidebar from '../blog/ArchiveSidebar';
 import ArchiveSelect from '../blog/ArchiveSelect';
 
+// Páginas legales: una página por idioma (slug base = catalán; `-es` / `-en` las
+// otras). Los enlaces de todo el sitio apuntan al slug base (`/privacitat`) y es
+// ESTA ruta quien sirve la versión del idioma activo, con caída al slug base si
+// esa traducción no existe (tiendas que aún solo tienen catalán).
+const LEGAL_SLUGS = new Set(['avis-legal', 'privacitat', 'termes', 'cookies', 'condicions-venda']);
+
+async function fetchPagina(slug, locale) {
+  if (locale && locale !== 'ca' && LEGAL_SLUGS.has(slug)) {
+    try {
+      return await api(`/pagines/${slug}-${locale}`);
+    } catch {
+      // sin traducción: se sirve el slug base
+    }
+  }
+  return api(`/pagines/${slug}`);
+}
+
 // ---------------------------------------------------------------------------
 // Metadata
 // ---------------------------------------------------------------------------
 
 export async function generateMetadata({ params }) {
-  const { pagina: slug } = await params;
+  const { pagina: slug, locale } = await params;
   try {
-    const [p, config] = await Promise.all([api(`/pagines/${slug}`), api('/config/public')]);
+    const [p, config] = await Promise.all([fetchPagina(slug, locale), api('/config/public')]);
     return { title: `${p.name} — ${config.nombre}` };
   } catch {
     return {}; // hereta el title per defecte del layout arrel
@@ -292,7 +309,7 @@ export default async function PaginaDinamica({ params, searchParams }) {
 
   let pagina, config;
   try {
-    [pagina, config] = await Promise.all([api(`/pagines/${slug}`), api('/config/public')]);
+    [pagina, config] = await Promise.all([fetchPagina(slug, locale), api('/config/public')]);
   } catch {
     notFound();
   }

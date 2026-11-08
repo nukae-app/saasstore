@@ -504,7 +504,9 @@
     "cardPaymentExplanation": "te redirigiremos a la pasarela segura de Redsys para completar el pago.",
     "edit": "← Editar",
     "confirming": "Confirmando…",
-    "confirmOrderButton": "Confirmar pedido",
+    "confirmOrderButton": "Pedido con obligación de pago",
+    "acceptTerms": "He leído y acepto las <terms>condiciones de venta</terms> y la <privacy>política de privacidad</privacy>.",
+    "acceptTermsRequired": "Debes aceptar las condiciones de venta para continuar.",
     "summary": "Resumen",
     "subtotal": "Subtotal",
     "countries": {
@@ -609,7 +611,23 @@
     "termsOfUse": "Términos de uso",
     "cookiesPolicy": "Política de cookies",
     "legalNotice": "Aviso legal",
-    "salesTerms": "Condiciones de venta"
+    "salesTerms": "Condiciones de venta",
+    "withdrawal": "Desistimiento"
+  },
+  "withdrawal": {
+    "title": "Desistimiento de la compra",
+    "intro": "Tienes 14 días naturales desde que recibes el pedido para desistir sin tener que justificarlo. Indícanos el pedido y te enviaremos un correo de confirmación.",
+    "orderRef": "Número de pedido",
+    "orderRefHelp": "Son los 8 primeros caracteres que aparecen en el correo de confirmación.",
+    "email": "Correo con el que compraste",
+    "name": "Nombre (opcional)",
+    "submit": "Confirmar desistimiento",
+    "sending": "Enviando…",
+    "doneTitle": "Desistimiento enviado",
+    "done": "Si los datos coinciden con un pedido, recibirás ahora un correo que confirma el desistimiento. Si no lo recibes en unos minutos, revisa la carpeta de spam o escríbenos.",
+    "error": "No hemos podido enviar la solicitud. Vuelve a intentarlo dentro de un rato.",
+    "exceptions": "Recuerda: no hay derecho de desistimiento en discos precintados que hayas desprecintado. Más detalles en las",
+    "terms": "condiciones de venta"
   },
   "embed": {
     "notice": "Este contenido procede de {host}. Al cargarlo, {host} puede ver tu IP e instalar cookies.",

@@ -173,4 +173,16 @@ def client(db):
     # `client`, porque cualquier endpoint que pase por get_db necesita
     # resolver un tenant o devuelve 404 antes de llegar al router.
     # https: la cookie de refresh lleva Secure y no viajaría por http
-    return TestClient(app, base_url="https://testserver")
+    c = TestClient(app, base_url="https://testserver")
+    # /checkout/confirm exige `accept_terms` (prueba legal de la aceptación). Los
+    # tests de checkout no tratan de eso, así que se acepta por defecto; los que
+    # sí (test_legal.py) lo pasan explícito (`accept_terms: False`) y gana el suyo.
+    _post = c.post
+
+    def post(url, *args, **kwargs):
+        if str(url).endswith("/checkout/confirm") and isinstance(kwargs.get("json"), dict):
+            kwargs["json"] = {"accept_terms": True, **kwargs["json"]}
+        return _post(url, *args, **kwargs)
+
+    c.post = post
+    return c
