@@ -88,11 +88,6 @@ puede someterse a los juzgados y tribunales de tu domicilio.</p>
 <ul>
   <li><strong>Google (inicio de sesión).</strong> Si eliges entrar con Google, recibimos tu email y nombre,
       ya verificados. Google trata tus datos como responsable independiente, según su propia política.</li>
-  <li><strong>Spotify (opcional).</strong> Solo si conectas tu cuenta para recibir recomendaciones, leemos tu perfil
-      y tus artistas y canciones más escuchados, con el permiso que autorizas en ese momento. Puedes desconectarla cuando quieras.</li>
-  <li><strong>Inteligencia artificial (Anthropic, Claude).</strong> Para ampliar esas recomendaciones enviamos a Anthropic
-      una lista de hasta 10 nombres de artistas, <strong>sin tu nombre, email ni ningún identificador</strong>. Anthropic actúa
-      como encargado del tratamiento. No tomamos decisiones automatizadas con efectos jurídicos sobre ti.</li>
   <li><strong>Discogs.</strong> Si compras un disco a través de nuestro escaparate en Discogs, Discogs nos facilita tu nombre
       y dirección de entrega para poder enviártelo. Esos datos los tratamos para ejecutar esa compra.</li>
 </ul>
@@ -108,7 +103,7 @@ servicios y actúan como encargados del tratamiento bajo contrato:</p>
   <li>Nuestra gestoría, para la contabilidad y las obligaciones fiscales.</li>
 </ul>
 <p>También pueden recibir datos las administraciones públicas cuando una ley lo exija. Si algún proveedor trata datos
-fuera del Espacio Económico Europeo (por ejemplo, Anthropic en Estados Unidos), lo hace con garantías adecuadas
+fuera del Espacio Económico Europeo, lo hace con garantías adecuadas
 (cláusulas contractuales tipo de la Comisión Europea o decisión de adecuación).</p>
 
 <h2>Cuánto tiempo los conservamos</h2>
@@ -337,11 +332,6 @@ of your place of residence.</p>
 <ul>
   <li><strong>Google (sign-in).</strong> If you choose to sign in with Google, we receive your email and name, already
       verified. Google processes your data as an independent controller under its own policy.</li>
-  <li><strong>Spotify (optional).</strong> Only if you connect your account to get recommendations do we read your profile
-      and your most-played artists and tracks, with the permission you grant at that moment. You can disconnect at any time.</li>
-  <li><strong>Artificial intelligence (Anthropic, Claude).</strong> To broaden those recommendations we send Anthropic a
-      list of up to 10 artist names, <strong>without your name, email or any identifier</strong>. Anthropic acts as a data
-      processor. We make no automated decisions with legal effects on you.</li>
   <li><strong>Discogs.</strong> If you buy a record through our Discogs storefront, Discogs gives us your name and delivery
       address so we can ship it. We process that data to perform that purchase.</li>
 </ul>
@@ -357,7 +347,7 @@ under contract have access to it:</p>
   <li>Our accountancy firm, for bookkeeping and tax obligations.</li>
 </ul>
 <p>Public authorities may also receive data when required by law. If a provider processes data outside the European
-Economic Area (for example Anthropic in the United States), it does so with appropriate safeguards (European Commission
+Economic Area, it does so with appropriate safeguards (European Commission
 standard contractual clauses or an adequacy decision).</p>
 
 <h2>How long we keep it</h2>

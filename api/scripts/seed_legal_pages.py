@@ -109,11 +109,6 @@ amb el Reglament (UE) 2016/679 (RGPD) i la Llei Orgànica 3/2018 (LOPDGDD).</p>
 <ul>
   <li><strong>Google (inici de sessió).</strong> Si tries entrar amb Google, rebem el teu correu i nom, ja
       verificats. Google tracta les teves dades com a responsable independent, segons la seva pròpia política.</li>
-  <li><strong>Spotify (opcional).</strong> Només si connectes el teu compte per rebre recomanacions, llegim el teu perfil
-      i els teus artistes i cançons més escoltats, amb el permís que autoritzes en aquell moment. Pots desconnectar-lo quan vulguis.</li>
-  <li><strong>Intel·ligència artificial (Anthropic, Claude).</strong> Per ampliar aquestes recomanacions enviem a Anthropic
-      una llista de fins a 10 noms d'artistes, <strong>sense el teu nom, correu ni cap identificador</strong>. Anthropic actua
-      com a encarregat del tractament. No prenem decisions automatitzades amb efectes jurídics sobre tu.</li>
   <li><strong>Discogs.</strong> Si compres un disc a través del nostre aparador a Discogs, Discogs ens facilita el teu nom
       i adreça d'entrega per poder enviar-te'l. Tractem aquestes dades per executar aquella compra.</li>
 </ul>
