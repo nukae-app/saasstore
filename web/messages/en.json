@@ -1,5 +1,7 @@
 {
   "nav": {
+    "menu": "Menu",
+    "cart": "Cart",
     "catalog": "Catalogue",
     "blog": "Blog",
     "agenda": "Agenda",

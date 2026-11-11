@@ -30,7 +30,8 @@ const ILLUSTRATION_SIZE_CLASSES = {
 export default async function HomeHero({
   id, layout = 'image_right', eyebrow, title, subtitle, cta_label, cta_href = '/cataleg',
   featured, featured2, mosaicReleases = [], config,
-  featured_label, background_color, background_image_url, background_video_url, text_align,
+  featured_label, background_color, background_image_url, background_image_width, background_image_height,
+  background_video_url, text_align,
   illustration_size = 'medium',
 }) {
   const t = await getTranslations('home');
@@ -45,7 +46,13 @@ export default async function HomeHero({
       <section data-block-id={id} className="bg-black py-12 md:py-16 mb-16 md:mb-24">
         <div className={ILLUSTRATION_SIZE_CLASSES[illustration_size] || ILLUSTRATION_SIZE_CLASSES.medium}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={background_image_url} alt="" className="w-full h-auto" />
+          <img
+            src={background_image_url}
+            alt=""
+            width={background_image_width || undefined}
+            height={background_image_height || undefined}
+            className="w-full h-auto"
+          />
         </div>
       </section>
     );

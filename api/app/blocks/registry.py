@@ -17,6 +17,11 @@ class BackgroundProps(BaseModel):
     de bloc a web/components/store/*)."""
     background_color: str | None = None
     background_image_url: str | None = None
+    # Mides naturals de background_image_url (les omple el servidor en desar,
+    # ver routers/home_blocks.py::_fill_image_size) perquè el <img> reservi
+    # el forat abans de carregar i no provoqui CLS.
+    background_image_width: int | None = None
+    background_image_height: int | None = None
 
 
 # Variants de disposició del bloc "hero" — ver

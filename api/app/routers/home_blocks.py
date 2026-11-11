@@ -7,8 +7,10 @@ import os
 import subprocess
 import tempfile
 import uuid
+from functools import lru_cache
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -134,6 +136,27 @@ def delete_uploaded_video(video_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
+@lru_cache(maxsize=256)
+def _image_size(url: str) -> tuple[int, int] | None:
+    if not url.startswith("/uploads/"):
+        return None
+    path = os.path.join(UPLOADS_DIR, os.path.basename(url))
+    try:
+        with Image.open(path) as img:
+            return img.size
+    except (OSError, ValueError):
+        return None
+
+
+def _fill_image_size(props: dict) -> dict:
+    """Desa a props les mides de background_image_url (només /uploads propis).
+    Es recalcula sempre: si la imatge canvia, les mides antigues no serveixen."""
+    url = props.get("background_image_url")
+    size = _image_size(url) if url else None
+    props["background_image_width"], props["background_image_height"] = size or (None, None)
+    return props
+
+
 def _validate_props(block_type: str, props: dict) -> dict:
     schema = BLOCK_REGISTRY.get(block_type)
     if schema is None:
@@ -142,7 +165,10 @@ def _validate_props(block_type: str, props: dict) -> dict:
         validated = schema.model_validate(props)
     except Exception as exc:
         raise HTTPException(422, f"Props no vàlides per '{block_type}': {exc}") from exc
-    return validated.model_dump()
+    dumped = validated.model_dump()
+    if "background_image_url" in dumped:
+        _fill_image_size(dumped)
+    return dumped
 
 
 @router.get("", response_model=list[HomeBlockOut])
@@ -201,6 +227,14 @@ def delete_home_block(block_id: int, db: Session = Depends(get_db)):
 
 @public_router.get("", response_model=list[HomeBlockPublicOut])
 def list_public_home_blocks(db: Session = Depends(get_db)):
-    return db.scalars(
+    blocks = db.scalars(
         select(HomeBlock).where(HomeBlock.enabled.is_(True)).order_by(HomeBlock.position)
     ).all()
+    # Blocs desats abans d'existir les mides: s'omplen al vol (amb caché) sense
+    # tocar la BD, així no cal migració de dades.
+    return [
+        {"id": b.id, "block_type": b.block_type, "props": _fill_image_size(dict(b.props))}
+        if b.props.get("background_image_url") and not b.props.get("background_image_width")
+        else b
+        for b in blocks
+    ]

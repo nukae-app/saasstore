@@ -6,6 +6,17 @@ import { Link } from '../../i18n/navigation';
 import Image from 'next/image';
 import PriceTag from './PriceTag';
 
+// Text blanc o negre segons la lluminància del color d'etiqueta (WCAG).
+function readableText(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return '#fff';
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = parseInt(m[1].slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? '#000' : '#fff';
+}
+
 const VINYL_SVG = (
   <svg viewBox="0 0 100 100" className="w-16 h-16 text-zinc-300" fill="currentColor">
     <circle cx="50" cy="50" r="48" />
@@ -75,8 +86,8 @@ export default function ReleaseCard({ release }) {
           <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
             {release.etiquetes.slice(0, 2).map(e => (
               <span key={e.id}
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm"
-                style={{ backgroundColor: e.color || '#94a3b8' }}>
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-sm"
+                style={{ backgroundColor: e.color || '#94a3b8', color: readableText(e.color || '#94a3b8') }}>
                 {e.name_ca}
               </span>
             ))}

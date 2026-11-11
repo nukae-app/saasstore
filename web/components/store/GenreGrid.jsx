@@ -12,7 +12,7 @@ const ICONS = [Music2, LayoutGrid, Zap, Mic2, Waves, Disc];
 // gènere (art que no tenim, ver conversa — s'omet expressament); en comptes
 // d'una foto genèrica fem servir blocs de color plans en cicle, mateix
 // esperit editorial sense dependre de cap asset nou.
-const RECORDSTORE_SWATCHES = ['#c23b22', '#1a1a1a', '#3a5a78', '#e0538a', '#4a5d3a', '#d98a1f'];
+const RECORDSTORE_SWATCHES = ['#c23b22', '#1a1a1a', '#3a5a78', '#e0538a', '#4a5d3a', '#a35d0d'];
 
 // Bloc "genre_grid" — sense props configurables (EmptyProps), es resol
 // sencer aquí mateix contra GET /catalog/generes: els gèneres reals amb

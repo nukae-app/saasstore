@@ -69,7 +69,7 @@ export default function StorefrontNav() {
       }
     >
       {manteniment && (
-        <div className="bg-amber-500 text-white text-xs md:text-sm text-center py-2 px-4">
+        <div className="bg-amber-500 text-amber-950 text-xs md:text-sm text-center py-2 px-4">
           {t('maintenanceBanner')}
         </div>
       )}
@@ -116,6 +116,7 @@ export default function StorefrontNav() {
           {/* Cart */}
           <Link
             href="/carret"
+            aria-label={t('cart')}
             className={`relative w-11 h-11 flex items-center justify-center transition-colors ${recordstore ? (dark ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black') : 'text-zinc-500 hover:text-zinc-900'}`}
           >
             <ShoppingBag size={20} />
@@ -188,6 +189,8 @@ export default function StorefrontNav() {
           <button
             className={`md:hidden w-11 h-11 -mr-2 flex items-center justify-center ${recordstore ? (dark ? 'text-white/70 hover:text-white' : 'text-black/70 hover:text-black') : 'text-zinc-500 hover:text-zinc-900'}`}
             onClick={() => setOpen(v => !v)}
+            aria-label={t('menu')}
+            aria-expanded={open}
           >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>

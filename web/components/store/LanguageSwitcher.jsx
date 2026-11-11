@@ -31,8 +31,8 @@ export default function LanguageSwitcher({ className = '', dark = false }) {
           onClick={() => switchTo(code)}
           className={`px-1.5 py-1 rounded transition-colors ${
             dark
-              ? (locale === code ? 'text-white' : 'text-white/40 hover:text-white/70')
-              : (locale === code ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600')
+              ? (locale === code ? 'text-white' : 'text-white/65 hover:text-white')
+              : (locale === code ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-900')
           }`}
           aria-current={locale === code}
         >
