@@ -75,7 +75,7 @@
       "id": 3,
       "type": "stat",
       "title": "Pàgines vistes",
-      "description": "Càrregues de pàgina (faro.performance.navigation).",
+      "description": "Vistes de pàgina, incloent navegació entre rutes (esdeveniment page_view).",
       "datasource": {
         "type": "loki",
         "uid": "grafanacloud-logs"
@@ -93,7 +93,7 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum(count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"faro.performance.navigation\" [$__range]))",
+          "expr": "sum(count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"page_view\" [$__range]))",
           "queryType": "instant"
         }
       ],
@@ -192,7 +192,7 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum(count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"faro.performance.navigation\" [$__auto]))",
+          "expr": "sum(count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"page_view\" [$__auto]))",
           "queryType": "range",
           "legendFormat": "pàgines vistes"
         }
@@ -230,7 +230,7 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "topk(10, sum by (page_id) (count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"faro.performance.navigation\" [$__range])))",
+          "expr": "topk(10, sum by (page_id) (count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"page_view\" [$__range])))",
           "queryType": "instant"
         }
       ],
@@ -289,7 +289,7 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum by (browser_name) (count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"faro.performance.navigation\" [$__range]))",
+          "expr": "sum by (browser_name) (count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"page_view\" [$__range]))",
           "queryType": "instant"
         }
       ],
@@ -331,7 +331,7 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum by (browser_mobile) (count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"faro.performance.navigation\" [$__range]))",
+          "expr": "sum by (browser_mobile) (count_over_time({service_name=\"labotigaaquesta\"} | logfmt | event_name=\"page_view\" [$__range]))",
           "queryType": "instant",
           "legendFormat": "mòbil={{browser_mobile}}"
         }
