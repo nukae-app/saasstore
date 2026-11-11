@@ -9,6 +9,17 @@ import { TracingInstrumentation } from '@grafana/faro-web-tracing';
 // no-op per defecte, així que `faro.api` és sempre veritable encara que
 // mai s'hagi cridat initializeFaro — feia que aquest guard no funcionés mai).
 let initialized = false;
+let referrerSent = false;
+
+function externalReferrerHost() {
+  try {
+    if (!document.referrer) return 'directe';
+    const host = new URL(document.referrer).hostname;
+    return host === window.location.hostname ? 'directe' : host;
+  } catch {
+    return 'directe';
+  }
+}
 
 export default function FaroInit({ collectorUrl }) {
   const pathname = usePathname();
@@ -34,7 +45,17 @@ export default function FaroInit({ collectorUrl }) {
   useEffect(() => {
     if (!initialized || !pathname) return;
     faro.api.setView({ name: pathname });
-    faro.api.pushEvent('page_view', { path: pathname });
+    const attrs = { path: pathname };
+    // Origen del tràfic: només a la primera vista de la pàgina (a les
+    // navegacions internes document.referrer no canvia i no aporta res).
+    // Es guarda només el hostname del referrer, mai la URL completa (pot dur
+    // paràmetres/tokens d'altres webs); les campanyes (?utm_*) ja queden a
+    // page_url. "directe" = sense referrer o la pròpia web.
+    if (!referrerSent) {
+      referrerSent = true;
+      attrs.referrer = externalReferrerHost();
+    }
+    faro.api.pushEvent('page_view', attrs);
   }, [pathname]);
 
   return null;
