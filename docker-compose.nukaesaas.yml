@@ -59,6 +59,24 @@ services:
     expose:
       - "3000"
 
+  # Envia logs dels contenidors, mètriques de l'api (/metrics) i del host a
+  # Grafana Cloud (stack punycrane5). Mateixa config que docker-compose.prod.yml
+  # (l'EC2 antic de recordshop, ja aturat). GRAFANA_API_KEY arriba via
+  # .env.grafana, que escriu scripts/deploy_nukaesaas.sh (mode 600).
+  alloy:
+    image: grafana/alloy:v1.18.0
+    restart: unless-stopped
+    env_file: .env.grafana
+    volumes:
+      - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+    command: run --server.http.listen-addr=127.0.0.1:12345 /etc/alloy/config.alloy
+    mem_limit: 256m
+    cpus: 0.5
+    depends_on:
+      - api
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped

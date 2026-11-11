@@ -41,17 +41,45 @@ echo "==> Desplegant a $SSH_HOST"
 ssh "$SSH_HOST" "mkdir -p $REMOTE_DIR"
 scp docker-compose.nukaesaas.yml "$SSH_HOST:$REMOTE_DIR/docker-compose.nukaesaas.yml"
 scp infra/Caddyfile "$SSH_HOST:$REMOTE_DIR/Caddyfile"
+scp infra/alloy-config.alloy "$SSH_HOST:$REMOTE_DIR/alloy-config.alloy"
+
+# Token de Grafana Cloud (stack punycrane5): viu a Secrets Manager
+# (recordshop/prod, clau GRAFANA), que el rol de l'EC2 de nukaesaas NO pot
+# llegir — es llegeix des d'aquí (credencials locals d'AWS) i s'escriu al
+# servidor com a .env.grafana (mode 600), passant per stdin (mai per
+# arguments de línia de comandes) i sense quedar al repo.
+echo "==> Escrivint .env.grafana al servidor"
+aws secretsmanager get-secret-value --secret-id recordshop/prod --region "$AWS_REGION" \
+  --query SecretString --output text \
+  | python3 -c "import json,sys; print('GRAFANA_API_KEY=' + json.load(sys.stdin)['GRAFANA'])" \
+  | ssh "$SSH_HOST" "umask 077 && cat > $REMOTE_DIR/.env.grafana"
+
+# URL pública del collector de Faro (RUM del navegador, app labotigaaquesta
+# a Grafana Cloud): no és un secret (va al JS que baixa el visitant). El web
+# la llegeix en runtime (layout.jsx), així que n'hi ha prou amb tenir-la al
+# .env del servidor, que docker compose fa servir per interpolar el compose.
+FARO_COLLECTOR_URL="https://faro-collector-prod-eu-west-6.grafana.net/collect/237acf4206e1fc52519d44711fee374d"
 
 # shellcheck disable=SC2087
-ssh "$SSH_HOST" ECR_REGISTRY="$ECR_REGISTRY" IMAGE_TAG="$IMAGE_TAG" AWS_REGION="$AWS_REGION" bash -s <<'REMOTE'
+ssh "$SSH_HOST" ECR_REGISTRY="$ECR_REGISTRY" IMAGE_TAG="$IMAGE_TAG" AWS_REGION="$AWS_REGION" FARO_COLLECTOR_URL="$FARO_COLLECTOR_URL" bash -s <<'REMOTE'
   set -euo pipefail
   cd /home/ubuntu/nukaesaas
   aws ecr get-login-password --region "$AWS_REGION" \
     | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
+  # Idempotent: afegeix o actualitza la línia al .env sense tocar la resta.
+  if grep -q '^NEXT_PUBLIC_FARO_COLLECTOR_URL=' .env; then
+    sed -i "s|^NEXT_PUBLIC_FARO_COLLECTOR_URL=.*|NEXT_PUBLIC_FARO_COLLECTOR_URL=$FARO_COLLECTOR_URL|" .env
+  else
+    echo "NEXT_PUBLIC_FARO_COLLECTOR_URL=$FARO_COLLECTOR_URL" >> .env
+  fi
+
   docker compose -f docker-compose.nukaesaas.yml pull
   docker compose -f docker-compose.nukaesaas.yml up -d
-  docker compose -f docker-compose.nukaesaas.yml restart caddy
+  # Caddyfile i alloy-config són bind-mounts d'un sol fitxer: scp els
+  # reemplaça (nou inode) i el contenidor es queda amb l'antic fins que es
+  # reinicia; `up -d` no els recrea si només canvia el fitxer.
+  docker compose -f docker-compose.nukaesaas.yml restart caddy alloy
   docker image prune -af
   docker builder prune -af
 REMOTE

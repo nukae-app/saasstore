@@ -41,3 +41,15 @@ Bloquejants a resoldre abans de poder córrer >1 instància darrere d'un ALB/ASG
 - **Celery `beat`**: ha de seguir sent una única instància sempre (mai >1 rèplica) o les tasques programades es dupliquen — cal un lock distribuït si es vol tolerància a fallades del propi `beat`.
 
 Sense aquests tres canvis, muntar un Auto Scaling Group directament trencaria coses (imatges que desapareixen segons a quina instància et toqui, tasques de Celery duplicades).
+
+## Observabilitat (Grafana Cloud, stack `punycrane5`)
+
+Producció corre a l'EC2 de **nukaesaas** (`docker-compose.nukaesaas.yml`, desplegat amb `scripts/deploy_nukaesaas.sh`); l'EC2 antic de recordshop està aturat. Tres canals envien dades a Grafana Cloud:
+
+- **Faro (RUM, navegador)**: visitants reals (sessions, pàgines vistes, Web Vitals, errors JS). S'activa amb `NEXT_PUBLIC_FARO_COLLECTOR_URL`, que `deploy_nukaesaas.sh` deixa al `.env` del servidor. L'app `labotigaaquesta` de Frontend Observability ha de tenir `https://labotigaaquesta.com` als orígens permesos (CORS).
+- **Alloy → Prometheus**: mètriques de l'api (`/metrics`, job `prometheus.scrape.api`) i del host (job `integrations/unix`).
+- **Alloy → Loki**: logs de tots els contenidors (`service_name` = nom del contenidor, p. ex. `nukaesaas-api-1`).
+
+`GRAFANA_API_KEY` es llegeix de Secrets Manager (`recordshop/prod`, clau `GRAFANA`) des del Mac que fa el deploy i s'escriu a `.env.grafana` del servidor (mode 600): el rol de l'EC2 de nukaesaas no pot llegir aquest secret. No esborrar-lo si es desmunta l'stack antic.
+
+**Dashboard** `infra/grafana/dashboard-observabilitat.json` (uid `ultralocal-observabilitat`): a Grafana, *Dashboards → New → Import*, pujar el fitxer i triar *Import (Overwrite)*. Grafana guarda l'historial de versions. Els Web Vitals i les pàgines vistes surten de Loki (logs de Faro, `service_name="labotigaaquesta"`).
