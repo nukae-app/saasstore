@@ -1543,7 +1543,7 @@
             "type": "prometheus",
             "uid": "grafanacloud-prom"
           },
-          "expr": "sum(rate(loki_write_sent_entries_total{job=\"prometheus.scrape.alloy\"}[$__rate_interval]))",
+          "expr": "sum(rate(loki_write_sent_entries_total{job=\"integrations/self\"}[$__rate_interval]))",
           "instant": false,
           "range": true,
           "legendFormat": "enviats"
@@ -1554,7 +1554,7 @@
             "type": "prometheus",
             "uid": "grafanacloud-prom"
           },
-          "expr": "sum(rate(loki_write_dropped_entries_total{job=\"prometheus.scrape.alloy\"}[$__rate_interval]))",
+          "expr": "sum(rate(loki_write_dropped_entries_total{job=\"integrations/self\"}[$__rate_interval]))",
           "instant": false,
           "range": true,
           "legendFormat": "descartats"
