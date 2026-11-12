@@ -90,3 +90,13 @@ prometheus.scrape "host" {
   scrape_interval = "60s"
   forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
 }
+
+// Mètriques pròpies d'Alloy (logs enviats/descartats) per al dashboard de
+// seguretat: permet veure si l'enviament a Grafana Cloud es degrada.
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "alloy" {
+  targets         = prometheus.exporter.self.alloy.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
