@@ -133,6 +133,30 @@ def get_settings() -> Settings:
     return Settings()
 
 
+_DEFAULT_SECRETS = {"dev-secret-cambiame", "dev-superadmin-secret-cambiame"}
+_MIN_SECRET_LENGTH = 32
+
+
+def assert_production_secrets() -> None:
+    """En producción (`redsys_environment == "production"`, la misma señal que
+    ya usa `require_admin` para desactivar DEV_ADMIN_BYPASS) aborta el arranque
+    si alguna clave de firma JWT sigue siendo el valor por defecto del código
+    o es demasiado corta: con la clave por defecto cualquiera podría forjar
+    tokens de admin/superadmin. Se llama desde `main.py`."""
+    if get_settings().redsys_environment != "production":
+        return
+    claves = {
+        "SECRET_KEY": get_settings().secret_key,
+        "SUPERADMIN_SECRET_KEY": get_superadmin_settings().superadmin_secret_key,
+    }
+    malas = [n for n, v in claves.items() if v in _DEFAULT_SECRETS or len(v) < _MIN_SECRET_LENGTH]
+    if malas:
+        raise RuntimeError(
+            f"Configuración insegura en producción: {', '.join(malas)} "
+            f"tiene el valor por defecto o menos de {_MIN_SECRET_LENGTH} caracteres."
+        )
+
+
 class SuperAdminSettings(BaseSettings):
     """Settings del realm de superadmin (Fase 2) — separado por completo del
     `Settings` de arriba: clave de firma JWT propia (`superadmin_secret_key`),

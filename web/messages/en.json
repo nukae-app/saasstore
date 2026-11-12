@@ -132,6 +132,7 @@
     "pendingOrdersCount": "{count, plural, one {You have one order pending payment} other {You have # orders pending payment}}",
     "completePaymentOrPickup": "Complete the payment or pick it up at the shop.",
     "latestOrders": "Latest orders",
+    "withdrawalLink": "Want to withdraw from a purchase? (14 days)",
     "seeAll": "See all →",
     "noOrdersYet": "You haven't placed any orders yet.",
     "exploreCatalog": "Explore the catalogue",
@@ -637,5 +638,23 @@
     "remember": "Remember me for {host}",
     "manage": "Clear third-party content permissions",
     "manageDone": "Preferences cleared"
+  },
+  "cookieConsent": {
+    "title": "Cookies and analytics",
+    "body": "We use essential technical cookies (session and cart). With your permission, we also use an anonymous analytics tool to see which pages work and improve the site. You can change this at any time from the footer.",
+    "moreInfo": "More information",
+    "accept": "Accept",
+    "reject": "Reject",
+    "manage": "Cookie preferences"
+  },
+  "newsletterUnsubscribe": {
+    "title": "Unsubscribe from the newsletter",
+    "checking": "Checking the link…",
+    "intro": "If you confirm, we will stop sending you the newsletter. You can subscribe again at any time from your account.",
+    "confirm": "Confirm unsubscribe",
+    "doneTitle": "Unsubscribed",
+    "done": "You will not receive any more newsletter emails.",
+    "invalid": "This unsubscribe link is not valid. If you want to stop receiving emails, please contact us.",
+    "error": "We could not complete the request. Please try again in a while."
   }
 }

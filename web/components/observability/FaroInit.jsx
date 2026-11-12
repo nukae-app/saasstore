@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { faro, getWebInstrumentations, initializeFaro } from '@grafana/faro-web-sdk';
 import { TracingInstrumentation } from '@grafana/faro-web-tracing';
+import { CONSENT_EVENT, clearFaroStorage, readAnalyticsConsent } from '../lib/analyticsConsent';
 
 // Flag pròpia (no `faro.api`: el paquet inicialitza `faro` amb un objecte
 // no-op per defecte, així que `faro.api` és sempre veritable encara que
@@ -23,9 +24,37 @@ function externalReferrerHost() {
 
 export default function FaroInit({ collectorUrl }) {
   const pathname = usePathname();
+  // Faro guarda una sesión en el navegador y envía URL/UA/referrer: solo se
+  // activa con consentimiento explícito (ver lib/analyticsConsent.js). Sin
+  // decisión, o rechazado, no se inicializa ni se hace ninguna petición.
+  const [consent, setConsent] = useState(false);
 
   useEffect(() => {
-    if (initialized || !collectorUrl) return;
+    const sync = () => setConsent(readAnalyticsConsent() === true);
+    sync();
+    window.addEventListener(CONSENT_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(CONSENT_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!collectorUrl) return;
+    if (!consent) {
+      // Consentimiento retirado tras haber inicializado: se corta el envío y
+      // se borra lo que Faro dejó en el navegador.
+      if (initialized) {
+        faro.pause?.();
+        clearFaroStorage();
+      }
+      return;
+    }
+    if (initialized) {
+      faro.unpause?.();
+      return;
+    }
     initialized = true;
 
     initializeFaro({
@@ -33,7 +62,7 @@ export default function FaroInit({ collectorUrl }) {
       app: { name: 'labotigaaquesta', version: '1.0.0', environment: 'production' },
       instrumentations: [...getWebInstrumentations(), new TracingInstrumentation()],
     });
-  }, [collectorUrl]);
+  }, [collectorUrl, consent]);
 
   // Next.js navega entre rutes (p. ex. /es -> /ca) sense recarregar la
   // pàgina, i Faro només registra càrregues completes
@@ -43,7 +72,7 @@ export default function FaroInit({ collectorUrl }) {
   // l'effect d'inicialització: React executa els effects en ordre de
   // declaració, així que la primera càrrega també queda registrada.
   useEffect(() => {
-    if (!initialized || !pathname) return;
+    if (!consent || !initialized || !pathname) return;
     faro.api.setView({ name: pathname });
     const attrs = { path: pathname };
     // Origen del tràfic: només a la primera vista de la pàgina (a les
@@ -56,7 +85,7 @@ export default function FaroInit({ collectorUrl }) {
       attrs.referrer = externalReferrerHost();
     }
     faro.api.pushEvent('page_view', attrs);
-  }, [pathname]);
+  }, [pathname, consent]);
 
   return null;
 }

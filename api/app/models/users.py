@@ -10,6 +10,9 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from datetime import timezone
+
+from sqlalchemy import event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
@@ -31,6 +34,11 @@ class User(TenantScoped, Base):
     # comença en False i cal confirmar-la clicant l'enllaç del mail (ver auth.py).
     email_verified: Mapped[bool] = mapped_column(Boolean, default=True)
     consent_newsletter: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Cuándo se dio el consentimiento (prueba RGPD art. 7.1). Se rellena solo,
+    # al pasar consent_newsletter a True (ver listener al final del fichero) y
+    # se vacía al retirarlo. NULL en los que ya consentían antes de existir
+    # esta columna: la fecha real no se conoce y no se inventa.
+    consent_newsletter_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     language: Mapped[str] = mapped_column(String(5), default="ca")  # ca | es | en
     internal_notes: Mapped[str | None] = mapped_column(Text)  # notes visibles solo per admin
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -115,3 +123,16 @@ class Address(TenantScoped, Base):
 # ---------------------------------------------------------------------------
 # Carrito y pedidos
 # ---------------------------------------------------------------------------
+
+
+@event.listens_for(User.consent_newsletter, "set")
+def _stamp_newsletter_consent(target: User, value, oldvalue, initiator) -> None:
+    """Un solo sitio donde se fecha el consentimiento, venga de donde venga el
+    cambio (perfil del cliente, admin, GDPR, baja por enlace)."""
+    if value:
+        # Idempotente: volver a guardar True no pisa la fecha original.
+        if target.consent_newsletter_at is None:
+            from datetime import datetime as _dt
+            target.consent_newsletter_at = _dt.now(timezone.utc)
+    else:
+        target.consent_newsletter_at = None

@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..config import get_settings
 from ..database import get_db, get_db_unscoped
+from ..rate_limit import limiter
 from ..models import (
     Cart, CartItem, CanalComissio, CondicionItem, ConfiguracioBotiga, Item, JournalSourceType, Order, OrderItem,
     OrderStatus, Payment, PaymentStatus, StockHold, User,
@@ -141,7 +142,9 @@ def get_coste_envio(
 
 
 @router.get("/validate-coupon", response_model=CouponApplyResultOut)
+@limiter.limit("30/hour")
 def get_validate_coupon(
+    request: Request,
     code: str,
     cart: Cart = Depends(get_or_create_cart),
     db: Session = Depends(get_db),
@@ -395,6 +398,24 @@ async def redsys_notify(request: Request, db: Session = Depends(get_db_unscoped)
         params = redsys.verify_signature(params_b64, signature, secret_key or "")
         if params is None:
             raise HTTPException(400, "Firma inválida")
+
+        # Defensa en profundidad: la firma ya garantiza que el mensaje es de
+        # Redsys, pero un cobro autorizado por un importe/moneda/comercio
+        # distinto al del pedido nunca debe dar el pedido por pagado.
+        esperado = str(int((payment.amount * 100).to_integral_value()))
+        if (
+            params.get("Ds_Amount") != esperado
+            or params.get("Ds_Currency") != "978"
+            or (
+                get_tenant_secrets(payment.tenant_id).redsys_merchant_code
+                and params.get("Ds_MerchantCode") != get_tenant_secrets(payment.tenant_id).redsys_merchant_code
+            )
+        ):
+            payment.raw_notification = params
+            payment.status = PaymentStatus.error
+            db.commit()
+            redsys_payment_result_total.labels(result="mismatch").inc()
+            raise HTTPException(400, "Importe, moneda o comercio no coinciden")
 
         payment.raw_notification = params
         payment.ds_response_code = params.get("Ds_Response")

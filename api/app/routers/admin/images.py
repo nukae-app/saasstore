@@ -9,6 +9,7 @@ from ...database import get_db
 from ...models import Release, ReleaseImage
 from ...schemas import ReleaseImageOut
 from ...services.security import require_admin
+from ...services.uploads import validate_image_bytes
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -38,10 +39,11 @@ async def upload_release_image(
     if ext not in (".jpg", ".jpeg", ".png", ".webp"):
         raise HTTPException(422, "Només s'accepten imatges JPG, PNG o WebP")
 
+    content = await file.read()
+    validate_image_bytes(content, ext, (".jpg", ".jpeg", ".png", ".webp"))
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
     filepath = os.path.join(UPLOADS_DIR, filename)
-    content = await file.read()
     with open(filepath, "wb") as f:
         f.write(content)
 

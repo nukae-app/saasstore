@@ -13,6 +13,7 @@ from ..database import get_db
 from ..models import NewsletterCampaign, NewsletterCampaignStatus, NewsletterSend, NewsletterSendStatus, User
 from ..services.emailer import absolutize_upload_urls, send_email
 from ..services.security import require_admin
+from ..services.uploads import validate_image_bytes
 from ..tasks.newsletter import send_campaign
 
 UPLOADS_DIR = "/app/uploads"
@@ -77,10 +78,11 @@ async def upload_image(file: UploadFile = File(...)):
     if ext not in (".jpg", ".jpeg", ".png", ".webp", ".gif"):
         raise HTTPException(422, "Només s'accepten imatges JPG, PNG, WebP o GIF")
 
+    content = await file.read()
+    validate_image_bytes(content, ext, (".jpg", ".jpeg", ".png", ".webp", ".gif"))
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
     filepath = os.path.join(UPLOADS_DIR, filename)
-    content = await file.read()
     with open(filepath, "wb") as f:
         f.write(content)
 

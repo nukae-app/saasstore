@@ -58,9 +58,10 @@ async def upload_background_image(file: UploadFile = File(...)):
     ext = os.path.splitext(file.filename or "")[-1].lower()
     if ext not in ALLOWED_IMAGE_EXTS:
         raise HTTPException(422, "Només s'accepten imatges PNG, JPG o WebP")
+    content = await file.read()
+    validate_image_bytes(content, ext, ALLOWED_IMAGE_EXTS)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
-    content = await file.read()
     with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
         f.write(content)
     return {"url": f"/uploads/{filename}"}

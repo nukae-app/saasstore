@@ -132,6 +132,7 @@
     "pendingOrdersCount": "{count, plural, one {Tens una comanda pendent de pagament} other {Tens # comandes pendents de pagament}}",
     "completePaymentOrPickup": "Completa el pagament o recull-la a la botiga.",
     "latestOrders": "Últimes comandes",
+    "withdrawalLink": "Vols desistir d'una compra? (14 dies)",
     "seeAll": "Veure totes →",
     "noOrdersYet": "Encara no has fet cap comanda.",
     "exploreCatalog": "Explorar el catàleg",
@@ -637,5 +638,23 @@
     "remember": "Recorda'm per a {host}",
     "manage": "Esborrar permisos de contingut de tercers",
     "manageDone": "Preferències esborrades"
+  },
+  "cookieConsent": {
+    "title": "Cookies i analítica",
+    "body": "Fem servir cookies tècniques imprescindibles (sessió i carret). Amb el teu permís, també una eina d'analítica anònima per saber quines pàgines funcionen i millorar la web. Pots canviar-ho quan vulguis des del peu de pàgina.",
+    "moreInfo": "Més informació",
+    "accept": "Acceptar",
+    "reject": "Rebutjar",
+    "manage": "Preferències de cookies"
+  },
+  "newsletterUnsubscribe": {
+    "title": "Donar-se de baixa de la newsletter",
+    "checking": "Comprovant l'enllaç…",
+    "intro": "Si confirmes, deixarem d'enviar-te la newsletter. Pots tornar a subscriure't quan vulguis des del teu compte.",
+    "confirm": "Confirmar la baixa",
+    "doneTitle": "Baixa confirmada",
+    "done": "No rebràs més correus de la newsletter.",
+    "invalid": "Aquest enllaç de baixa no és vàlid. Si vols deixar de rebre correus, escriu-nos.",
+    "error": "No hem pogut completar la baixa. Torna-ho a provar d'aquí una estona."
   }
 }

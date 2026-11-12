@@ -239,6 +239,9 @@ export default function ComptePage() {
             })}
           </div>
         )}
+        <p className="text-xs text-zinc-500 mt-4">
+          <Link href="/desistiment" className="underline hover:text-zinc-800">{t('withdrawalLink')}</Link>
+        </p>
       </div>
     </div>
   );

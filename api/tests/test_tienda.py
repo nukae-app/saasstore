@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import io
 import json
+import os
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -24,6 +25,19 @@ from app.services.reservations import confirm_sale, release_expired, reserve_ite
 
 def _counter(result: str) -> float:
     return redsys_payment_result_total.labels(result=result)._value.get()
+
+
+def _money(ds_order: str) -> dict:
+    """Importe/moneda/comercio que Redsys incluye siempre en su notificación
+    (el endpoint los contrasta con el pedido)."""
+    from app.database import SessionLocal
+    from app.models import Payment
+    with SessionLocal() as s:
+        pay = s.scalar(select(Payment).where(Payment.ds_order == ds_order))
+        out = {"Ds_Amount": str(int(pay.amount * 100)), "Ds_Currency": "978"}
+        # el código de comercio de pruebas lo fija conftest.py por entorno
+        out["Ds_MerchantCode"] = os.environ["REDSYS_MERCHANT_CODE"]
+        return out
 
 
 def _sign_as_redsys(params: dict) -> tuple[str, str]:
@@ -107,7 +121,7 @@ def test_checkout_completo_con_pago_redsys_y_cancelacion(db, client):
 
     # Redsys autoriza el cobro y llama a nuestra notificación
     params_b64, signature = _sign_as_redsys({
-        "Ds_Order": ds_order, "Ds_Response": "0000", "Ds_AuthorisationCode": "123456",
+        **_money(ds_order), "Ds_Order": ds_order, "Ds_Response": "0000", "Ds_AuthorisationCode": "123456",
     })
     with contextlib.redirect_stdout(io.StringIO()):
         notify = client.post(
@@ -175,7 +189,7 @@ def _pagar_con_redsys(client, order_id: str) -> None:
     pay = client.post(f"/checkout/{order_id}/pay/redsys/start")
     ds_order = json.loads(base64.b64decode(pay.json()["Ds_MerchantParameters"]))["DS_MERCHANT_ORDER"]
     params_b64, signature = _sign_as_redsys({
-        "Ds_Order": ds_order, "Ds_Response": "0000", "Ds_AuthorisationCode": "123456",
+        **_money(ds_order), "Ds_Order": ds_order, "Ds_Response": "0000", "Ds_AuthorisationCode": "123456",
     })
     with contextlib.redirect_stdout(io.StringIO()):
         notify = client.post(
@@ -258,7 +272,7 @@ def test_checkout_pago_denegado_libera_el_ejemplar(db, client):
     pay = client.post(f"/checkout/{order_id}/pay/redsys/start")
     ds_order = json.loads(base64.b64decode(pay.json()["Ds_MerchantParameters"]))["DS_MERCHANT_ORDER"]
 
-    params_b64, signature = _sign_as_redsys({"Ds_Order": ds_order, "Ds_Response": "0180"})  # denegado
+    params_b64, signature = _sign_as_redsys({**_money(ds_order), "Ds_Order": ds_order, "Ds_Response": "0180"})  # denegado
     notify = client.post(
         "/checkout/pay/redsys/notify",
         data={"Ds_SignatureVersion": "HMAC_SHA256_V1", "Ds_MerchantParameters": params_b64, "Ds_Signature": signature},
@@ -293,7 +307,7 @@ def test_checkout_notify_con_firma_invalida_es_rechazada(db, client):
     pay = client.post(f"/checkout/{order_id}/pay/redsys/start")
     ds_order = json.loads(base64.b64decode(pay.json()["Ds_MerchantParameters"]))["DS_MERCHANT_ORDER"]
 
-    params_b64, _ = _sign_as_redsys({"Ds_Order": ds_order, "Ds_Response": "0000"})
+    params_b64, _ = _sign_as_redsys({**_money(ds_order), "Ds_Order": ds_order, "Ds_Response": "0000"})
     notify = client.post(
         "/checkout/pay/redsys/notify",
         data={"Ds_SignatureVersion": "HMAC_SHA256_V1", "Ds_MerchantParameters": params_b64, "Ds_Signature": "firma-falsa"},
@@ -664,3 +678,30 @@ def test_magic_link_y_sesion(db, client):
     assert (
         client.get("/admin/orders", headers={"Authorization": f"Bearer {access}"}).status_code == 403
     )
+
+
+def test_redsys_notify_importe_distinto_no_da_el_pedido_por_pagado(db, client):
+    _, _, i2 = _seed(db)
+    assert client.post("/cart/items", json={"item_id": str(i2.id)}).status_code == 201
+    assert client.post("/checkout/start").status_code == 200
+    conf = client.post(
+        "/checkout/confirm",
+        json={"contact_email": "client@example.com", "shipping_method": "recogida_tienda"},
+    )
+    order_id = conf.json()["id"]
+    pay = client.post(f"/checkout/{order_id}/pay/redsys/start")
+    ds_order = json.loads(base64.b64decode(pay.json()["Ds_MerchantParameters"]))["DS_MERCHANT_ORDER"]
+
+    # firma válida, pero por 1 céntimo en vez del total del pedido
+    params_b64, signature = _sign_as_redsys({
+        "Ds_Order": ds_order, "Ds_Response": "0000", "Ds_AuthorisationCode": "123456",
+        "Ds_Amount": "1", "Ds_Currency": "978",
+    })
+    with contextlib.redirect_stdout(io.StringIO()):
+        notify = client.post(
+            "/checkout/pay/redsys/notify",
+            data={"Ds_SignatureVersion": "HMAC_SHA256_V1", "Ds_MerchantParameters": params_b64, "Ds_Signature": signature},
+        )
+    assert notify.status_code == 400
+    db.expire_all()
+    assert db.get(Order, uuid.UUID(order_id)).status != OrderStatus.pagado

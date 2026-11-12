@@ -4,13 +4,15 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.sessions import SessionMiddleware
 
-from .config import get_settings
+from .config import assert_production_secrets, get_settings
 from .rate_limit import limiter
 from .routers import (
     admin, admin_newsletter, admin_subscripcions, admin_users, auth, auth_mobile, billing_webhooks, blog, cart,
     catalog, checkout, comptabilitat, configuracio, documents, erp, health, home_blocks, i18n, internal, me,
     newsletter_public, spotify, subscripcions_public, superadmin, withdrawal,
 )
+
+assert_production_secrets()
 
 app = FastAPI(
     title="Ultra-Local Records API",

@@ -24,6 +24,14 @@ from ..models import Item, PesFormat, TramEnviament
 DEFAULT_PES_G = 350
 
 
+# Destins sota sancions integrals (OFAC / UE): mai s'hi ven ni s'hi envia,
+# encara que un admin hi creï un tram per error. Codis ISO 3166-1 alfa-2:
+# Cuba, Iran, Corea del Nord, Síria. Les regions sancionades d'Ucraïna
+# (Crimea, Donetsk, Luhansk) comparteixen el codi UA amb la resta del país i
+# no es poden excloure només pel país; vegeu docs/PLAN_SEGURETAT_COMPLIMENT.md.
+PAISOS_SANCIONATS = frozenset({"CU", "IR", "KP", "SY"})
+
+
 class PaisNoDisponible(Exception):
     """El país de l'adreça d'enviament no té cap tram d'enviament actiu configurat."""
 
@@ -44,9 +52,12 @@ def paisos_disponibles(db: Session) -> list[str]:
     """Països amb almenys un tram actiu configurat, és a dir, a on es pot
     comprar amb enviament avui. Font única de veritat pel checkout (client
     i validació de backend): no hi ha cap llista separada a mantenir."""
-    return sorted(set(db.scalars(
-        select(TramEnviament.country).where(TramEnviament.active == True)
-    )))
+    return sorted(
+        c for c in set(db.scalars(
+            select(TramEnviament.country).where(TramEnviament.active == True)
+        ))
+        if normalitza_pais(c) not in PAISOS_SANCIONATS
+    )
 
 
 def pes_total_g(items: list[Item], db: Session) -> int:
@@ -98,6 +109,8 @@ def compute_coste_enviament(pes_g: int, metodo_envio: str, pais: str | None, db:
         return Decimal("0")
 
     pais_norm = normalitza_pais(pais)
+    if pais_norm in PAISOS_SANCIONATS:
+        raise PaisNoDisponible(f"No fem enviaments a aquest país ({pais}).")
 
     tram = db.scalar(
         select(TramEnviament)

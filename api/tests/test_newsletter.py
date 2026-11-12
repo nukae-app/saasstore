@@ -134,10 +134,18 @@ def test_baixa_desactiva_consent_newsletter(client, db):
     db.add(send)
     db.commit()
 
+    # el GET (el que visiten els escàners d'enllaços) NO dona de baixa
     resp = client.get(f"/newsletter/baixa?token={raw_token}")
     assert resp.status_code == 200
     db.refresh(user)
+    assert user.consent_newsletter is True
+
+    # el POST (confirmació a la web o baixa en un clic de Gmail) sí
+    resp = client.post(f"/newsletter/baixa?token={raw_token}", data={"List-Unsubscribe": "One-Click"})
+    assert resp.status_code == 200
+    db.refresh(user)
     assert user.consent_newsletter is False
+    assert user.consent_newsletter_at is None
 
 
 def test_baixa_amb_token_invalid_dona_404(client, db):
@@ -173,3 +181,35 @@ def test_send_campaign_compta_metrica_per_exit_i_error(client, db, monkeypatch):
     sends = {s.email: s.status for s in db.scalars(select(NewsletterSend)).all()}
     assert sends["ok@example.com"] == NewsletterSendStatus.enviat
     assert sends["fail@example.com"] == NewsletterSendStatus.error
+
+
+def test_consent_newsletter_at_es_posa_sol(db):
+    user = User(email="nou@example.com", active=True, consent_newsletter=True)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    assert user.consent_newsletter_at is not None
+    user.consent_newsletter = False
+    db.commit()
+    db.refresh(user)
+    assert user.consent_newsletter_at is None
+
+
+def test_enviament_porta_list_unsubscribe_i_peu_legal(client, db, monkeypatch):
+    monkeypatch.setattr("app.tasks.newsletter.time.sleep", lambda *a, **k: None)
+    db.add(User(email="lector@example.com", active=True, consent_newsletter=True, language="es"))
+    db.add(NewsletterCampaign(subject="x", content_html="<p>x</p>", status=NewsletterCampaignStatus.enviant))
+    db.commit()
+    campaign = db.scalar(select(NewsletterCampaign))
+    capturats = []
+    monkeypatch.setattr("app.tasks.newsletter.send_email", lambda to, **kw: capturats.append(kw))
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        send_campaign(campaign.id, str(campaign.tenant_id))
+
+    assert len(capturats) == 1
+    kw = capturats[0]
+    assert re.fullmatch(r"<http://testserver/api/newsletter/baixa\?token=[\w\-]+>", kw["headers"]["List-Unsubscribe"])
+    assert kw["headers"]["List-Unsubscribe-Post"] == "List-Unsubscribe=One-Click"
+    assert "http://testserver/es/newsletter/baixa?token=" in kw["html"]
+    assert "Darse de baja" in kw["html"]

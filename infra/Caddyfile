@@ -19,72 +19,24 @@ www.{$SITE_ADDRESS} {
 	redir https://{$SITE_ADDRESS}{uri} permanent
 }
 
-# Panel de superadmin (Fase 3) — dominio dedicado, distinto del de
-# cualquier tenant. El gate real vive en el backend
-# (_require_superadmin_host, api/app/routers/superadmin.py, comprueba el
-# Host y devuelve 404 si no coincide); este bloque solo asegura que el
-# Host que llega a la API es el correcto (a diferencia de /api/* en el
-# bloque de {$SITE_ADDRESS} de abajo, que reenvía sin más). Debe coincidir
-# con SUPERADMIN_HOST (backend) y NEXT_PUBLIC_SUPERADMIN_HOST (frontend).
-{$SUPERADMIN_HOST} {
-	encode gzip
+# Panel de superadmin (SUPERADMIN_HOST) y landing SaaS (NEXT_PUBLIC_APP_HOST):
+# ELIMINADOS deliberadamente de este Caddyfile (docs/PLAN_SEGURETAT_COMPLIMENT.md,
+# Fase 5 opción A). El SaaS multi-tenant no se comercializa y ultra-local es
+# el único tenant, así que ninguno de los dos dominios debe servir tráfico.
+# El código (rutas /superadmin, middleware, _require_superadmin_host) se
+# mantiene; para reactivarlos basta con volver a añadir un bloque
+# `{$SUPERADMIN_HOST} { encode gzip \n import api_proxy \n import web_proxy }`.
 
-	handle /api/* {
-		uri strip_prefix /api
-		reverse_proxy api:8000
-	}
-
-	handle {
-		header {
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-			X-Frame-Options "SAMEORIGIN"
-			-X-Powered-By
-		}
-		reverse_proxy web:3000
-	}
-}
-
-# Landing del producte SaaS (NukaeStore) — domini propi, diferent del de
-# qualsevol tenant (ver web/app/nukaestore/, NEXT_PUBLIC_APP_HOST). Sense
-# aquest bloc explícit cau en el catch-all `https://` de sota, que fa servir
-# `ask` per validar contra `tenants.domain` — i aquest domini no és cap
-# tenant, així que mai consegueix certificat (404 de ask-domain).
-{$NEXT_PUBLIC_APP_HOST} {
-	encode gzip
-
-	handle /api/* {
-		uri strip_prefix /api
-		reverse_proxy api:8000
-	}
-
-	handle {
-		header {
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-			X-Frame-Options "SAMEORIGIN"
-			-X-Powered-By
-		}
-		reverse_proxy web:3000
-	}
-}
-
-{$SITE_ADDRESS} {
-	encode gzip
-
+# Fragmentos comunes: antes cada bloque repetía el proxy y las cabeceras y
+# divergían (p. ej. /api/metrics solo se bloqueaba en algunos).
+(api_proxy) {
 	# /metrics (Prometheus) es reserva per a Alloy, dins la xarxa Docker
-	# (api:8000/metrics directament, sense passar per Caddy) — bloquejat
-	# aquí perquè no quedi accessible des d'internet.
+	# (api:8000/metrics directament, sense passar per Caddy).
 	handle /api/metrics {
 		respond 404
 	}
 
-	# Defensa en profunditat: /internal/* (ver api/app/routers/internal.py)
-	# només l'ha de cridar Caddy mateix, contenidor a contenidor — mai s'hi
-	# hauria d'arribar per aquí, però es bloqueja igualment igual que
-	# /api/metrics.
+	# /internal/* només l'ha de cridar Caddy mateix (ask-domain).
 	handle /api/internal/* {
 		respond 404
 	}
@@ -93,10 +45,13 @@ www.{$SITE_ADDRESS} {
 		uri strip_prefix /api
 		reverse_proxy api:8000
 	}
+}
 
+(web_proxy) {
 	handle /uploads/* {
 		uri strip_prefix /uploads
 		root * /srv/uploads
+		header X-Content-Type-Options "nosniff"
 		file_server
 	}
 
@@ -107,10 +62,22 @@ www.{$SITE_ADDRESS} {
 			Referrer-Policy "strict-origin-when-cross-origin"
 			Permissions-Policy "geolocation=(), camera=(), microphone=()"
 			X-Frame-Options "SAMEORIGIN"
+			# CSP en mode REPORT-ONLY (no bloqueja res): les violacions arriben a
+			# POST /api/csp-report (es registren al log de l'API). Passar a
+			# `Content-Security-Policy` un cop revisades (Fase 2.2 del pla).
+			# 'unsafe-inline' a script/style perquè Next.js injecta scripts
+			# inline sense nonce; es pot estrènyer més endavant.
+			Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://faro-collector-prod-eu-west-6.grafana.net; frame-src https://www.mixcloud.com https://*.bandcamp.com https://w.soundcloud.com https://open.spotify.com https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self' https://sis.redsys.es https://sis-t.redsys.es; frame-ancestors 'self'; report-uri /api/csp-report"
 			-X-Powered-By
 		}
 		reverse_proxy web:3000
 	}
+}
+
+{$SITE_ADDRESS} {
+	encode gzip
+	import api_proxy
+	import web_proxy
 }
 
 # Fase 4: dominis de tenant donats d'alta des del superadmin DESPRÉS
@@ -135,34 +102,6 @@ https:// {
 		redir https://{re.host.1}{uri} permanent
 	}
 
-	handle /api/metrics {
-		respond 404
-	}
-
-	handle /api/internal/* {
-		respond 404
-	}
-
-	handle /api/* {
-		uri strip_prefix /api
-		reverse_proxy api:8000
-	}
-
-	handle /uploads/* {
-		uri strip_prefix /uploads
-		root * /srv/uploads
-		file_server
-	}
-
-	handle {
-		header {
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-			Permissions-Policy "geolocation=(), camera=(), microphone=()"
-			X-Frame-Options "SAMEORIGIN"
-			-X-Powered-By
-		}
-		reverse_proxy web:3000
-	}
+	import api_proxy
+	import web_proxy
 }

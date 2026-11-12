@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from app.models import Item, Order, PesFormat, Release, TramEnviament, User
 from app.services.enviament import (
-    DEFAULT_PES_G, PaisNoDisponible, PesNoConfigurat, compute_coste_enviament, paisos_disponibles,
+    DEFAULT_PES_G, PAISOS_SANCIONATS, PaisNoDisponible, PesNoConfigurat, compute_coste_enviament, paisos_disponibles,
     pes_total_g,
 )
 
@@ -136,6 +136,17 @@ def test_paisos_disponibles_reflecteix_els_trams_actius(db):
     db.commit()
     # IT no compta: el seu únic tram està inactiu
     assert paisos_disponibles(db) == ["ES", "FR"]
+
+
+@pytest.mark.parametrize("pais", ["CU", "IR", "KP", "SY", "cu", " ir "])
+def test_paisos_sancionats_mai_es_serveixen_encara_que_hi_hagi_tram(db, pais):
+    _seed_trams_es(db)
+    for c in PAISOS_SANCIONATS:
+        db.add(TramEnviament(country=c, max_weight_g=500, price=Decimal("9.00")))
+    db.commit()
+    with pytest.raises(PaisNoDisponible):
+        compute_coste_enviament(300, "envio", pais, db)
+    assert paisos_disponibles(db) == ["ES"]
 
 
 def test_pes_total_usa_default_global_quan_ni_release_ni_format_tenen_pes(db):

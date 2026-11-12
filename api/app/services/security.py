@@ -60,7 +60,10 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode(), hashed.encode())
+    raw = password.encode()
+    if len(raw) > 72:  # bcrypt no admet més; cap contrasenya vàlida és tan llarga
+        return False
+    return bcrypt.checkpw(raw, hashed.encode())
 
 
 def create_access_token(user: User) -> str:

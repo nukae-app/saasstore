@@ -132,6 +132,7 @@
     "pendingOrdersCount": "{count, plural, one {Tienes un pedido pendiente de pago} other {Tienes # pedidos pendientes de pago}}",
     "completePaymentOrPickup": "Completa el pago o recógelo en la tienda.",
     "latestOrders": "Últimos pedidos",
+    "withdrawalLink": "¿Quieres desistir de una compra? (14 días)",
     "seeAll": "Ver todos →",
     "noOrdersYet": "Todavía no has hecho ningún pedido.",
     "exploreCatalog": "Explorar el catálogo",
@@ -637,5 +638,23 @@
     "remember": "Recordarme para {host}",
     "manage": "Borrar permisos de contenido de terceros",
     "manageDone": "Preferencias borradas"
+  },
+  "cookieConsent": {
+    "title": "Cookies y analítica",
+    "body": "Usamos cookies técnicas imprescindibles (sesión y carrito). Con tu permiso, también una herramienta de analítica anónima para saber qué páginas funcionan y mejorar la web. Puedes cambiarlo cuando quieras desde el pie de página.",
+    "moreInfo": "Más información",
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "manage": "Preferencias de cookies"
+  },
+  "newsletterUnsubscribe": {
+    "title": "Darse de baja de la newsletter",
+    "checking": "Comprobando el enlace…",
+    "intro": "Si confirmas, dejaremos de enviarte la newsletter. Puedes volver a suscribirte cuando quieras desde tu cuenta.",
+    "confirm": "Confirmar la baja",
+    "doneTitle": "Baja confirmada",
+    "done": "No recibirás más correos de la newsletter.",
+    "invalid": "Este enlace de baja no es válido. Si quieres dejar de recibir correos, escríbenos.",
+    "error": "No hemos podido completar la baja. Vuelve a intentarlo dentro de un rato."
   }
 }

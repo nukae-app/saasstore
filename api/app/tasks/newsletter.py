@@ -10,7 +10,7 @@ from sqlalchemy import select
 from ..celery_app import celery_app
 from ..database import SessionLocal
 from ..models import NewsletterCampaign, NewsletterCampaignStatus, NewsletterSend, NewsletterSendStatus, Tenant, User
-from ..services.emailer import absolutize_upload_urls, send_email
+from ..services.emailer import absolutize_upload_urls, newsletter_footer, send_email
 from ..services.metrics import newsletter_send_result_total
 from ..services.security import _hash
 from ..tenancy import scoped_to, tenant_frontend_url
@@ -47,6 +47,8 @@ def send_campaign(campaign_id: str, tenant_id: str) -> None:
                 select(User).where(User.active == True, User.consent_newsletter == True)
             ).all()
 
+            idiomes = {u.id: u.language for u in destinataris}
+
             # Genera el token d'un cop (només tenim el valor en clar aquí, abans de hashejar-lo).
             pendents = []
             for user in destinataris:
@@ -65,15 +67,26 @@ def send_campaign(campaign_id: str, tenant_id: str) -> None:
 
             for enviament, raw_token in pendents:
                 try:
-                    unsubscribe_url = f"{tenant_frontend_url(tenant)}/newsletter/baixa?token={raw_token}"
-                    html = f"{absolutize_upload_urls(campaign.content_html, tenant)}<p><a href=\"{unsubscribe_url}\">Donar-se de baixa</a></p>"
+                    base = tenant_frontend_url(tenant)
+                    lang = idiomes.get(enviament.user_id, "ca")
+                    # Pàgina de confirmació (el GET no dona de baixa: els
+                    # escàners d'enllaços dels correus el visiten) i URL d'API
+                    # per a la baixa en un clic (RFC 8058, Gmail/Yahoo).
+                    unsubscribe_url = f"{base}/{lang}/newsletter/baixa?token={raw_token}"
+                    one_click_url = f"{base}/api/newsletter/baixa?token={raw_token}"
+                    footer_html, footer_text = newsletter_footer(tenant, db, unsubscribe_url, lang)
+                    html = f"{absolutize_upload_urls(campaign.content_html, tenant)}{footer_html}"
                     send_email(
                         to=enviament.email,
                         subject=campaign.subject,
-                        body=f"{campaign.subject}\n\nDonar-se de baixa: {unsubscribe_url}",
+                        body=f"{campaign.subject}{footer_text}",
                         tenant=tenant,
                         db=db,
                         html=html,
+                        headers={
+                            "List-Unsubscribe": f"<{one_click_url}>",
+                            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+                        },
                     )
                     enviament.status = NewsletterSendStatus.enviat
                     enviament.sent_at = datetime.now(timezone.utc)

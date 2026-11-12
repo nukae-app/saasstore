@@ -4,6 +4,7 @@ import { Link } from '../../i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { clearEmbedConsent } from './EmbedConsent';
+import { openCookieBanner } from '../lib/analyticsConsent';
 
 // lucide-react 1.x ha tret les icones de marca; mateix traç que tenia Instagram.
 function Instagram({ size = 24, className }) {
@@ -44,6 +45,7 @@ export default function StorefrontFooter() {
   const t = useTranslations('footer');
   const tNav = useTranslations('nav');
   const tEmbed = useTranslations('embed');
+  const tCookies = useTranslations('cookieConsent');
   const [config, setConfig] = useState(FALLBACK);
 
   useEffect(() => {
@@ -171,6 +173,9 @@ export default function StorefrontFooter() {
             <Link href="/termes" className={legalLink}>{t('termsOfUse')}</Link>
             <Link href="/condicions-venda" className={legalLink}>{t('salesTerms')}</Link>
             <Link href="/desistiment" className={legalLink}>{t('withdrawal')}</Link>
+            <button type="button" className={legalLink} onClick={openCookieBanner}>
+              {tCookies('manage')}
+            </button>
             <button type="button" className={legalLink}
               onClick={() => { clearEmbedConsent(); }}>
               {tEmbed('manage')}

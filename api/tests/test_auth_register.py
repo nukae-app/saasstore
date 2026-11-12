@@ -91,7 +91,21 @@ def test_resend_verification_no_filtra_existencia_del_compte(client, db):
     assert resp.status_code == 202
 
 
-def test_register_email_duplicat(client, db):
-    _register(client)
-    resp, _ = _register(client)
-    assert resp.status_code == 409
+def test_register_email_duplicat_no_filtra_existencia(client, db):
+    """Mateixa resposta (202) que un alta nova: no permet enumerar comptes."""
+    primera, _ = _register(client)
+    resp, printed = _register(client)
+    assert resp.status_code == 202
+    assert resp.json() == primera.json()
+    # encara sense verificar: se li reenvia el correu de verificació
+    assert "token=" in printed
+
+
+def test_register_contrasenya_massa_llarga(client, db):
+    resp, _ = _register(client, password="a" * 73)
+    assert resp.status_code == 422
+
+
+def test_login_contrasenya_massa_llarga_no_peta(client, db):
+    resp = client.post("/auth/login", json={"email": EMAIL, "password": "a" * 200})
+    assert resp.status_code == 401

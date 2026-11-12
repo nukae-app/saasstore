@@ -56,6 +56,29 @@ def render_email_html(
 """
 
 
+_UNSUB_TEXT = {
+    "ca": ("Rebs aquest correu perquè t'has subscrit a la newsletter.", "Donar-se de baixa"),
+    "es": ("Recibes este correo porque te suscribiste a la newsletter.", "Darse de baja"),
+    "en": ("You are receiving this email because you subscribed to the newsletter.", "Unsubscribe"),
+}
+
+
+def newsletter_footer(tenant: Tenant, db, unsubscribe_url: str, language: str = "ca") -> tuple[str, str]:
+    """Peu legal de la newsletter (RGPD + CAN-SPAM): motiu de la recepció,
+    enllaç de baixa i adreça postal del remitent. Torna (html, text)."""
+    config = db.scalar(select(ConfiguracioBotiga).where(ConfiguracioBotiga.tenant_id == tenant.id))
+    adreca = (config.address if config else None) or ""
+    motiu, baixa = _UNSUB_TEXT.get(language, _UNSUB_TEXT["ca"])
+    remitent = f"{tenant.nombre}{' · ' + adreca if adreca else ''}"
+    html = (
+        '<hr style="border:none;border-top:1px solid #e4e4e7;margin:24px 0">'
+        f'<p style="font-size:12px;color:#71717a">{motiu}<br>'
+        f'<a href="{unsubscribe_url}">{baixa}</a><br>{remitent}</p>'
+    )
+    text = f"\n\n--\n{motiu}\n{baixa}: {unsubscribe_url}\n{remitent}"
+    return html, text
+
+
 def send_email(
     to: str,
     subject: str,
@@ -64,6 +87,7 @@ def send_email(
     db,
     attachment: tuple[str, bytes, str] | None = None,
     html: str | None = None,
+    headers: dict[str, str] | None = None,
 ) -> None:
     """attachment: (nombre_fichero, contenido, maintype/subtype) p. ej. ("comanda.pdf", data, "application/pdf").
     html: versión HTML alternativa (p. ej. para newsletters); body sigue siendo el fallback en texto plano.
@@ -87,6 +111,8 @@ def send_email(
     msg["From"] = email_from
     msg["To"] = to
     msg["Subject"] = subject
+    for name, value in (headers or {}).items():
+        msg[name] = value
     msg.set_content(body)
     if html:
         msg.add_alternative(html, subtype="html")

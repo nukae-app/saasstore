@@ -14,4 +14,8 @@ EXPOSE 8000
 # Python — coll d'ampolla vist en un test de càrrega abans que la CPU o la
 # base de dades arribessin al límit. Si es puja la mida de la instància,
 # pujar aquesta variable en proporció als vCPU nous (veure docker-compose.prod.yml).
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-2}"]
+# --proxy-headers/--forwarded-allow-ips: l'api només és accessible des de Caddy
+# (xarxa Docker, `expose` sense `ports`), que posa X-Forwarded-For. Sense això
+# el rate limit (slowapi) veia sempre la IP del contenidor de Caddy i el
+# límit era global en lloc de per client.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-2} --proxy-headers --forwarded-allow-ips=*"]

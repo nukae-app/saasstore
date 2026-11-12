@@ -98,13 +98,29 @@ def _set_session(response: Response, db: Session, user: User) -> TokenOut:
 
 # --- Password auth ---
 
+def _validate_password(password: str) -> None:
+    """Mínim 8 caràcters; màxim 72 bytes (límit real de bcrypt: bcrypt>=5 llança
+    ValueError i abans truncava en silenci, deixant que contrasenyes diferents
+    col·lidissin)."""
+    if len(password) < 8:
+        raise HTTPException(422, "La contrasenya ha de tenir mínim 8 caràcters")
+    if len(password.encode()) > 72:
+        raise HTTPException(422, "La contrasenya és massa llarga (màxim 72 bytes)")
+
+
 @router.post("/register", status_code=202)
 @limiter.limit("10/hour")
 def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)):
-    if db.scalar(select(User).where(User.email == payload.email.lower())):
-        raise HTTPException(409, "Aquest email ja té un compte")
-    if len(payload.password) < 8:
-        raise HTTPException(422, "La contrasenya ha de tenir mínim 8 caràcters")
+    _validate_password(payload.password)
+    existent = db.scalar(select(User).where(User.email == payload.email.lower()))
+    if existent is not None:
+        # Resposta idèntica a la d'un alta nova: no revelem si l'email ja té
+        # compte (enumeració d'usuaris). Si encara no l'havia verificat, se li
+        # reenvia el correu; si ja és verificat, no es fa res (pot entrar amb
+        # contrasenya, Google o enllaç màgic).
+        if not existent.email_verified:
+            _send_verification_email(db, existent.email, request.state.tenant, idioma=payload.language)
+        return {"detail": "Compte creat. Revisa el teu email per activar-lo."}
     user = User(
         email=payload.email.lower(),
         name=payload.name or None,
@@ -162,13 +178,14 @@ def login(request: Request, payload: PasswordLoginRequest, response: Response, d
 
 
 @router.post("/set-password", status_code=204)
+@limiter.limit("10/hour")
 def set_password(
+    request: Request,
     payload: SetPasswordRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    if len(payload.password) < 8:
-        raise HTTPException(422, "La contrasenya ha de tenir mínim 8 caràcters")
+    _validate_password(payload.password)
     user.password_hash = hash_password(payload.password)
     db.commit()
 

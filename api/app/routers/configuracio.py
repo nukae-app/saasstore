@@ -35,6 +35,7 @@ from ..schemas import (
 )
 from ..services import discogs, fontsource as fontsource_svc
 from ..services.sanitize import sanitize_custom_css
+from ..services.uploads import validate_image_bytes
 from ..services.security import require_admin
 from ..tenant_secrets import TenantSecrets, get_tenant_secrets, set_tenant_secret
 
@@ -126,10 +127,11 @@ async def _upload_config_image(field: str, file: UploadFile, db: Session) -> Con
     if ext not in ALLOWED_IMAGE_EXTS:
         raise HTTPException(422, "Només s'accepten imatges PNG, ICO, JPG o WebP")
 
+    content = await file.read()
+    validate_image_bytes(content, ext, ALLOWED_IMAGE_EXTS)
     config = _get_or_create_config(db)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
-    content = await file.read()
     with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
         f.write(content)
 

@@ -41,7 +41,7 @@ def get_or_create_cart(
     cart = Cart(session_id=session_id)
     db.add(cart)
     db.commit()
-    response.set_cookie(CART_COOKIE, session_id, httponly=True, samesite="lax", max_age=30 * 86400)
+    response.set_cookie(CART_COOKIE, session_id, httponly=True, secure=True, samesite="lax", max_age=30 * 86400)
     return cart
 
 
