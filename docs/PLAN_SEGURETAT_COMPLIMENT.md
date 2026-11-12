@@ -140,3 +140,10 @@ Si el SaaS no se va a vender, reducir superficie de ataque en vez de mantenerla:
 - `cd api && python -m pytest` verde con tests nuevos por cada cambio de backend.
 - Verificación manual en navegador del banner y de las cabeceras (`curl -I`).
 - Re-escaneo final con `claude-security` sin hallazgos medios o superiores abiertos.
+
+---
+
+## Actualización 2026-11-12 (revisión de verificación)
+- Textos públicos corregidos en producción (ca/es/en): NIF, cookies (ya declara Faro con consentimiento) y privacidad (fila de analítica y proveedores concretos).
+- Redsys de suscripciones verifica importe, moneda y comercio (`subscripcions_public.py`), con test.
+- Pendiente: `ConfiguracioBotiga.nif` vacío en producción (alimenta facturas y futuros seeds); 2FA admin; cifrado y copia del volumen `uploads`; decisión sobre `recordshop-db`; Verifactu (decisión con la gestoría); historial de precios (Omnibus).

@@ -14,7 +14,12 @@ Los textos son una PLANTILLA razonable para una tienda online española que
 vende a consumidores (LSSI art. 10, RGPD art. 13, LSSI art. 22.2, TRLGDCU), pero
 NO sustituyen la revisión de un abogado/gestor: hay que completar los datos que
 falten (marcados como «[pendent]») y confirmar el tratamiento del IVA/REBU en
-segunda mano. Los datos del titular salen de ConfiguracioBotiga (fiscal_name,
+segunda mano. ATENCIÓN con `--overwrite`: en producción (tenant `recordstore`) las páginas privacitat,
+cookies, condicions-venda y avis-legal se corrigieron a mano el 2026-11-12 (analítica Faro con
+consentimiento, proveedores concretos, NIF). Las plantillas de este fichero NO incluyen esos
+cambios: reescribirlas devolvería la política de cookies que niega la analítica.
+
+Los datos del titular salen de ConfiguracioBotiga (fiscal_name,
 nif, address, contact_email, phone).
 """
 

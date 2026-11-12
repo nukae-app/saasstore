@@ -28,6 +28,7 @@ from ..models import (
     EstatSubscripcio, Subscripcio, User,
 )
 from ..schemas import ConfiguracioSubscripcioOut, SubscripcioAltaIn
+from ..services.metrics import redsys_payment_result_total
 from ..services import redsys
 from ..services.subscripcions import GENERES_DISCOGS, proxima_facturacio_alta, proxima_facturacio_seguent
 from ..services.security import get_current_user
@@ -173,6 +174,22 @@ async def redsys_notify_alta(request: Request, db: Session = Depends(get_db_unsc
         params = redsys.verify_signature(params_b64, signature, secret_key or "")
         if params is None:
             raise HTTPException(400, "Firma invàlida")
+
+        # Defensa en profundidad (mismo criterio que checkout.py::redsys_notify):
+        # una notificación con firma válida pero importe, moneda o comercio
+        # distintos a los del cobro NUNCA activa la suscripción.
+        secrets = get_tenant_secrets(cobrament.tenant_id)
+        esperat = str(int((cobrament.import_ * 100).to_integral_value()))
+        if (
+            params.get("Ds_Amount") != esperat
+            or params.get("Ds_Currency") != "978"
+            or (secrets.redsys_merchant_code and params.get("Ds_MerchantCode") != secrets.redsys_merchant_code)
+        ):
+            cobrament.raw_notification = params
+            cobrament.estat = EstatCobrament.fallit
+            db.commit()
+            redsys_payment_result_total.labels(result="mismatch").inc()
+            raise HTTPException(400, "Importe, moneda o comercio no coinciden")
 
         cobrament.raw_notification = params
         subscripcio = db.get(Subscripcio, cobrament.subscripcio_id)

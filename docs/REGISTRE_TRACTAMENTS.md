@@ -8,8 +8,8 @@ Documento interno. Responsable: Ultra-Local Records (Poblenou, Barcelona). **Bor
 |---|-------------|-----------|---------------|-------|-------------|--------------|----------------------------|
 | 1 | Cuenta de usuario | Acceso, historial, direcciones | Ejecución de contrato (6.1.b) | Email, nombre, hash de contraseña, identidad Google (sub), idioma, direcciones | Clientes | Mientras la cuenta exista; anonimización a petición (los pedidos se conservan) | AWS (hosting, RDS), Google (login OIDC, opcional) |
 | 2 | Pedidos y pagos | Venta, envío, facturación, garantía y desistimiento | Contrato (6.1.b); obligación legal fiscal (6.1.c) | Contacto, dirección de envío (snapshot), importes, estado de pago. **No se guardan datos de tarjeta** | Compradores (también invitados) | Plazos mercantiles/fiscales (mínimo 4-6 años) [COMPLETAR plazo definitivo] | Redsys (pasarela), transportista, AWS |
-| 3 | Newsletter | Comunicaciones comerciales | Consentimiento (6.1.a), LSSI art. 21 | Email, idioma, `consent_newsletter`, `consent_newsletter_at` | Suscriptores | Hasta la baja | Brevo (SMTP), AWS |
-| 4 | Emails transaccionales | Confirmaciones, magic link, desistimiento | Contrato / interés legítimo | Email, referencia de pedido | Clientes | Logs del proveedor [COMPLETAR] | Brevo |
+| 3 | Newsletter | Comunicaciones comerciales | Consentimiento (6.1.a), LSSI art. 21 | Email, idioma, `consent_newsletter`, `consent_newsletter_at` | Suscriptores | Hasta la baja | OVH (SMTP), AWS |
+| 4 | Emails transaccionales | Confirmaciones, magic link, desistimiento | Contrato / interés legítimo | Email, referencia de pedido | Clientes | Logs del proveedor [COMPLETAR] | OVH |
 | 5 | Analítica web (Faro) | Medir tráfico y errores | Consentimiento (ePrivacy / LSSI 22.2); solo si el usuario acepta el banner | URL, user agent, referrer, id de sesión | Visitantes | Según stack Grafana [COMPLETAR] | Grafana Labs (stack eu-west-6) |
 | 6 | Logs técnicos y seguridad | Seguridad, rate limiting, depuración | Interés legítimo (6.1.f) | IP, user agent, rutas | Visitantes | Rotación de logs [COMPLETAR] | AWS, Grafana (Alloy) |
 | 7 | Contabilidad | Libros, IVA, facturas recibidas | Obligación legal (6.1.c) | Datos de proveedores y clientes | Proveedores, clientes | Plazos fiscales | Gestoría; Anthropic (OCR de facturas, si se usa) |
@@ -22,7 +22,7 @@ Documento interno. Responsable: Ultra-Local Records (Poblenou, Barcelona). **Bor
 |-----------|----------|-----------|-----------|-----------|
 | AWS | EC2, RDS, ECR, Secrets Manager | eu-west-1 (Irlanda) | UE | DPA de AWS aceptado |
 | Redsys | Pasarela de pago | España | UE | Contrato con la entidad |
-| Brevo | Email | UE | UE | DPA aceptado |
+| OVH | Email | UE | UE | DPA aceptado |
 | Grafana Labs | Observabilidad (Faro, Alloy) | stack `eu-west-6` (UE) | Empresa matriz en EEUU: confirmar DPF/SCC | DPA + DPF |
 | Anthropic | OCR de facturas (admin) | EEUU | DPF/SCC [COMPLETAR] | DPA; no enviar datos personales innecesarios |
 | Google | Login OIDC | EEUU/UE | DPF | Solo si el usuario elige Google |
@@ -49,3 +49,6 @@ Acceso, rectificación, supresión (anonimización conservando pedidos por oblig
 3. **Política de cookies** (`/cookies`, texto en BD): técnicas (sesión, carrito, preferencia de consentimiento) y analítica (Faro, solo con consentimiento).
 4. **Aviso legal**: identidad, NIF, domicilio, contacto (LSSI art. 10).
 5. Confirmar DPF/SCC de Grafana Labs y Anthropic y firmar los DPA.
+
+## 6. Estado de los textos públicos (2026-11-12)
+Corregidos en producción (ca/es/en): NIF en privacidad, condiciones y aviso legal; `/cookies` ya declara la analítica con consentimiento; `/privacitat` incluye la fila de analítica y los proveedores concretos (AWS, Redsys, OVH, Grafana Labs). Sigue pendiente la validación de la gestoría y el campo `nif` de la configuración de la tienda (vacío al revisar).

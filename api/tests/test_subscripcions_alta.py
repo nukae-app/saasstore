@@ -103,6 +103,16 @@ def test_alta_valida_periodicitat_i_quantitat_disponibles(db, client):
     assert alta.status_code == 422
 
 
+def _money(importe: str) -> dict:
+    """Campos que Redsys siempre incluye en la notificación y que el servidor verifica."""
+    import os
+    return {
+        "Ds_Amount": str(int(Decimal(importe) * 100)),
+        "Ds_Currency": "978",
+        "Ds_MerchantCode": os.environ.get("REDSYS_MERCHANT_CODE", ""),
+    }
+
+
 def test_alta_i_notificacio_autoritzada_activa_la_subscripcio(db, client):
     config = _activar_subscripcions(client, db)
     access, address_id = _client_amb_adreca(client, db)
@@ -135,6 +145,7 @@ def test_alta_i_notificacio_autoritzada_activa_la_subscripcio(db, client):
 
     params_b64, signature = _sign_as_redsys({
         "Ds_Order": ds_order, "Ds_Response": "0000", "Ds_Merchant_Identifier": "TOKEN-COF-123",
+        **_money("60.00"),
     })
     with contextlib.redirect_stdout(io.StringIO()):
         notify = client.post(
@@ -166,7 +177,7 @@ def test_alta_denegada_descarta_la_subscripcio_pendent(db, client):
     subscripcio_id = uuid.UUID(body["subscripcio_id"])
     ds_order = json.loads(base64.b64decode(body["Ds_MerchantParameters"]))["DS_MERCHANT_ORDER"]
 
-    params_b64, signature = _sign_as_redsys({"Ds_Order": ds_order, "Ds_Response": "0180"})
+    params_b64, signature = _sign_as_redsys({"Ds_Order": ds_order, "Ds_Response": "0180", **_money("20.00")})
     with contextlib.redirect_stdout(io.StringIO()):
         notify = client.post(
             "/subscripcions/pay/redsys/notify",
@@ -176,3 +187,33 @@ def test_alta_denegada_descarta_la_subscripcio_pendent(db, client):
 
     db.expire_all()
     assert db.get(Subscripcio, subscripcio_id) is None
+
+
+def test_notificacio_amb_import_diferent_no_activa_la_subscripcio(db, client):
+    _activar_subscripcions(client, db)
+    access, address_id = _client_amb_adreca(client, db, email="manipulat@example.com")
+    alta = client.post(
+        "/subscripcions/alta",
+        json={"periodicitat_mesos": 1, "quantitat": 1, "address_id": address_id},
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    body = alta.json()
+    subscripcio_id = uuid.UUID(body["subscripcio_id"])
+    ds_order = json.loads(base64.b64decode(body["Ds_MerchantParameters"]))["DS_MERCHANT_ORDER"]
+
+    # Firma válida, cobro autorizado, pero por 0,01 € en vez de 20,00 €.
+    params_b64, signature = _sign_as_redsys({
+        "Ds_Order": ds_order, "Ds_Response": "0000", "Ds_Merchant_Identifier": "TOKEN-FALS", **_money("0.01"),
+    })
+    with contextlib.redirect_stdout(io.StringIO()):
+        notify = client.post(
+            "/subscripcions/pay/redsys/notify",
+            data={"Ds_SignatureVersion": "HMAC_SHA256_V1", "Ds_MerchantParameters": params_b64, "Ds_Signature": signature},
+        )
+    assert notify.status_code == 400
+
+    db.expire_all()
+    subscripcio = db.get(Subscripcio, subscripcio_id)
+    assert subscripcio.estat == EstatSubscripcio.pendent_pagament
+    assert subscripcio.redsys_identifier is None
+    assert subscripcio.cobraments[0].estat == EstatCobrament.fallit
