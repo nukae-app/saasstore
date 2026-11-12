@@ -3,6 +3,7 @@ i blocks/registry.py). El listado admin devuelve todo (activos e inactivos);
 el público solo lo `enabled=True`, sin autenticación, para que
 [locale]/page.jsx lo pueda pedir en cada request igual que /config/public."""
 
+import io
 import os
 import subprocess
 import tempfile
@@ -26,13 +27,14 @@ from ..schemas import (
     UploadedVideoOut,
 )
 from ..services.security import require_admin
+from ..services.storage import get_storage
+from ..services.uploads import validate_image_bytes
 from ..services.video import VideoTooLongError, transcode_for_web
 
 router = APIRouter(prefix="/admin/home-blocks", tags=["home-blocks"], dependencies=[Depends(require_admin)])
 public_router = APIRouter(prefix="/config/public/home-blocks", tags=["home-blocks"])
 
-# Mateix volum compartit amb Caddy que favicon/logo (ver routers/configuracio.py)
-UPLOADS_DIR = "/app/uploads"
+# Els fitxers pujats es desen via services/storage.py (disc en dev, S3 en producció).
 ALLOWED_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
 ALLOWED_VIDEO_EXTS = (".mp4", ".webm", ".mov", ".mkv", ".avi")
 # Cap del fitxer ORIGINAL abans de recomprimir (ver services/video.py) — el
@@ -60,10 +62,8 @@ async def upload_background_image(file: UploadFile = File(...)):
         raise HTTPException(422, "Només s'accepten imatges PNG, JPG o WebP")
     content = await file.read()
     validate_image_bytes(content, ext, ALLOWED_IMAGE_EXTS)
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
-    with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
-        f.write(content)
+    get_storage().save(filename, content)
     return {"url": f"/uploads/{filename}"}
 
 
@@ -97,25 +97,26 @@ async def upload_video(
     if len(content) > MAX_UPLOAD_SIZE_BYTES:
         raise HTTPException(422, "El vídeo original pesa massa")
 
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp_in:
         tmp_in.write(content)
         tmp_in_path = tmp_in.name
 
+    # ffmpeg escriu a un fitxer temporal; després es puja al storage (disc o S3).
     filename = f"{uuid.uuid4()}.mp4"
-    out_path = os.path.join(UPLOADS_DIR, filename)
+    out_path = os.path.join(tempfile.gettempdir(), filename)
     try:
         transcode_for_web(tmp_in_path, out_path, start=start, end=end)
+        size_bytes = os.path.getsize(out_path)
+        get_storage().save_file(filename, out_path, content_type="video/mp4")
     except (VideoTooLongError, ValueError) as exc:
-        _remove_if_exists(out_path)
         raise HTTPException(422, str(exc)) from exc
     except subprocess.CalledProcessError as exc:
-        _remove_if_exists(out_path)
         raise HTTPException(422, "No s'ha pogut processar el vídeo") from exc
     finally:
         os.remove(tmp_in_path)
+        _remove_if_exists(out_path)
 
-    video = UploadedVideo(url=f"/uploads/{filename}", filename=original_name, size_bytes=os.path.getsize(out_path))
+    video = UploadedVideo(url=f"/uploads/{filename}", filename=original_name, size_bytes=size_bytes)
     db.add(video)
     db.commit()
     db.refresh(video)
@@ -132,7 +133,7 @@ def delete_uploaded_video(video_id: int, db: Session = Depends(get_db)):
     video = db.get(UploadedVideo, video_id)
     if video is None:
         raise HTTPException(404, "Vídeo no trobat")
-    _remove_if_exists(os.path.join(UPLOADS_DIR, os.path.basename(video.url)))
+    get_storage().delete(os.path.basename(video.url))
     db.delete(video)
     db.commit()
 
@@ -141,9 +142,11 @@ def delete_uploaded_video(video_id: int, db: Session = Depends(get_db)):
 def _image_size(url: str) -> tuple[int, int] | None:
     if not url.startswith("/uploads/"):
         return None
-    path = os.path.join(UPLOADS_DIR, os.path.basename(url))
+    data = get_storage().read(os.path.basename(url))
+    if data is None:
+        return None
     try:
-        with Image.open(path) as img:
+        with Image.open(io.BytesIO(data)) as img:
             return img.size
     except (OSError, ValueError):
         return None

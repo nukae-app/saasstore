@@ -8,9 +8,15 @@ services:
       AWS_SUPERADMIN_SECRETS_NAME: nukaesaas/superadmin
       AWS_REGION: eu-west-1
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+      # Subidas del admin: `s3` en producción (bucket de terraform-uploads); `local` escribe
+      # en el volumen de abajo (vuelta atrás / desarrollo). Ver api/app/services/storage.py.
+      UPLOADS_BACKEND: ${UPLOADS_BACKEND:-local}
+      S3_UPLOADS_BUCKET: ${S3_UPLOADS_BUCKET:-}
     expose:
       - "8000"
     volumes:
+      # Con UPLOADS_BACKEND=s3 ya no se escribe aquí; se conserva como copia de seguridad
+      # de la migración (borrar el volumen cuando se dé por buena).
       - uploads:/app/uploads
 
   redis:
@@ -101,11 +107,13 @@ services:
       SUPERADMIN_HOST: ${SUPERADMIN_HOST:-superadmin.localhost}
       NEXT_PUBLIC_APP_HOST: ${NEXT_PUBLIC_APP_HOST:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+      # Dominio de CloudFront que sirve /uploads/* (terraform-uploads, output cdn_domain). El valor
+      # por defecto es inválido a propósito: Caddy arranca igualmente y /uploads responde 502.
+      UPLOADS_CDN_HOST: ${UPLOADS_CDN_HOST:-uploads-no-configurado.invalid}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-      - uploads:/srv/uploads:ro
     depends_on:
       - web
       - api

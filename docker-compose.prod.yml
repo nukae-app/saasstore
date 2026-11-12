@@ -93,6 +93,7 @@ services:
       SUPERADMIN_HOST: ${SUPERADMIN_HOST:-superadmin.localhost}
       NEXT_PUBLIC_APP_HOST: ${NEXT_PUBLIC_APP_HOST:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+      UPLOADS_CDN_HOST: ${UPLOADS_CDN_HOST:-uploads-no-configurado.invalid}  # recordshop (parado): /uploads ya no se sirve desde el volumen
     volumes:
       - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

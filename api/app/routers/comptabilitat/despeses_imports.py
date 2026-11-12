@@ -3,7 +3,6 @@ proveïdor (extracció amb Claude, veure services/despesa_extraction.py).
 L'extracció mai es contabilitza sola: `confirmar` sempre passa pel mateix
 `DespesaIn` que l'alta manual, amb revisió humana pel mig."""
 
-import os
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -16,12 +15,15 @@ from ...models import DespesaImport, DespesaImportStatus
 from ...schemas import DespesaImportOut, DespesaIn, DespesaOut
 from ...services.despesa_extraction import extract_despesa_data
 from ...services.security import require_admin
+from ...services.storage import get_storage
 from .despeses import _build_despesa, _despesa_out
 
 router = APIRouter(prefix="/admin", tags=["comptabilitat"], dependencies=[Depends(require_admin)])
 
-UPLOADS_ROOT = "/app/uploads"
-UPLOADS_DIR = os.path.join(UPLOADS_ROOT, "despeses")
+# Las facturas son privadas: se guardan bajo `despeses/` (prefijo `private/` en S3, sin
+# lectura pública) y el admin las abre con una URL firmada de corta duración
+# (GET /despeses/imports/{id}/file-url). Ver services/storage.py.
+FILE_URL_TTL_SECONDS = 300
 
 # Factura en PDF o foto (mòbil, capture de càmera) — Claude llegeix totes dues
 # nativament, veure services/despesa_extraction.py. Sense HEIC: l'API de
@@ -47,10 +49,8 @@ async def crear_despesa_import(
 
     content = await file.read()
 
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
-    with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
-        f.write(content)
+    get_storage().save(f"despeses/{filename}", content, content_type=content_type)
     file_url = f"/uploads/despeses/{filename}"
 
     imp = DespesaImport(
@@ -118,10 +118,21 @@ def descartar_despesa_import(import_id: uuid.UUID, db: Session = Depends(get_db)
     if imp.status == DespesaImportStatus.confirmat:
         raise HTTPException(409, "No es pot descartar una importació ja confirmada")
 
-    if imp.file_url.startswith("/uploads/"):
-        filepath = os.path.join(UPLOADS_ROOT, imp.file_url.removeprefix("/uploads/"))
-        if os.path.exists(filepath):
-            os.remove(filepath)
+    if imp.file_url.startswith("/uploads/despeses/"):
+        get_storage().delete(imp.file_url.removeprefix("/uploads/"))
 
     imp.status = DespesaImportStatus.descartat
     db.commit()
+
+
+@router.get("/despeses/imports/{import_id}/file-url")
+def url_fitxer_despesa_import(import_id: uuid.UUID, db: Session = Depends(get_db)):
+    """URL temporal (5 min) per obrir la factura original. El fitxer és privat:
+    ja no es serveix públicament a /uploads/despeses/."""
+    imp = db.get(DespesaImport, import_id)
+    if imp is None or not imp.file_url.startswith("/uploads/despeses/"):
+        raise HTTPException(404, "Importació no trobada")
+    url = get_storage().private_url(
+        imp.file_url.removeprefix("/uploads/"), expires=FILE_URL_TTL_SECONDS, filename=imp.original_filename,
+    )
+    return {"url": url, "expires_in": FILE_URL_TTL_SECONDS}

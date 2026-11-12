@@ -147,3 +147,6 @@ Si el SaaS no se va a vender, reducir superficie de ataque en vez de mantenerla:
 - Textos públicos corregidos en producción (ca/es/en): NIF, cookies (ya declara Faro con consentimiento) y privacidad (fila de analítica y proveedores concretos).
 - Redsys de suscripciones verifica importe, moneda y comercio (`subscripcions_public.py`), con test.
 - Pendiente: `ConfiguracioBotiga.nif` vacío en producción (alimenta facturas y futuros seeds); 2FA admin; cifrado y copia del volumen `uploads`; decisión sobre `recordshop-db`; Verifactu (decisión con la gestoría); historial de precios (Omnibus).
+
+## Actualización 2026-11-12 (subidas en S3)
+Ver `docs/PLAN_UPLOADS_S3.md`. Detectado y corregido: las facturas de gastos se servían públicamente por `/uploads/despeses/`; y la subida de fondo de bloque de la home daba 500 desde el deploy `95e0f93` (import que faltaba en `home_blocks.py`; ahora con test de regresión). Presupuesto AWS de 40 USD/mes con alerta al 50 % creado (`infra/terraform-budget`).

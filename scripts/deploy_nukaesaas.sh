@@ -21,6 +21,12 @@ REMOTE_DIR="/home/ubuntu/nukaesaas"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Subidas del admin en S3 + CloudFront (infra/terraform-uploads). Se leen ANTES de
+# construir nada: si el stack no está aplicado, el deploy se corta aquí y no toca el servidor.
+UPLOADS_BUCKET="nukaesaas-uploads-${AWS_ACCOUNT_ID}"
+UPLOADS_CDN_HOST="$(terraform -chdir=infra/terraform-uploads output -raw cdn_domain)"
+[ -n "$UPLOADS_CDN_HOST" ] || { echo "ERROR: terraform-uploads no está aplicado (sin cdn_domain)"; exit 1; }
+
 echo "==> Login a ECR ($ECR_REGISTRY)"
 aws ecr get-login-password --region "$AWS_REGION" \
   | docker login --username AWS --password-stdin "$ECR_REGISTRY"
@@ -61,7 +67,7 @@ aws secretsmanager get-secret-value --secret-id recordshop/prod --region "$AWS_R
 FARO_COLLECTOR_URL="https://faro-collector-prod-eu-west-6.grafana.net/collect/237acf4206e1fc52519d44711fee374d"
 
 # shellcheck disable=SC2087
-ssh "$SSH_HOST" ECR_REGISTRY="$ECR_REGISTRY" IMAGE_TAG="$IMAGE_TAG" AWS_REGION="$AWS_REGION" FARO_COLLECTOR_URL="$FARO_COLLECTOR_URL" bash -s <<'REMOTE'
+ssh "$SSH_HOST" ECR_REGISTRY="$ECR_REGISTRY" IMAGE_TAG="$IMAGE_TAG" AWS_REGION="$AWS_REGION" FARO_COLLECTOR_URL="$FARO_COLLECTOR_URL" UPLOADS_BUCKET="$UPLOADS_BUCKET" UPLOADS_CDN_HOST="$UPLOADS_CDN_HOST" bash -s <<'REMOTE'
   set -euo pipefail
   cd /home/ubuntu/nukaesaas
   aws ecr get-login-password --region "$AWS_REGION" \
@@ -73,6 +79,14 @@ ssh "$SSH_HOST" ECR_REGISTRY="$ECR_REGISTRY" IMAGE_TAG="$IMAGE_TAG" AWS_REGION="
   else
     echo "NEXT_PUBLIC_FARO_COLLECTOR_URL=$FARO_COLLECTOR_URL" >> .env
   fi
+
+  # Subidas del admin → S3 (idempotente, mismo patrón que arriba).
+  setenv() {
+    if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else echo "$1=$2" >> .env; fi
+  }
+  setenv UPLOADS_BACKEND s3
+  setenv S3_UPLOADS_BUCKET "$UPLOADS_BUCKET"
+  setenv UPLOADS_CDN_HOST "$UPLOADS_CDN_HOST"
 
   docker compose -f docker-compose.nukaesaas.yml pull
   docker compose -f docker-compose.nukaesaas.yml up -d

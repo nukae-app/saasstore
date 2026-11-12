@@ -333,6 +333,34 @@ function DespesaModal({ despesa, importRecord, proveidors, tipusIva, categories,
   const t = useT();
   const isEdit = !!despesa;
   const isImport = !!importRecord;
+  // La factura original és privada (ja no es serveix a /uploads/despeses/): s'obre amb una
+  // URL temporal signada (5 min) que demana l'API amb la sessió d'admin.
+  const [docUrl, setDocUrl] = useState(null);
+  const [docError, setDocError] = useState(false);
+  useEffect(() => {
+    if (!importRecord) return undefined;
+    let cancelled = false;
+    setDocUrl(null);
+    setDocError(false);
+    authFetch(`/admin/despeses/imports/${importRecord.id}/file-url`)
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('file-url'))))
+      .then(d => { if (!cancelled) setDocUrl(d.url); })
+      .catch(() => { if (!cancelled) setDocError(true); });
+    return () => { cancelled = true; };
+  }, [importRecord?.id]);
+
+  async function openDocInNewTab(e) {
+    e.preventDefault();
+    // La URL caduca: se demana una de nova en cada clic (finestra oberta en síncron per no ser bloquejada).
+    const w = window.open('', '_blank');
+    try {
+      const r = await authFetch(`/admin/despeses/imports/${importRecord.id}/file-url`);
+      const d = await r.json();
+      if (w) { w.opener = null; w.location.href = d.url; }
+    } catch {
+      if (w) w.close();
+    }
+  }
   const today = new Date().toISOString().slice(0, 10);
   const ext = importRecord?.extracted_data || {};
 
@@ -452,14 +480,22 @@ function DespesaModal({ despesa, importRecord, proveidors, tipusIva, categories,
             <div className="border border-outline-variant rounded-xl overflow-hidden">
               <div className="px-4 py-2 bg-surface-container-high text-xs font-medium text-secondary-foreground flex items-center justify-between gap-2">
                 <span className="truncate">{t('despeses.import.original_document', 'Document original')}: {importRecord.original_filename}</span>
-                <a href={importRecord.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline shrink-0">
+                <a href="#" onClick={openDocInNewTab} className="text-primary hover:underline shrink-0">
                   {t('despeses.import.open_new_tab', 'Obrir en pestanya nova')}
                 </a>
               </div>
-              {/\.(jpe?g|png|webp)$/i.test(importRecord.file_url) ? (
-                <img src={importRecord.file_url} alt={importRecord.original_filename} className="w-full h-64 object-contain bg-surface-container-high" />
+              {docError ? (
+                <div className="w-full h-64 flex items-center justify-center bg-surface-container-high text-xs text-secondary-foreground">
+                  {t('despeses.import.doc_error', "No s'ha pogut carregar el document original.")}
+                </div>
+              ) : !docUrl ? (
+                <div className="w-full h-64 flex items-center justify-center bg-surface-container-high text-xs text-secondary-foreground">
+                  {t('despeses.import.doc_loading', 'Carregant document…')}
+                </div>
+              ) : /\.(jpe?g|png|webp)$/i.test(importRecord.file_url) ? (
+                <img src={docUrl} alt={importRecord.original_filename} className="w-full h-64 object-contain bg-surface-container-high" />
               ) : (
-                <iframe src={importRecord.file_url} title={importRecord.original_filename} className="w-full h-64 bg-surface-container-high" />
+                <iframe src={docUrl} title={importRecord.original_filename} className="w-full h-64 bg-surface-container-high" />
               )}
               {ext.confidence && ext.confidence !== 'alta' && (
                 <div className="px-4 py-2 bg-amber-50 text-xs text-amber-700 flex items-center gap-1.5">

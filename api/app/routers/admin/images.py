@@ -9,12 +9,10 @@ from ...database import get_db
 from ...models import Release, ReleaseImage
 from ...schemas import ReleaseImageOut
 from ...services.security import require_admin
+from ...services.storage import get_storage
 from ...services.uploads import validate_image_bytes
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
-
-UPLOADS_DIR = "/app/uploads"
-
 
 @router.get("/releases/{release_id}/images", response_model=list[ReleaseImageOut])
 def get_release_images(release_id: uuid.UUID, db: Session = Depends(get_db)):
@@ -41,11 +39,8 @@ async def upload_release_image(
 
     content = await file.read()
     validate_image_bytes(content, ext, (".jpg", ".jpeg", ".png", ".webp"))
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
-    filepath = os.path.join(UPLOADS_DIR, filename)
-    with open(filepath, "wb") as f:
-        f.write(content)
+    get_storage().save(filename, content)
 
     posicio = (db.scalar(
         select(ReleaseImage.position)
@@ -78,9 +73,7 @@ def delete_release_image(release_id: uuid.UUID, image_id: int, db: Session = Dep
         raise HTTPException(404, "Imatge no trobada")
     # Elimina el fitxer local si és un upload
     if img.source == "upload" and img.url.startswith("/uploads/"):
-        filepath = os.path.join(UPLOADS_DIR, os.path.basename(img.url))
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        get_storage().delete(os.path.basename(img.url))
     db.delete(img)
     db.commit()
 

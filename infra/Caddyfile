@@ -48,11 +48,22 @@ www.{$SITE_ADDRESS} {
 }
 
 (web_proxy) {
+	# Las facturas de gastos son PRIVADAS (S3 private/, URLs firmadas desde la API):
+	# jamás se sirven por /uploads, ni aunque alguien conozca el nombre.
+	handle /uploads/despeses/* {
+		respond 404
+	}
+
+	# Subidas públicas (imágenes, vídeos, tipografías): viven en S3 y las sirve
+	# CloudFront. Se mantiene la ruta /uploads/... (mismo origen: sin CORS ni
+	# cambios de CSP) y las URLs guardadas en la BD no cambian.
+	# UPLOADS_CDN_HOST = dominio de CloudFront (terraform-uploads, output cdn_domain).
 	handle /uploads/* {
 		uri strip_prefix /uploads
-		root * /srv/uploads
 		header X-Content-Type-Options "nosniff"
-		file_server
+		reverse_proxy https://{$UPLOADS_CDN_HOST} {
+			header_up Host {upstream_hostport}
+		}
 	}
 
 	handle {
@@ -67,7 +78,7 @@ www.{$SITE_ADDRESS} {
 			# `Content-Security-Policy` un cop revisades (Fase 2.2 del pla).
 			# 'unsafe-inline' a script/style perquè Next.js injecta scripts
 			# inline sense nonce; es pot estrènyer més endavant.
-			Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://faro-collector-prod-eu-west-6.grafana.net; frame-src https://www.mixcloud.com https://*.bandcamp.com https://w.soundcloud.com https://open.spotify.com https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self' https://sis.redsys.es https://sis-t.redsys.es; frame-ancestors 'self'; report-uri /api/csp-report"
+			Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://faro-collector-prod-eu-west-6.grafana.net; frame-src https://*.s3.eu-west-1.amazonaws.com https://www.mixcloud.com https://*.bandcamp.com https://w.soundcloud.com https://open.spotify.com https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self' https://sis.redsys.es https://sis-t.redsys.es; frame-ancestors 'self'; report-uri /api/csp-report"
 			-X-Powered-By
 		}
 		reverse_proxy web:3000

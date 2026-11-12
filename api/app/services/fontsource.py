@@ -6,18 +6,18 @@ queden autoallotjats a /uploads — la web pública mai depèn de Fontsource ni
 de cap tercer per servir les fonts (evita el problema de RGPD de Google
 Fonts: cap petició del visitant surt cap enfora)."""
 
-import os
 import time
 import uuid
 
 import httpx
+
+from .storage import get_storage
 
 FONTSOURCE_API = "https://api.fontsource.org/v1"
 FONTSOURCE_CDN = "https://cdn.jsdelivr.net/fontsource"
 # Mateix directori pla que favicon/logo/fons de bloc (ver routers/configuracio.py
 # i routers/home_blocks.py) — cap subcarpeta, perquè _delete_upload_file ja
 # assumeix estructura plana.
-UPLOADS_DIR = "/app/uploads"
 
 _cache: dict = {"fonts": None, "fetched_at": 0.0}
 _CACHE_TTL_SECONDS = 24 * 3600
@@ -60,7 +60,6 @@ async def download_font(font_id: str) -> dict:
     weights = [w for w in (400, 700) if w in available_weights] or [available_weights[0]]
     subset = font["defSubset"]
 
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
     faces = []
     async with httpx.AsyncClient(timeout=20) as client:
         for weight in weights:
@@ -73,8 +72,7 @@ async def download_font(font_id: str) -> dict:
             if resp.status_code != 200:
                 continue
             filename = f"{uuid.uuid4()}.woff2"
-            with open(os.path.join(UPLOADS_DIR, filename), "wb") as fh:
-                fh.write(resp.content)
+            get_storage().save(filename, resp.content, content_type="font/woff2")
             faces.append({"weight": weight, "url": f"/uploads/{filename}"})
 
     if not faces:

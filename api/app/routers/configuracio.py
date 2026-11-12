@@ -35,6 +35,7 @@ from ..schemas import (
 )
 from ..services import discogs, fontsource as fontsource_svc
 from ..services.sanitize import sanitize_custom_css
+from ..services.storage import get_storage
 from ..services.uploads import validate_image_bytes
 from ..services.security import require_admin
 from ..tenant_secrets import TenantSecrets, get_tenant_secrets, set_tenant_secret
@@ -106,14 +107,9 @@ def update_configuracio(payload: ConfiguracioBotigaUpdate, request: Request, db:
     return config
 
 
-UPLOADS_DIR = "/app/uploads"
-
-
 def _delete_upload_file(url: str | None) -> None:
     if url and url.startswith("/uploads/"):
-        filepath = os.path.join(UPLOADS_DIR, os.path.basename(url))
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        get_storage().delete(os.path.basename(url))
 
 
 ALLOWED_IMAGE_EXTS = (".png", ".ico", ".jpg", ".jpeg", ".webp")
@@ -130,10 +126,8 @@ async def _upload_config_image(field: str, file: UploadFile, db: Session) -> Con
     content = await file.read()
     validate_image_bytes(content, ext, ALLOWED_IMAGE_EXTS)
     config = _get_or_create_config(db)
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
-    with open(os.path.join(UPLOADS_DIR, filename), "wb") as f:
-        f.write(content)
+    get_storage().save(filename, content)
 
     _delete_upload_file(getattr(config, field))
     setattr(config, field, f"/uploads/{filename}")

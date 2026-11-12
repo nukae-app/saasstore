@@ -20,8 +20,8 @@ from app.services.despesa_extraction import _match_proveidor
 
 @pytest.fixture(autouse=True)
 def _patch_uploads_dir(monkeypatch, tmp_path):
-    monkeypatch.setattr(despeses_imports_router, "UPLOADS_ROOT", str(tmp_path))
-    monkeypatch.setattr(despeses_imports_router, "UPLOADS_DIR", os.path.join(str(tmp_path), "despeses"))
+    monkeypatch.setenv("UPLOADS_LOCAL_DIR", str(tmp_path))
+    monkeypatch.delenv("UPLOADS_BACKEND", raising=False)
 
 
 def _login(client, email: str) -> str:

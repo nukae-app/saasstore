@@ -12,11 +12,11 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import NewsletterCampaign, NewsletterCampaignStatus, NewsletterSend, NewsletterSendStatus, User
 from ..services.emailer import absolutize_upload_urls, send_email
+from ..services.storage import get_storage
 from ..services.security import require_admin
 from ..services.uploads import validate_image_bytes
 from ..tasks.newsletter import send_campaign
 
-UPLOADS_DIR = "/app/uploads"
 
 router = APIRouter(prefix="/admin/newsletter", tags=["admin-newsletter"], dependencies=[Depends(require_admin)])
 
@@ -80,11 +80,8 @@ async def upload_image(file: UploadFile = File(...)):
 
     content = await file.read()
     validate_image_bytes(content, ext, (".jpg", ".jpeg", ".png", ".webp", ".gif"))
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"
-    filepath = os.path.join(UPLOADS_DIR, filename)
-    with open(filepath, "wb") as f:
-        f.write(content)
+    get_storage().save(filename, content)
 
     return {"url": f"/uploads/{filename}"}
 
