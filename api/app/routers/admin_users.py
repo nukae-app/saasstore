@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..models import Compra, Item, Order, OrderItem, User, VentaExterna
 from ..services.gdpr import ErasureBlocked, anonymize_user, export_user_data
-from ..services.security import hash_password, require_admin
+from ..services.security import hash_password, is_common_password, require_admin
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"], dependencies=[Depends(require_admin)])
 
@@ -33,6 +33,14 @@ class UserCreateIn(BaseModel):
     consent_newsletter: bool = False
     language: str = "ca"
     internal_notes: str | None = None
+
+
+ROLS_VALIDS = ("cliente", "admin")
+
+
+def _valida_rol(role: str | None) -> None:
+    if role is not None and role not in ROLS_VALIDS:
+        raise HTTPException(422, "Rol no vàlid")
 
 
 class UserPatchIn(BaseModel):
@@ -220,6 +228,7 @@ def list_users(
 
 @router.post("", status_code=201)
 def create_user(payload: UserCreateIn, db: Session = Depends(get_db)):
+    _valida_rol(payload.role)
     u = User(
         email=payload.email.lower().strip(),
         name=payload.name,
@@ -248,6 +257,10 @@ def create_user(payload: UserCreateIn, db: Session = Depends(get_db)):
 def admin_set_password(user_id: uuid.UUID, payload: SetPasswordIn, db: Session = Depends(get_db)):
     if len(payload.password) < 8:
         raise HTTPException(422, "La contrasenya ha de tenir mínim 8 caràcters")
+    if len(payload.password.encode()) > 72:
+        raise HTTPException(422, "La contrasenya és massa llarga (màxim 72 bytes)")
+    if is_common_password(payload.password):
+        raise HTTPException(422, "Aquesta contrasenya és massa comuna")
     u = db.get(User, user_id)
     if u is None:
         raise HTTPException(404, "Usuari no trobat")
@@ -352,7 +365,18 @@ def update_user(user_id: uuid.UUID, payload: UserPatchIn, db: Session = Depends(
     u = db.get(User, user_id)
     if u is None:
         raise HTTPException(404, "Usuari no trobat")
-    for field, val in payload.model_dump(exclude_unset=True).items():
+    canvis = payload.model_dump(exclude_unset=True)
+    _valida_rol(canvis.get("role"))
+    # No deixar la botiga sense cap admin actiu (ni per degradar-lo ni per desactivar-lo).
+    perd_admin = u.role == "admin" and u.active and (
+        canvis.get("role", u.role) != "admin" or canvis.get("active", u.active) is False
+    )
+    if perd_admin:
+        altres = db.scalar(select(func.count(User.id)).where(
+            User.role == "admin", User.active == True, User.id != u.id))  # noqa: E712
+        if not altres:
+            raise HTTPException(409, "Ha de quedar com a mínim un administrador actiu")
+    for field, val in canvis.items():
         setattr(u, field, val)
     db.commit()
     db.refresh(u)

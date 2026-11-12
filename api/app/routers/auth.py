@@ -32,6 +32,7 @@ from ..services.security import (
     get_or_create_user,
     get_refresh_cookie,
     hash_password,
+    is_common_password,
     issue_refresh_token,
     revoke_refresh_token,
     rotate_refresh_token,
@@ -106,6 +107,8 @@ def _validate_password(password: str) -> None:
         raise HTTPException(422, "La contrasenya ha de tenir mínim 8 caràcters")
     if len(password.encode()) > 72:
         raise HTTPException(422, "La contrasenya és massa llarga (màxim 72 bytes)")
+    if is_common_password(password):
+        raise HTTPException(422, "Aquesta contrasenya és massa comuna. Tria\'n una altra.")
 
 
 @router.post("/register", status_code=202)

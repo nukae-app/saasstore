@@ -193,3 +193,21 @@ def require_admin(request: Request, db: Session = Depends(get_db)) -> User:
 
 def get_refresh_cookie(ulr_refresh: str | None = Cookie(default=None)) -> str | None:
     return ulr_refresh
+
+
+# Contraseñas muy comunes (≥ 8 caracteres, que es el mínimo) que se rechazan en el alta y al
+# cambiarla (NIST SP 800-63B §5.1.1.2). Lista corta y deliberada: no sustituye a un diccionario
+# completo, pero cubre lo que se prueba primero en cualquier ataque de credential stuffing.
+COMMON_PASSWORDS = frozenset({
+    "password", "password1", "password12", "password123", "passw0rd", "p@ssw0rd", "12345678", "123456789",
+    "1234567890", "123123123", "11111111", "00000000", "87654321", "qwertyui", "qwerty123", "qwertyuiop",
+    "1q2w3e4r", "1qaz2wsx", "q1w2e3r4", "abc12345", "abcd1234", "abcdefgh", "iloveyou", "letmein1",
+    "welcome1", "welcome123", "admin123", "administrator", "monkey123", "dragon123", "football", "baseball",
+    "superman", "trustno1", "sunshine", "princess", "whatever", "contrasenya", "contrasena", "contraseña",
+    "contrasenya1", "contrasena1", "contraseña1", "contraseña123", "barcelona", "barcelona1", "ultralocal",
+    "ultralocal1", "labotiga1", "discos123", "vinilo123", "vinil1234", "123456abc", "a1234567", "aa123456",
+})
+
+
+def is_common_password(password: str) -> bool:
+    return password.strip().lower() in COMMON_PASSWORDS

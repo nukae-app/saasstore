@@ -29,7 +29,7 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.rds.id]
 
   publicly_accessible     = false # només accessible des de l'EC2
-  deletion_protection     = false
+  deletion_protection     = true
   skip_final_snapshot     = true
   backup_retention_period = 7 # 7 dies de backups automàtics
   backup_window           = "03:00-04:00"

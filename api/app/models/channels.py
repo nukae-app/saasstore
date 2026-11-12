@@ -18,7 +18,7 @@ from decimal import Decimal
 from sqlalchemy import (
     JSON, Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint, func,
 )
-from sqlalchemy import event, inspect, select
+from sqlalchemy import event, inspect, select, update
 from sqlalchemy.orm import Mapped, Session, deferred, mapped_column, relationship
 
 from ..database import Base
@@ -226,9 +226,22 @@ def _free_external_id(session: Session, codi: str, owner) -> None:
         ).all()
     for otro in otros:
         if otro is not owner:
+            retirar = otro.status == LISTING_PUBLICAT
             otro.external_id = None
-            if otro.status == LISTING_PUBLICAT:
+            if retirar:
                 otro.status = LISTING_RETIRAT
+            # UPDATE inmediato: el flush ordena los UPDATE del ORM por clave primaria (UUID aleatorio),
+            # así que si el nuevo dueño se actualizaba antes que este, chocaba con la unicidad de
+            # (tenant, channel, external_id) de forma intermitente.
+            if otro.id is not None:
+                valores = {"external_id": None}
+                if retirar:
+                    valores["status"] = LISTING_RETIRAT
+                with session.no_autoflush:
+                    session.execute(
+                        update(ChannelListing).where(ChannelListing.id == otro.id).values(**valores),
+                        execution_options={"synchronize_session": False},
+                    )
 
 
 @event.listens_for(Session, "before_flush")

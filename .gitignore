@@ -63,3 +63,6 @@ infra/terraform*/tfplan
 
 # Còpies de seguretat locals (Discogs, etc.): contenen dades de negoci, no es versionen
 backups/
+
+# Notas locales con endpoints/hosts de infraestructura
+db.txt

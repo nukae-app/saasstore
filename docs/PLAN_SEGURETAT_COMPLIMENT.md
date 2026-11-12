@@ -8,16 +8,16 @@ Estado (2026-11-11): Fase 5 = opción A aprobada. Fase 2 implementada en el repo
 - 2.1 hecho: `--proxy-headers --forwarded-allow-ips=*` en `api/Dockerfile`; límites en `/checkout/validate-coupon` (30/h) y `/auth/set-password` (10/h).
 - 2.2 hecho: `infra/Caddyfile` con snippets `api_proxy`/`web_proxy` (bloquean `/api/metrics` e `/api/internal` en todos los bloques), nosniff en `/uploads`, CSP en report-only con receptor `POST /csp-report` (registra en el log → Grafana). Bloques de superadmin y landing SaaS eliminados (opción A).
 - 2.3 hecho: `config.assert_production_secrets()` llamado desde `main.py`.
-- 2.4 PENDIENTE: toca infraestructura de producción (`docker-socket-proxy`, rootfs); requiere probar en el despliegue.
-- 2.5 parcial: validación real de imágenes (`services/uploads.py`: magic bytes, extensión coherente, 10 MB) en los 4 endpoints. `remotePatterns "**"` de Next NO se ha tocado: hay 19 usos de `<Image>` y portadas con URL manual; restringirlo las rompería (decisión pendiente).
-- 2.5b hecho: cookie de carrito `secure`, `/auth/register` genérico (202), tope de 72 bytes en contraseñas, verificación de `Ds_Amount`/`Ds_Currency`/`Ds_MerchantCode` en la notificación de Redsys. Pendiente: lista de contraseñas comunes.
+- 2.4 hecho: Alloy ya no monta `docker.sock`; usa `docker-socket-proxy` de solo lectura (contenedores y redes). Redacción de emails, `token=` y Bearer en los logs antes de enviarlos a Grafana (`loki.process`). Colectores del exporter limitados. Riesgo residual: se mantiene `/:/rootfs:ro` (necesario para las métricas de disco).
+- 2.5 hecho salvo `remotePatterns`: validación real de imágenes (`services/uploads.py`: magic bytes, extensión coherente, 10 MB) en los 4 endpoints. `remotePatterns "**"` de Next se mantiene como RIESGO ACEPTADO: portadas con URL manual lo requieren; Next 16 solo admite HTTPS y bloquea IPs privadas, así que no hay SSRF; el residuo es consumo de ancho de banda por el optimizador.
+- 2.5b hecho: cookie de carrito `secure`, `/auth/register` genérico (202), tope de 72 bytes en contraseñas, verificación de `Ds_Amount`/`Ds_Currency`/`Ds_MerchantCode` en la notificación de Redsys. Lista corta de contraseñas comunes rechazada (`services/security.py`).
 
 ---
 
 ## Fase 1 — Cumplimiento con riesgo de sanción real (prioridad máxima)
 
 ### 1.1 Consentimiento para Faro / analítica — IMPLEMENTADO en el repo (sin desplegar)
-Hecho: `components/lib/analyticsConsent.js` (preferencia en localStorage, 12 meses), `components/store/CookieConsent.jsx` (banner con Acceptar/Rebutjar de igual peso, ca/es/en), `FaroInit` solo inicializa con consentimiento y se pausa y limpia su storage al retirarlo, botón «Preferències de cookies» en el footer. Pendiente: actualizar el texto de la página CMS `/cookies` (vive en BD) y verificar en navegador tras reconstruir el contenedor web.
+Hecho: `components/lib/analyticsConsent.js` (preferencia en localStorage, 12 meses), `components/store/CookieConsent.jsx` (banner con Acceptar/Rebutjar de igual peso, ca/es/en), `FaroInit` solo inicializa con consentimiento y se pausa y limpia su storage al retirarlo, botón «Preferències de cookies» en el footer. Texto propuesto en `docs/TEXT_PAGINA_COOKIES.md` (pendiente de pegar en el CMS tras validación). Pendiente: verificar en navegador.
 
 - **Problema:** `web/components/observability/FaroInit.jsx` se inicializa siempre desde `web/app/layout.jsx`. Guarda sesión en el navegador y envía URL, UA y referrer a Grafana Cloud sin consentimiento (LSSI 22.2 / ePrivacy; criterio AEPD).
 - **Cambios:**
@@ -87,7 +87,8 @@ Hecho: `docs/REGISTRE_TRACTAMENTS.md` (registro art. 30, encargados, transferenc
 
 ---
 
-## Fase 3 — Higiene del repo e infraestructura
+## Fase 3 — Higiene del repo e infraestructura — HECHA
+Hecho: `db.txt` fuera del repo y en `.gitignore`; `deletion_protection` activado en las dos RDS (AWS CLI + `.tf` actualizados, `nukaesaas` con snapshot final); `pip-audit` sin vulnerabilidades. Pendiente opcional: integrar `pip-audit` en CI.
 
 - Quitar `db.txt` del repo (`git rm`), añadirlo a `.gitignore`. El endpoint RDS y la IP del bastión no son secretos, pero no deberían versionarse.
 - RDS: `deletion_protection = true`, y backups fuera del VPS ya previstos en CLAUDE.md (verificar restore).
@@ -96,7 +97,8 @@ Hecho: `docs/REGISTRE_TRACTAMENTS.md` (registro art. 30, encargados, transferenc
 
 ---
 
-## Fase 4 — Auditoría pendiente (no hecha aún)
+## Fase 4 — Auditoría — HECHA
+Resultado: `/me/*`, carrito (cookie de sesión) y `GET /checkout/{id}` (UUID aleatorio, datos mínimos, comprobación de tenant) correctos. SSRF: sin vectores (URLs fijas; el CSV es configuración; `fontsource` solo descarga ids de su lista). Corregido en `admin_users`: rol validado (`cliente`/`admin`), no se puede degradar/desactivar al último admin, `set-password` con tope de 72 bytes y lista de contraseñas comunes. Corregido bug intermitente en `_free_external_id` (UPDATE ordenado por UUID chocaba con la unicidad del `external_id` al mover un código de Discogs entre ítems). No auditado por falta de acceso: datos reales en producción.
 
 - IDOR/autorización por objeto en `/me/*`, carrito de invitados y pedidos de invitado.
 - Revisar `admin_users` (cambio de rol, anonimizar) y `comptabilitat` con datos fiscales.

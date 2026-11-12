@@ -61,13 +61,26 @@ services:
     env_file: .env.grafana
     volumes:
       - ./infra/alloy-config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
     command: run --server.http.listen-addr=127.0.0.1:12345 /etc/alloy/config.alloy
     mem_limit: 256m
     cpus: 0.5
     depends_on:
       - api
+      - dockerproxy
+
+  dockerproxy:
+    # Solo lectura de contenedores/redes para Alloy; sin esto Alloy montaba
+    # el socket de Docker entero (equivalente a root en el host).
+    image: tecnativa/docker-socket-proxy:0.3.0
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    mem_limit: 64m
 
   caddy:
     image: caddy:2-alpine

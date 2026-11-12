@@ -5,7 +5,7 @@
 // deploy.sh, mai es guarda en pla aquí.
 
 discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+  host = "tcp://dockerproxy:2375"
 }
 
 discovery.relabel "containers" {
@@ -19,10 +19,32 @@ discovery.relabel "containers" {
 }
 
 loki.source.docker "containers" {
-  host          = "unix:///var/run/docker.sock"
+  host          = "tcp://dockerproxy:2375"
   targets       = discovery.docker.containers.targets
   relabel_rules = discovery.relabel.containers.rules
-  forward_to    = [loki.write.grafana_cloud.receiver]
+  forward_to    = [loki.process.redact.receiver]
+}
+
+// Alloy NO monta /var/run/docker.sock (equivale a root en el host): habla
+// con un `docker-socket-proxy` de solo lectura (solo contenedores y redes).
+//
+// Redacción de datos personales y secretos antes de salir hacia Grafana
+// Cloud: emails, tokens de enlaces (magic link, baja de newsletter) y
+// cabeceras Bearer. Cada expresión captura SOLO la parte a sustituir.
+loki.process "redact" {
+  stage.replace {
+    expression = "([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})"
+    replace    = "<email>"
+  }
+  stage.replace {
+    expression = "(?i)token=([A-Za-z0-9._~%-]+)"
+    replace    = "<redacted>"
+  }
+  stage.replace {
+    expression = "(?i)bearer ([A-Za-z0-9._~+/=-]+)"
+    replace    = "<redacted>"
+  }
+  forward_to = [loki.write.grafana_cloud.receiver]
 }
 
 loki.write "grafana_cloud" {
@@ -58,6 +80,9 @@ prometheus.remote_write "grafana_cloud" {
 // l'host (docker-compose.prod.yml, servei alloy, `/:/rootfs:ro`).
 prometheus.exporter.unix "host" {
   rootfs_path = "/rootfs"
+  // Solo los colectores que se usan en los dashboards (el resto leería más
+  // del host sin necesidad).
+  set_collectors = ["cpu", "meminfo", "filesystem", "loadavg", "diskstats", "netdev", "uname"]
 }
 
 prometheus.scrape "host" {
